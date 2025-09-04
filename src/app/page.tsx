@@ -1,6 +1,10 @@
 import Image from "next/image";
+import {useTranslations} from 'next-intl';
 
 export default function Home() {
+  // Access the translation function for the 'HomePage' namespace
+  const t = useTranslations('HomePage');
+
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
@@ -47,7 +51,7 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            Read our docs
+            <h1>{t('title')}</h1>
           </a>
         </div>
       </main>

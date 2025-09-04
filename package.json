@@ -9,11 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "i18next-react": "^0.2.2",
     "next": "15.5.2",
+    "next-intl": "^4.3.5",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-i18next": "^15.7.3"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
