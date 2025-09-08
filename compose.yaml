@@ -1,10 +1,14 @@
 services:
-  smartcv-prod:
-    container_name: smartcv-prod
+  smartcv-dev:
+    container_name: smartcv-dev
     build:
       context: .
       dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
     ports:
       - "3000:3000"
+    command: yarn dev
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
