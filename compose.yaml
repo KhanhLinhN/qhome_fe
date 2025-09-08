@@ -12,4 +12,3 @@ services:
     command: yarn dev
     environment:
       - NODE_ENV=development
-  
