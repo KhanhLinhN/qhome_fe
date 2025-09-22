@@ -20,6 +20,8 @@ To build and run the application using Docker, use this command:
 ```bash
 docker compose up --build
 ```
+Deployed web link:
+[https://qhome.vercel.app/](https://qhome.vercel.app/)
 
 ## Architecture
 - messages: Contains multiple language json
