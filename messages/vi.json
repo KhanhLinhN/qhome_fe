@@ -1,5 +1,9 @@
 {
   "HomePage": {
     "title": "Xin chào thế giới!"
+  },
+  "Popup":{
+    "yes": "Đồng ý",
+    "no": "Hủy"
   }
 }
