@@ -1,5 +1,9 @@
 {
   "HomePage": {
     "title": "Hello world!!!!!!"
+  },
+  "Popup":{
+    "yes": "Yes",
+    "no": "No"
   }
 }
