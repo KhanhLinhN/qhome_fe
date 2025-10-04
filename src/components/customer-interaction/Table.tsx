@@ -12,7 +12,7 @@ interface TableItemProps {
     residentName: string;
     assignee: string;
     createdDate: string;
-    priority: "High" | "Medium" | "Low";
+    priority: string;
     status: string;
 }
 
