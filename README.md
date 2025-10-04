@@ -16,6 +16,11 @@ To add internationalization support for multiple languages, install the i18n lib
 yarn install next-intl
 ```
 
+The clsx utility is used for easily constructing class name strings:
+```bash
+yarn add clsx
+```
+
 To build and run the application using Docker, use this command:
 ```bash
 docker compose up --build
