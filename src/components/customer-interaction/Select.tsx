@@ -27,7 +27,7 @@ const Select = <T extends object>({ options, initialValue, onSelect, renderItem,
   const onClose = () => setIsOpen(false);
  
   const filteredOptions = options.filter(
-    (item: any) => filterLogic(item, keyword)
+    (item) => filterLogic(item, keyword)
   );
  
   const onSelectItem = (item: T) => () => {
