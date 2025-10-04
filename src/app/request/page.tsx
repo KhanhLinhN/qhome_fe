@@ -1,5 +1,4 @@
 'use client'
-import Image from "next/image";
 import {useTranslations} from 'next-intl';
 import FilterForm from "../../components/customer-interaction/FilterForm";
 import Table from "../../components/customer-interaction/Table";
