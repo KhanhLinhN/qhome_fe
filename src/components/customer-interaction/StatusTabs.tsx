@@ -7,15 +7,16 @@ interface TabData {
 }
 
 interface TabProps {
-    tab: TabData[];
+    tabList: TabData[];
+    type: string;
 }
 
-const StatusTabs = (tabProps: TabProps) => {
+const StatusTabs = ({ tabList, type }: TabProps) => {
     const [activeTab, setActiveTab] = React.useState('');
 
     return (
         <div className="flex border-b border-green-500 bg-[#F3F3F3] rounded-[8px]">
-            {tabProps.tab.map((tab) => (
+            {tabList.map((tab) => (
                 <div 
                     key={tab.status}
                     className={`pt-5 pb-5 flex w-full
@@ -28,12 +29,12 @@ const StatusTabs = (tabProps: TabProps) => {
                         onClick={() => setActiveTab(tab.status)}
                         className={`
                             px-6 text-left cursor-pointer transition duration-150 ease-in-out  w-full
-                            
-                            ${tabProps.tab.indexOf(tab) < tabProps.tab.length - 1 ? 'border-r-2 border-[#BBBBBB]' : ''}
+
+                            ${tabList.indexOf(tab) < tabList.length - 1 ? 'border-r-2 border-[#BBBBBB]' : ''}
                         `}
                     >
                     <p className="text-lg font-bold">{tab.title}</p>
-                    <p className="text-md font-medium">{tab.count} request</p>
+                    <p className="text-md font-medium">{tab.count} {type}</p>
                     </div>
                 </div>
             ))}

@@ -7,10 +7,10 @@ import Image from 'next/image';
 
 interface TableItemProps {
     id: number;
-    requestNumber: string;
-    requestTitle: string;
+    number: string;
+    title: string;
     residentName: string;
-    assignee: string;
+    assignee: string | null;
     createdDate: string;
     priority: string;
     status: string;
@@ -51,8 +51,8 @@ const Table = ({ data, headers } : TableProps) => {
                 </thead>
                 
                 <tbody>
-                    {data.map((request, index) => {
-                        const isSelected = request.id === selectedId;
+                    {data.map((item, index) => {
+                        const isSelected = item.id === selectedId;
                         
                         const rowClass = isSelected 
                             ? 'bg-green-50 transition duration-150 ease-in-out' 
@@ -64,7 +64,7 @@ const Table = ({ data, headers } : TableProps) => {
                         
                         return (
                             <tr 
-                                key={request.id} 
+                                key={item.id} 
                                 className={`${rowClass} ${borderClass} cursor-pointer`}
                             >
                                 {/* <td className="px-4 py-3 whitespace-nowrap">
@@ -74,21 +74,21 @@ const Table = ({ data, headers } : TableProps) => {
                                     />
                                 </td> */}
 
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-center text-[#024023]">{request.requestNumber}</td>
-                                <td className="px-4 py-3 text-[14px] text-[#024023] font-semibold truncate">{request.requestTitle}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023]">{request.residentName}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023]">{request.assignee}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{request.createdDate}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-center text-[#024023]">{item.number}</td>
+                                <td className="px-4 py-3 text-[14px] text-[#024023] font-semibold truncate">{item.title}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023]">{item.residentName}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023]">{item.assignee}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdDate}</td>
 
                                 <td className="px-4 py-3 whitespace-nowrap flex justify-center items-center h-full">
                                     <Image
-                                        src={request.priority === 'High' ? PriorityHighIcon : (request.priority === 'Medium' ? PriorityMediumIcon : PriorityLowIcon)}
+                                        src={item.priority === 'High' ? PriorityHighIcon : (item.priority === 'Medium' ? PriorityMediumIcon : PriorityLowIcon)}
                                         alt="Priority"
                                         width={20}
                                         height={20}
                                     />
                                 </td>                                
-                                <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-900">{request.status}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-900">{item.status}</td>
                             </tr>
                         );
                     })}
