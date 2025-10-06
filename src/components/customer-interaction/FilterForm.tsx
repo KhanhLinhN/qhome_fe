@@ -4,7 +4,11 @@ import Select from './Select';
 import DateBox from './DateBox';
 import { useTranslations } from 'next-intl';
 
-const FilterForm = () => {
+interface FilterProps {
+    type: string;
+}
+
+const FilterForm = ( { type } : FilterProps) => {
   const now = new Date();
   const [dateFrom, setDateFrom] = useState();
   const [dateTo, setDateTo] = useState();
@@ -72,6 +76,16 @@ const FilterForm = () => {
             // onChange={handleInputChange}
             className={inputClass}
           />
+          {type === 'requests' && (
+            <input
+              type="text"
+              name="assignee"
+              placeholder={t('assignee')}
+              // value={filters.assignee}
+              // onChange={handleInputChange}
+              className={inputClass}
+            />
+          )}
           <input
             type="text"
             name="staffInCharge"
