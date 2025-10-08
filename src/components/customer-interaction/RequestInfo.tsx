@@ -13,9 +13,9 @@ interface request {
 interface RequestInfoAndContextProps {
     value: request;
     titleRequestInfo: Title[];
-    contextTitle: String;
-    contextContextTitle: String;
-    contextImageTitle: String;
+    contextTitle: string;
+    contextContextTitle: string;
+    contextImageTitle: string;
 
 }
 

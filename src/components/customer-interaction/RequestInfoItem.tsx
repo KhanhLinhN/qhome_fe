@@ -1,6 +1,6 @@
 interface RequestInfoProps {
-    title: String;
-    value: String;
+    title: string;
+    value: string;
     isHighlighted?: Boolean;
 }
 
