@@ -9,8 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.2.2",
-    "axios": "^1.12.2",
     "next": "15.5.2",
     "next-intl": "^4.3.9",
     "react": "19.1.0",
