@@ -24,10 +24,10 @@
       "completed": "Completed",
       "closed": "Closed",
       "totalRequests": "Total Requests",
-      "newRequest": "New Request",
-      "processingRequests": "Processing requests",
-      "completedRequests": "Completed requests",
-      "closedRequests": "Closed requests",
+      "newRequests": "New Requests",
+      "processingRequests": "Processing Requests",
+      "respondedRequests": "Responded Requests",
+      "closedRequests": "Closed Requests",
       "action": "Action",
       "assignee": "Assigned",
       "dateCreated": "Date created",
@@ -35,7 +35,14 @@
       "high": "High",
       "medium": "Medium",
       "low": "Low",
-      "request-log": "Request log"
+      "request-log": "Request log",
+      "projectCode": "Project code",
+      "contextTitle": "Request title: ",
+      "contextContextTitle": "Request context: ",
+      "contextImageTitle": "Request image",
+      "requestLog": "Request Log",
+      "requestDetails": "Request Details"
+
     },
     "Complain":{
       "complainlist": "Complain List",

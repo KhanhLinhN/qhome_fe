@@ -3,5 +3,4 @@ export interface ProcessLog{
     status: string;
     createdDate: string;
     content: string;
-    isNewest: Boolean;
 }

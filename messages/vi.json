@@ -24,9 +24,9 @@
       "completed": "Đã hoàn thành",
       "closed": "Đã đóng",
       "totalRequests": "Tổng số Yêu cầu",
-      "newRequest": "Yêu cầu mới",
+      "newRequests": "Yêu cầu mới",
       "processingRequests": "Yêu cầu đang xử lý",
-      "completedRequests": "Yêu cầu đã hoàn thành",
+      "respondedRequests": "Yêu cầu đã phản hồi",
       "closedRequests": "Yêu cầu đã đóng",
       "action": "Hành động",
       "assignee": "Người được giao",
@@ -35,7 +35,13 @@
       "high": "Cao",
       "medium": "Trung bình",
       "low": "Thấp",
-      "request-log": "Nhật ký yêu cầu"
+      "request-log": "Nhật ký yêu cầu",
+      "projectCode": "Mã dự án",
+      "contextTitle": "Tiêu đề yêu cầu: ",
+      "contextContextTitle": "Nội dung yêu cầu: ",
+      "contextImageTitle": "Hình ảnh yêu cầu",
+      "requestLog": "Lịch sử xử lý Yêu cầu",
+      "requestDetails": "Chi tiết Yêu cầu"
     },
     "Complain": {
         "complainlist": "Danh sách Khiếu nại",
