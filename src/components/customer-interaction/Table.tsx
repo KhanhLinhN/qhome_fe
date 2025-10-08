@@ -19,10 +19,10 @@ interface TableItemProps {
 interface TableProps {
     data: TableItemProps[];
     headers?: string[];
-    onRowClick: (id: number) => void; 
+    // onRowClick: (id: number) => void; 
 }
 
-const Table = ({ data, headers, onRowClick }: TableProps) => {
+const Table = ({ data, headers }: TableProps) => {
     const t = useTranslations('customer-interaction.Request');
     const [selectedId, setSelectedId] = useState<number | undefined>();
 
@@ -66,7 +66,7 @@ const Table = ({ data, headers, onRowClick }: TableProps) => {
                         const handleCellClick = (e: React.MouseEvent) => {
                             e.stopPropagation();
                             setSelectedId(item.id); 
-                            onRowClick(item.id);
+                            // onRowClick(item.id);
                         };
                         
                         return (
