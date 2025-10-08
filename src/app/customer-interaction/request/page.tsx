@@ -12,7 +12,7 @@ import Image from 'next/image';
 export default function Home() {
   const t = useTranslations('customer-interaction.Request');
   const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('assignee'), t('dateCreated'), t('priority'), t('status')];
-  let isDetail = false;
+  let isDetail = true;
     //sample data
   const requestsData = [
     { id: 1, action: false, number: '01', title: 'My neighbors are very annoying.', residentName: 'Mr.Anaxagoras', assignee: 'Employee A', createdDate: '02/10/2025', priority: 'High', status: 'New' },
@@ -32,19 +32,15 @@ export default function Home() {
 
   //sample data
   const requestData = {
-      number: '123501835824',
-      projectCode: '12234356778',
+      id: 123501835824,
+      projectCode: 12234356778,
       residentName: 'Anaxagoras',
       createdDate: '04/10/2025',
       assignee: 'Staff A',
       priority: 'High',
+      status: 'Processing',
       title: 'In Digdag, workflows are packaged together with other files used in the workflows',
-      context: "The reason why sessions and attempts are separated is that an execution may fall. When you list sessions up, the expected status is that all sessions are green. If you find a failing session, you check attempts of it, and debugs the problem from the logs. You may upload a new revision to fix the issue, then start a new attempt. Sessions let you easily confirm that all planned executions are successfully done.",
-      log: [
-          { status: 'Completed', timestamp: '05/10/2025 10:00:00', detail: 'Staff A responsed' },
-          { status: 'Processing', timestamp: '06/10/2025 10:00:00', detail: 'Assigned to Staff A' },
-          { status: 'New', timestamp: '05/10/2025 10:00:00', detail: 'Resident Anaxagoras created request' },
-      ],
+      context: "The reason why sessions and attempts are separated is that an execution may fall. When you list sessions up, the expected status is that all sessions are green. If you find a failing session, you check attempts of it, and debugs the problem from the logs. You may upload a new revision to fix the issue, then start a new attempt. Sessions let you easily confirm that all planned executions are successfully done."
   };
 
   //sample data
@@ -69,13 +65,13 @@ export default function Home() {
     },
   ];
 
-  const titleRequestInfo = [
-      { title: t('requestNumber'), key: 'number' },
-      { title: t('projectCode'), key: 'projectCode' },
-      { title: t('residentName'), key: 'residentName' },
-      { title: t('dateCreated'), key: 'createdDate' },
-      { title: t('priority'), key: 'priority' }
-  ];
+  // const titleRequestInfo = [
+  //     { title: t('requestNumber'), key: 'number' },
+  //     { title: t('projectCode'), key: 'projectCode' },
+  //     { title: t('residentName'), key: 'residentName' },
+  //     { title: t('dateCreated'), key: 'createdDate' },
+  //     { title: t('priority'), key: 'priority' }
+  // ];
 
   const handleBack = () => {
     isDetail = false;
@@ -127,7 +123,7 @@ export default function Home() {
             <div className="lg:col-span-2 space-y-6">
               <RequestInfoAndContext
                 value={requestData}
-                titleRequestInfo={titleRequestInfo}
+                // titleRequestInfo={titleRequestInfo}
                 contextTitle={t('contextTitle')}
                 contextContextTitle={t('contextContextTitle')}
                 contextImageTitle={t('contextImageTitle')}
