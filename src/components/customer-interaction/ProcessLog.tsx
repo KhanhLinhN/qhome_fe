@@ -4,7 +4,7 @@ import { ProcessLog } from '../../types/processLog';
 
 interface RequestLogTimelineProps {
     logData: ProcessLog[];
-    title: String;
+    title: string;
 }
 const RequestLogTimeline = ({ logData, title }: RequestLogTimelineProps) => {
     return (

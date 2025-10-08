@@ -1,10 +1,10 @@
 interface request{
     id: number;
-    projectCode: String;
-    residentName: String;
-    createdDate: String;
-    priority: String;
-    title: String;
-    context: String;
-    status: String;
+    projectCode: string;
+    residentName: string;
+    createdDate: string;
+    priority: string;
+    title: string;
+    context: string;
+    status: string;
 }

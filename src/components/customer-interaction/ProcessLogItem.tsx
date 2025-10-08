@@ -5,10 +5,10 @@ import InactiveLogIcon from '../../assets/InactiveLog.svg';
 import Image from 'next/image';
 
 interface ProcessLogItemProps {
-    status: String;
-    createdDate: String;
-    content: String;
-    isNewest: Boolean;
+    status: string;
+    createdDate: string;
+    content: string;
+    isNewest: boolean;
 }
 
 const ProcessLogItem = ({ status, createdDate, content, isNewest }: ProcessLogItemProps) => {
