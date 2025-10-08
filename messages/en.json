@@ -34,7 +34,8 @@
       "selected": "selected",
       "high": "High",
       "medium": "Medium",
-      "low": "Low"
+      "low": "Low",
+      "request-log": "Request log"
     },
     "Complain":{
       "complainlist": "Complain List",
