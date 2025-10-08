@@ -1,9 +1,50 @@
 {
   "HomePage": {
     "title": "Hello world!!!!!!"
-  },
+  },"Common": { "language": "Language", "support": "Need help?" },
+    "Login": {
+      "title": "Sign in",
+      "subtitle": "Welcome back",
+      "username": "Email or Phone",
+      "password": "Password",
+      "remember": "Remember me",
+      "forgot": "Forgot password?",
+      "submit": "Sign in",
+      "loading": "Processing...",
+      "success": "Signed in successfully",
+      "error": "Invalid credentials",
+      "contact_support": "Contact support"
+    },     
   "Popup":{
     "yes": "Yes",
     "no": "No"
+  },
+  "Accounting": {
+    "title": "Accounting Dashboard",
+    "subtitle": "Manage service invoices",
+    "actions": { "create": "New invoice", "edit": "Edit", "cancel": "Cancel", "send_notify": "Send fee notice" },
+    "table": { "select": "Select", "invoiceId": "InvoiceID", "apartment": "Apartment", "period": "Period", "services": "Services", "total": "Total", "status": "Status", "empty": "No invoices yet." },
+    "services": { "electric": "Electricity", "water": "Water", "management": "Management", "parking": "Parking" },
+    "fields": {
+      "invoiceId": "InvoiceID", "apartmentId": "ApartmentID", "period": "Period (MM/YYYY)",
+      "serviceTypes": "Service type", "electricityIndex": "Electricity index", "waterIndex": "Water index",
+      "managementFee": "Management fee", "parkingFee": "Parking fee", "status": "Status",
+      "total": "Total amount", "reason": "Edit reason"
+    },
+    "hints": { "minPrev": "≥ previous period: {value}" },
+    "validate": {
+      "invoiceId": "InvoiceID is required", "apartmentId": "ApartmentID is required", "period": "Period is required",
+      "serviceTypes": "Select at least one service", "electricityIndex": "Electricity index must be ≥ {value}",
+      "waterIndex": "Water index must be ≥ {value}", "managementFee": "Management fee must be ≥ 0", "parkingFee": "Parking fee must be ≥ 0"
+    },
+    "create": { "title": "Create invoice" },
+    "edit": { "title": "Update invoice" },
+    "cancel": { "reason_placeholder": "Enter cancellation reason..." },
+    "notify": { "title": "Send fee notifications", "desc": "Choose channels for {count} unpaid invoices", "send": "Send", "result": "Sent {ok}/{total} invoices" },
+    "errors": { "edit_paid": "Only invoices with status Unpaid can be edited", "cancel_paid": "Only invoices with status Unpaid can be cancelled" },
+    "messages": { "created": "Invoice created", "updated": "Invoice updated", "cancelled": "Invoice cancelled" },
+    "common": { "save": "Save", "cancel": "Cancel", "close": "Close" }
   }
 }
+
+
