@@ -1,6 +1,6 @@
 interface request{
     id: number;
-    projectCode: string;
+    projectCode: number;
     residentName: string;
     createdDate: string;
     priority: string;
