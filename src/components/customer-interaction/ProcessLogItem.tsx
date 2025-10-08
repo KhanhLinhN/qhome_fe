@@ -17,7 +17,7 @@ const ProcessLogItem = ({ status, createdDate, content, isNewest }: ProcessLogIt
 
     return (
         <div className="flex relative pb-4">
-            <div className={`absolute top-0 left-3.5 w-0.5 ${lineClass} bg-gray-300`}></div>
+            <div className={`absolute top-0 left-3.5 w-[0.6px] h-full bg-[#D9D9D9]`}></div>
 
             <div className={`z-10 flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0`}>
                 <Image

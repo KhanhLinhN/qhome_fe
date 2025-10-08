@@ -19,11 +19,12 @@ interface TableItemProps {
 interface TableProps {
     data: TableItemProps[];
     headers?: string[];
+    onRowClick: (id: number) => void; 
 }
 
-const Table = ({ data, headers } : TableProps) => {
+const Table = ({ data, headers, onRowClick }: TableProps) => {
     const t = useTranslations('customer-interaction.Request');
-    const [selectedId, setSelectedId] = useState();
+    const [selectedId, setSelectedId] = useState<number | undefined>();
 
     // const headers = [t('action'), t('requestNumber'), t('requestTitle'), t('residentName'), t('assignee'), t('dateCreated'), t('priority'), t('status')];
     const [isChecked, setIsChecked] = useState(false); 
@@ -61,6 +62,12 @@ const Table = ({ data, headers } : TableProps) => {
                         const borderClass = index < data.length - 1 
                             ? 'border-b border-solid border-[#CDCDCD]' 
                             : 'border-b-0';
+
+                        const handleCellClick = (e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            setSelectedId(item.id); 
+                            onRowClick(item.id);
+                        };
                         
                         return (
                             <tr 
@@ -74,7 +81,11 @@ const Table = ({ data, headers } : TableProps) => {
                                     />
                                 </td> */}
 
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-center text-[#024023]">{item.number}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-center text-[#23BE6B]"
+                                    // onClick={handleCellClick}
+                                >
+                                    {item.number}
+                                </td>
                                 <td className="px-4 py-3 text-[14px] text-[#024023] font-semibold truncate">{item.title}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023]">{item.residentName}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023]">{item.assignee}</td>

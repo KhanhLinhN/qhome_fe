@@ -1,7 +1,7 @@
 interface RequestInfoProps {
     title: string;
     value: string;
-    isHighlighted?: Boolean;
+    isHighlighted?: boolean;
 }
 
 const InfoRow = ({ value, title, isHighlighted } : RequestInfoProps) => (
