@@ -34,7 +34,8 @@
       "selected": "đã chọn",
       "high": "Cao",
       "medium": "Trung bình",
-      "low": "Thấp"
+      "low": "Thấp",
+      "request-log": "Nhật ký yêu cầu"
     },
     "Complain": {
         "complainlist": "Danh sách Khiếu nại",
