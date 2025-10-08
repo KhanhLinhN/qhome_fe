@@ -97,7 +97,7 @@ export default function Home() {
                 ></StatusTabs>
                 <Table 
                     data={requestsData} 
-                    onRowClick={handleRowClick}
+                    // onRowClick={handleRowClick}
                     headers={headers}
                 ></Table>
             </div>
