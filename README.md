@@ -13,7 +13,7 @@ Open your browser and navigate to [http://localhost:3000](http://localhost:3000)
 
 To add internationalization support for multiple languages, install the i18n library:
 ```bash
-yarn install next-intl
+yarn add next-intl
 ```
 
 The clsx utility is used for easily constructing class name strings:
