@@ -15,7 +15,7 @@ const RequestLogTimeline = ({ logData, title }: RequestLogTimelineProps) => {
                 {logData.map((entry, index) => (
                     <ProcessLogItem
                         key={index}
-                        status={entry.status}
+                        status={entry.requestStatus}
                         createdDate={entry.createdDate}
                         content={entry.content}
                         isNewest= {index == 0}

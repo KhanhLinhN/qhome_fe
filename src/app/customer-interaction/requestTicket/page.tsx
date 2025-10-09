@@ -13,22 +13,7 @@ export default function Home() {
   const t = useTranslations('customer-interaction.Request');
   const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('assignee'), t('dateCreated'), t('priority'), t('status')];
   let isDetail = true;
-    //sample data
-  const requestsData = [
-    { id: 1, action: false, number: '01', title: 'My neighbors are very annoying.', residentName: 'Mr.Anaxagoras', assignee: 'Employee A', createdDate: '02/10/2025', priority: 'High', status: 'New' },
-    { id: 2, action: true, number: '02', title: 'My neighbors are very annoying.', residentName: 'Mr.Anaxagoras', assignee: 'Employee A', createdDate: '02/10/2025', priority: 'Medium', status: 'New' },
-    { id: 3, action: false, number: '03', title: 'My neighbors are very annoying.', residentName: 'Mr.Anaxagoras', assignee: 'Employee A', createdDate: '02/10/2025', priority: 'Low', status: 'New' },
-    { id: 4, action: false, number: '04', title: 'My neighbors are very annoying.', residentName: 'Mr.Anaxagoras', assignee: 'Employee A', createdDate: '02/10/2025', priority: 'High', status: 'New' },
-    { id: 5, action: false, number: '05', title: 'My neighbors are very annoying.', residentName: 'Mr.Anaxagoras', assignee: 'Employee A', createdDate: '02/10/2025', priority: 'Medium', status: 'New' },
-  ];
-  //sample data
-  const tabData = [
-    { title: t('totalRequests'), count: 0, status: '' },
-    { title: t('newRequests'), count: 0, status: 'new' },
-    { title: t('processingRequests'), count: 0, status: 'processing' },
-    { title: t('respondedRequests'), count: 10, status: 'responded' },
-    { title: t('closedRequests'), count: 10, status: 'closed' },
-  ];
+    
 
   //sample data
   const requestData = {
@@ -46,7 +31,7 @@ export default function Home() {
   };
 
   //sample data
-  const sampleLogData = [
+    const sampleLogData = [
     {
         id: 3,
         recordId: 123501835824,
@@ -94,63 +79,22 @@ export default function Home() {
     isDetail = false;
   }
 
-  const handleRowClick = () => {
-    isDetail = true;
-  }
-
-
-  if (!isDetail) {
-    return (
-      <div className="lg:col-span-1 space-y-6">
-        <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA] p-6 md:p-10">
-            <h1 className="text-2xl font-semibold text-[#02542D] mb-4">{t('requestlist')}</h1>
-            <div className="bg-white p-6 rounded-xl w-full">
-                <FilterForm
-                    type="requests"
-                ></FilterForm>
-                <StatusTabs 
-                    tabList={tabData}
-                    type="requests"
-                ></StatusTabs>
-                <Table 
-                    data={requestsData} 
-                    // onRowClick={handleRowClick}
-                    headers={headers}
-                ></Table>
-            </div>
-        </div>
-      </div>
-    )
-  }
-  if(isDetail){
+  
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex flex-col">
-        <div className="flex items-center text-xl font-bold text-gray-800 pb-4 text-[#02542D] flex-none">
-            <Image 
-              src={Arrow} 
-              alt="Back" 
-              className="h-6 w-6 mr-2 cursor-pointer" 
-              onClick={() => {
-                  handleBack();
-              }}/>
-            {t('requestDetails')}
-        </div>
+       
         <div className="flex-grow min-h-0">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
             <div className="lg:col-span-2 space-y-6">
               <RequestInfoAndContext
                 value={requestData}
-                // titleRequestInfo={titleRequestInfo}
+                isTicket={true}
                 contextTitle={t('contextTitle')}
                 contextContextTitle={t('contextContextTitle')}
                 contextImageTitle={t('contextImageTitle')}
               ></RequestInfoAndContext>
             </div>
             <div className="lg:col-span-1 space-y-6">
-              <ProcessLog 
-                logData={sampleLogData}
-                title={t('requestLog')}
-              ></ProcessLog>
               <RequestLogUpdate
                 initialStatusValue={"Processing"}
                 onSave={() => {
@@ -166,6 +110,4 @@ export default function Home() {
         </div>
       </div>
     )
-  }
-
 };
