@@ -80,8 +80,11 @@
       "contextContextTitle": "Request context: ",
       "contextImageTitle": "Request image",
       "requestLog": "Request Log",
-      "requestDetails": "Request Details"
-
+      "requestDetails": "Request Details",
+      "response": "Response",
+      "responsePlaceholder": "Enter your response here...",
+      "save": "Save",
+      "cancel": "Cancel"
     },
     "Complain":{
       "complainlist": "Complain List",

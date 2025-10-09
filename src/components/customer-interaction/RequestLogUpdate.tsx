@@ -50,7 +50,7 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onCancel }: RequestStatu
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Request status:</h3>
+                <h3 className="text-lg font-semibold text-gray-800">{t('status')}</h3>
                 
                 <Select
                     options={[
@@ -68,13 +68,13 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onCancel }: RequestStatu
                 />
             </div>
             
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Respond :</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">{t('response')}</h3>
             <textarea 
                 rows={5} 
                 value={content} 
                 onChange={(e) => setContent(e.target.value)} 
                 className="w-full p-3 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                placeholder="Nhập nội dung phản hồi tại đây..."
+                placeholder={t('responsePlaceholder')}
             ></textarea>
             
             <div className="flex justify-end space-x-3 mt-4">
@@ -82,14 +82,14 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onCancel }: RequestStatu
                     onClick={handleCancel}
                     className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
                 >
-                    Cancel
+                    {t('cancel')}
                 </button>
                 <button 
                     onClick={handleSave}
                     disabled={!selectedStatus || !content.trim()} 
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Save
+                    {t('save')}
                 </button>
             </div>
         </div>

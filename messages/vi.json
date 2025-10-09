@@ -47,9 +47,9 @@
   },
   "customer-interaction": {
     "Request": {
-      "requestlist": "Danh sách Yêu cầu",
-      "requestNumber": "Số Yêu cầu",
-      "requestTitle": "Tiêu đề Yêu cầu",
+      "requestlist": "Danh sách yêu cầu",
+      "requestNumber": "Số yêu cầu",
+      "requestTitle": "Tiêu đề yêu cầu",
       "residentName": "Tên Cư dân",
       "staffInCharge": "Nhân viên Phụ trách",
       "status": "Trạng thái",
@@ -62,7 +62,7 @@
       "processing": "Đang xử lý",
       "completed": "Đã hoàn thành",
       "closed": "Đã đóng",
-      "totalRequests": "Tổng số Yêu cầu",
+      "totalRequests": "Tổng số yêu cầu",
       "newRequests": "Yêu cầu mới",
       "processingRequests": "Yêu cầu đang xử lý",
       "respondedRequests": "Yêu cầu đã phản hồi",
@@ -79,8 +79,12 @@
       "contextTitle": "Tiêu đề yêu cầu: ",
       "contextContextTitle": "Nội dung yêu cầu: ",
       "contextImageTitle": "Hình ảnh yêu cầu",
-      "requestLog": "Lịch sử xử lý Yêu cầu",
-      "requestDetails": "Chi tiết Yêu cầu"
+      "requestLog": "Lịch sử xử lý yêu cầu",
+      "requestDetails": "Chi tiết yêu cầu",
+      "response": "Phản hồi",
+      "responsePlaceholder": "Nhập nội dung phản hồi tại đây...",
+      "save": "Lưu",
+      "cancel": "Hủy"
     },
     "Complain": {
         "complainlist": "Danh sách Khiếu nại",
