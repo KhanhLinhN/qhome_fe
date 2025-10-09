@@ -1,10 +1,13 @@
 interface request{
     id: number;
     projectCode: number;
+    residentId: number;
     residentName: string;
-    createdDate: string;
-    priority: string;
+    imagePath: string;
     title: string;
     context: string;
     status: string;
+    priority: string;
+    createdDate: string;
+    updatedDate: string;
 }
