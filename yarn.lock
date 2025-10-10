@@ -165,7 +165,7 @@
   dependencies:
     tslib "2"
 
-"@hookform/resolvers@^5.2.2":
+"@hookform/resolvers@5.2.2":
   version "5.2.2"
   resolved "https://registry.yarnpkg.com/@hookform/resolvers/-/resolvers-5.2.2.tgz#5ac16cd89501ca31671e6e9f0f5c5d762a99aa12"
   integrity sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA==
@@ -2302,12 +2302,24 @@ mime-db@1.52.0:
   resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.52.0.tgz#bbabcdc02859f4987301c856e3387ce5ec43bf70"
   integrity sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==
 
+mime-db@^1.54.0:
+  version "1.54.0"
+  resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.54.0.tgz#cddb3ee4f9c64530dff640236661d42cb6a314f5"
+  integrity sha512-aU5EJuIN2WDemCcAp2vFBfp/m4EAhWJnUNSSw0ixs7/kXbd6Pg64EmwJkNdFhB8aWt1sH2CTXrLxo/iAGV3oPQ==
+
 mime-types@^2.1.12:
   version "2.1.35"
   resolved "https://registry.yarnpkg.com/mime-types/-/mime-types-2.1.35.tgz#381a871b62a734450660ae3deee44813f70d959a"
   integrity sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==
   dependencies:
     mime-db "1.52.0"
+
+mime-types@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/mime-types/-/mime-types-3.0.1.tgz#b1d94d6997a9b32fd69ebaed0db73de8acb519ce"
+  integrity sha512-xRc4oEhT6eaBpU1XF7AjpOFD+xQmXNB5OVKwp4tqCuBpHLS/ZbBDrc07mYTDqVMg6PfxUjjNp85O6Cd2Z/5HWA==
+  dependencies:
+    mime-db "^1.54.0"
 
 minimatch@^3.1.2:
   version "3.1.2"
@@ -2370,14 +2382,14 @@ negotiator@^1.0.0:
   resolved "https://registry.npmjs.org/negotiator/-/negotiator-1.0.0.tgz"
   integrity sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg==
 
-next-intl@^4.3.9:
-  version "4.3.9"
-  resolved "https://registry.yarnpkg.com/next-intl/-/next-intl-4.3.9.tgz#d15673c24b3cd0ad3d5de0c0abe52ec0ce248a93"
-  integrity sha512-4oSROHlgy8a5Qr2vH69wxo9F6K0uc6nZM2GNzqSe6ET79DEzOmBeSijCRzD5txcI4i+XTGytu4cxFsDXLKEDpQ==
+next-intl@^4.3.12:
+  version "4.3.12"
+  resolved "https://registry.yarnpkg.com/next-intl/-/next-intl-4.3.12.tgz#e2fc638751c42f22347f69dfde62ecfeb9bcd452"
+  integrity sha512-yAmrQ3yx0zpNva/knniDvam3jT2d01Lv2aRgRxUIDL9zm9O4AsDjWbDIxX13t5RNf0KVnKkxH+iRcqEAmWecPg==
   dependencies:
     "@formatjs/intl-localematcher" "^0.5.4"
     negotiator "^1.0.0"
-    use-intl "^4.3.9"
+    use-intl "^4.3.12"
 
 next@15.5.2:
   version "15.5.2"
@@ -3121,10 +3133,10 @@ uri-js@^4.2.2:
   dependencies:
     punycode "^2.1.0"
 
-use-intl@^4.3.9:
-  version "4.3.9"
-  resolved "https://registry.npmjs.org/use-intl/-/use-intl-4.3.9.tgz"
-  integrity sha512-bZu+h13HIgOvsoGleQtUe4E6gM49CRm+AH36KnJVB/qb1+Beo7jr7HNrR8YWH8oaOkQfGNm6vh0HTepxng8UTg==
+use-intl@^4.3.12:
+  version "4.3.12"
+  resolved "https://registry.yarnpkg.com/use-intl/-/use-intl-4.3.12.tgz#fb3643b3206fb39e68b2367d19ef88c63e5217ef"
+  integrity sha512-RxW2/D17irlDOJOzClKl+kWA7ReGLpo/A8f/LF7w1kIxO6mPKVh422JJ/pDCcvtYFCI4aPtn1AXUfELKbM+7tg==
   dependencies:
     "@formatjs/fast-memoize" "^2.2.0"
     "@schummar/icu-type-parser" "1.21.5"
