@@ -21,6 +21,11 @@ The clsx utility is used for easily constructing class name strings:
 yarn add clsx
 ```
 
+PLEASE RUN THIS COMMAND, FIX ERROR BEFORE PUSH CODE:
+````bash
+yarn build
+````
+
 To build and run the application using Docker, use this command:
 ```bash
 docker compose up --build
