@@ -1,29 +1,31 @@
 "use client";
 import DropdownArrow from '@/src/assets/DropdownArrow.svg';
 import clsx from "clsx";
+import { useTranslations } from 'next-intl';
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
  
-interface SelectProp<T extends object> {
+interface SelectProp<T extends { value: string }> {
   options: T[];
   onSelect?: (item: T) => void;
-  initialValue?: T;
+  value?: string;
   renderItem: (item: T) => string;
   filterLogic: (item: T, keyword: string) => boolean;
   placeholder?: string;
 }
- 
-const Select = <T extends object>({ options, initialValue, onSelect, renderItem, filterLogic, placeholder }: SelectProp<T>) => {
+
+const Select = <T extends { value: string }>({ options, value, onSelect, renderItem, filterLogic, placeholder }: SelectProp<T>) => {
   const [selected, setSelected] = useState<T>();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [keyword, setKeyword] = useState<string>("");
+  const t = useTranslations('customer-interaction.Request');
  
-  useEffect(() => {
-    setSelected(initialValue);
-  }, [initialValue]);
+  const selectedOption = useMemo(() => {
+    return options.find(option => option.value === value);
+  }, [options, value]);
+
  
   const onOpen = () => setIsOpen(true);
- 
   const onClose = () => setIsOpen(false);
  
   const filteredOptions = options.filter(
@@ -87,7 +89,7 @@ const Select = <T extends object>({ options, initialValue, onSelect, renderItem,
             {filteredOptions.map((item, index) => {
               return (
                 <div
-                  key={index}
+                  key={item.value || index}
                   className="mx-1 px-2 py-1.5 font-semibold text-sm text-[#02542D] cursor-pointer hover:bg-gray-100 rounded-sm"
                   onClick={onSelectItem(item)}
                 >
@@ -96,7 +98,7 @@ const Select = <T extends object>({ options, initialValue, onSelect, renderItem,
               );
             })}
              {filteredOptions.length === 0 && (
-                 <div className="mx-1 px-2 py-1.5 text-sm text-gray-500 italic">No results found.</div>
+                 <div className="mx-1 px-2 py-1.5 text-sm text-gray-500 italic">{t("noData")}</div>
              )}
           </div>
         </div>

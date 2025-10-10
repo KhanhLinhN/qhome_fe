@@ -84,7 +84,11 @@
       "response": "Phản hồi",
       "responsePlaceholder": "Nhập nội dung phản hồi tại đây...",
       "save": "Lưu",
-      "cancel": "Hủy"
+      "cancel": "Hủy",
+      "loading": "Đang tải dữ liệu...",
+      "error": "Lỗi khi tải dữ liệu",
+      "retry": "Vui lòng thử lại",
+      "noData": "Không có dữ liệu để hiển thị"
     },
     "Complain": {
         "complainlist": "Danh sách Khiếu nại",

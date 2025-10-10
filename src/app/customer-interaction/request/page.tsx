@@ -8,10 +8,17 @@ import ProcessLog from '@/src/components/customer-interaction/ProcessLog';
 import RequestLogUpdate from '@/src/components/customer-interaction/RequestLogUpdate';
 import Arrow from '@/src/assets/Arrow.svg';
 import Image from 'next/image';
+import { Request } from '@/src/types/request';
+import { RequestListForTable } from '@/src/hooks/useTableRequest';
+import { useState } from 'react';
+import { GetRequestsParams } from '@/src/services/customer-interaction/requestService';
+
 
 export default function Home() {
   const t = useTranslations('customer-interaction.Request');
   const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('assignee'), t('dateCreated'), t('priority'), t('status')];
+  const [filterparam, setFilterParam] = useState<GetRequestsParams>({});
+  const { requestPage, loading: groupsLoading, error: groupsError } = RequestListForTable(filterparam);
   let isDetail = true;
     //sample data
   const requestsData = [
@@ -97,7 +104,36 @@ export default function Home() {
   const handleRowClick = () => {
     isDetail = true;
   }
+  
+  // Handle loading and error states
+  if (groupsLoading) {
+    return (
+        <div className="px-[41px] py-12 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
+            <p className="text-gray-600">{t('loading')}</p>
+          </div>
+        </div>
+    );
+  }
 
+  if (groupsError) {
+    return (
+        <div className="px-[41px] py-12 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">
+              {t('error')}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary-2 text-white rounded-md hover:bg-primary-3"
+            >
+              {t('retry')}
+            </button>
+          </div>
+        </div>
+    );
+  }
 
   if (!isDetail) {
     return (

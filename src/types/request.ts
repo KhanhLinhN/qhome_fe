@@ -1,4 +1,4 @@
-interface request{
+export interface Request {
     id: number;
     projectCode: number;
     residentId: number;
