@@ -1,40 +1,41 @@
 "use client";
 import DropdownArrow from '@/src/assets/DropdownArrow.svg';
 import clsx from "clsx";
+import { useTranslations } from 'next-intl';
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
  
-interface SelectProp<T extends object> {
+interface SelectProp<T> {
   options: T[];
+  value?: string;
   onSelect?: (item: T) => void;
-  initialValue?: T;
   renderItem: (item: T) => string;
-  filterLogic: (item: T, keyword: string) => boolean;
+  getValue: (item: T) => string;
   placeholder?: string;
+  disable?: boolean;
 }
- 
-const Select = <T extends object>({ options, initialValue, onSelect, renderItem, filterLogic, placeholder }: SelectProp<T>) => {
-  const [selected, setSelected] = useState<T>();
+
+const Select = <T,>({ options, value, onSelect, renderItem, getValue, placeholder, disable = false }: SelectProp<T>) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [keyword, setKeyword] = useState<string>("");
+  const t = useTranslations('customer-interaction.Request');
  
-  useEffect(() => {
-    setSelected(initialValue);
-  }, [initialValue]);
+  const selectItem = useMemo(() => {
+    return options.find(option => getValue(option) === value);
+  }, [options, value, getValue]);
+
  
   const onOpen = () => setIsOpen(true);
- 
   const onClose = () => setIsOpen(false);
  
   const filteredOptions = options.filter(
-    (item) => filterLogic(item, keyword)
+        (item) => renderItem(item).toLowerCase().includes(keyword.toLowerCase())
   );
  
   const onSelectItem = (item: T) => () => {
     if (typeof onSelect === "function") {
       onSelect(item);
     }
-    setSelected(item);
     setKeyword("");
     onClose();
   };
@@ -60,11 +61,11 @@ const Select = <T extends object>({ options, initialValue, onSelect, renderItem,
       >
         <div
           className={clsx(
-            "font-normal text-sm text-[#81a996]",
-            selected && "text-primary-2"
+            "font-normal text-sm",
+            selectItem ? "text-primary-2" : "text-[#81a996]"
           )}
         >
-          {selected ? renderItem(selected) : placeholder}
+          {selectItem ? renderItem(selectItem) : placeholder}
         </div>
         <Image
           src={DropdownArrow}
@@ -74,7 +75,7 @@ const Select = <T extends object>({ options, initialValue, onSelect, renderItem,
           className={isOpen ? "rotate-180" : "rotate-0"}
         />
       </div>
-      {isOpen && (
+      {isOpen && !disable && (
         <div className="absolute z-10 top-[50px] right-0 left-0 max-h-[300px] bg-white border-[1px] border-[#E7E7E7] p-1 rounded-md flex flex-col shadow-[0_4px_6px_1px_rgba(0,0,0,0.1)]">
           <input
             type="text"
@@ -87,7 +88,7 @@ const Select = <T extends object>({ options, initialValue, onSelect, renderItem,
             {filteredOptions.map((item, index) => {
               return (
                 <div
-                  key={index}
+                  key={getValue(item) || index}
                   className="mx-1 px-2 py-1.5 font-semibold text-sm text-[#02542D] cursor-pointer hover:bg-gray-100 rounded-sm"
                   onClick={onSelectItem(item)}
                 >
@@ -96,7 +97,7 @@ const Select = <T extends object>({ options, initialValue, onSelect, renderItem,
               );
             })}
              {filteredOptions.length === 0 && (
-                 <div className="mx-1 px-2 py-1.5 text-sm text-gray-500 italic">No results found.</div>
+                 <div className="mx-1 px-2 py-1.5 text-sm text-gray-500 italic">{t("noData")}</div>
              )}
           </div>
         </div>

@@ -3,6 +3,7 @@ import React from 'react';
 import ActiveLogIcon from '../../assets/ActiveLog.svg';
 import InactiveLogIcon from '../../assets/InactiveLog.svg';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 interface ProcessLogItemProps {
     status: string;
@@ -12,6 +13,7 @@ interface ProcessLogItemProps {
 }
 
 const ProcessLogItem = ({ status, createdDate, content, isNewest }: ProcessLogItemProps) => {
+    const t = useTranslations('customer-interaction.Request');
 
     return (
         <div className="flex relative pb-4">
@@ -27,7 +29,7 @@ const ProcessLogItem = ({ status, createdDate, content, isNewest }: ProcessLogIt
             </div>
 
             <div className="flex-grow pl-4">
-                <p className={`font-semibold text-[#14AE5C]`}>{status}</p>
+                <p className={`font-semibold text-[#14AE5C]`}>{t(status.trim().toLowerCase())}</p>
                 <p className="text-sm text-[#024023]">{createdDate}: {content}</p>
             </div>
         </div>

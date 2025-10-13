@@ -84,7 +84,20 @@
       "response": "Response",
       "responsePlaceholder": "Enter your response here...",
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "loading": "Data is loading...",
+      "error": "Error loading data",
+      "retry": "Please try again",
+      "noData": "No data to display",
+      "viewDetails": "View Details",
+      "formInactiveMessage": "Request has completed/closed",
+      "reply": "Request",
+      "finance": "Finance",
+      "system": "System",
+      "selectAssignee": "Select staff assignee",
+      "assignTo": "Select staff",
+      "logType": "Log Type",
+      "requests": "Requests"
     },
     "Complain":{
       "complainlist": "Complain List",

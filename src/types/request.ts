@@ -1,13 +1,13 @@
-interface request{
+export interface Request {
     id: number;
-    projectCode: number;
+    requestCode: string;
     residentId: number;
     residentName: string;
     imagePath: string;
     title: string;
-    context: string;
+    content: string;
     status: string;
     priority: string;
-    createdDate: string;
-    updatedDate: string;
+    createdAt: string;
+    updatedAt: string;
 }

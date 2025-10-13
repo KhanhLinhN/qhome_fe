@@ -4,16 +4,16 @@ import PriorityMediumIcon from '@/src/assets/PriorityMedium.svg';
 import PriorityLowIcon from '@/src/assets/PriorityLow.svg';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface TableItemProps {
     id: number;
-    number: string;
-    title: string;
+    requestCode: string;
     residentName: string;
-    assignee: string | null;
-    createdDate: string;
-    priority: string;
+    title: string;
     status: string;
+    priority: string;
+    createdAt: string;
 }
 
 interface TableProps {
@@ -26,7 +26,6 @@ const Table = ({ data, headers }: TableProps) => {
     const t = useTranslations('customer-interaction.Request');
     const [selectedId, setSelectedId] = useState<number | undefined>();
 
-    // const headers = [t('action'), t('requestNumber'), t('requestTitle'), t('residentName'), t('assignee'), t('dateCreated'), t('priority'), t('status')];
     const [isChecked, setIsChecked] = useState(false); 
 
     // const handleToggle = () => {
@@ -81,15 +80,14 @@ const Table = ({ data, headers }: TableProps) => {
                                     />
                                 </td> */}
 
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-center text-[#23BE6B]"
-                                    // onClick={handleCellClick}
-                                >
-                                    {item.number}
+                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold text-center">
+                                    <Link href={`/customer-interaction/requestDetail/${item.id}`} className="text-green-600 hover:underline">
+                                        {item.requestCode}
+                                    </Link>
                                 </td>
-                                <td className="px-4 py-3 text-[14px] text-[#024023] font-semibold truncate">{item.title}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold truncate">{item.title}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023]">{item.residentName}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023]">{item.assignee}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdDate}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>
 
                                 <td className="px-4 py-3 whitespace-nowrap flex justify-center items-center h-full">
                                     <Image
@@ -98,8 +96,8 @@ const Table = ({ data, headers }: TableProps) => {
                                         width={20}
                                         height={20}
                                     />
-                                </td>                                
-                                <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-900">{item.status}</td>
+                                </td>
+                                <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.status}</td>
                             </tr>
                         );
                     })}
