@@ -88,7 +88,16 @@
       "loading": "Đang tải dữ liệu...",
       "error": "Lỗi khi tải dữ liệu",
       "retry": "Vui lòng thử lại",
-      "noData": "Không có dữ liệu để hiển thị"
+      "noData": "Không có dữ liệu để hiển thị",
+      "viewDetails": "Xem chi tiết",
+      "formInactiveMessage": "Yêu cầu đã hoàn thành/đóng",
+      "reply": "Yêu cầu",
+      "finance": "Kinh tế",
+      "system": "Hệ thống",
+      "selectAssignee": "Chọn nhân viên",
+      "assignTo": "Chọn nhân viên",
+      "logType": "Loại phản hồi",
+      "requests": "Yêu cầu"
     },
     "Complain": {
         "complainlist": "Danh sách Khiếu nại",

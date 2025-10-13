@@ -7,5 +7,5 @@ export interface ProcessLog{
     requestStatus: string;
     logType: string;
     staffInChargeName: string;
-    createdDate: string;
+    createdAt: string;
 }

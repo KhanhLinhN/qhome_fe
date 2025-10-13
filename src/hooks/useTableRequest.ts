@@ -1,42 +1,105 @@
-import { useEffect, useState } from 'react';
-import { RequestService, GetRequestsParams, Page } from '@/src/services/customer-interaction/requestService';
+import { useCallback, useEffect, useState } from 'react';
+import { RequestService, StatusCounts, GetRequestsParams, Page } from '@/src/services/customer-interaction/requestService';
+import { RequestFilters } from '@/src/components/customer-interaction/FilterForm';
 import { Request } from '@/src/types/request';
 
-interface useTableRequestReturn {
-    requestPage: Page<Request> | null;
-    loading: boolean;
-    error: string | null;
-    refetch: () => void;
-}
+const initialFilters: RequestFilters = {
+    requestId: '',
+    title: '',
+    residentName: '',
+    status: '',
+    priority: '',
+    dateFrom: '',
+    dateTo: ''
+};
 
 const requestService = new RequestService();
 
-export const RequestListForTable = (params: GetRequestsParams = {}): useTableRequestReturn => {
-  const [requestPage, setRequestPage] = useState<Page<Request> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export const useRequests = (loadOnMount: boolean = true) => {
+    const [data, setData] = useState<Page<Request> | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const fetchRequests = async () => {
-        try {
+    const [filters, setFilters] = useState<RequestFilters>(initialFilters);
+    const [pageNo, setPageNo] = useState<number>(0);
+    const [statusCounts, setStatusCounts] = useState<StatusCounts>({});
+
+    
+    const fetchData = useCallback(async (currentFilters: RequestFilters, currentPage: number) => {
         setLoading(true);
         setError(null);
-        
-        const data = await requestService.getRequestList(params);
-        setRequestPage(data);
+        try {
+            const params: GetRequestsParams = {
+                ...currentFilters,
+                pageNo: currentPage,
+            };
 
+            const filters = {
+                ...currentFilters
+            }
+                
+            const [listResponse, countsResponse] = await Promise.all([
+                requestService.getRequestList(params),
+                requestService.getRequestCounts(filters)
+            ]);
+
+            setData(listResponse);
+            setStatusCounts(countsResponse);
         } catch (err) {
-        setError('Failed to load requests.');
+            setError('Failed to fetch requests.');
+            console.error(err);
         } finally {
-        setLoading(false);
+            setLoading(false);
         }
-    };
+    }, []); 
+
     useEffect(() => {
-        fetchRequests();
-    }, []);
+        if (loadOnMount) {
+            fetchData(initialFilters, 0);
+        }
+    }, [fetchData, loadOnMount]);
+
+
+    const handleFilterChange = (name: keyof RequestFilters, value: string) => {
+        setFilters(prevFilters => ({
+            ...prevFilters,
+            [name]: value,
+        }));
+    };
+
+    const handleSearch = () => {
+        const newPageNo = 0;
+        setPageNo(newPageNo); // Reset to first page on new search
+        fetchData(filters, newPageNo);
+    };
+
+    const handleClear = () => {
+        setFilters(initialFilters);
+        setPageNo(0);
+    };
+
+    const handlePageChange = (newPage: number) => {
+        setPageNo(newPage);
+        fetchData(filters, newPage);
+    };
+
+    const handleStatusChange = (status: string) => {
+        setFilters(prev => ({ ...prev, status: status }));
+        setPageNo(0);
+    };
+
     return {
-        requestPage,
+        data,
         loading,
         error,
-        refetch: fetchRequests,
+        filters,
+        pageNo,
+        totalPages: data?.totalPages ?? 0,
+        statusCounts,
+        handleFilterChange,
+        handleStatusChange,
+        handleSearch,
+        handleClear,
+        handlePageChange,
     };
 }

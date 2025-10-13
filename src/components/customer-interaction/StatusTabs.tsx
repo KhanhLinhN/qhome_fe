@@ -9,27 +9,21 @@ interface TabData {
 interface TabProps {
     tabList: TabData[];
     type: string;
+    activeStatus: string;
 }
 
-const StatusTabs = ({ tabList, type }: TabProps) => {
-    const [activeTab, setActiveTab] = React.useState('');
+const StatusTabs = ({ tabList, type,  activeStatus }: TabProps) => {
 
     return (
         <div className="flex border-b border-green-500 bg-[#F3F3F3] rounded-[8px]">
             {tabList.map((tab) => (
                 <div 
                     key={tab.status}
-                    className={`pt-5 pb-5 flex w-full
-                    ${activeTab === tab.status 
-                        ? 'border-t-4 border-green-500 text-green-600 font-semibold' 
-                        : 'text-[#012715] hover:text-gray-700'
-                    }`}
+                    className={`pt-5 pb-5 flex w-full text-[#012715] hover:text-gray-700`}
                 >
                     <div 
-                        onClick={() => setActiveTab(tab.status)}
                         className={`
                             px-6 text-left cursor-pointer transition duration-150 ease-in-out  w-full
-
                             ${tabList.indexOf(tab) < tabList.length - 1 ? 'border-r-2 border-[#BBBBBB]' : ''}
                         `}
                     >
