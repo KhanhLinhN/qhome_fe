@@ -39,7 +39,7 @@ const Pagination = ({
     onPageChange(currentPage - 1);
   };
 
-  let lastPage = paginationRange[paginationRange.length - 1];
+  const lastPage = paginationRange[paginationRange.length - 1];
 
   return (
     <nav aria-label="Page navigation" className="flex justify-center items-center py-4">

@@ -9,10 +9,9 @@ interface TabData {
 interface TabProps {
     tabList: TabData[];
     type: string;
-    activeStatus: string;
 }
 
-const StatusTabs = ({ tabList, type,  activeStatus }: TabProps) => {
+const StatusTabs = ({ tabList, type }: TabProps) => {
 
     return (
         <div className="flex border-b border-green-500 bg-[#F3F3F3] rounded-[8px]">

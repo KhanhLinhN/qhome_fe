@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import RequestInfoItem from './RequestInfoItem';
 import Select from './Select';
 import { useTranslations } from 'next-intl';
 import { useUsersByRole, User } from '@/src/hooks/useRequestGetUserByRole';
 
+export type LogType = 'reply' | 'finance' | 'system';
+
 export interface LogUpdateData {
     requestStatus: string;
-    logType: 'reply' | 'finance' | 'system';
+    logType: LogType;
     content?: string;
     assignedUserId?: string;
     recordType : 'Request'
@@ -100,7 +101,7 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, unactive, isSubmitting }
                                 name="logType"
                                 value={type}
                                 checked={logType === type}
-                                onChange={(e) => setLogType(e.target.value as any)}
+                                onChange={(e) => setLogType(e.target.value as LogType)}
                                 className="form-radio text-green-600"
                             />
                             <span>{t(type)}</span>
