@@ -92,7 +92,6 @@ export default function Home() {
               <StatusTabs 
                   tabList={tabData}
                   type={t("requests")}
-                  activeStatus={filters.status || ''} 
               ></StatusTabs>
               <Table 
                   data={tableData} 
