@@ -17,7 +17,13 @@
     },     
   "Popup":{
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "deleteProjectT": "Delete project?",
+    "deleteProjectC": "Are you sure you want to delete project",
+    "saveNewT": "Save new change?",
+    "saveNewC": "Are you sure you want to save the following changes?",
+    "leavingT": "Leaving page?",
+    "leavingC": "You have not finished updating your information. Do you want to leave without finishing?"
   },
   "Accounting": {
     "title": "Accounting Dashboard",
@@ -98,34 +104,37 @@
       "assignTo": "Select staff",
       "logType": "Log Type",
       "requests": "Requests"
-    },
-    "Complain":{
-      "complainlist": "Complain List",
-      "complainNumber": "Complain No.",
-      "complainTitle": "Complain Title",
-      "residentName": "Resident Name",
-      "staffInCharge": "Staff In Charge",
-      "status": "Status",
-      "priority": "Priority",
-      "search": "Search",
-      "reset": "Reset",
-      "from": "From",
-      "to": "To",
-      "totalComplains": "Total Complains",
-      "newComplain": "New Complain",
-      "processingComplains": "Processing complains",
-      "resolvedComplains": "Resolved complains",
-      "completedComplains": "Completed complains",
-      "closedComplains": "Closed complains",
-      "action": "Action",
-      "assignee": "Assigned",
-      "dateCreated": "Date created",
-      "selected": "selected",
-      "high": "High",
-      "medium": "Medium",
-      "low": "Low"
     }
-
+  },
+  "Dashboard":{
+    "dashboard": "Dashboard",
+    "dataManagement": "Data Management",
+    "workManagement": "work Management",
+    "customerService": "Customer Service",
+    "": ""
+  },
+  "Project":{
+    "projectCode":"Project Code",
+    "projectName": "Project Name",
+    "address": "Address",
+    "status": "Status",
+    "createAt": "Create At",
+    "createBy": "Create By",
+    "action": "Action",
+    "fillterBy": "Fillter By",
+    "projectcodename": "Project code/ Project Name",
+    "addProject": "Add project",
+    "return": "Return project list",
+    "projectdetail": "Project detail",
+    "inactive": "Inactive",
+    "active": "Active",
+    "hotline": "Hotline",
+    "email": "Email",
+    "descroption": "Description",
+    "save":  "Save",
+    "cancel":  "Cancel",
+    "newDescription": "New Description"
+    
   }
 }
 

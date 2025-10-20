@@ -9,8 +9,7 @@ const items = [
   {href:"/dashboard/services", label:"Dịch vụ", icon:"🧾"},
   {href:"/dashboard/finance", label:"Tài chính", icon:"💰"},
   {href:"/dashboard/assets", label:"Tài sản", icon:"🛠️"},
-  {href:"/dashboard/tickets", label:"CSKH/Ticket", icon:"🎫"},
-  {href:"/dashboard/settings", label:"Cài đặt", icon:"⚙️"},
+  {href:"/customer-interaction/request", label:"CSKH/Ticket", icon:"🎫"},
 ];
 
 export default function Sidebar(){

@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { useRequestDetails } from '@/src/hooks/useRequestDetails'; 
 import { LogUpdateData } from '@/src/components/customer-interaction/RequestLogUpdate'; // Import type
+import MainLayout from '@/src/components/layout/MainLayout';
 
 
 export default function RequestDetailPage() {
@@ -44,41 +45,43 @@ export default function RequestDetailPage() {
     }
 
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex flex-col">
-        <div className="flex items-center text-xl font-bold text-gray-800 pb-4 text-[#02542D] flex-none">
-            <Image 
-              src={Arrow} 
-              alt="Back" 
-              className="h-6 w-6 mr-2 cursor-pointer" 
-              onClick={() => {
-                  handleBack();
-              }}/>
-            {t('requestDetails')}
-        </div>
-        <div className="flex-grow min-h-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-            <div className="lg:col-span-1 space-y-6">
-              <RequestInfoAndContext
-                value={requestData}
-                contextTitle={t('contextTitle')}
-                contextContextTitle={t('contextContextTitle')}
-                contextImageTitle={t('contextImageTitle')}
-              ></RequestInfoAndContext>
-            </div>
-            <div className="lg:col-span-1 space-y-6">
-              <ProcessLog 
-                logData={logData}
-                title={t('requestLog')}
-              ></ProcessLog>
-              <RequestLogUpdate
-                initialStatusValue={"Processing"}
-                onSave={handleSaveLog} 
-                unactive={isUnactive}
-                isSubmitting={isSubmitting} 
-              ></RequestLogUpdate>
+      <MainLayout>
+        <div className="min-h-screen bg-gray-50 p-6 flex flex-col">
+          <div className="flex items-center text-xl font-bold text-gray-800 pb-4 text-[#02542D] flex-none">
+              <Image 
+                src={Arrow} 
+                alt="Back" 
+                className="h-6 w-6 mr-2 cursor-pointer" 
+                onClick={() => {
+                    handleBack();
+                }}/>
+              {t('requestDetails')}
+          </div>
+          <div className="flex-grow min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+              <div className="lg:col-span-1 space-y-6">
+                <RequestInfoAndContext
+                  value={requestData}
+                  contextTitle={t('contextTitle')}
+                  contextContextTitle={t('contextContextTitle')}
+                  contextImageTitle={t('contextImageTitle')}
+                ></RequestInfoAndContext>
+              </div>
+              <div className="lg:col-span-1 space-y-6">
+                <ProcessLog 
+                  logData={logData}
+                  title={t('requestLog')}
+                ></ProcessLog>
+                <RequestLogUpdate
+                  initialStatusValue={"Processing"}
+                  onSave={handleSaveLog} 
+                  unactive={isUnactive}
+                  isSubmitting={isSubmitting} 
+                ></RequestLogUpdate>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </MainLayout>
     )
 }

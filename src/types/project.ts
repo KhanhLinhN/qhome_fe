@@ -1,0 +1,14 @@
+export interface Project{
+    id: string,
+    code: string,
+    name: string,
+    contact: string,
+    email: string,
+    status: string,
+    description: string,
+    createdAt: string,
+    updatedAt: string,
+    createdBy: string,
+    updatedBy: string,
+    isDeleted: boolean,
+}

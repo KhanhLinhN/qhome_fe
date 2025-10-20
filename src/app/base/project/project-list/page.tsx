@@ -1,34 +1,37 @@
 'use client'
 import {useTranslations} from 'next-intl';
-import FilterForm from "../../../components/customer-interaction/FilterForm";
-import Table from "../../../components/customer-interaction/Table";
-import StatusTabs from "@/src/components/customer-interaction/StatusTabs";
+import FilterForm from "../../../../components/base-service/FilterForm";
+import Table from "../../../../components/customer-interaction/Table";
 import { useMemo, useState } from 'react';
-import { useRequests } from '@/src/hooks/useTableRequest';
+import { useProjectPage } from '@/src/hooks/useProjectPage';
 import Pagination from '@/src/components/customer-interaction/Pagination';
 import MainLayout from '@/src/components/layout/MainLayout';
 
 
 export default function Home() {
-  const t = useTranslations('customer-interaction.Request');
-  const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('dateCreated'), t('priority'), t('status')];
+  const t = useTranslations('Project');
+  const headers = [t('projectCode'), t('projectName'), t('address'), t('status'), t('createAt'), t('createBy'), t('action')];
 
   const {
       data,
       loading,
       error,
-      filters,
-      pageNo,
-      totalPages,
-      statusCounts,
       handleFilterChange,
-      handleSearch,
       handleClear,
       handlePageChange,
-  } = useRequests();
+  } = useProjectPage();
+
+  const [filters, setFilters] = useState({
+    projectCode: '',
+    status: '',
+    address: ''
+  });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const tableData = data?.content.map(item => ({
-      id: item.id,
+      projectCode: item.projectCode,
       requestCode: item.requestCode,
       residentName: item.residentName,
       title: item.title,
@@ -36,18 +39,6 @@ export default function Home() {
       priority: item.priority,
       createdAt: item.createdAt.slice(0, 10).replace(/-/g, '/'), // Format to YYYY/MM/DD
   })) || [];
-  
-  const tabData = useMemo(() => {
-    const counts = statusCounts || {}; 
-    
-    return [
-        { title: t('totalRequests'), count: counts.total || 0, status: '' },
-        { title: t('newRequests'), count: counts.New || 0, status: 'new' },
-        { title: t('processingRequests'), count: counts.Processing || 0, status: 'processing' },
-        { title: t('respondedRequests'), count: counts.Responded || 0, status: 'responded' },
-        { title: t('closedRequests'), count: counts.Closed || 0, status: 'closed' },
-    ];
-  }, [statusCounts, t]);
   
   // Handle loading and error states
   if (loading) {
@@ -91,10 +82,6 @@ export default function Home() {
                   onSearch={handleSearch}
                   onClear={handleClear}
                 ></FilterForm>
-                <StatusTabs 
-                    tabList={tabData}
-                    type={t("requests")}
-                ></StatusTabs>
                 <Table 
                     data={tableData} 
                     headers={headers}

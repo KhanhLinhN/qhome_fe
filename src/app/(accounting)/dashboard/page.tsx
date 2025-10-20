@@ -7,6 +7,7 @@ import { CatalogApi } from "@/src/services/catalogService";
 import { InvoiceApi } from "@/src/services/invoiceService";
 import { Building, BillingCycle, NotificationTemplate, NotificationChannel, PreviewItem } from "@/src/types/domain";
 import { useNotifications } from "@/src/hooks/useNotifications";
+import MainLayout from "@/src/components/layout/MainLayout";
 
 // TODO: lấy tenantId từ token/session
 const TENANT_ID = "tenant-1";
@@ -98,62 +99,64 @@ export default function AccountingDashboard(){
   };
 
   return (
-    <div className="space-y-4">
-      {/* Hàng thẻ thống kê gọn */}
-      <div className="grid md:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-2xl p-4">
-          <div className="text-slate-500 text-sm">Hộ cư dân</div>
-          <div className="text-2xl font-semibold mt-1">—</div>
+    <MainLayout>
+      <div className="space-y-4">
+        {/* Hàng thẻ thống kê gọn */}
+        <div className="grid md:grid-cols-4 gap-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4">
+            <div className="text-slate-500 text-sm">Hộ cư dân</div>
+            <div className="text-2xl font-semibold mt-1">—</div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-4">
+            <div className="text-slate-500 text-sm">Doanh thu kỳ</div>
+            <div className="text-2xl font-semibold mt-1">—</div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-4">
+            <div className="text-slate-500 text-sm">Nợ quá hạn</div>
+            <div className="text-2xl font-semibold mt-1">—</div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-4">
+            <div className="text-slate-500 text-sm">Ticket mở</div>
+            <div className="text-2xl font-semibold mt-1">—</div>
+          </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-4">
-          <div className="text-slate-500 text-sm">Doanh thu kỳ</div>
-          <div className="text-2xl font-semibold mt-1">—</div>
+
+        {/* Filters */}
+        <InvoicesFilters
+          buildings={buildings} cycles={cycles} templates={templates}
+          value={filters}
+          onChange={(v)=>setFilters(f=>({ ...f, ...v }))}
+          onRefresh={()=>{ setPage(0); refresh().catch(e=>show(String(e),"error")); }}
+        />
+
+        {/* Actions */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-slate-500">
+            Đã chọn: <b>{selected.size}</b>
+          </div>
+          <div className="flex gap-2">
+            <button className="btn-secondary" onClick={handlePreview}>Gửi thông báo</button>
+          </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-4">
-          <div className="text-slate-500 text-sm">Nợ quá hạn</div>
-          <div className="text-2xl font-semibold mt-1">—</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-4">
-          <div className="text-slate-500 text-sm">Ticket mở</div>
-          <div className="text-2xl font-semibold mt-1">—</div>
-        </div>
+
+        {/* Table */}
+        <InvoiceTable
+          rows={rows}
+          page={page} size={size} total={total}
+          onPageChange={p=>setPage(p)}
+          selected={selected} onSelectChange={setSelected}
+          onView={handleView}
+          onToggleNotify={handleToggleNotify}
+        />
+
+        {/* Preview & Send */}
+        <NotifyPreviewDialog
+          open={previewOpen}
+          onClose={()=>setPreviewOpen(false)}
+          items={previewItems}
+          onSend={handleSend}
+        />
       </div>
-
-      {/* Filters */}
-      <InvoicesFilters
-        buildings={buildings} cycles={cycles} templates={templates}
-        value={filters}
-        onChange={(v)=>setFilters(f=>({ ...f, ...v }))}
-        onRefresh={()=>{ setPage(0); refresh().catch(e=>show(String(e),"error")); }}
-      />
-
-      {/* Actions */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-slate-500">
-          Đã chọn: <b>{selected.size}</b>
-        </div>
-        <div className="flex gap-2">
-          <button className="btn-secondary" onClick={handlePreview}>Gửi thông báo</button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <InvoiceTable
-        rows={rows}
-        page={page} size={size} total={total}
-        onPageChange={p=>setPage(p)}
-        selected={selected} onSelectChange={setSelected}
-        onView={handleView}
-        onToggleNotify={handleToggleNotify}
-      />
-
-      {/* Preview & Send */}
-      <NotifyPreviewDialog
-        open={previewOpen}
-        onClose={()=>setPreviewOpen(false)}
-        items={previewItems}
-        onSend={handleSend}
-      />
-    </div>
+    </MainLayout>
   );
 }
