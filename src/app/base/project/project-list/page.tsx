@@ -78,6 +78,7 @@ export default function Home() {
             <div className="bg-white p-6 rounded-xl w-full">
                 <FilterForm
                   filters={filters}
+                  page='project'
                   onFilterChange={handleFilterChange}
                   onSearch={handleSearch}
                   onClear={handleClear}

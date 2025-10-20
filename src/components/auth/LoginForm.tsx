@@ -1,61 +1,104 @@
-"use client";
-import React, {useState} from "react";
-import {useTranslations} from "next-intl";
-import {useNotifications} from "@/src/hooks/useNotifications";
-import {login} from "@/src/services/auth";
+import { useTranslations } from 'next-intl';
+import React from 'react';
 
-export default function LoginForm(){
-  const t = useTranslations();
-  const {show} = useNotifications();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
-  const [loading, setLoading] = useState(false);
-
-  async function onSubmit(e: React.FormEvent){
-    e.preventDefault(); setLoading(true);
-    try { await login({username, password, remember}); show(t("login.success"), "success");
-      // router.push("/dashboard")
-    } catch (e:any) {
-      show(e?.response?.data?.message || t("login.error"), "error");
-    } finally { setLoading(false); }
-  }
+const LoginPage = () => {
+  const DARK_GREEN = 'bg-[#2E5C3E]'; 
+  const MEDIUM_GREEN = 'bg-[#5c8d6b]'; 
+  const LIGHT_GREEN = 'bg-[#E9F5E9]'; 
+  const t = useTranslations('HomePage');
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="text-center mb-2">
-        <h1 className="text-lg font-semibold">{t("Login.title")}</h1>
-        <p className="text-xs text-slate-500">{t("Login.subtitle")}</p>
-      </div>
+    <div className={`min-h-screen bg-[#E9F5E9] flex flex-col items-center p-4 sm:p-8 font-sans`}>
 
-      <label className="text-sm block">
-        {t("Login.username")}
-        <input value={username} onChange={e=>setUsername(e.target.value)}
-               placeholder="you@example.com"
-               className="mt-1 w-full border rounded-xl px-3 py-2 text-sm"/>
-      </label>
-
-      <div className="text-sm">
-        <div className="flex items-center justify-between">
-          <label>{t("Login.password")}</label>
-          <a href="#" className="text-xs text-indigo-600 hover:underline">{t("Login.forgot")}</a>
+      {/* <header className="w-full max-w-5xl flex justify-between items-center mb-6">
+        <div className="text-xl font-bold text-[#2E5C3E]">QHome</div>
+        <div className="flex items-center space-x-2">
+          <Flag className="text-red-500 w-5 h-5" />
+          <div className="w-10 h-6 rounded-full bg-gray-300 relative">
+            <div className="absolute w-4 h-4 bg-white rounded-full top-1 left-1 shadow"></div>
+          </div>
         </div>
-        <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
-               placeholder="••••••••"
-               className="mt-1 w-full border rounded-xl px-3 py-2 text-sm"/>
+      </header> */}
+
+      <div className="flex w-full max-w-4xl min-h-[500px] bg-white rounded-xl shadow-xl overflow-hidden">
+
+        {/* Phần bên trái: Chào mừng (WELLCOME TO QHOME PMS) */}
+        <div className={`hidden lg:flex flex-col flex-1 bg-[#2E5C3E] text-white p-10 justify-around relative rounded-l-xl`}>
+          
+          <style jsx>{`
+            .welcome-section-tail::after {
+              content: '';
+              position: absolute;
+              top: 0;
+              right: -30px; 
+              bottom: 0;
+              width: 100px; 
+              background-color: #2E5C3E;
+              transform: skewX(-10deg); 
+              z-index: 10;
+            }
+            .welcome-content-tail {
+                position: relative;
+                z-index: 20;
+            }
+          `}</style>
+
+          <div className="welcome-section-tail absolute inset-0 rounded-l-xl"></div>
+          <div className="welcome-content-tail flex flex-col justify-around h-full">
+            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight">
+              {t('HomePage.title')}
+            </h1>
+            
+            <div className="text-center mt-8">
+              <Image src="/images/login-illustration.png" alt="Welcome Illustration" width={200} height={200} />
+            </div>
+          </div>
+        </div>
+
+        {/* Phần bên phải: Form Login */}
+        <div className="flex-1 p-8 sm:p-12 flex flex-col justify-center relative z-20">
+          <h2 className="text-3xl font-semibold text-[#2E5C3E] mb-8">Login</h2>
+
+          <form className="space-y-6">
+            
+            {/* Input Email */}
+            <div className="relative">
+              <input
+                type="email"
+                placeholder="Email"
+                className="w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5c8d6b] focus:border-[#5c8d6b] outline-none"
+              />
+              <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            </div>
+
+            {/* Input Password */}
+            <div className="relative">
+              <input
+                type="password"
+                placeholder="Password"
+                className="w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5c8d6b] focus:border-[#5c8d6b] outline-none"
+              />
+              <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            </div>
+
+            <div className="text-right">
+              <a href="#" className="text-sm text-[#5c8d6b] hover:underline">
+                Forgot password?
+              </a>
+            </div>
+
+            {/* Nút Login */}
+            <button
+              type="submit"
+              className={`w-full py-3 text-white font-medium rounded-lg ${MEDIUM_GREEN} hover:bg-[#4a7758] transition duration-200`}
+            >
+              Login
+            </button>
+          </form>
+        </div>
       </div>
-
-      <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-        <input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)}/>
-        {t("Login.remember")}
-      </label>
-
-      <button type="submit" disabled={loading}
-              className="w-full rounded-xl px-4 py-2 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60">
-        {loading ? t("Login.loading") : t("Login.submit")}
-      </button>
-
-      <div className="text-center text-xs text-slate-500">{t("Login.contact_support")}</div>
-    </form>
+    </div>
   );
-}
+};
+
+export default LoginPage;

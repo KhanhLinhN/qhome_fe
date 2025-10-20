@@ -25,11 +25,6 @@ const FilterForm = ({ filters, page, onFilterChange, onSearch, onClear }: Filter
         onFilterChange(e.target.name as keyof filters, e.target.value);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSearch();
-    };
-
     const inputClass = "w-full px-4 h-10 border-[1px] border-[#2ad47a] rounded-lg text-[#81A996] focus:outline-none transition duration-150 ease-in-out";
 
     if(page == "project"){

@@ -1,16 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ProjectService } from '@/src/services/base/project/projectService';
 import { Project } from '../types/project';
-// import { RequestFilters } from '@/src/components/customer-interaction/FilterForm';
+import { filters } from '@/src/components/base-service/FilterForm';
 
-const initialFilters: RequestFilters = {
-    requestId: '',
-    title: '',
-    residentName: '',
+const initialFilters : filters = {
+    codeName: '',
     status: '',
-    priority: '',
-    dateFrom: '',
-    dateTo: ''
+    address: ''
 };
 
 const projectService = new ProjectService();
@@ -20,11 +16,11 @@ export const useProjectPage = (loadOnMount: boolean = true) => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    // const [filters, setFilters] = useState<RequestFilters>(initialFilters);
+    const [filters, setFilters] = useState<filters>(initialFilters);
     const [pageNo, setPageNo] = useState<number>(0);
 
-    
-    const fetchData = useCallback(async (currentFilters: RequestFilters) => {
+
+    const fetchData = useCallback(async (currentFilters: filters) => {
         setLoading(true);
         setError(null);
         try {
