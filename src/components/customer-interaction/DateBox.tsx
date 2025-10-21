@@ -4,7 +4,7 @@ import { useRef } from 'react';
 
 interface DateBoxProps {
     value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     placeholderText?: string;
 };
 

@@ -7,13 +7,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 interface TableItemProps {
-    id: number;
-    requestCode: string;
-    residentName: string;
-    title: string;
-    status: string;
-    priority: string;
-    createdAt: string;
+    id?: number;
+    requestCode?: string;
+    residentName?: string;
+    title?: string;
+    status?: string;
+    priority?: string;
+    createdAt?: string;
 }
 
 interface TableProps {

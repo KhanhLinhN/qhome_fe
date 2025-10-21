@@ -110,6 +110,7 @@
   "Project":{
     "projectCode":"Mã dự án",
     "projectName": "Tên dự án",
+    "requestlist":"Danh sách yêu cầu",
     "address": "Địa chỉ",
     "status": "Trạng thái",
     "createAt": "Ngày tạo",
@@ -127,6 +128,34 @@
     "descroption": "Mô tả",
     "save":   "Lưu",
     "cancel":   "Hủy",
-    "newDescription": "Mô tả mới"
+    "newDescription": "Mô tả mới",
+    "loading":"Đang tải dữ liệu...",
+    "error":"Lỗi khi tải dữ liệu",
+    "retry":"Vui lòng thử lại",
+    "clear":"Xóa"
+  },
+  "Building": {
+    "buildingCode":"Mã tòa nhà",
+    "buildingName": "Tên dự án",
+    "projectName": "Tên dự án",
+    "floors": "Số tầng",
+    "status": "Trạng thái",
+    "createAt": "Ngày tạo",
+    "createBy": "Người tạo",
+    "action": "Thao tác",
+    "fillterBy": "Lọc theo",
+    "buildingcodename": "Mã tòa nhà/ Tên tòa nhà",
+    "addBuilding": "Thêm tòa nhà",
+    "return": "Quay lại danh sách tòa nhà",
+    "projectdetail": "Chi tiết tòa nhà",
+    "inactive": "Không hoạt động",
+    "active": "Hoạt động",
+    "hotline": "Hotline",
+    "email": "Email",
+    "descroption": "Mô tả",
+    "save":   "Lưu",
+    "cancel":   "Hủy",
+    "newDescription": "Mô tả mới",
+    "address":"Địa chỉ"
   }
 }

@@ -6,6 +6,7 @@ export interface Project{
     email: string,
     status: string,
     description: string,
+    address: string,
     createdAt: string,
     updatedAt: string,
     createdBy: string,

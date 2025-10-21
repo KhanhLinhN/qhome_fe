@@ -31,7 +31,10 @@ const FilterForm = ({ filters, page, onFilterChange, onSearch, onClear }: Filter
 
         return (
             <div className="bg-white p-6 rounded-xl w-full">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex flex-col lg:flex-row gap-4">
+                    <span>
+                        {t('fillterBy')}
+                    </span>
                     <input
                         type="text"
                         name="projectcodename"
@@ -40,32 +43,30 @@ const FilterForm = ({ filters, page, onFilterChange, onSearch, onClear }: Filter
                         className={inputClass}
                         onChange={handleInputChange}
                     />    
-                <div className="flex-1 min-w-0">    
                     <Select
-                        options={[{ name: t('active'), value: 'active' }, { name: t('inactive'), value: 'inactive' }, { name: t('completed'), value: 'Completed' }, { name: t('closed'), value: 'Closed'}]}
+                        options={[{ name: t('active'), value: 'ACTIVE' }, { name: t('inactive'), value: 'INACTIVE' }]}
                         value={filters.status}
                         onSelect={(item) => onFilterChange('status', item.value)}
                         renderItem={(item) => item.name}
                         getValue={(item) => item.value}
                         placeholder={t('status')}
                     />
-                </div>
-                <input
-                    type="text"
-                    name="address"
-                    placeholder={t('address')}
-                    value={filters.address || ''}
-                    className={inputClass}
-                    onChange={handleInputChange}
-                />
+                    <input
+                        type="text"
+                        name="address"
+                        placeholder={t('address')}
+                        value={filters.address || ''}
+                        className={inputClass}
+                        onChange={handleInputChange}
+                    />
 
-                <button
-                    type="button"
-                    onClick={onClear}
-                    className="flex items-center justify-center px-6 py-2.5 bg-white text-gray-700 font-semibold border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50"
-                >
-                    {t('clear')}
-                </button>
+                    <button
+                        type="button"
+                        onClick={onClear}
+                        className="flex items-center justify-center px-6 py-2.5 bg-white text-gray-700 font-semibold border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50"
+                    >
+                        {t('clear')}
+                    </button>
                 </div>
             </div>
         );

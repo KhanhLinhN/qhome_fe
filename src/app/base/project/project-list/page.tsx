@@ -1,11 +1,12 @@
 'use client'
 import {useTranslations} from 'next-intl';
 import FilterForm from "../../../../components/base-service/FilterForm";
-import Table from "../../../../components/customer-interaction/Table";
+import Table from "../../../../components/base-service/Table";
 import { useMemo, useState } from 'react';
 import { useProjectPage } from '@/src/hooks/useProjectPage';
 import Pagination from '@/src/components/customer-interaction/Pagination';
 import MainLayout from '@/src/components/layout/MainLayout';
+import { create } from 'domain';
 
 
 export default function Home() {
@@ -13,32 +14,27 @@ export default function Home() {
   const headers = [t('projectCode'), t('projectName'), t('address'), t('status'), t('createAt'), t('createBy'), t('action')];
 
   const {
-      data,
-      loading,
-      error,
-      handleFilterChange,
-      handleClear,
-      handlePageChange,
-  } = useProjectPage();
+        data,
+        loading,
+        error,
+        filters,            // <--- Lấy state filters từ hook
+        pageNo,             // <--- Lấy state pageNo từ hook
+        totalPages,         // <--- Lấy totalPages từ hook
+        handleFilterChange,
+        handleSearch,       // <--- Lấy hàm handleSearch từ hook
+        handleClear,
+        handlePageChange,
+        handleStatusChange, 
+    } = useProjectPage();
 
-  const [filters, setFilters] = useState({
-    projectCode: '',
-    status: '',
-    address: ''
-  });
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  const tableData = data?.content.map(item => ({
-      projectCode: item.projectCode,
-      requestCode: item.requestCode,
-      residentName: item.residentName,
-      title: item.title,
-      status: item.status,
-      priority: item.priority,
-      createdAt: item.createdAt.slice(0, 10).replace(/-/g, '/'), // Format to YYYY/MM/DD
-  })) || [];
+  const tableData = data?.content.map((item) => ({
+        projectCode: item.code,
+        projectName: item.name,
+        address: item.address, 
+        status: item.status,
+        createdAt: item.createdAt.slice(0, 10).replace(/-/g, '/'),
+        createBy: item.createdBy
+    })) || [];
   
   // Handle loading and error states
   if (loading) {
@@ -88,9 +84,9 @@ export default function Home() {
                     headers={headers}
                 ></Table>
                 <Pagination
-                    currentPage={pageNo}
+                    currentPage={pageNo + 1} 
                     totalPages={totalPages}
-                    onPageChange={handlePageChange}
+                    onPageChange={(page) => handlePageChange(page - 1)} 
                 />
             </div>
         </div>

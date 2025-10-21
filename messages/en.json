@@ -116,6 +116,7 @@
   "Project":{
     "projectCode":"Project Code",
     "projectName": "Project Name",
+    "requestlist":"Request List",
     "address": "Address",
     "status": "Status",
     "createAt": "Create At",
@@ -133,8 +134,34 @@
     "descroption": "Description",
     "save":  "Save",
     "cancel":  "Cancel",
-    "newDescription": "New Description"
-    
+    "newDescription": "New Description",
+    "loading": "Data is loading...",
+    "error": "Error loading data",
+    "retry": "Please try again",
+    "clear": "Clear"
+  },
+  "Building": {
+    "buildingCode":"Building Code",
+    "buildingName": "Building Name",
+    "projectName": "Project Name",
+    "floors": "Floors",
+    "status": "Status",
+    "createAt": "Create At",
+    "createBy": "Create By",
+    "action": "Action",
+    "fillterBy": "Fillter By",
+    "buildingcodename": "Building Code/ Building Name",
+    "addBuilding": "Add Building",
+    "return": "Quay lại danh sách tòa nhà",
+    "buildingdetail": "Chi tiết tòa nhà",
+    "addProject": "Add project",
+    "inactive": "Inactive",
+    "active": "Active",
+    "hotline": "Hotline",
+    "email": "Email",
+    "save":  "Save",
+    "cancel":  "Cancel",
+    "address": "Address"
   }
 }
 
