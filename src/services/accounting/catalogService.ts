@@ -1,4 +1,4 @@
-import { http } from "./http";
+import { http } from "../http";
 import { Building, BillingCycle, NotificationTemplate } from "@/src/types/domain";
 
 const BASE = "/api";
@@ -14,3 +14,5 @@ export const CatalogApi = {
     return http<NotificationTemplate[]>(`${BASE}/notification-templates?tenantId=${tenantId}&type=FEE`);
   }
 };
+
+

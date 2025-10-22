@@ -1,0 +1,188 @@
+"use client";
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { getEmployeesInTenant } from '@/src/services/iam';
+import type { EmployeeRoleDto } from '@/src/services/iam';
+
+export default function UserPermissionsPage() {
+  const searchParams = useSearchParams();
+  const tenantId = searchParams.get('tenant') || '';
+  const tenantName = searchParams.get('tenantName') || 'Unknown Tenant';
+  
+  const [employees, setEmployees] = useState<EmployeeRoleDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+
+  useEffect(() => {
+    if (tenantId) {
+      loadEmployees();
+    }
+  }, [tenantId]);
+
+  const loadEmployees = async () => {
+    try {
+      setLoading(true);
+      const data = await getEmployeesInTenant(tenantId);
+      setEmployees(data);
+    } catch (error) {
+      console.error('Failed to load employees:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter employees
+  const filteredEmployees = employees.filter(emp => {
+    const matchesSearch = emp.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         emp.email.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesRole = roleFilter === 'all' || 
+                       emp.assignedRoles.some(r => r.roleName.toLowerCase() === roleFilter.toLowerCase());
+    
+    return matchesSearch && matchesRole;
+  });
+
+  // Get unique roles for filter
+  const allRoles = Array.from(
+    new Set(
+      employees.flatMap(emp => emp.assignedRoles.map(r => r.roleName))
+    )
+  );
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-12 text-slate-500">
+          Đang tải dữ liệu...
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+          <Link href="/dashboard" className="hover:text-[#6B9B6E]">Dashboard</Link>
+          <span>›</span>
+          <span className="text-slate-700 font-medium">{tenantName}</span>
+          <span>›</span>
+          <span className="text-slate-700 font-medium">User Permissions</span>
+        </div>
+        <h1 className="text-2xl font-bold text-slate-800">
+          🔍 User Permissions
+        </h1>
+        <p className="text-slate-600 mt-1">
+          View detailed permissions for users in {tenantName}
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-6 flex gap-4">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="🔍 Search by username or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
+          />
+        </div>
+        <div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
+          >
+            <option value="all">All Roles</option>
+            {allRoles.map(role => (
+              <option key={role} value={role}>{role.toUpperCase()}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* User List */}
+      <div className="space-y-3">
+        {filteredEmployees.length === 0 ? (
+          <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-lg border border-slate-200">
+            {searchQuery || roleFilter !== 'all' 
+              ? 'Không tìm thấy user phù hợp'
+              : 'Không có user nào trong tenant này'
+            }
+          </div>
+        ) : (
+          filteredEmployees.map(employee => (
+            <div
+              key={employee.userId}
+              className="p-5 border border-slate-200 rounded-lg hover:border-[#6B9B6E] hover:shadow-md transition bg-white"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  {/* User Info */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-[#6B9B6E] text-white rounded-full flex items-center justify-center font-semibold">
+                      {employee.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-800 text-lg">
+                        {employee.username}
+                      </h3>
+                      <p className="text-sm text-slate-500">{employee.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Roles */}
+                  <div className="mb-3">
+                    <span className="text-sm text-slate-600 font-medium">🎭 Roles: </span>
+                    {employee.assignedRoles.length === 0 ? (
+                      <span className="text-sm text-slate-400 italic">No roles</span>
+                    ) : (
+                      <div className="inline-flex flex-wrap gap-1">
+                        {employee.assignedRoles.map((role, idx) => (
+                          <span
+                            key={`${role.roleName}-${idx}`}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#6B9B6E] text-white uppercase"
+                          >
+                            {role.roleName}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Permission Count */}
+                  <div className="text-sm text-slate-600">
+                    🔑 <span className="font-semibold">{employee.allPermissions?.length || 0}</span> permissions
+                  </div>
+                </div>
+
+                {/* View Details Button */}
+                <Link
+                  href={`/users/${employee.username}/permissions?tenant=${tenantId}&tenantName=${encodeURIComponent(tenantName)}`}
+                  className="px-4 py-2 bg-[#6B9B6E] text-white rounded-md hover:bg-[#5a8259] transition font-medium flex items-center gap-2"
+                >
+                  View Details →
+                </Link>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Summary */}
+      {filteredEmployees.length > 0 && (
+        <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <div className="text-sm text-slate-600">
+            Showing <span className="font-semibold">{filteredEmployees.length}</span> of{' '}
+            <span className="font-semibold">{employees.length}</span> users
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

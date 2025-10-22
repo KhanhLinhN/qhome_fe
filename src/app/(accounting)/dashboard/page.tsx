@@ -1,12 +1,15 @@
 "use client";
 import React from "react";
+import Link from "next/link";
+import TenantList from "@/src/components/dashboard/TenantList";
 import InvoicesFilters from "@/src/components/account/InvoicesFilters";
 import InvoiceTable from "@/src/components/account/InvoiceTable";
 import NotifyPreviewDialog from "@/src/components/account/NotifyPreviewDialog";
-import { CatalogApi } from "@/src/services/catalogService";
-import { InvoiceApi } from "@/src/services/invoiceService";
+import { CatalogApi } from "@/src/services/finance";
+import { InvoiceApi } from "@/src/services/finance";
 import { Building, BillingCycle, NotificationTemplate, NotificationChannel, PreviewItem } from "@/src/types/domain";
 import { useNotifications } from "@/src/hooks/useNotifications";
+import { useAuth } from "@/src/contexts/AuthContext";
 
 // TODO: lấy tenantId từ token/session
 const TENANT_ID = "tenant-1";
@@ -37,34 +40,36 @@ export default function AccountingDashboard(){
 
   // load catalogs once
   React.useEffect(()=>{
-    (async ()=>{
-      const [b, c, t] = await Promise.all([
-        CatalogApi.buildings(TENANT_ID),
-        CatalogApi.billingCyclesOpen(TENANT_ID),
-        CatalogApi.feeTemplates(TENANT_ID),
-      ]);
-      setBuildings(b); setCycles(c); setTemplates(t);
-      // default cycle = first OPEN if not chosen
-      setFilters(f=>({ ...f, billingCycleId: f.billingCycleId ?? c[0]?.id }));
-    })().catch(e=>show(String(e),"error"));
+    // TODO: Uncomment khi backend có các API này
+    // (async ()=>{
+    //   const [b, c, t] = await Promise.all([
+    //     CatalogApi.buildings(TENANT_ID),
+    //     CatalogApi.billingCyclesOpen(TENANT_ID),
+    //     CatalogApi.feeTemplates(TENANT_ID),
+    //   ]);
+    //   setBuildings(b); setCycles(c); setTemplates(t);
+    //   // default cycle = first OPEN if not chosen
+    //   setFilters(f=>({ ...f, billingCycleId: f.billingCycleId ?? c[0]?.id }));
+    // })().catch(e=>show(String(e),"error"));
   },[]); // eslint-disable-line
 
   // load table when filters/page change & have minimal filter
   const refresh = React.useCallback(async ()=>{
-    if(!filters.billingCycleId) return;
-    const resp = await InvoiceApi.list({
-      tenantId:TENANT_ID,
-      billingCycleId: filters.billingCycleId,
-      buildingIds: filters.buildingIds,
-      status: "PUBLISHED",
-      page, size, sort: "unitCode,asc"
-    });
-    setRows(resp.content);
-    setTotal(resp.totalElements);
-    setSelected(new Set()); // reset selection khi refresh
+    // TODO: Uncomment khi backend có InvoiceApi
+    // if(!filters.billingCycleId) return;
+    // const resp = await InvoiceApi.list({
+    //   tenantId:TENANT_ID,
+    //   billingCycleId: filters.billingCycleId,
+    //   buildingIds: filters.buildingIds,
+    //   status: "PUBLISHED",
+    //   page, size, sort: "unitCode,asc"
+    // });
+    // setRows(resp.content);
+    // setTotal(resp.totalElements);
+    // setSelected(new Set()); // reset selection khi refresh
   },[filters, page, size]);
 
-  React.useEffect(()=>{ refresh().catch(e=>show(String(e),"error")); }, [refresh]);
+  // React.useEffect(()=>{ refresh().catch(e=>show(String(e),"error")); }, [refresh]);
 
   // handlers
   const handleToggleNotify = async (id:string, enabled:boolean)=>{
@@ -98,7 +103,52 @@ export default function AccountingDashboard(){
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Danh sách Tenants - Mục đầu tiên, click để xem Buildings */}
+      <TenantList />
+
+      {/* Admin Quick Actions */}
+      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">⚡ Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link 
+            href="/roles"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#6B9B6E] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">🔐</div>
+            <div className="font-medium text-slate-800 text-center">Roles & Permissions</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Quản lý phân quyền</div>
+          </Link>
+
+          <Link 
+            href="/users"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#6B9B6E] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">👥</div>
+            <div className="font-medium text-slate-800 text-center">User Management</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Quản lý người dùng</div>
+          </Link>
+
+          <Link 
+            href="/settings"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#6B9B6E] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">⚙️</div>
+            <div className="font-medium text-slate-800 text-center">System Settings</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Cài đặt hệ thống</div>
+          </Link>
+
+          <Link 
+            href="/reports"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#6B9B6E] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">📊</div>
+            <div className="font-medium text-slate-800 text-center">Reports</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Báo cáo thống kê</div>
+          </Link>
+        </div>
+      </div>
+
       {/* Hàng thẻ thống kê gọn */}
       <div className="grid md:grid-cols-4 gap-4">
         <div className="bg-white border border-slate-200 rounded-2xl p-4">

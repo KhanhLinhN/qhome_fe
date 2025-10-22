@@ -25,9 +25,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.input{ @apply w-full border rounded-xl px-3 py-2 text-sm border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-200; }
-.btn-primary{ @apply px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm hover:bg-indigo-700; }
-.btn-secondary{ @apply px-3 py-2 rounded-xl border border-slate-200 text-sm hover:bg-slate-50; }
+.input{ @apply w-full border-0 bg-[#E8E5DC] rounded-md px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30; }
+.btn-primary{ @apply px-4 py-2.5 rounded-md bg-[#6B9B6E] text-white text-sm font-medium hover:bg-[#5d8660] transition-colors; }
+.btn-secondary{ @apply px-4 py-2.5 rounded-md border-0 bg-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-300 transition-colors; }
 
 
 ::-webkit-calendar-picker-indicator {
