@@ -7,6 +7,8 @@ import { useProjectPage } from '@/src/hooks/useProjectPage';
 import Pagination from '@/src/components/customer-interaction/Pagination';
 import MainLayout from '@/src/components/layout/MainLayout';
 import { create } from 'domain';
+import { useProjectAdd } from '@/src/hooks/useProjectAdd';
+import { useRouter } from 'next/navigation';
 
 
 export default function Home() {
@@ -14,27 +16,34 @@ export default function Home() {
   const headers = [t('projectCode'), t('projectName'), t('address'), t('status'), t('createAt'), t('createBy'), t('action')];
 
   const {
-        data,
-        loading,
-        error,
-        filters,            // <--- Lấy state filters từ hook
-        pageNo,             // <--- Lấy state pageNo từ hook
-        totalPages,         // <--- Lấy totalPages từ hook
-        handleFilterChange,
-        handleSearch,       // <--- Lấy hàm handleSearch từ hook
-        handleClear,
-        handlePageChange,
-        handleStatusChange, 
-    } = useProjectPage();
+      data,
+      loading,
+      error,
+      filters,            
+      pageNo,             
+      totalPages,         
+      handleFilterChange,
+      handleClear,
+      handlePageChange
+  } = useProjectPage();  
 
   const tableData = data?.content.map((item) => ({
-        projectCode: item.code,
-        projectName: item.name,
-        address: item.address, 
-        status: item.status,
-        createdAt: item.createdAt.slice(0, 10).replace(/-/g, '/'),
-        createBy: item.createdBy
-    })) || [];
+      projectId: item.id,
+      projectCode: item.code,
+      projectName: item.name,
+      address: item.address, 
+      contact: item.contact,
+      email: item.email,
+      status: item.status,
+      createBy: item.createdBy,
+      createdAt: item.createdAt?.slice(0, 10).replace(/-/g, '/')
+  })) || [];
+
+  const router = useRouter();
+  const handleAdd = () => {
+    router.push(`/base/project/projectNew`);
+  };
+
   
   // Handle loading and error states
   if (loading) {
@@ -76,12 +85,13 @@ export default function Home() {
                   filters={filters}
                   page='project'
                   onFilterChange={handleFilterChange}
-                  onSearch={handleSearch}
+                  onAdd={handleAdd}
                   onClear={handleClear}
                 ></FilterForm>
                 <Table 
                     data={tableData} 
                     headers={headers}
+                    type='project'
                 ></Table>
                 <Pagination
                     currentPage={pageNo + 1} 

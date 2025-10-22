@@ -6,7 +6,7 @@ import Delete from '@/src/assets/DeleteTable.svg';
 import Edit from '@/src/assets/EditTable.svg';
 
 interface TableItemProps {
-    id?: number;
+    projectId?: string;
     projectCode?: string;
     projectName?: string;
     address?: string;
@@ -15,29 +15,35 @@ interface TableItemProps {
     status?: string;
     createBy?: string,
     createdAt?: string;
+    buildingId?: string;
+    buildingCode?: string;
+    buildingName?: string;
+    floors?: string;
 }
 
 interface TableProps {
     data: TableItemProps[];
     headers?: string[];
+    type: string;
 }
 
-const Table = ({ data, headers }: TableProps) => {
-    const t = useTranslations('Project');
+const Table = ({ data, headers, type }: TableProps) => {
+    const t = useTranslations();
     const [selectedId, setSelectedId] = useState<number | undefined>();
     console.log(data);
 
     return (
-        <div className="overflow-x-auto bg-white rounded-xl mt-6">
-            <table className="w-full">
+        <div className="overflow-x-auto bg-white mt-6 border-t-4 bolder-solid border-[#14AE5C] h-[600px] overflow-y-auto">
+            <table className="w-full rounded-xl">
                 
                 <thead>
-                    <tr className="border-b-2 border-solid border-[#14AE5C]">
+                    <tr className="border-b-2 border-solid border-[#14AE5C] ">
                         {headers?.map((header, index) => (
                             <th
                                 key={index}
                                 className={`px-4 py-3 text-[14px] font-bold text-[#024023] uppercase tracking-wider text-center whitespace-nowrap`}
-                                style={{ width: header === t('projectCode') || header === t('createAt') || header === t('createBy') || header === t('status') || header === t('action') ? '5%' : 'auto' }}
+                                style={{ width: header === t('Project.projectCode') || header === t('Project.createAt') || header === t('Project.createBy') || header === t('Project.status') || header === t('Project.action') 
+                                    || header === t('Building.buildingCode') || header === t('Building.createAt') || header === t('Building.createBy') || header === t('Building.status') || header === t('Building.action') || header === t('Building.floors') ? '5%' : 'auto' }}
                             >
                                 {header}
                             </th>
@@ -47,67 +53,115 @@ const Table = ({ data, headers }: TableProps) => {
                 
                 <tbody>
                     {data.map((item, index) => {
-                        const isSelected = item.id === selectedId;
+                        const isSelected = item.projectId === selectedId;
                         
                         const rowClass = isSelected 
-                            ? 'bg-green-50 transition duration-150 ease-in-out' 
+                            ? 'transition duration-150 ease-in-out' 
                             : 'hover:bg-gray-50';
 
                         const borderClass = index < data.length - 1 
                             ? 'border-b border-solid border-[#CDCDCD]' 
                             : 'border-b-0';
-
-                        const handleCellClick = (e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            setSelectedId(item.id); 
-                            // onRowClick(item.id);
-                        };
                         
-                        return (
-                            <tr 
-                                key={item.id} 
-                                className={`${rowClass} ${borderClass} cursor-pointer`}
-                            >
-
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold text-center">
-                                        {item.projectCode}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.projectName}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.address}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.status}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>
-
-                                <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.createBy}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023] text-center">
-                                    <div className="flex space-x-2">
-                                        <button 
-                                            className={` hover:bg-opacity-80 transition duration-150`}
-                                            onClick={() => console.log('Chỉnh sửa dự án')}
-                                        >
-                                            <Image 
-                                                src={Edit} 
-                                                alt="Edit" 
-                                                width={24} 
-                                                height={24}
-                                                className="w-10 h-10 text-red-500"
-                                            />
-                                        </button>
-                                        <button 
-                                            className=" hover:bg-opacity-80 transition duration-150"
-                                            onClick={() => console.log('Đóng/Xóa dự án')}
-                                        >
-                                            <Image 
-                                                src={Delete} 
-                                                alt="Delete" 
-                                                width={24} 
-                                                height={24}
-                                                className="w-10 h-10" 
-                                            />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        );
+                            if(type === "project"){
+                                return (
+                                    <tr 
+                                        key={item.projectId} 
+                                        className={`${rowClass} ${borderClass} cursor-pointer`}
+                                    >
+        
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold text-center">
+                                                {item.projectCode}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.projectName}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.address}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.status}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>
+        
+                                        <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.createBy}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023] text-center">
+                                            <div className="flex space-x-2">
+                                                <button 
+                                                    className={` hover:bg-opacity-80 transition duration-150`}
+                                                    onClick={() => console.log('Chỉnh sửa dự án')}
+                                                >
+                                                    <Link href={`/base/project/projectDetail/${item.projectId}`}>
+                                                        <Image 
+                                                            src={Edit} 
+                                                            alt="Edit" 
+                                                            width={24} 
+                                                            height={24}
+                                                            className="w-10 h-10 text-red-500"
+                                                        />
+                                                    </Link>
+                                                </button>
+                                                <button 
+                                                    className=" hover:bg-opacity-80 transition duration-150 z-10"
+                                                    onClick={() => console.log('Đóng/Xóa dự án')}
+                                                >
+                                                    <Image 
+                                                        src={Delete} 
+                                                        alt="Delete" 
+                                                        width={24} 
+                                                        height={24}
+                                                        className="w-10 h-10" 
+                                                    />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            }
+                            if(type === "building"){
+                                return (
+                                    <tr 
+                                        key={item.buildingId} 
+                                        className={`${rowClass} ${borderClass} cursor-pointer`}
+                                    >
+        
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold text-center">
+                                                {item.buildingCode}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.buildingName}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.projectName}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.floors}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.status}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>
+        
+                                        <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.createBy}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023] text-center">
+                                            <div className="flex space-x-2">
+                                                <button 
+                                                    className={` hover:bg-opacity-80 transition duration-150`}
+                                                    onClick={() => console.log('Chỉnh sửa dự án')}
+                                                >
+                                                    <Link href={`/base/building/buildingDetail/${item.buildingId}`}>
+                                                        <Image 
+                                                            src={Edit} 
+                                                            alt="Edit" 
+                                                            width={24} 
+                                                            height={24}
+                                                            className="w-10 h-10 text-red-500"
+                                                        />
+                                                    </Link>
+                                                </button>
+                                                <button 
+                                                    className=" hover:bg-opacity-80 transition duration-150 z-10"
+                                                    onClick={() => console.log('Đóng/Xóa dự án')}
+                                                >
+                                                    <Image 
+                                                        src={Delete} 
+                                                        alt="Delete" 
+                                                        width={24} 
+                                                        height={24}
+                                                        className="w-10 h-10" 
+                                                    />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            }
                     })}
                 </tbody>
             </table>

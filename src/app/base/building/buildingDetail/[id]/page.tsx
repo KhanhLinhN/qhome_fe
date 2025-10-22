@@ -1,31 +1,24 @@
 'use client'
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import Delete from '@/src/assets/Delete.svg';
 import Edit from '@/src/assets/Edit.svg';
 import DetailField from '@/src/components/base-service/DetailField';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import Select from '@/src/components/customer-interaction/Select';
+import { useBuildingDetailPage } from '@/src/hooks/useBuildingDetailPage';
 
-export default function ProjectDetail () {
+export default function BuildingDetail () {
 
-    // Data mẫu
-    const projectData = {
-        code: 'VNB02',
-        name: 'Viet Nam Building 2',
-        address: 'Do Duc Street, Me Tri Ward, Nam Tu Liem, Hanoi',
-        createdAt: '02/10/2025',
-        hotline: '0813065257',
-        createdBy: 'Pham Hung B',
-        email: 'VietnamBD2@gmail.com',
-        description: 'A building is a permanent, enclosed structure with a roof and walls, such as a house, school, or factory, used for various activities like living, working, or storing goods. Introducing a building involves describing its purpose, key architectural features, and overall function, often focusing on its parts from the ground up, including the foundation, walls, and roof.',
-        status: 'Inactive',
-    };
-
+    const t = useTranslations('Building'); 
     const router = useRouter();
-    const t = useTranslations('Project'); 
+    const params = useParams();
+    const buildingId = params.id;
+    const { buildingData, loading, error, isSubmitting } = useBuildingDetailPage(buildingId);
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    // const { deleteProject, isLoading: isDeleting } = useDeleteProject();    
+    
     
     const handleBack = () => {
         router.back(); 
@@ -52,12 +45,12 @@ export default function ProjectDetail () {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className={`text-2xl font-semibold text-[#02542D] mr-3`}>
-                            {t('projectdetail')}
+                            {t('buildingDetail')}
                         </h1>
                         <span 
-                            className={`text-sm font-semibold px-3 py-1 rounded-full ${projectData.status === 'Inactive' ? 'bg-[#EEEEEE] text-[#02542D]' : 'bg-[#739559] text-white'}`}
+                            className={`text-sm font-semibold px-3 py-1 rounded-full ${buildingData?.status === 'Inactive' ? 'bg-[#EEEEEE] text-[#02542D]' : 'bg-[#739559] text-white'}`}
                         >
-                            {t(`${projectData.status.toLowerCase()}`)}
+                            {buildingData?.status}
                         </span>
                     </div>
 
@@ -92,58 +85,41 @@ export default function ProjectDetail () {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                     
                     <DetailField 
-                        label={t('projectCode')}
-                        value={projectData.code} 
+                        label={t('buildingCode')}
+                        value={buildingData?.code ?? ""} 
                         readonly={true}
-                        placeholder={t('projectCode')}
+                    />
+                    <div className="col-span-1 hidden md:block"></div>
+
+                    <DetailField 
+                        label={t('buildingName')}
+                        value={buildingData?.name ?? ""} 
+                        readonly={true}
+                    />
+
+                    <DetailField 
+                        label={t('projectName')} 
+                        value={buildingData?.tenanName ?? ""} 
+                        readonly={true}
+                    />
+
+                    <DetailField 
+                        label={t('createAt')}
+                        value={buildingData?.createdAt ?? ""} 
+                        readonly={true}
+                    />
+                    <DetailField 
+                        label={t('floors')}
+                        value={buildingData?.floorsMax ?? ""} 
+                        readonly={true}
+                    />
+
+                    <DetailField 
+                        label={t('createBy')} 
+                        value={buildingData?.createdBy ?? ""} 
+                        readonly={true}
                     />
                     
-                    <Select
-                        options={[{ name: t('inactive'), value: 'INACTIVE' }, { name: t('active'), value: 'ACTIVE' }]}
-                        value={projectData.status}
-                        onSelect={(item) => onSelectChange('status', item.value) }
-                        renderItem={(item) => item.name}
-                        getValue={(item) => item.value}
-                        placeholder={t('status')}
-                    />
-
-                    <DetailField 
-                        label={t('projectName')}
-                        value={projectData.name} 
-                        readonly={false}
-                        placeholder={t('projectName')}
-                    />
-                    <DetailField 
-                        label={t('address')}
-                        value={projectData.address} 
-                        readonly={false}
-                        placeholder={t('address')}
-                    />
-
-                    <DetailField 
-                        label={t('hotline')}
-                        value={projectData.hotline} 
-                        readonly={true}
-                        placeholder={t('hotline')}
-                    />
-
-                    <DetailField 
-                        label={t('email')}
-                        value={projectData.email} 
-                        readonly={true}
-                        placeholder={t('email')}
-                    />
-
-                    <div className="col-span-full mt-4">
-                        <DetailField 
-                            label={t('descroption')} 
-                            value={projectData.description} 
-                            isFullWidth={true}
-                            type="textarea"
-                            readonly={true}
-                            placeholder={t('descroption')} 
-                        />
-                    </div>
                 </div>
             </div>
         </div>

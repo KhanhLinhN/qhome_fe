@@ -119,7 +119,7 @@
     "fillterBy": "Lọc theo",
     "projectcodename": "Mã dự án/ Tên dự án",
     "addProject": "Thêm dự án",
-    "return": "Quay lại danh sách dự án",
+    "return": "Quay lại",
     "projectdetail": "Chi tiết dự án",
     "inactive": "Không hoạt động",
     "active": "Hoạt động",
@@ -132,7 +132,10 @@
     "loading":"Đang tải dữ liệu...",
     "error":"Lỗi khi tải dữ liệu",
     "retry":"Vui lòng thử lại",
-    "clear":"Xóa"
+    "clear":"Xóa",
+    "projectEdit": "Chỉnh sửa dự án",
+    "returnProjectList": "Quay lại danh sách dự án",
+    "returnProjectDetail": "Quay lại chi tiết dự án"
   },
   "Building": {
     "buildingCode":"Mã tòa nhà",

@@ -116,7 +116,7 @@
   "Project":{
     "projectCode":"Project Code",
     "projectName": "Project Name",
-    "requestlist":"Request List",
+    "requestlist":"Project List",
     "address": "Address",
     "status": "Status",
     "createAt": "Create At",
@@ -125,8 +125,9 @@
     "fillterBy": "Fillter By",
     "projectcodename": "Project code/ Project Name",
     "addProject": "Add project",
-    "return": "Return project list",
+    "return": "Return",
     "projectdetail": "Project detail",
+    "projectEdit": "Edit project",
     "inactive": "Inactive",
     "active": "Active",
     "hotline": "Hotline",
@@ -138,11 +139,23 @@
     "loading": "Data is loading...",
     "error": "Error loading data",
     "retry": "Please try again",
-    "clear": "Clear"
+    "clear": "Clear",
+    "yes": "Yes",
+    "no": "No",
+    "deleteProjectT": "Delete project?",
+    "deleteProjectC": "Are you sure you want to delete project",
+    "saveNewT": "Save new change?",
+    "saveNewC": "Are you sure you want to save the following changes?",
+    "leavingT": "Leaving page?",
+    "leavingC": "You have not finished updating your information. Do you want to leave without finishing?",
+    "saving": "Is saving",
+    "returnProjectList": "Return project list",
+    "returnProjectDetail": "Return project detail"
   },
   "Building": {
     "buildingCode":"Building Code",
     "buildingName": "Building Name",
+    "requestlist":"Building List",
     "projectName": "Project Name",
     "floors": "Floors",
     "status": "Status",
@@ -152,16 +165,18 @@
     "fillterBy": "Fillter By",
     "buildingcodename": "Building Code/ Building Name",
     "addBuilding": "Add Building",
-    "return": "Quay lại danh sách tòa nhà",
-    "buildingdetail": "Chi tiết tòa nhà",
-    "addProject": "Add project",
+    "return": "Return building list",
+    "buildingDetail": "Building detail",
+    "addProject": "Add building",
     "inactive": "Inactive",
     "active": "Active",
     "hotline": "Hotline",
     "email": "Email",
     "save":  "Save",
     "cancel":  "Cancel",
-    "address": "Address"
+    "address": "Address",
+    "clear": "Clear",
+    "loading":"Data is loading..."
   }
 }
 

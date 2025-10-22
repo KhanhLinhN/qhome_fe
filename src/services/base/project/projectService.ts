@@ -24,26 +24,9 @@ const TOKEN_REQUEST_BODY = {
 };
 
 export class ProjectService {
-    async getProjectList(filters: filters, pageNo: number): Promise<PagedResponse<Project>> {
+    async getProjectList(): Promise<Project[]> {
         let url = `${process.env.NEXT_PUBLIC_BASE_PROJECT_APT_URL}tenants`;
-        const params = new URLSearchParams();
         
-        params.append('page', pageNo.toString());
-        params.append('size', '10'); 
-
-        if (filters.codeName) {
-            params.append('codeName', filters.codeName);
-        }
-        if (filters.status) {
-            params.append('status', filters.status);
-        }
-        if (filters.address) {
-            params.append('address', filters.address);
-        }
-        
-        if (params.toString()) {
-            url += `?${params.toString()}`;
-        }
         try {
             const tokenResponse = await fetch('http://localhost:8088/api/test/generate-token', {
                 method: 'POST', 
@@ -76,15 +59,11 @@ export class ProjectService {
             }
 
             const data = await response.json();
-            
+            // console.log(data);
             if (Array.isArray(data)) {
-                return {
-                    content: data, 
-                    pageable: { pageNumber: 0, pageSize: data.length > 0 ? data.length : 10 }, 
-                    totalElements: data.length, 
-                } as PagedResponse<Project>;
+                return data as Project[];
             } else {
-                return data as PagedResponse<Project>;
+                return [];
             }
 
         } catch (error) {
@@ -92,4 +71,182 @@ export class ProjectService {
             throw error;
         }
     }
+
+    async getProjectDetails(projectId? : string) : Promise<Project> {
+        
+        const url = `${process.env.NEXT_PUBLIC_BASE_PROJECT_APT_URL}tenants/${projectId}`;
+
+        try {
+            const tokenResponse = await fetch('http://localhost:8088/api/test/generate-token', {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json', 
+            },
+            body: JSON.stringify(TOKEN_REQUEST_BODY), 
+        });            
+        if (!tokenResponse.ok) {
+            throw new Error(`Failed to fetch token! status: ${tokenResponse.status}`);
+        }
+        const tokenData = await tokenResponse.json(); 
+        const token = tokenData.token; 
+
+        const headers = {
+            "User-Agent": "PostmanRuntime/7.49.0",
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Authorization": `Bearer ${token}`, 
+        };
+
+        const response = await fetch(url, {
+            method: 'GET', 
+            headers: headers, 
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+
+        } catch (error) {
+            console.error('An error occurred while fetching requests:', error);
+            throw error;
+        }
+    }
+
+    async editProject(projectId: string, data: Project) {
+        const url = `${process.env.NEXT_PUBLIC_BASE_PROJECT_APT_URL}tenants/${projectId}`;
+        try {
+            const tokenResponse = await fetch('http://localhost:8088/api/test/generate-token', {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json', 
+            },
+            body: JSON.stringify(TOKEN_REQUEST_BODY), 
+        });            
+        if (!tokenResponse.ok) {
+            throw new Error(`Failed to fetch token! status: ${tokenResponse.status}`);
+        }
+        const tokenData = await tokenResponse.json(); 
+        const token = tokenData.token; 
+
+        const headers = {
+            'Content-Type': 'application/json', 
+            "Authorization": `Bearer ${token}`,
+            "Accept": "*/*",
+        };
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify(data) 
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error("Error body:", errorBody);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        return responseData;
+
+        } catch (error) {
+            console.error('An error occurred while fetching requests:', error);
+            throw error;
+        } 
+    }
+
+    async addProject(data: Project) {
+        const url = `${process.env.NEXT_PUBLIC_BASE_PROJECT_APT_URL}tenants`;
+        try {
+            const tokenResponse = await fetch('http://localhost:8088/api/test/generate-token', {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json', 
+            },
+            body: JSON.stringify(TOKEN_REQUEST_BODY), 
+        });            
+        if (!tokenResponse.ok) {
+            throw new Error(`Failed to fetch token! status: ${tokenResponse.status}`);
+        }
+        const tokenData = await tokenResponse.json(); 
+        const token = tokenData.token; 
+
+        const headers = {
+            "User-Agent": "PostmanRuntime/7.49.0",
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            'Content-Type': 'application/json', 
+            "Authorization": `Bearer ${token}`,
+        };
+
+        console.log(" JSON.stringify(data)",token, JSON.stringify(data))
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(data) 
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error("Error body:", errorBody);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        return responseData;
+
+        } catch (error) {
+            console.error('An error occurred while fetching requests:', error);
+            throw error;
+        } 
+    }
+
+    async deleteProject(projectId: string) {
+       const url = `${process.env.NEXT_PUBLIC_BASE_PROJECT_APT_URL}tenants/${projectId}`;
+
+        try {
+            const tokenResponse = await fetch('http://localhost:8088/api/test/generate-token', {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json', 
+            },
+            body: JSON.stringify(TOKEN_REQUEST_BODY), 
+        });            
+        if (!tokenResponse.ok) {
+            throw new Error(`Failed to fetch token! status: ${tokenResponse.status}`);
+        }
+        const tokenData = await tokenResponse.json(); 
+        const token = tokenData.token; 
+
+        const headers = {
+            "User-Agent": "PostmanRuntime/7.49.0",
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Authorization": `Bearer ${token}`, 
+        };
+
+        const response = await fetch(url, {
+            method: 'DELETE', 
+            headers: headers, 
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+
+        } catch (error) {
+            console.error('An error occurred while fetching requests:', error);
+            throw error;
+        } 
+    }
+    
 }

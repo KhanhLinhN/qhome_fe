@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PagedResponse, ProjectService } from '@/src/services/base/project/projectService';
 import { Project } from '../types/project';
 import { filters } from '@/src/components/base-service/FilterForm';
@@ -9,35 +9,25 @@ const initialFilters: filters = {
     address: ''
 };
 
-const initialProjectData: PagedResponse<Project> = {
-    content: [],
-    pageable: { pageNumber: 0, pageSize: 10 },
-    totalElements: 0,
-};
-
+const initialPageSize = 10;
 const projectService = new ProjectService();
 
 export const useProjectPage = (loadOnMount: boolean = true) => {
-    const [data, setData] = useState<PagedResponse<Project>>(initialProjectData);    
+    const [allProjects, setAllProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
     const [filters, setFilters] = useState<filters>(initialFilters);
     const [pageNo, setPageNo] = useState<number>(0);
+    const [pageSize, setPageSize] = useState<number>(initialPageSize);
 
-    const pageSize = data.pageable?.pageSize || 10;
-    const totalElements = data.totalElements || 0;
-    
-    const safeTotalPages = pageSize > 0 
-        ? Math.ceil(totalElements / pageSize) 
-        : 0;
-
-    const fetchData = useCallback(async (currentFilters: filters, currentPageNo: number) => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const listProject = await projectService.getProjectList(currentFilters, currentPageNo);
-            setData(listProject);
+            const listProject = await projectService.getProjectList();
+            console.log(listProject);
+            setAllProjects(listProject);
         } catch (err) {
             setError('Failed to fetch requests.');
             console.error(err);
@@ -48,24 +38,52 @@ export const useProjectPage = (loadOnMount: boolean = true) => {
 
     useEffect(() => {
         if (loadOnMount) {
-            fetchData(initialFilters, 0); 
+            fetchData(); 
         }
     }, [loadOnMount, fetchData]);
 
-    useEffect(() => {
-        fetchData(filters, pageNo);
-    }, [filters, pageNo, fetchData]);
+    const filteredProjects = useMemo(() => {
+        if (!allProjects || allProjects.length === 0) {
+            return [];
+        }
+
+        return allProjects.filter(project => {
+
+            const codeNameMatch = filters.codeName 
+                ? project?.name?.toLowerCase().includes(filters.codeName.toLowerCase()) || project?.code?.toLowerCase().includes(filters.codeName.toLowerCase())
+                : true;
+            
+            const statusMatch = filters.status 
+                ? project.status === filters.status 
+                : true;
+            
+            const addressMatch = filters.address
+                ? project?.address?.toLowerCase().includes(filters.address.toLowerCase())
+                : true;
+
+            return codeNameMatch && statusMatch && addressMatch;
+        });
+    }, [allProjects, filters]);
+
+    const data: PagedResponse<Project> = useMemo(() => {
+        const totalElements = filteredProjects.length;
+        const startIndex = pageNo * pageSize;
+        const endIndex = startIndex + pageSize;
+        
+        const content = filteredProjects.slice(startIndex, endIndex);
+
+        return {
+            content: content,
+            pageable: { pageNumber: pageNo, pageSize: pageSize },
+            totalElements: totalElements,
+        };
+    }, [filteredProjects, pageNo, pageSize]);
 
     const handleFilterChange = (name: keyof filters, value: string) => {
         setFilters(prevFilters => ({
             ...prevFilters,
             [name]: value,
         }));
-    };
-
-    const handleSearch = () => {
-        const newPageNo = 0;
-        setPageNo(newPageNo); // Reset to first page on new search
     };
 
     const handleClear = () => {
@@ -82,15 +100,20 @@ export const useProjectPage = (loadOnMount: boolean = true) => {
         setPageNo(0);
     };
 
+    const totalPages = pageSize > 0 
+        ? Math.ceil(data.totalElements / pageSize) 
+        : 0;
+
     return {
         data,
         loading,
         error,
         filters,
         pageNo,
-        totalPages: safeTotalPages,           
+        totalPages: totalPages, 
+        pageSize,
+        setPageSize,       
         handleFilterChange,
-        handleSearch,
         handleClear,
         handlePageChange,
         handleStatusChange

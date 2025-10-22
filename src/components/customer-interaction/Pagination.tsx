@@ -9,7 +9,7 @@ import DropdownArrow from '@/src/assets/DropdownArrow.svg';
 interface PaginationProps {
   onPageChange: (page: number) => void;
   totalPages: number;
-  currentPage: number; // 0-indexed
+  currentPage: number; 
   siblingCount?: number;
 }
 
@@ -26,8 +26,7 @@ const Pagination = ({
     siblingCount,
   });
 
-  // if there are less than 2 pages, we don't need to render the component
-  if (currentPage < 0 || paginationRange.length < 2) {
+  if (currentPage < 1 || paginationRange.length < 2) {
     return null;
   }
 
@@ -48,7 +47,7 @@ const Pagination = ({
         <li>
           <button
             onClick={onPrevious}
-            disabled={currentPage === 0}
+            disabled={currentPage === 1}
             className="flex items-center justify-center w-9 h-9 ms-0 leading-tight text-gray-500 bg-white rounded-s-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Image
@@ -72,12 +71,12 @@ const Pagination = ({
           }
 
           // Convert pageNumber (1-indexed) to 0-indexed for comparison
-          const isCurrent = currentPage === (pageNumber as number) - 1;
+          const isCurrent = currentPage === (pageNumber as number);
 
           return (
             <li key={pageNumber}>
               <button
-                onClick={() => onPageChange((pageNumber as number) - 1)}
+                onClick={() => onPageChange((pageNumber as number))}
                 className={clsx(
                   'flex items-center justify-center w-9 h-9 leading-tight transition-colors duration-150',
                   {
@@ -96,7 +95,7 @@ const Pagination = ({
         <li>
           <button
             onClick={onNext}
-            disabled={currentPage === (lastPage as number) - 1}
+            disabled={currentPage === (lastPage as number)}
             className="flex items-center justify-center w-9 h-9 leading-tight text-gray-500 bg-white rounded-e-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Image

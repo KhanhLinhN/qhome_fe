@@ -1,10 +1,14 @@
 export interface Building{
-    id: number,
-    tenantId: number,
+    id: string,
+    tenantId: string,
+    tenanName: string,
+    status: string,
     code: string,
     name: string,
     address: string,
-    floorsMax: number,
+    floorsMax: string,
     totalApartmentsAll: number,
-    totalApartmentsActive: number
+    totalApartmentsActive: number,
+    createdBy: string,
+    createdAt: string
 }

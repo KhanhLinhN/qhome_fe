@@ -17,12 +17,12 @@ interface DetailFieldProps {
 const DetailField: React.FC<DetailFieldProps> = ({ label, name, value, placeholder, isFullWidth = false, type = 'input', readonly, onChange, required = false }) => {
     const activeClass = !readonly 
         ? 'border-[#739559] focus:ring-1 focus:ring-[#739559] bg-white cursor-text' 
-        : 'bg-[#F5F7FA] border-gray-300 cursor-default';
+        : 'bg-[#E3E3E3] border-[#739559] cursor-default';
 
     return (
         <div className={`flex flex-col mb-4 ${isFullWidth ? 'col-span-full' : 'col-span-1'}`}>
             <label className="text-md font-bold text-[#02542D] mb-1">
-                {label} {required && !readonly && <span className="text-red-500">*</span>}
+                {label} 
             </label>
             {type === 'input' && (
                 <input

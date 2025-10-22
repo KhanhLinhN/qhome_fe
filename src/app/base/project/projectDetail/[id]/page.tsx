@@ -1,38 +1,82 @@
 'use client'
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import Delete from '@/src/assets/Delete.svg';
 import Edit from '@/src/assets/Edit.svg';
 import DetailField from '@/src/components/base-service/DetailField';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useProjectDetailPage } from '@/src/hooks/useProjectDetailPage';
+import PopupConfirm from '@/src/components/common/PopupComfirm';
+import { useDeleteProject } from '@/src/hooks/useProjectDelete';
 
-export default function BuildingDetail () {
+export default function ProjectDetail () {
 
-    // Data mẫu
-    const projectData = {
-        code: 'VNB02',
-        name: 'Viet Nam Building 2',
-        address: 'Do Duc Street, Me Tri Ward, Nam Tu Liem, Hanoi',
-        createdAt: '02/10/2025',
-        hotline: '0813065257',
-        createdBy: 'Pham Hung B',
-        email: 'VietnamBD2@gmail.com',
-        description: 'A building is a permanent, enclosed structure with a roof and walls, such as a house, school, or factory, used for various activities like living, working, or storing goods. Introducing a building involves describing its purpose, key architectural features, and overall function, often focusing on its parts from the ground up, including the foundation, walls, and roof.',
-        status: 'Inactive',
-    };
 
+    const t = useTranslations('Project'); 
     const router = useRouter();
-    const t = useTranslations('Building'); 
+    const params = useParams();
+    const projectId = params.id;
+    console.log(projectId);
+    const { projectData, loading, error, isSubmitting } = useProjectDetailPage(projectId);
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const { deleteProject, isLoading: isDeleting } = useDeleteProject();    
     
     const handleBack = () => {
         router.back(); 
     }
 
+    const status = projectData?.status ?? '';
+
+    function handleEdit(): void {
+        router.push(`/base/project/project-edit/${projectId}`);
+    }
+
+    function handleDelete() {
+        setIsPopupOpen(true);
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!projectId) {
+            setIsPopupOpen(false);
+            return;
+        }
+
+        const success = await deleteProject(projectId.toString());
+
+        setIsPopupOpen(false);
+        if (success) {
+            router.push(`/base/project/projectList`);
+        }
+    };
+
+    const handleClosePopup = () => {
+        setIsPopupOpen(false);
+    };
+    
+    if (loading) {
+        return <div className="flex justify-center items-center h-screen">{t('loading')}</div>;
+    }
+
+    if (error) {
+        return <div className="flex justify-center items-center h-screen text-red-500">{t('error')}: {error.message}</div>;
+    }
+    
+    if (!projectData) {
+        return <div className="flex justify-center text-xl font-bold items-center h-screen">{t('noData')}</div>;
+    }
+
     return (
         <div className={`min-h-screen bg-[#F5F7FA] p-4 sm:p-8 font-sans`}>
-            
+            <PopupConfirm
+                isOpen={isPopupOpen}
+                onClose={handleClosePopup}
+                onConfirm={handleConfirmDelete}
+                popupTitle={t('deleteProjectT')}
+                popupContext={t('deleteProjectC')}
+                isDanger={true}
+            />
             <div className="max-w-4xl mx-auto mb-6 flex items-center cursor-pointer" onClick={handleBack}>
                 <Image 
                     src={Arrow} 
@@ -42,7 +86,7 @@ export default function BuildingDetail () {
                     className="w-5 h-5 mr-2" 
                 />
                 <span className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150 `}>
-                    {t('return')}
+                    {t('returnProjectList')}
                 </span>
             </div>
 
@@ -54,17 +98,18 @@ export default function BuildingDetail () {
                             {t('projectdetail')}
                         </h1>
                         <span 
-                            className={`text-sm font-semibold px-3 py-1 rounded-full ${projectData.status === 'Inactive' ? 'bg-[#EEEEEE] text-[#02542D]' : 'bg-[#739559] text-white'}`}
+                            className={`text-sm font-semibold px-3 py-1 rounded-full ${status === 'Inactive' ? 'bg-[#EEEEEE] text-[#02542D]' : 'bg-[#739559] text-white'}`}
                         >
-                            {projectData.status}
+                            {t(status.toString().toLowerCase())}
                         </span>
                     </div>
 
                     <div className="flex space-x-2">
                         <button 
                             className={`p-2 rounded-lg bg-[#739559] hover:bg-opacity-80 transition duration-150`}
-                            onClick={() => console.log('Chỉnh sửa dự án')}
-                        >
+                            onClick={() => {
+                                handleEdit(); 
+                        }}>
                             <Image 
                                 src={Edit} 
                                 alt="Edit" 
@@ -75,8 +120,9 @@ export default function BuildingDetail () {
                         </button>
                         <button 
                             className="p-2 rounded-lg bg-red-500 hover:bg-opacity-80 transition duration-150"
-                            onClick={() => console.log('Đóng/Xóa dự án')}
-                        >
+                             onClick={() => {
+                                handleDelete(); 
+                        }}>
                             <Image 
                                 src={Delete} 
                                 alt="Delete" 
@@ -91,49 +137,50 @@ export default function BuildingDetail () {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                     
                     <DetailField 
-                        label= t={('buildingCode')}
-                        value={projectData.code} 
+                        label={t('projectCode')}
+                        value={projectData?.code ?? ''} 
                         readonly={true}
                     />
                     <div className="col-span-1 hidden md:block"></div>
 
                     <DetailField 
-                        label="Project Name" 
-                        value={projectData.name} 
+                        label={t('projectName')}
+                        value={projectData?.name ?? ''} 
                         readonly={true}
                     />
                     <DetailField 
-                        label="Address" 
-                        value={projectData.address} 
-                        readonly={true}
-                    />
-
-                    <DetailField 
-                        label="Create at" 
-                        value={projectData.createdAt} 
-                        readonly={true}
-                    />
-                    <DetailField 
-                        label="Hotline" 
-                        value={projectData.hotline} 
+                        label={t('address')}
+                        value={projectData?.address ?? ''} 
                         readonly={true}
                     />
 
                     <DetailField 
-                        label="Create by" 
-                        value={projectData.createdBy} 
+                        label={t('createAt')}
+                        type='date'
+                        value={projectData?.createdAt?.slice(0, 10).replace(/-/g, '/') ?? ''} 
                         readonly={true}
                     />
                     <DetailField 
-                        label="Email" 
-                        value={projectData.email} 
+                        label={t('hotline')}
+                        value={projectData?.contact ?? ''} 
+                        readonly={true}
+                    />
+
+                    <DetailField 
+                        label={t('createBy')}
+                        value={projectData?.createdBy ?? ''} 
+                        readonly={true}
+                    />
+                    <DetailField 
+                        label={t('email')}
+                        value={projectData?.email ?? ''} 
                         readonly={true}
                     />
 
                     <div className="col-span-full mt-4">
                         <DetailField 
-                            label="Description" 
-                            value={projectData.description} 
+                            label={t('descroption')} 
+                            value={projectData?.description ?? ''} 
                             isFullWidth={true}
                             type="textarea"
                             readonly={true}
