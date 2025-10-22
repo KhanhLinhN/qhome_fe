@@ -9,7 +9,7 @@ export function getRedirectPathByRole(roles: string[]): string {
   }
   
   if (roles.includes('tenant_owner')) {
-    return '/dashboard';  // Chủ tòa nhà vào quản lý tài chính
+    return '/tenant-owner';  // Tenant owner vào giao diện riêng (không có phân quyền)
   }
   
   if (roles.includes('account')) {

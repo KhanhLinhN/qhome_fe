@@ -6,7 +6,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import TenantPermissionModal from './TenantPermissionModal';
 
 export default function TenantList() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [expandedTenant, setExpandedTenant] = useState<string | null>(null);
   const [buildings, setBuildings] = useState<Record<string, Building[]>>({});
@@ -20,8 +20,16 @@ export default function TenantList() {
       try {
         setLoading(true);
         const data = await getAllTenants();
-        // Filter out deleted tenants
-        setTenants(data.filter(t => !t.isDeleted));
+        
+        // Filter tenants based on user role
+        let filteredData = data.filter(t => !t.isDeleted);
+        
+        if (!hasRole('admin')) {
+          // If not admin, only show user's own tenant
+          filteredData = filteredData.filter(tenant => tenant.id === user?.tenantId);
+        }
+        
+        setTenants(filteredData);
       } catch (err: any) {
         setError(err?.message || 'Không thể tải danh sách tenant');
         console.error('Failed to load tenants:', err);
@@ -31,7 +39,7 @@ export default function TenantList() {
     };
 
     loadTenants();
-  }, []);
+  }, [user, hasRole]);
 
   const handleToggleTenant = async (tenantId: string) => {
     if (expandedTenant === tenantId) {

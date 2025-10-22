@@ -6,4 +6,5 @@
 
 export * from './tenantService';
 export * from './buildingService';
+export * from './tenantDeletionService';
 
