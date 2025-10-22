@@ -245,7 +245,7 @@ export default function DeletionRequestDetailPage() {
           </div>
 
           {/* Units Progress */}
-          <div className="mb-4">
+          <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <div className="font-medium text-slate-700">🏠 Units</div>
               <div className="text-sm text-slate-600">
@@ -265,6 +265,27 @@ export default function DeletionRequestDetailPage() {
             </div>
           </div>
 
+          {/* Employees Progress */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-medium text-slate-700">👥 Employees</div>
+              <div className="text-sm text-slate-600">
+                {targetsStatus.employeesCount} nhân viên còn lại
+              </div>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
+              <div 
+                className={`h-full transition-all duration-500 ${
+                  targetsStatus.employeesReady ? 'bg-green-500' : 'bg-amber-500'
+                }`}
+                style={{ width: targetsStatus.employeesReady ? '100%' : '0%' }}
+              />
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              {targetsStatus.employeesReady ? '✅ Đã sẵn sàng (0 nhân viên)' : `⏳ Còn ${targetsStatus.employeesCount} nhân viên cần gỡ bỏ`}
+            </div>
+          </div>
+
           {/* Overall Status */}
           <div className={`mt-4 p-4 rounded-lg border-2 ${
             targetsStatus.allTargetsReady 
@@ -277,12 +298,12 @@ export default function DeletionRequestDetailPage() {
                 <div className="font-medium text-sm">
                   {targetsStatus.allTargetsReady 
                     ? 'Sẵn sàng hoàn thành!' 
-                    : 'Đang chờ xóa buildings & units...'}
+                    : 'Đang chờ xóa buildings, units & employees...'}
                 </div>
                 <div className="text-xs text-slate-600 mt-1">
                   {targetsStatus.allTargetsReady
-                    ? 'Tất cả buildings và units đã được xử lý. Có thể hoàn thành deletion.'
-                    : 'Đợi tất cả buildings ARCHIVED và units INACTIVE trước khi hoàn thành.'}
+                    ? 'Tất cả buildings, units và employees đã được xử lý. Có thể hoàn thành deletion.'
+                    : 'Đợi tất cả buildings ARCHIVED, units INACTIVE và employees được gỡ bỏ trước khi hoàn thành.'}
                 </div>
               </div>
             </div>
@@ -404,6 +425,7 @@ function ApproveModal({ onConfirm, onClose }: { onConfirm: (note: string) => voi
               <li>Set buildings → DELETING</li>
               <li>Set units → INACTIVE</li>
               <li>Tạo building deletion requests</li>
+              <li>Employees cần được gỡ bỏ thủ công</li>
             </ul>
           </div>
         </div>
