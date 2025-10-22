@@ -18,7 +18,8 @@ const adminItems = [
 const tenantOwnerItems = [
   {href:"/tenant-owner", label:"Trang chủ", icon:"🏠"},
   {href:"/tenant-owner/buildings", label:"Buildings Đang Xóa", icon:"🏗️"},
-  {href:"/tenant-owner/residents", label:"Cư dân", icon:"👥"},
+  {href:"/tenant-owner/employees", label:"Nhân viên", icon:"👥"},
+  {href:"/tenant-owner/residents", label:"Cư dân", icon:"👨‍👩‍👧‍👦"},
   {href:"/tenant-owner/services", label:"Dịch vụ", icon:"🧾"},
   {href:"/tenant-owner/finance", label:"Tài chính", icon:"💰"},
   {href:"/tenant-owner/assets", label:"Tài sản", icon:"🛠️"},

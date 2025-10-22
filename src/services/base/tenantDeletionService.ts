@@ -46,10 +46,13 @@ export interface TenantDeletionTargetsStatus {
   unitsInactive: number;
   buildingsReady: boolean;
   unitsReady: boolean;
+  employeesCount: number;
+  employeesReady: boolean;
   allTargetsReady: boolean;
   requirements: {
     buildings: string;
     units: string;
+    employees: string;
   };
 }
 
