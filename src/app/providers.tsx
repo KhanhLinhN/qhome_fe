@@ -2,6 +2,7 @@
 import React from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { NotificationsProvider } from "@/src/hooks/useNotifications";
+import { AuthProvider } from "@/src/contexts/AuthContext";
 
 export const I18nRuntimeContext = React.createContext<{
   locale: string;
@@ -32,7 +33,9 @@ export default function Providers({
   return (
     <I18nRuntimeContext.Provider value={{ locale, setLocale: safeSetLocale }}>
       <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Ho_Chi_Minh">
-        <NotificationsProvider>{children}</NotificationsProvider>
+        <AuthProvider>
+          <NotificationsProvider>{children}</NotificationsProvider>
+        </AuthProvider>
       </NextIntlClientProvider>
     </I18nRuntimeContext.Provider>
   );
