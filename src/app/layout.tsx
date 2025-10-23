@@ -19,9 +19,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <Providers initialLocale={currentLocale} initialMessages={messages}>
           <Navbar />
-          <main className="min-h-[calc(100vh-160px)] bg-gradient-to-br from-slate-50 via-white to-slate-100">
+          <div className="min-h-[calc(100vh-160px)] bg-gradient-to-br from-slate-50 via-white to-slate-100">
             {children}
-          </main>
+          </div>
           <Footer />
         </Providers>
       </body>

@@ -5,7 +5,6 @@ import Table from "../../../../components/base-service/Table";
 import { useMemo, useState } from 'react';
 import { useProjectPage } from '@/src/hooks/useProjectPage';
 import Pagination from '@/src/components/customer-interaction/Pagination';
-import MainLayout from '@/src/components/layout/MainLayout';
 import { create } from 'domain';
 import { useProjectAdd } from '@/src/hooks/useProjectAdd';
 import { useRouter } from 'next/navigation';
@@ -78,33 +77,31 @@ export default function Home() {
   }
 
   return (
-    <MainLayout>
-      <div className="lg:col-span-1 space-y-6 ">
-        <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
-            <h1 className="text-2xl font-semibold text-[#02542D] mb-4">{t('requestlist')}</h1>
-            <div className="bg-white p-6 rounded-xl w-full min-h-[200px]">
-                <FilterForm
-                  filters={filters}
-                  page='building'
-                  onFilterChange={handleFilterChange}
-                  onAdd={handleAdd}
-                  onClear={handleClear}
-                  projectList={allProjects}
-                ></FilterForm>
-                <Table 
-                    data={tableData} 
-                    headers={headers}
-                    type='building'
-                ></Table>
-                <Pagination
-                    currentPage={pageNo + 1} 
-                    totalPages={totalPages}
-                    onPageChange={(page) => handlePageChange(page - 1)} 
-                />
-            </div>
-        </div>
+    <div className="lg:col-span-1 space-y-6 ">
+      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
+          <h1 className="text-2xl font-semibold text-[#02542D] mb-4">{t('requestlist')}</h1>
+          <div className="bg-white p-6 rounded-xl w-full min-h-[200px]">
+              <FilterForm
+                filters={filters}
+                page='building'
+                onFilterChange={handleFilterChange}
+                onAdd={handleAdd}
+                onClear={handleClear}
+                projectList={allProjects}
+              ></FilterForm>
+              <Table 
+                  data={tableData} 
+                  headers={headers}
+                  type='building'
+              ></Table>
+              <Pagination
+                  currentPage={pageNo + 1} 
+                  totalPages={totalPages}
+                  onPageChange={(page) => handlePageChange(page - 1)} 
+              />
+          </div>
       </div>
-    </MainLayout>
+    </div>
   )
 
 };
