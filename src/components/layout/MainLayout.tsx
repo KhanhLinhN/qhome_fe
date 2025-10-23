@@ -8,7 +8,7 @@ export default function MainLayout({children}:{children:React.ReactNode}) {
       {/* Sidebar trái */}
       <Sidebar />
       {/* Nội dung + Topbar */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col md:ml-60">
         <Topbar />
         <main className="p-4 md:p-6">
           <div className="max-w-[1280px] mx-auto">{children}</div>
