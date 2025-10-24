@@ -1,19 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Project } from '@/src/types/project';
-import { createTenant } from '@/src/services/base/tenantService';
+import { useState } from 'react';
+import { Unit } from '@/src/types/unit';
+import { createUnit } from '@/src/services/base/unitService';
 
-export const useProjectAdd = () => {
+export const useUnitAdd = () => {
     
-    const [loading, setLoading] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<Error | null>(null);
-
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-    const addProject = async(data: Project) =>{
+    const addUnit = async(data: Partial<Unit>) =>{
         setIsSubmitting(true);
         setError(null);
         try {
-            await createTenant(data);
+            await createUnit(data);
         } catch (err) {
             setError(err as Error);
             throw err;
@@ -23,9 +22,10 @@ export const useProjectAdd = () => {
     }
 
     return { 
-        addProject, 
+        addUnit, 
         loading, 
         error,
         isSubmitting,
     };
 };
+

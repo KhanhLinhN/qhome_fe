@@ -6,50 +6,65 @@ import DetailField from '@/src/components/base-service/DetailField';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Select from '@/src/components/customer-interaction/Select';
-import { useProjectDetailPage } from '@/src/hooks/useProjectDetailPage';
-import { Project } from '@/src/types/project';
+import { useBuildingDetailPage } from '@/src/hooks/useBuildingDetailPage';
+import { Building } from '@/src/types/building';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { getTenant } from '@/src/services/base/tenantService';
 
-type ProjectFormData = {
-    name: string;
-    address: string;
-    contact: string;
-    email: string;
-    description: string;
-    status: string;
-};
-
-export default function ProjectDetail() {
+export default function BuildingEdit() {
     const { user, hasRole } = useAuth();
-    const t = useTranslations('Project');
+    const t = useTranslations('Building');
+    const tProject = useTranslations('Project');
     const router = useRouter();
     const params = useParams();
-    const projectId = params.id as string; 
+    const buildingId = params.id as string;
 
-    const { projectData, loading, error, isSubmitting, editProject } =
-        useProjectDetailPage(projectId);
+    const { buildingData, loading, error, isSubmitting, editBuilding } =
+        useBuildingDetailPage(buildingId);
 
-    const [formData, setFormData] = useState<Project>({
-        name: '',
+    const [formData, setFormData] = useState<Partial<Building> & { floorsMaxStr: string; status: string }>({
         address: '',
-        contact: '',
-        email: '',
-        description: '',
+        floorsMax: 0,
+        totalApartmentsAll: 0,
+        totalApartmentsActive: 0,
+        floorsMaxStr: '0',
         status: 'INACTIVE',
     });
 
+    const [tenantName, setTenantName] = useState<string>('');
+    const [loadingTenant, setLoadingTenant] = useState(false);
+
     useEffect(() => {
-        if (projectData) {
+        if (buildingData) {
             setFormData({
-                name: projectData.name ?? '',
-                address: projectData.address ?? '',
-                contact: projectData.contact ?? '',
-                email: projectData.email ?? '',
-                description: projectData.description ?? '',
-                status: projectData.status ?? 'INACTIVE',
+                address: buildingData.address ?? '',
+                floorsMax: buildingData.floorsMax ?? 0,
+                totalApartmentsAll: buildingData.totalApartmentsAll ?? 0,
+                totalApartmentsActive: buildingData.totalApartmentsActive ?? 0,
+                floorsMaxStr: buildingData.floorsMax?.toString() ?? '0',
+                status: buildingData.status ?? 'INACTIVE',
             });
         }
-    }, [projectData]);
+    }, [buildingData]);
+
+    useEffect(() => {
+        const loadTenantName = async () => {
+            if (!buildingData?.tenantId) return;
+            
+            try {
+                setLoadingTenant(true);
+                const tenant = await getTenant(buildingData.tenantId);
+                setTenantName(tenant.name);
+            } catch (err: any) {
+                console.error('Failed to load tenant:', err);
+                setTenantName('N/A');
+            } finally {
+                setLoadingTenant(false);
+            }
+        };
+
+        loadTenantName();
+    }, [buildingData?.tenantId]);
 
     const handleBack = () => {
         router.back();
@@ -59,10 +74,23 @@ export default function ProjectDetail() {
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         const { name, value } = e.target;
-        setFormData((prevData) => ({
-            ...prevData,
-            [name]: value,
-        }));
+        if (name === 'floorsMax') {
+            setFormData(prev => ({
+                ...prev,
+                floorsMaxStr: value,
+                floorsMax: parseInt(value) || 0,
+            }));
+        } else if (name === 'totalApartmentsAll') {
+            setFormData(prev => ({
+                ...prev,
+                totalApartmentsAll: parseInt(value) || 0,
+            }));
+        } else {
+            setFormData((prevData) => ({
+                ...prevData,
+                [name]: value,
+            }));
+        }
     };
 
     const handleStatusChange = (item: { name: string; value: string }) => {
@@ -77,10 +105,10 @@ export default function ProjectDetail() {
         if (isSubmitting) return;
 
         try {
-            console.log('Đang gửi dữ liệu:', formData);
-            editProject(projectId, formData)
-            router.push(`/base/project/projectDetail/${projectId}`);
-
+            const { floorsMaxStr, ...buildingUpdateData } = formData;
+            console.log('Đang gửi dữ liệu:', buildingUpdateData);
+            await editBuilding(buildingId, buildingUpdateData);
+            router.push(`/base/building/buildingDetail/${buildingId}`);
         } catch (submitError) {
             console.error('Lỗi khi cập nhật:', submitError);
         }
@@ -94,7 +122,7 @@ export default function ProjectDetail() {
         return <div className="flex justify-center items-center h-screen text-red-500">{t('error')}: {error.message}</div>;
     }
 
-    if (!projectData) {
+    if (!buildingData) {
         return <div className="flex justify-center text-xl font-bold items-center h-screen">{t('noData')}</div>;
     }
 
@@ -109,7 +137,7 @@ export default function ProjectDetail() {
                     className="w-5 h-5 mr-2"
                 />
                 <span className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150 `}>
-                    {t('returnProjectDetail')}
+                    {t('returnBuildingDetail')}
                 </span>
             </div>
 
@@ -120,7 +148,7 @@ export default function ProjectDetail() {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className={`text-2xl font-semibold text-[#02542D] mr-3`}>
-                            {t('projectdetail')}
+                            {t('editBuilding')}
                         </h1>
                         <span
                             className={`text-sm font-semibold px-3 py-1 rounded-full ${
@@ -129,44 +157,50 @@ export default function ProjectDetail() {
                                     : 'bg-[#739559] text-white'
                             }`}
                         >
-                            {t(formData?.status?.toLowerCase() || "asctive")}
+                            {formData.status === 'INACTIVE' ? t('inactive') : t('active')}
                         </span>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                     <DetailField
-                        label={t('projectCode')}
-                        value={projectData?.code || ""} 
+                        label={t('buildingCode')}
+                        value={buildingData?.code || ""}
                         readonly={true}
-                        placeholder={t('projectCode')}
+                        placeholder={t('buildingCode')}
                     />
 
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            {t('status')}
+                            {tProject('status')}
                         </label>
                         <Select
                             options={[
-                                { name: t('inactive'), value: 'INACTIVE' },
-                                { name: t('active'), value: 'ACTIVE' },
+                                { name: tProject('inactive'), value: 'INACTIVE' },
+                                { name: tProject('active'), value: 'ACTIVE' },
                             ]}
                             value={formData.status}
                             onSelect={handleStatusChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder={t('status')}
+                            placeholder={tProject('status')}
                         />
                     </div>
 
                     <DetailField
-                        label={t('projectName')}
-                        value={formData?.name || ""}
-                        readonly={false}
-                        placeholder={t('projectName')}
-                        name="name"
-                        onChange={handleChange}
+                        label={t('buildingName')}
+                        value={buildingData?.name || ""}
+                        readonly={true}
+                        placeholder={t('buildingName')}
                     />
+                    
+                    <DetailField
+                        label={tProject('projectName')}
+                        value={loadingTenant ? 'Loading...' : tenantName || buildingData?.tenanName || ""}
+                        readonly={true}
+                        placeholder={tProject('projectName')}
+                    />
+
                     <DetailField
                         label={t('address')}
                         value={formData?.address || ""}
@@ -175,35 +209,15 @@ export default function ProjectDetail() {
                         name="address"
                         onChange={handleChange}
                     />
-                    <DetailField
-                        label={t('hotline')}
-                        value={formData.contact || ""}
-                        readonly={false}
-                        placeholder={t('hotline')}
-                        name="contact"
-                        onChange={handleChange}
-                    />
-                    <DetailField
-                        label={t('email')}
-                        value={formData.email || ""}
-                        readonly={false}
-                        placeholder={t('email')}
-                        name="email"
-                        onChange={handleChange}
-                    />
 
-                    <div className="col-span-full mt-4">
-                        <DetailField
-                            label={t('descroption')}
-                            value={formData.description || ""}
-                            isFullWidth={true}
-                            type="textarea"
-                            readonly={false}
-                            placeholder={t('descroption')}
-                            name="description"
-                            onChange={handleChange}
-                        />
-                    </div>
+                    <DetailField
+                        label={t('floors')}
+                        value={formData.floorsMaxStr || "0"}
+                        readonly={false}
+                        placeholder={t('floors')}
+                        name="floorsMax"
+                        onChange={handleChange}
+                    />
                 </div>
 
                 <div className="flex justify-center mt-8 space-x-4">
@@ -229,3 +243,4 @@ export default function ProjectDetail() {
         </div>
     );
 }
+

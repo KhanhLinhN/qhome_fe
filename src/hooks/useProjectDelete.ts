@@ -1,37 +1,35 @@
-import { useState, useCallback } from "react";
-import { ProjectService } from "../services/base/project/projectService";
+// import { useState, useCallback } from "react";
+// import { deleteTenant } from "@/src/services/base/tenantService";
 
-const projectService = new ProjectService();
+// export const useDeleteProject = () => {
+//     const [isLoading, setIsLoading] = useState<boolean>(false);
+//     const [error, setError] = useState<Error | null>(null);
 
-export const useDeleteProject = () => {
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<Error | null>(null);
+//     const deleteProject = useCallback(async (projectId: string) => {
+//         if (!projectId) {
+//             console.warn("No project ID provided to deleteProject function.");
+//             return;
+//         }
 
-    const deleteProject = useCallback(async (projectId: string) => {
-        if (!projectId) {
-            console.warn("No project ID provided to deleteProject function.");
-            return;
-        }
+//         setIsLoading(true);
+//         setError(null);
 
-        setIsLoading(true);
-        setError(null);
+//         try {
+//             await deleteTenant(projectId);
 
-        try {
-            await projectService.deleteProject(projectId);
+//             setIsLoading(false);
+//             return true; 
+//         } catch (err) {
+//             setError(err as Error);
+//             setIsLoading(false);
+//             console.error("Lỗi khi xoá project:", err);
+//             return false;
+//         }
+//     }, []); 
 
-            setIsLoading(false);
-            return true; 
-        } catch (err) {
-            setError(err as Error);
-            setIsLoading(false);
-            console.error("Lỗi khi xoá project:", err);
-            return false;
-        }
-    }, []); 
-
-    return {
-        deleteProject, 
-        isLoading,     
-        error          
-    };
-};
+//     return {
+//         deleteProject, 
+//         isLoading,     
+//         error          
+//     };
+// };

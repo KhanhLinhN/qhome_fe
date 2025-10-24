@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 // 1. Import các service và type cần thiết
 import { PagedResponse } from '@/src/services/base/project/projectService';
-import { ProjectService } from '@/src/services/base/project/projectService';
-import { BuildingService } from '@/src/services/base/building/buildingService'; // <-- Giả định
-import { filters } from '@/src/components/base-service/FilterForm'; // <-- Cần đảm bảo interface 'filters' có 'projectId'
+import { getAllTenants } from '@/src/services/base/tenantService';
+import { getBuildingsByTenant } from '@/src/services/base/buildingService';
+import { filters } from '@/src/components/base-service/FilterForm'; 
 import { Project } from '../types/project';
 import { Building } from '../types/building';
 
@@ -14,8 +14,6 @@ const initialFilters: filters = {
 };
 
 const initialPageSize = 10;
-const projectService = new ProjectService();
-const buildingService = new BuildingService();
 
 export const useBuildingPage = (loadOnMount: boolean = true) => {
     const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -39,8 +37,8 @@ export const useBuildingPage = (loadOnMount: boolean = true) => {
             setLoadingProjects(true);
             setError(null);
             try {
-                const projects = await projectService.getProjectList();
-                setAllProjects(projects);
+                const projects = await getAllTenants();
+                setAllProjects(projects as unknown as Project[]);
 
                 const storedProjectId = localStorage.getItem('projectId');
                 if (storedProjectId) {
@@ -68,8 +66,8 @@ export const useBuildingPage = (loadOnMount: boolean = true) => {
             setLoadingBuildings(true);
             setError(null);
             try {
-                const buildings = await buildingService.getBuildingsByProjectId(filters.projectId);
-                setAllBuildings(buildings);
+                const buildings = await getBuildingsByTenant(filters.projectId!);
+                setAllBuildings(buildings as unknown as Building[]);
                 setPageNo(0); 
             } catch (err) {
                 setError('Failed to fetch buildings for project.');

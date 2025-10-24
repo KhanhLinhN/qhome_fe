@@ -79,7 +79,7 @@ export default function UserPermissionsPage() {
           <span className="text-slate-700 font-medium">User Permissions</span>
         </div>
           <h1 className="text-2xl font-semibold text-[#02542D]">
-            🔍 User Permissions
+            User Permissions
           </h1>
           <p className="text-slate-600 mt-1">
             View detailed permissions for users in {tenantName}
@@ -91,7 +91,7 @@ export default function UserPermissionsPage() {
           <div className="flex-1">
             <input
               type="text"
-              placeholder="🔍 Search by username or email..."
+              placeholder="Search by username or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#02542D]"

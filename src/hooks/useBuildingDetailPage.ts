@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Building } from '@/src/types/building';
-import { BuildingService } from '../services/base/building/buildingService';
-
-const buildingService = new BuildingService();
+import { getBuilding, updateBuilding } from '@/src/services/base/buildingService';
 
 export const useBuildingDetailPage = (buildingId: string | string[] | undefined) => {
     const [buildingData, setBuildingData] = useState<Building | null>(null);
@@ -21,8 +19,8 @@ export const useBuildingDetailPage = (buildingId: string | string[] | undefined)
         setLoading(true);
         setError(null);
         try {
-            const buildingData = await buildingService.getBuildingDetails(buildingId.toString());
-            setBuildingData(buildingData);
+            const buildingData = await getBuilding(buildingId.toString());
+            setBuildingData(buildingData as unknown as Building);
         } catch (err) {
             setError(err as Error);
             console.error(err);
@@ -35,13 +33,13 @@ export const useBuildingDetailPage = (buildingId: string | string[] | undefined)
         fetchData();
     }, [fetchData]); 
 
-    const editProject = async(buildingId: string, data: Building) =>{
+    const editBuilding = async(buildingId: string, data: Partial<Building>) =>{
         if (!buildingId) return;
 
         setIsSubmitting(true);
         setError(null);
         try {
-            await buildingService.editBuilding(buildingId, data);
+            await updateBuilding(buildingId, data);
             await fetchData(); 
         } catch (err) {
             setError(err as Error);
@@ -53,7 +51,7 @@ export const useBuildingDetailPage = (buildingId: string | string[] | undefined)
 
     return { 
         buildingData,
-        editProject, 
+        editBuilding, 
         loading, 
         error,
         isSubmitting,

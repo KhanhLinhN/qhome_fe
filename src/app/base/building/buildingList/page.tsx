@@ -9,12 +9,13 @@ import { create } from 'domain';
 import { useProjectAdd } from '@/src/hooks/useProjectAdd';
 import { useRouter } from 'next/navigation';
 import { useBuildingPage } from '@/src/hooks/useBuildingPage';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 
 export default function Home() {
+  const { user, hasRole } = useAuth();
   const t = useTranslations('Building');
   const headers = [t('buildingCode'), t('buildingName'), t('projectName'), t('floors'), t('status'), t('createAt'), t('createBy'), t('action')];
-  const projectId = localStorage.getItem('projectId');
 
   const {
     data,
@@ -43,6 +44,10 @@ export default function Home() {
   const router = useRouter();
   const handleAdd = () => {
     router.push(`/base/building/buildingNew`);
+  };
+
+  const handleDelete = () => {
+    router.push(`/base/building/buildingList`);
   };
 
   
@@ -87,6 +92,7 @@ export default function Home() {
                 onFilterChange={handleFilterChange}
                 onAdd={handleAdd}
                 onClear={handleClear}
+                onDelete={handleDelete}
                 projectList={allProjects}
               ></FilterForm>
               <Table 

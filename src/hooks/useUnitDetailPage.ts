@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Project } from '@/src/types/project';
-import { getTenant, updateTenant } from '@/src/services/base/tenantService';
+import { Unit } from '@/src/types/unit';
+import { getUnit, updateUnit } from '@/src/services/base/unitService';
 
-export const useProjectDetailPage = (requestId: string | string[] | undefined) => {
-    const [projectData, setProjectData] = useState<Project | null>(null);
+export const useUnitDetailPage = (unitId: string | string[] | undefined) => {
+    const [unitData, setUnitData] = useState<Unit | null>(null);
     
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<Error | null>(null);
@@ -11,7 +11,7 @@ export const useProjectDetailPage = (requestId: string | string[] | undefined) =
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const fetchData = useCallback(async () => {
-        if (!requestId) {
+        if (!unitId) {
             setLoading(false);
             return;
         }
@@ -19,28 +19,28 @@ export const useProjectDetailPage = (requestId: string | string[] | undefined) =
         setLoading(true);
         setError(null);
         try {
-            const project = await getTenant(requestId.toString());
-            console.log(project);
-            setProjectData(project as unknown as Project);
+            const unit = await getUnit(unitId.toString());
+            console.log('Unit data:', unit);
+            setUnitData(unit as unknown as Unit);
         } catch (err) {
             setError(err as Error);
             console.error(err);
         } finally {
             setLoading(false);
         }
-    }, [requestId]); 
+    }, [unitId]); 
 
     useEffect(() => {
         fetchData();
     }, [fetchData]); 
 
-    const editProject = async(projectId: string, data: Project) =>{
-        if (!requestId) return;
+    const editUnit = async(unitId: string, data: Partial<Unit>) =>{
+        if (!unitId) return;
 
         setIsSubmitting(true);
         setError(null);
         try {
-            await updateTenant(requestId as string, data);
+            await updateUnit(unitId, data);
             await fetchData(); 
         } catch (err) {
             setError(err as Error);
@@ -51,10 +51,11 @@ export const useProjectDetailPage = (requestId: string | string[] | undefined) =
     }
 
     return { 
-        projectData,
-        editProject, 
+        unitData,
+        editUnit, 
         loading, 
         error,
         isSubmitting,
     };
 };
+

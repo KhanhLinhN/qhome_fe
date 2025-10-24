@@ -44,8 +44,12 @@ export class RequestService {
         });
 
         const queryString = query.toString();
+        console.log('Request params:', params);
+        console.log('Query string:', queryString);
+        
         // Construct the full URL
         const url = `${process.env.NEXT_PUBLIC_CUSTOMER_INTERACTION_API_URL}/requests${queryString ? `?${queryString}` : ''}`;
+        console.log('Full URL:', url);
 
         try {
             const response = await fetch(url);
@@ -74,7 +78,11 @@ export class RequestService {
         });
 
         const queryString = query.toString();
+        console.log('Counts params:', params);
+        console.log('Counts query string:', queryString);
+        
         const url = `${process.env.NEXT_PUBLIC_CUSTOMER_INTERACTION_API_URL}/requests/counts${queryString ? `?${queryString}` : ''}`;
+        console.log('Counts URL:', url);
 
         try {
             const response = await fetch(url);
@@ -84,7 +92,6 @@ export class RequestService {
             }
             
             const result: StatusCounts = await response.json();
-            console.log(url);
             return result;
 
         } catch (error) {

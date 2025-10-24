@@ -8,8 +8,10 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Project } from '@/src/types/project'; 
 import { useProjectAdd } from '@/src/hooks/useProjectAdd';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 export default function ProjectAdd() {
+    const { user, hasRole } = useAuth();
     const t = useTranslations('Project');
     const router = useRouter();
     const [isSubmit, setIsSubmit] = useState(false);
@@ -49,13 +51,18 @@ export default function ProjectAdd() {
     };
 
     const generateCodeFromName = (name: string): string => {
-    if (!name) return '';
-    return name
-        .split(' ') 
-        .filter(word => word.length > 0)
-        .map(word => word[0]) 
-        .join('') 
-        .toUpperCase(); 
+        if (!name) return '';
+        return name
+            .split(' ') 
+            .filter(word => word.length > 0)
+            .map(word => {
+                if (/^[a-zA-Z]/.test(word)) {
+                    return word[0];
+                }
+                return word;
+            })
+            .join('') 
+            .toUpperCase(); 
     };
 
     const handleChange = (

@@ -107,7 +107,7 @@ export default function LoginForm(){
         {loading ? t("Login.loading") : t("Login.submit")}
       </button>
 
-      <div className="text-center text-xs text-slate-500 pt-2">{t("Login.contact_support")}</div>
+      {/* <div className="text-center text-xs text-slate-500 pt-2">{t("Login.contact_support")}</div> */}
     </form>
   );
 };

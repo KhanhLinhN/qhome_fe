@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { PagedResponse, ProjectService } from '@/src/services/base/project/projectService';
+import { PagedResponse } from '@/src/services/base/project/projectService';
 import { Project } from '../types/project';
 import { filters } from '@/src/components/base-service/FilterForm';
+import { getAllTenants } from '@/src/services/base/tenantService';
 
 const initialFilters: filters = {
     codeName: '',
@@ -10,7 +11,6 @@ const initialFilters: filters = {
 };
 
 const initialPageSize = 10;
-const projectService = new ProjectService();
 
 export const useProjectPage = (loadOnMount: boolean = true) => {
     const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -25,9 +25,9 @@ export const useProjectPage = (loadOnMount: boolean = true) => {
         setLoading(true);
         setError(null);
         try {
-            const listProject = await projectService.getProjectList();
+            const listProject = await getAllTenants();
             console.log(listProject);
-            setAllProjects(listProject);
+            setAllProjects(listProject as unknown as Project[]);
         } catch (err) {
             setError('Failed to fetch requests.');
             console.error(err);

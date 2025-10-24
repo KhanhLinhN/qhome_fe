@@ -150,7 +150,8 @@
     "leavingC": "You have not finished updating your information. Do you want to leave without finishing?",
     "saving": "Is saving",
     "returnProjectList": "Return project list",
-    "returnProjectDetail": "Return project detail"
+    "returnProjectDetail": "Return project detail",
+    "deleteProject": "Delete project"
   },
   "Building": {
     "buildingCode":"Building Code",
@@ -176,8 +177,43 @@
     "cancel":  "Cancel",
     "address": "Address",
     "clear": "Clear",
-    "loading":"Data is loading..."
+    "loading":"Data is loading...",
+    "deleteBuilding": "Delete building",
+    "deleteBuildingConfirm": "Are you sure you want to delete building" 
+  },
+  "Unit": {
+    "unitCode": "Unit Code",
+    "unitName": "Unit Name",
+    "unitType": "Unit Type",
+    "unitStatus": "Status",
+    "ownerName": "Owner Name",
+    "ownerContact": "Owner Contact",
+    "return": "Return building detail",
+    "unitDetail": "Unit detail",
+    "unitEdit": "Edit unit",
+    "inactive": "Inactive",
+    "active": "Active",
+    "hotline": "Hotline",
+    "email": "Email",
+    "descroption": "Description",
+    "save":  "Save",
+    "cancel":  "Cancel",
+    "newDescription": "New Description",
+    "loading": "Data is loading...",
+    "error": "Error loading data",
+    "retry": "Please try again",
+    "clear": "Clear",
+    "yes": "Yes",
+    "no": "No",
+    "deleteUnitT": "Delete unit?",
+    "deleteUnitC": "Are you sure you want to delete unit",
+    "saveNewT": "Save new change?",
+    "saveNewC": "Are you sure you want to save the following changes?",
+    "leavingT": "Leaving page?",
+    "leavingC": "You have not finished updating your information. Do you want to leave without finishing?",
+    "saving": "Is saving",
+    "returnUnitList": "Return unit list",
+    "returnUnitDetail": "Return unit detail",
+    "deleteUnit": "Delete unit"
   }
 }
-
-

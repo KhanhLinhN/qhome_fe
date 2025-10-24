@@ -18,7 +18,7 @@ interface TableItemProps {
     buildingId?: string;
     buildingCode?: string;
     buildingName?: string;
-    floors?: string;
+    floors?: number;
 }
 
 interface TableProps {
@@ -80,7 +80,7 @@ const Table = ({ data, headers, type }: TableProps) => {
         
                                         <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.createBy}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023] text-center">
-                                            <div className="flex space-x-2">
+                                            <div className="flex space-x-2 justify-center">
                                                 <button 
                                                     className={` hover:bg-opacity-80 transition duration-150`}
                                                     onClick={() => console.log('Chỉnh sửa dự án')}
@@ -91,21 +91,9 @@ const Table = ({ data, headers, type }: TableProps) => {
                                                             alt="Edit" 
                                                             width={24} 
                                                             height={24}
-                                                            className="w-10 h-10 text-red-500"
+                                                            className="w-10 h-10"
                                                         />
                                                     </Link>
-                                                </button>
-                                                <button 
-                                                    className=" hover:bg-opacity-80 transition duration-150 z-10"
-                                                    onClick={() => console.log('Đóng/Xóa dự án')}
-                                                >
-                                                    <Image 
-                                                        src={Delete} 
-                                                        alt="Delete" 
-                                                        width={24} 
-                                                        height={24}
-                                                        className="w-10 h-10" 
-                                                    />
                                                 </button>
                                             </div>
                                         </td>
@@ -130,7 +118,7 @@ const Table = ({ data, headers, type }: TableProps) => {
         
                                         <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.createBy}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023] text-center">
-                                            <div className="flex space-x-2">
+                                            <div className="flex space-x-2 justify-center">
                                                 <button 
                                                     className={` hover:bg-opacity-80 transition duration-150`}
                                                     onClick={() => console.log('Chỉnh sửa dự án')}
@@ -139,23 +127,10 @@ const Table = ({ data, headers, type }: TableProps) => {
                                                         <Image 
                                                             src={Edit} 
                                                             alt="Edit" 
-                                                            width={24} 
-                                                            height={24}
-                                                            className="w-10 h-10 text-red-500"
+                                                            width={34} 
+                                                            height={34}
                                                         />
                                                     </Link>
-                                                </button>
-                                                <button 
-                                                    className=" hover:bg-opacity-80 transition duration-150 z-10"
-                                                    onClick={() => console.log('Đóng/Xóa dự án')}
-                                                >
-                                                    <Image 
-                                                        src={Delete} 
-                                                        alt="Delete" 
-                                                        width={24} 
-                                                        height={24}
-                                                        className="w-10 h-10" 
-                                                    />
                                                 </button>
                                             </div>
                                         </td>

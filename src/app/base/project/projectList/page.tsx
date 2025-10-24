@@ -9,9 +9,11 @@ import MainLayout from '@/src/components/layout/MainLayout';
 import { create } from 'domain';
 import { useProjectAdd } from '@/src/hooks/useProjectAdd';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 
 export default function Home() {
+  const { user, hasRole } = useAuth();
   const t = useTranslations('Project');
   const headers = [t('projectCode'), t('projectName'), t('address'), t('status'), t('createAt'), t('createBy'), t('action')];
 
@@ -42,6 +44,10 @@ export default function Home() {
   const router = useRouter();
   const handleAdd = () => {
     router.push(`/base/project/projectNew`);
+  };
+
+  const handleDelete = () => {
+    router.push(`/tenants`);
   };
 
   
@@ -86,6 +92,7 @@ export default function Home() {
                 onFilterChange={handleFilterChange}
                 onAdd={handleAdd}
                 onClear={handleClear}
+                onDelete={handleDelete}
               ></FilterForm>
               <Table 
                   data={tableData} 

@@ -239,7 +239,7 @@ export default function EditUserPermissionsModal({
         <div className="px-6 py-4 border-b border-slate-200">
           <input
             type="text"
-            placeholder="🔍 Search permissions..."
+            placeholder="Search permissions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"

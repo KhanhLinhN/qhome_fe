@@ -1,13 +1,16 @@
 "use client";
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {usePathname} from "next/navigation";
+import Delete from "@/src/assets/Delete.svg";
 
 const adminItems = [
   {href:"/dashboard", label:"Dashboard", icon:"🏠"},
   {href:"/roles", label:"Phân quyền", icon:"🔑"},
-  {href:"/tenants", label:"Quản lý Tenant", icon:"🏢"},
+  {href:"/base/project/projectList", label:"Quản lý Tenant", icon:"🏢"},
   {href:"/tenant-deletions", label:"Yêu cầu Xóa Tenant", icon:"🗑️"},
+  {href:"/base/building/buildingList", label:"Quản lý Building", icon:"🏢"},
   {href:"/dashboard/residents", label:"Cư dân", icon:"👥"},
   {href:"/dashboard/services", label:"Dịch vụ", icon:"🧾"},
   {href:"/dashboard/finance", label:"Tài chính", icon:"💰"},
@@ -44,7 +47,13 @@ export default function Sidebar({ variant = 'admin' }: SidebarProps){
             <Link key={it.href} href={it.href}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                 ${active ? "bg-[#6B9B6E] text-white" : "text-slate-700 hover:bg-slate-100"}`}>
-              <span className="w-5 text-center">{it.icon}</span>
+              <span className="w-5 text-center flex items-center justify-center">
+                {it.icon === "delete" ? (
+                  <Image src={Delete} alt="Delete" width={20} height={20} className={active ? "brightness-0 invert" : ""} />
+                ) : (
+                  it.icon
+                )}
+              </span>
               <span>{it.label}</span>
             </Link>
           );

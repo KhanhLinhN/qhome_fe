@@ -9,11 +9,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useProjectDetailPage } from '@/src/hooks/useProjectDetailPage';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
-import { useDeleteProject } from '@/src/hooks/useProjectDelete';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 export default function ProjectDetail () {
 
-
+    const { user, hasRole } = useAuth();
     const t = useTranslations('Project'); 
     const router = useRouter();
     const params = useParams();
@@ -21,10 +21,9 @@ export default function ProjectDetail () {
     console.log(projectId);
     const { projectData, loading, error, isSubmitting } = useProjectDetailPage(projectId);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const { deleteProject, isLoading: isDeleting } = useDeleteProject();    
     
     const handleBack = () => {
-        router.back(); 
+        router.push(`/base/project/projectList`);
     }
 
     const status = projectData?.status ?? '';
@@ -37,19 +36,7 @@ export default function ProjectDetail () {
         setIsPopupOpen(true);
     }
 
-    const handleConfirmDelete = async () => {
-        if (!projectId) {
-            setIsPopupOpen(false);
-            return;
-        }
 
-        const success = await deleteProject(projectId.toString());
-
-        setIsPopupOpen(false);
-        if (success) {
-            router.push(`/base/project/projectList`);
-        }
-    };
 
     const handleClosePopup = () => {
         setIsPopupOpen(false);
@@ -69,14 +56,6 @@ export default function ProjectDetail () {
 
     return (
         <div className={`min-h-screen bg-[#F5F7FA] p-4 sm:p-8 font-sans`}>
-            <PopupConfirm
-                isOpen={isPopupOpen}
-                onClose={handleClosePopup}
-                onConfirm={handleConfirmDelete}
-                popupTitle={t('deleteProjectT')}
-                popupContext={t('deleteProjectC')}
-                isDanger={true}
-            />
             <div className="max-w-4xl mx-auto mb-6 flex items-center cursor-pointer" onClick={handleBack}>
                 <Image 
                     src={Arrow} 
@@ -113,19 +92,6 @@ export default function ProjectDetail () {
                             <Image 
                                 src={Edit} 
                                 alt="Edit" 
-                                width={24} 
-                                height={24}
-                                className="w-6 h-6" 
-                            />
-                        </button>
-                        <button 
-                            className="p-2 rounded-lg bg-red-500 hover:bg-opacity-80 transition duration-150"
-                             onClick={() => {
-                                handleDelete(); 
-                        }}>
-                            <Image 
-                                src={Delete} 
-                                alt="Delete" 
                                 width={24} 
                                 height={24}
                                 className="w-6 h-6" 

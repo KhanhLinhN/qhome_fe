@@ -135,7 +135,8 @@
     "clear":"Xóa",
     "projectEdit": "Chỉnh sửa dự án",
     "returnProjectList": "Quay lại danh sách dự án",
-    "returnProjectDetail": "Quay lại chi tiết dự án"
+    "returnProjectDetail": "Quay lại chi tiết dự án",
+    "deleteProject": "Xóa dự án"
   },
   "Building": {
     "buildingCode":"Mã tòa nhà",
@@ -159,6 +160,43 @@
     "save":   "Lưu",
     "cancel":   "Hủy",
     "newDescription": "Mô tả mới",
-    "address":"Địa chỉ"
+    "address":"Địa chỉ",
+    "deleteBuilding": "Xóa tòa nhà",
+    "deleteBuildingConfirm": "Bạn có chắc chắn muốn xóa tòa nhà này không?"
+  },
+  "Unit": {
+    "unitCode": "Mã căn hộ",
+    "unitName": "Tên căn hộ",
+    "unitType": "Loại căn hộ",
+    "unitStatus": "Trạng thái căn hộ",
+    "ownerName": "Tên chủ sở hữu",
+    "ownerContact": "Liên hệ chủ sở hữu",
+    "return": "Quay lại danh sách căn hộ",
+    "unitDetail": "Chi tiết căn hộ",
+    "unitEdit": "Chỉnh sửa căn hộ",
+    "inactive": "Không hoạt động",
+    "active": "Hoạt động",
+    "hotline": "Hotline",
+    "email": "Email",
+    "descroption": "Mô tả",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "newDescription": "Mô tả mới",
+    "loading": "Đang tải dữ liệu...",
+    "error": "Lỗi khi tải dữ liệu",
+    "retry": "Vui lòng thử lại",
+    "clear": "Xóa",
+    "yes": "Có",
+    "no": "Không",
+    "deleteUnitT": "Xóa căn hộ?",
+    "deleteUnitC": "Bạn có chắc chắn muốn xóa căn hộ này không?",
+    "saveNewT": "Lưu thay đổi mới?",
+    "saveNewC": "Bạn có chắc chắn muốn lưu các thay đổi sau đây?",
+    "leavingT": "Rời khỏi trang?",
+    "leavingC": "Bạn chưa hoàn tất cập nhật thông tin. Bạn có muốn rời khỏi trang mà không hoàn tất không?",
+    "saving": "Đang lưu",
+    "returnUnitList": "Quay lại danh sách căn hộ",
+    "returnUnitDetail": "Quay lại chi tiết căn hộ",
+    "deleteUnit": "Xóa căn hộ"
   }
 }

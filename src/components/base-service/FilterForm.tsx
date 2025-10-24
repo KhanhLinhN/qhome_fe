@@ -3,8 +3,10 @@ import React, { useEffect, useState } from 'react';
 import Select from '../customer-interaction/Select';
 import AddIcon from '@/src/assets/AddIcon.svg'
 import Image from 'next/image';
+import Delete from '@/src/assets/Delete.svg';
 import { useTranslations } from 'next-intl';
 import { Project } from '@/src/types/project';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 export interface filters {
     codeName?: string,
@@ -18,21 +20,27 @@ interface FilterFormProps {
     page: string;
     onFilterChange: (name: keyof filters, value: string) => void; 
     onAdd: () => void; 
-    onClear: () => void; 
+    onClear: () => void;
+    onDelete: () => void;
     projectList?: Project[];
 }
 
-const FilterForm = ({ filters, page, onFilterChange, onAdd, onClear, projectList }: FilterFormProps) => {
+const FilterForm = ({ filters, page, onFilterChange, onAdd, onClear, onDelete, projectList }: FilterFormProps) => {
     const t = useTranslations();
+    const { user, hasRole } = useAuth();
 
     const [isProjectLocked, setIsProjectLocked] = useState(false);
 
+    const projectId = user?.tenantId;
+    console.log('projectId', projectId);
+    
     useEffect(() => {
-        const storedProjectId = localStorage.getItem('projectId');
-        if (storedProjectId) {
+        if (projectId && projectList && projectList.length > 0) {
+            // Tự động set projectId vào filter khi có user.tenantId
+            onFilterChange('projectId', projectId);
             setIsProjectLocked(true);
         }
-    }, []);
+    }, [projectId, projectList]);
     
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         onFilterChange(e.target.name as keyof filters, e.target.value);
@@ -59,7 +67,7 @@ const FilterForm = ({ filters, page, onFilterChange, onAdd, onClear, projectList
                         onChange={handleInputChange}
                     />    
                     <Select
-                        options={[{ name: t('active'), value: 'ACTIVE' }, { name: t('inactive'), value: 'INACTIVE' }]}
+                        options={[{ name: t('Project.active'), value: 'ACTIVE' }, { name: t('Project.inactive'), value: 'INACTIVE' }]}
                         value={filters.status}
                         onSelect={(item) => onFilterChange('status', item.value)}
                         renderItem={(item) => item.name}
@@ -95,6 +103,19 @@ const FilterForm = ({ filters, page, onFilterChange, onAdd, onClear, projectList
                             height={16}
                         />
                         {t('Project.addProject')}
+                    </button>
+                    <button 
+                        type="button"
+                        className="flex items-center justify-center px-6 py-2.5 bg-red-700 text-white font-semibold border border-gray-300 rounded-lg shadow-sm hover:bg-red-900 whitespace-nowrap gap-2"
+                        onClick={onDelete}
+                    >
+                        <Image 
+                            src={Delete} 
+                            alt="Delete" 
+                            width={16} 
+                            height={16}
+                        />
+                        {t('Project.deleteProject')}
                     </button>
                 </div>
             </div>
@@ -172,6 +193,7 @@ const FilterForm = ({ filters, page, onFilterChange, onAdd, onClear, projectList
                         />
                         {t('Building.addBuilding')}
                     </button>
+                    
                 </div>
             </div>
         );
