@@ -119,11 +119,11 @@ export default function TenantOwnerHomePage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white rounded-lg border border-slate-200 p-6">
+              <div className="bg-white rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm text-slate-600 mb-1">Tòa nhà</div>
-                    <div className="text-3xl font-bold text-[#6B9B6E]">{activeBuildings}</div>
+                    <div className="text-3xl font-bold text-[#02542D]">{activeBuildings}</div>
                     <div className="text-xs text-slate-500 mt-1">Đang hoạt động</div>
                   </div>
                   <div className="text-4xl">🏢</div>
@@ -154,7 +154,7 @@ export default function TenantOwnerHomePage() {
             </div>
 
             {/* Tenant Info Card */}
-            <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
+            <div className="bg-white rounded-xl p-6 mb-6">
               <h2 className="text-lg font-semibold text-slate-800 mb-4">📋 Thông tin Tenant</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -169,7 +169,7 @@ export default function TenantOwnerHomePage() {
             </div>
 
             {/* Buildings List */}
-            <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
+            <div className="bg-white rounded-xl p-6 mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-800">🏢 Danh sách Tòa nhà</h2>
                 <span className="text-sm text-slate-600">{buildings.length} tòa nhà</span>
@@ -182,7 +182,7 @@ export default function TenantOwnerHomePage() {
               ) : (
                 <div className="space-y-3">
                   {buildings.map(building => (
-                    <div key={building.id} className="p-4 border border-slate-200 rounded-lg hover:border-[#6B9B6E] transition">
+                    <div key={building.id} className="p-4 border border-slate-200 rounded-xl hover:border-[#02542D] transition">
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="font-medium text-slate-800">{building.name}</div>
@@ -208,7 +208,7 @@ export default function TenantOwnerHomePage() {
             </div>
 
             {/* Deletion Requests Section */}
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="bg-white rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-800">🗑️ Yêu cầu Xóa Tenant</h2>
                 <span className="text-sm text-slate-600">{deletionRequests.length} yêu cầu</span>
@@ -223,7 +223,7 @@ export default function TenantOwnerHomePage() {
                   </p>
                   <Link
                     href="/tenants"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#6B9B6E] text-white rounded-lg hover:bg-[#5a8559] transition"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#02542D] text-white rounded-lg hover:bg-[#024030] transition"
                   >
                     ➕ Tạo yêu cầu mới
                   </Link>
@@ -249,7 +249,7 @@ export default function TenantOwnerHomePage() {
                     };
 
                     return (
-                      <div key={request.id} className="p-4 border border-slate-200 rounded-lg hover:border-[#6B9B6E] transition">
+                      <div key={request.id} className="p-4 border border-slate-200 rounded-xl hover:border-[#02542D] transition">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">

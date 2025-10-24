@@ -129,7 +129,7 @@ export default function TenantOwnerBuildingsPage() {
 
             {/* Buildings List */}
             {deletingBuildings.length === 0 ? (
-              <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
+              <div className="bg-white rounded-xl p-12 text-center">
                 <div className="text-6xl mb-4">✅</div>
                 <div className="text-lg font-medium text-slate-800 mb-2">
                   Không có building nào đang xóa
@@ -150,7 +150,7 @@ export default function TenantOwnerBuildingsPage() {
                     : 100;
 
                   return (
-                    <div key={building.id} className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition">
+                    <div key={building.id} className="bg-white rounded-xl p-6 hover:shadow-md transition">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">

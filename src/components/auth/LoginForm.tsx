@@ -34,9 +34,9 @@ export default function LoginForm(){
       show(t("Login.success"), "success");
       
       // Redirect sau 500ms
-      setTimeout(() => {
+      // setTimeout(() => {
         router.push(redirectPath);
-      }, 500);
+      // }, 500);
       
     } catch (e:any) {
       // Hiển thị message cho user

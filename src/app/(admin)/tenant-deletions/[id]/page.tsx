@@ -96,16 +96,29 @@ export default function DeletionRequestDetailPage() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="text-center py-12 text-slate-500">⏳ Đang tải...</div>
+      <div className="lg:col-span-1 space-y-6">
+        <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA] min-h-screen">
+          <div className="px-[41px] py-12 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
+              <p className="text-gray-600">Đang tải...</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!request) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="text-center py-12 text-red-500">❌ Không tìm thấy yêu cầu</div>
+      <div className="lg:col-span-1 space-y-6">
+        <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA] min-h-screen">
+          <div className="px-[41px] py-12 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-red-600 mb-4">❌ Không tìm thấy yêu cầu</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -129,23 +142,29 @@ export default function DeletionRequestDetailPage() {
     : 0;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Breadcrumb */}
-      <div className="mb-4 text-sm text-slate-600">
-        <Link href="/tenant-deletions" className="hover:text-[#6B9B6E]">
-          Yêu cầu xóa tenant
-        </Link>
-        {' '}/{' '}
-        <span className="text-slate-800 font-medium">#{requestId.slice(0, 8)}</span>
-      </div>
+    <div className="lg:col-span-1 space-y-6">
+      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA] min-h-screen">
+        {/* Breadcrumb */}
+        <div className="mb-4 text-sm text-slate-600">
+          <Link href="/tenant-deletions" className="hover:text-[#02542D]">
+            Yêu cầu xóa tenant
+          </Link>
+          {' '}/{' '}
+          <span className="text-[#02542D] font-medium">#{requestId.slice(0, 8)}</span>
+        </div>
 
-      {/* Header Card */}
-      <div className={`bg-white rounded-lg border-2 p-6 mb-6 ${getStatusColor(request.status)}`}>
+        {/* Page Title */}
+        <h1 className="text-2xl font-semibold text-[#02542D] mb-4">
+          Chi tiết yêu cầu xóa Tenant
+        </h1>
+
+        {/* Header Card */}
+        <div className={`bg-white rounded-xl p-6 mb-6 border-2 ${getStatusColor(request.status)}`}>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 mb-2">
+            <h2 className="text-xl font-semibold text-slate-800 mb-2">
               Yêu cầu Xóa Tenant #{requestId.slice(0, 8)}
-            </h1>
+            </h2>
             <div className="space-y-1 text-sm">
               <div><span className="font-medium">Tenant ID:</span> <code className="bg-white/50 px-2 py-1 rounded">{request.tenantId}</code></div>
               <div><span className="font-medium">Người yêu cầu:</span> {request.requestedBy}</div>
@@ -178,8 +197,8 @@ export default function DeletionRequestDetailPage() {
         )}
       </div>
 
-      {/* Timeline */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
+        {/* Timeline */}
+        <div className="bg-white rounded-xl p-6 mb-6">
         <h2 className="text-lg font-semibold text-slate-800 mb-4">📊 Tiến trình</h2>
         <div className="flex items-center justify-between">
           {[
@@ -190,34 +209,34 @@ export default function DeletionRequestDetailPage() {
           ].map((step, idx) => (
             <div key={idx} className="flex-1 flex items-center">
               <div className="flex flex-col items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 ${
+                <div                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 ${
                   step.active 
-                    ? 'bg-[#6B9B6E] text-white border-[#6B9B6E]' 
+                    ? 'bg-[#02542D] text-white border-[#02542D]' 
                     : 'bg-slate-100 text-slate-400 border-slate-300'
                 }`}>
                   {step.active ? '✓' : idx + 1}
                 </div>
-                <div className={`mt-2 text-xs font-medium ${step.active ? 'text-[#6B9B6E]' : 'text-slate-400'}`}>
+                <div className={`mt-2 text-xs font-medium ${step.active ? 'text-[#02542D]' : 'text-slate-400'}`}>
                   {step.label}
                 </div>
               </div>
               {idx < 3 && (
-                <div className={`flex-1 h-0.5 ${step.active ? 'bg-[#6B9B6E]' : 'bg-slate-200'}`} />
+                <div className={`flex-1 h-0.5 ${step.active ? 'bg-[#02542D]' : 'bg-slate-200'}`} />
               )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Targets Status (Only show if APPROVED) */}
-      {request.status === TenantDeletionStatus.APPROVED && targetsStatus && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
+        {/* Targets Status (Only show if APPROVED) */}
+        {request.status === TenantDeletionStatus.APPROVED && targetsStatus && (
+          <div className="bg-white rounded-xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-slate-800">🎯 Tiến độ Xóa</h2>
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="px-3 py-1.5 text-sm text-[#6B9B6E] border border-[#6B9B6E] rounded-md hover:bg-green-50 transition disabled:opacity-50"
+              className="px-3 py-1.5 text-sm text-[#02542D] border border-[#02542D] rounded-md hover:bg-green-50 transition disabled:opacity-50"
             >
               {refreshing ? '⏳' : '🔄'} Refresh
             </button>
@@ -308,11 +327,11 @@ export default function DeletionRequestDetailPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* Action Buttons */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        {/* Action Buttons */}
+        <div className="bg-white rounded-xl p-6">
         <h2 className="text-lg font-semibold text-slate-800 mb-4">⚡ Hành động</h2>
         <div className="flex gap-3">
           {request.status === TenantDeletionStatus.PENDING && (
@@ -363,30 +382,31 @@ export default function DeletionRequestDetailPage() {
             </div>
           )}
         </div>
-      </div>
+        </div>
 
-      {/* Modals */}
-      {showApproveModal && (
-        <ApproveModal
-          onConfirm={handleApprove}
-          onClose={() => setShowApproveModal(false)}
-        />
-      )}
-      
-      {showRejectModal && (
-        <RejectModal
-          onConfirm={handleReject}
-          onClose={() => setShowRejectModal(false)}
-        />
-      )}
-      
-      {showCompleteModal && (
-        <CompleteModal
-          tenantId={request.tenantId}
-          onConfirm={handleComplete}
-          onClose={() => setShowCompleteModal(false)}
-        />
-      )}
+        {/* Modals */}
+        {showApproveModal && (
+          <ApproveModal
+            onConfirm={handleApprove}
+            onClose={() => setShowApproveModal(false)}
+          />
+        )}
+        
+        {showRejectModal && (
+          <RejectModal
+            onConfirm={handleReject}
+            onClose={() => setShowRejectModal(false)}
+          />
+        )}
+        
+        {showCompleteModal && (
+          <CompleteModal
+            tenantId={request.tenantId}
+            onConfirm={handleComplete}
+            onClose={() => setShowCompleteModal(false)}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -53,43 +53,45 @@ export default function TenantsPage() {
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">
+    <div className="lg:col-span-1 space-y-6">
+      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
+        {/* Header */}
+        <h1 className="text-2xl font-semibold text-[#02542D] mb-2">
           🏢 Quản Lý Tenant
         </h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 mb-4">
           Danh sách tất cả tenant trong hệ thống
         </p>
-      </div>
 
-      {/* Search Bar */}
-      <div className="mb-4">
-        <div className="relative">
-          <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-            🔍
-          </span>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm tenant theo tên hoặc mã..."
-            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
-          />
+        {/* Search Bar */}
+        <div className="mb-4">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
+              🔍
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm tenant theo tên hoặc mã..."
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#02542D]"
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="text-center py-12">
-          <div className="text-slate-500">⏳ Đang tải...</div>
-        </div>
-      )}
+        {/* Loading State */}
+        {loading && (
+          <div className="px-[41px] py-12 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
+              <p className="text-gray-600">Đang tải...</p>
+            </div>
+          </div>
+        )}
 
-      {/* Table */}
-      {!loading && (
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        {/* Table */}
+        {!loading && (
+          <div className="bg-white rounded-xl overflow-hidden">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -170,26 +172,27 @@ export default function TenantsPage() {
             </tbody>
           </table>
 
-          {/* Footer Stats */}
-          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 text-sm text-slate-600">
-            Tổng cộng: <span className="font-medium">{filteredTenants.length}</span> tenant
-            {searchQuery && ` (đã lọc từ ${tenants.length} tenant)`}
+            {/* Footer Stats */}
+            <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 text-sm text-slate-600">
+              Tổng cộng: <span className="font-medium">{filteredTenants.length}</span> tenant
+              {searchQuery && ` (đã lọc từ ${tenants.length} tenant)`}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Deletion Request Modal */}
-      {showDeleteModal && selectedTenant && (
-        <CreateDeletionRequestModal
-          tenantId={selectedTenant.id}
-          tenantName={selectedTenant.name}
-          onClose={() => {
-            setShowDeleteModal(false);
-            setSelectedTenant(null);
-          }}
-          onSuccess={handleDeletionSuccess}
-        />
-      )}
+        {/* Deletion Request Modal */}
+        {showDeleteModal && selectedTenant && (
+          <CreateDeletionRequestModal
+            tenantId={selectedTenant.id}
+            tenantName={selectedTenant.name}
+            onClose={() => {
+              setShowDeleteModal(false);
+              setSelectedTenant(null);
+            }}
+            onSuccess={handleDeletionSuccess}
+          />
+        )}
+      </div>
     </div>
   );
 }

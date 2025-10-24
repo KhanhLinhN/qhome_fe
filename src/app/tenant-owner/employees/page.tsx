@@ -167,7 +167,7 @@ export default function TenantOwnerEmployeesPage() {
 
             {/* Deletion Status Card */}
             {deletionStatus && (
-              <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
+              <div className="bg-white rounded-xl p-6 mb-6">
                 <h2 className="text-lg font-semibold text-slate-800 mb-4">📊 Trạng thái Xóa Tenant</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className={`p-4 rounded-lg border ${deletionStatus.buildingsReady ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
@@ -221,7 +221,7 @@ export default function TenantOwnerEmployeesPage() {
             )}
 
             {/* Employees List */}
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="bg-white rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-800">
                   👥 Danh sách Nhân viên ({employees.length})
@@ -250,7 +250,7 @@ export default function TenantOwnerEmployeesPage() {
               ) : (
                 <div className="space-y-3">
                   {employees.map((employee) => (
-                    <div key={employee.userId} className="p-4 border border-slate-200 rounded-lg hover:border-red-300 transition">
+                    <div key={employee.userId} className="p-4 rounded-xl hover:border-red-300 transition bg-white border border-slate-200">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
