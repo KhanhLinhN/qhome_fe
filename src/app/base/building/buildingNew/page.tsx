@@ -11,6 +11,7 @@ import { Building } from '@/src/types/building';
 import { useBuildingAdd } from '@/src/hooks/useBuildingAdd';
 import { getAllTenants } from '@/src/services/base/tenantService';
 import { Project } from '@/src/types/project';
+import { useNotifications } from '@/src/hooks/useNotifications';
 
 export default function BuildingAdd () {
 
@@ -22,6 +23,7 @@ export default function BuildingAdd () {
     const [tenantId, setTenantId] = useState<string>('');
     const [projects, setProjects] = useState<Project[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(true);
+    const { show } = useNotifications();
     
     useEffect(() => {
         const fetchProjects = async () => {
@@ -74,15 +76,34 @@ export default function BuildingAdd () {
         e.preventDefault();
         if (isSubmitting) return;
 
+        // Validation
+        if (!formData.name?.trim()) {
+            show('Vui lòng nhập tên tòa nhà', 'error');
+            return;
+        }
+        if (!formData.address?.trim()) {
+            show('Vui lòng nhập địa chỉ', 'error');
+            return;
+        }
+        if (!tenantId) {
+            show('Vui lòng chọn dự án', 'error');
+            return;
+        }
+        if (!formData.floorsMax || formData.floorsMax <= 0) {
+            show('Số tầng phải lớn hơn 0', 'error');
+            return;
+        }
+
         setIsSubmit(true);
         try {
             const { floorsMaxStr, totalApartmentsAllStr, ...buildingData } = formData;
             console.log('Dữ liệu gửi đi:', buildingData);
             await addBuilding(buildingData, tenantId);
+            show('Tạo tòa nhà thành công!', 'success');
             router.push(`/base/building/buildingList`);
         } catch (error) {
             console.error('Lỗi khi tạo building:', error);
-            alert('Có lỗi xảy ra!');
+            show('Có lỗi xảy ra khi tạo tòa nhà!', 'error');
         } finally {
             setIsSubmit(false);
         }

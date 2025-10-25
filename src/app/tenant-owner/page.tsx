@@ -72,10 +72,8 @@ export default function TenantOwnerHomePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F5F5F0]">
-        <Topbar />
         <div className="flex">
-          <Sidebar variant="tenant-owner" />
-          <main className="flex-1 ml-64 p-6">
+          <main className="flex-1 p-6">
             <div className="text-center py-12 text-slate-500">⏳ Đang tải...</div>
           </main>
         </div>
@@ -86,10 +84,8 @@ export default function TenantOwnerHomePage() {
   if (!tenant) {
     return (
       <div className="min-h-screen bg-[#F5F5F0]">
-        <Topbar />
         <div className="flex">
-          <Sidebar variant="tenant-owner" />
-          <main className="flex-1 ml-64 p-6">
+          <main className="flex-1 p-6">
             <div className="text-center py-12 text-red-500">❌ Không tìm thấy thông tin tenant</div>
           </main>
         </div>
@@ -104,10 +100,8 @@ export default function TenantOwnerHomePage() {
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
-      <Topbar />
       <div className="flex">
-        <Sidebar variant="tenant-owner" />
-        <main className="flex-1 ml-64 p-6">
+        <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-6">

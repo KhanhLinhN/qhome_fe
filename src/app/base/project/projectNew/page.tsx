@@ -9,12 +9,14 @@ import { useTranslations } from 'next-intl';
 import { Project } from '@/src/types/project'; 
 import { useProjectAdd } from '@/src/hooks/useProjectAdd';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useNotifications } from '@/src/hooks/useNotifications';
 
 export default function ProjectAdd() {
     const { user, hasRole } = useAuth();
     const t = useTranslations('Project');
     const router = useRouter();
     const [isSubmit, setIsSubmit] = useState(false);
+    const { show } = useNotifications();
 
     const { addProject, loading, error, isSubmitting } = useProjectAdd();
 
@@ -36,15 +38,30 @@ export default function ProjectAdd() {
         e.preventDefault();
         if (isSubmitting) return;
 
+        // Validation
+        if (!formData.name?.trim()) {
+            show('Vui lòng nhập tên dự án', 'error');
+            return;
+        }
+        if (!formData.address?.trim()) {
+            show('Vui lòng nhập địa chỉ', 'error');
+            return;
+        }
+        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            show('Email không hợp lệ', 'error');
+            return;
+        }
+
         setIsSubmit(true);
         try {
 
             console.log('Dữ liệu gửi đi:', formData);
-            addProject(formData)
+            addProject(formData);
+            show('Tạo dự án thành công!', 'success');
             router.push(`/base/project/projectList`);
         } catch (error) {
             console.error('Lỗi khi tạo dự án:', error);
-            alert('Có lỗi xảy ra!');
+            show('Có lỗi xảy ra khi tạo dự án!', 'error');
         } finally {
             setIsSubmit(false);
         }

@@ -9,6 +9,7 @@ import Select from '@/src/components/customer-interaction/Select';
 import { useProjectDetailPage } from '@/src/hooks/useProjectDetailPage';
 import { Project } from '@/src/types/project';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useNotifications } from '@/src/hooks/useNotifications';
 
 type ProjectFormData = {
     name: string;
@@ -25,6 +26,7 @@ export default function ProjectDetail() {
     const router = useRouter();
     const params = useParams();
     const projectId = params.id as string; 
+    const { show } = useNotifications();
 
     const { projectData, loading, error, isSubmitting, editProject } =
         useProjectDetailPage(projectId);
@@ -76,13 +78,29 @@ export default function ProjectDetail() {
         e.preventDefault();
         if (isSubmitting) return;
 
+        // Validation
+        if (!formData.name?.trim()) {
+            show('Vui lòng nhập tên dự án', 'error');
+            return;
+        }
+        if (!formData.address?.trim()) {
+            show('Vui lòng nhập địa chỉ', 'error');
+            return;
+        }
+        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            show('Email không hợp lệ', 'error');
+            return;
+        }
+
         try {
             console.log('Đang gửi dữ liệu:', formData);
-            editProject(projectId, formData)
+            editProject(projectId, formData);
+            show('Cập nhật dự án thành công!', 'success');
             router.push(`/base/project/projectDetail/${projectId}`);
 
         } catch (submitError) {
             console.error('Lỗi khi cập nhật:', submitError);
+            show('Có lỗi xảy ra khi cập nhật dự án!', 'error');
         }
     };
 

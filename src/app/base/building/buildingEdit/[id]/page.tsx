@@ -10,6 +10,7 @@ import { useBuildingDetailPage } from '@/src/hooks/useBuildingDetailPage';
 import { Building } from '@/src/types/building';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getTenant } from '@/src/services/base/tenantService';
+import { useNotifications } from '@/src/hooks/useNotifications';
 
 export default function BuildingEdit() {
     const { user, hasRole } = useAuth();
@@ -18,6 +19,7 @@ export default function BuildingEdit() {
     const router = useRouter();
     const params = useParams();
     const buildingId = params.id as string;
+    const { show } = useNotifications();
 
     const { buildingData, loading, error, isSubmitting, editBuilding } =
         useBuildingDetailPage(buildingId);
@@ -104,13 +106,25 @@ export default function BuildingEdit() {
         e.preventDefault();
         if (isSubmitting) return;
 
+        // Validation
+        if (!formData.address?.trim()) {
+            show('Vui lòng nhập địa chỉ', 'error');
+            return;
+        }
+        if (!formData.floorsMax || formData.floorsMax <= 0) {
+            show('Số tầng phải lớn hơn 0', 'error');
+            return;
+        }
+
         try {
             const { floorsMaxStr, ...buildingUpdateData } = formData;
             console.log('Đang gửi dữ liệu:', buildingUpdateData);
             await editBuilding(buildingId, buildingUpdateData);
+            show('Cập nhật tòa nhà thành công!', 'success');
             router.push(`/base/building/buildingDetail/${buildingId}`);
         } catch (submitError) {
             console.error('Lỗi khi cập nhật:', submitError);
+            show('Có lỗi xảy ra khi cập nhật tòa nhà!', 'error');
         }
     };
 

@@ -11,6 +11,7 @@ import { getBuildingsByTenant, Building } from '@/src/services/base/buildingServ
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import { useNewAdd } from '@/src/hooks/useNewAdd';
 import { News, uploadNewsImage } from '@/src/services/customer-interaction/newService';
+import { useNotifications } from '@/src/hooks/useNotifications';
 
 interface NewsImage {
     url: string;
@@ -44,6 +45,7 @@ export default function NewsAdd() {
     const t = useTranslations('News');
     const { user } = useAuth();
     const { addNews, loading, error, isSubmitting } = useNewAdd();
+    const { show } = useNotifications();
 
     const [buildings, setBuildings] = useState<Building[]>([]);
     const [selectedBuildings, setSelectedBuildings] = useState<Building[]>([]);
@@ -109,6 +111,28 @@ export default function NewsAdd() {
         e.preventDefault();
         if (isSubmitting || !user?.tenantId) return;
 
+        // Validation
+        if (!formData.title.trim()) {
+            show('Vui lòng nhập tiêu đề tin tức', 'error');
+            return;
+        }
+        if (!formData.summary.trim()) {
+            show('Vui lòng nhập tóm tắt tin tức', 'error');
+            return;
+        }
+        if (!formData.bodyHtml.trim()) {
+            show('Vui lòng nhập nội dung tin tức', 'error');
+            return;
+        }
+        if (!formData.publishAt) {
+            show('Vui lòng chọn ngày xuất bản', 'error');
+            return;
+        }
+        if (formData.targets[0]?.targetType === 'BUILDING' && selectedBuildings.length === 0) {
+            show('Vui lòng chọn ít nhất một tòa nhà', 'error');
+            return;
+        }
+
         try {
             console.log('Dữ liệu gửi đi:', formData);
             
@@ -154,13 +178,13 @@ export default function NewsAdd() {
             }
             
             // Show success message
-            alert('Tạo tin tức thành công!');
+            show('Tạo tin tức thành công!', 'success');
             
             // Redirect to news list
             router.push(`/customer-interaction/new/newList`);
         } catch (error) {
             console.error('Lỗi khi tạo tin tức:', error);
-            alert('Có lỗi xảy ra khi tạo tin tức!');
+            show('Có lỗi xảy ra khi tạo tin tức!', 'error');
         }
     };
 
@@ -360,7 +384,7 @@ export default function NewsAdd() {
                 imageInputRef.current.value = '';
             }
         } else {
-            alert('Vui lòng chọn ảnh!');
+            show('Vui lòng chọn ảnh!', 'error');
         }
     };
 

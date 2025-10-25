@@ -179,7 +179,8 @@
     "clear": "Clear",
     "loading":"Data is loading...",
     "deleteBuilding": "Delete building",
-    "deleteBuildingConfirm": "Are you sure you want to delete building" 
+    "deleteBuildingConfirm": "Are you sure you want to delete building",
+    "saving": "Is saving"
   },
   "Unit": {
     "unitCode": "Unit Code",

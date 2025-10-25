@@ -12,7 +12,7 @@ const adminItems = [
   {href:"/tenant-deletions", label:"Yêu cầu Xóa Tenant", icon:"🗑️"},
   {href:"/base/building/buildingList", label:"Quản lý Building", icon:"🏢"},
   {href:"/dashboard/residents", label:"Cư dân", icon:"👥"},
-  {href:"/dashboard/services", label:"Dịch vụ", icon:"🧾"},
+  {href:"/base/news/newsList", label:"Thông báo", icon:"🧾"},
   {href:"/dashboard/finance", label:"Tài chính", icon:"💰"},
   {href:"/dashboard/assets", label:"Tài sản", icon:"🛠️"},
   {href:"/customer-interaction/request", label:"CSKH/Ticket", icon:"🎫"},

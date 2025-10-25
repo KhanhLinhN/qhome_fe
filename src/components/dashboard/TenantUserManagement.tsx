@@ -332,7 +332,7 @@ export default function TenantUserManagement({ tenant }: Props) {
                   
                   {/* Permissions count */}
                   <div className="text-xs text-slate-500 mt-2">
-                    🔑 {employee.totalPermissions} permission(s)
+                     {employee.totalPermissions} permission(s)
                   </div>
                 </div>
               ))
