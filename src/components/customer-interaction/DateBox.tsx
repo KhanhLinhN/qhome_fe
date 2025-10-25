@@ -20,7 +20,7 @@ const DateBox = ({ value, onChange, placeholderText } : DateBoxProps) => {
             <input
                 ref={inputRef}
                 type="date"
-                className="text-[#38A169] w-full flex-grow h-full bg-transparent hide-date-icon focus:ring-0 focus:outline-none pl-3 pr-2 z-10" 
+                className="text-[#38A169] w-full flex-grow h-full bg-transparent hide-date-icon focus:ring-0 focus:outline-none pl-3 pr-2" 
                 value={value}
                 onChange={onChange}
                 data-placeholder={placeholderText} 

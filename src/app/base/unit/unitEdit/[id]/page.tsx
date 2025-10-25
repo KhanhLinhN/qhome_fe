@@ -272,14 +272,6 @@ export default function UnitEdit() {
                         onChange={handleChange}
                     />
 
-                    <DetailField
-                        label="Liên hệ"
-                        value={formData?.ownerContact || ""}
-                        readonly={false}
-                        placeholder="Liên hệ"
-                        name="ownerContact"
-                        onChange={handleChange}
-                    />
                 </div>
 
                 <div className="flex justify-center mt-8 space-x-4">

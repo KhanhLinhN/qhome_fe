@@ -83,7 +83,6 @@ export async function updateBuilding(id: string, data: Partial<Building>): Promi
  * DELETE /api/buildings/:id
  */
 export async function deleteBuilding(id: string): Promise<void> {
-  console.log("id", id);
   const response = await axios.delete(
     `${BASE_URL}/api/buildings/${id}/do`,
     { withCredentials: true }

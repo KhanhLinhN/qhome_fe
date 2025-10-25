@@ -6,6 +6,7 @@ import { getBuildingsByTenant } from '@/src/services/base/buildingService';
 import { filters } from '@/src/components/base-service/FilterForm'; 
 import { Project } from '../types/project';
 import { Building } from '../types/building';
+import { useAuth } from '../contexts/AuthContext';
 
 const initialFilters: filters = {
     codeName: '',
@@ -26,6 +27,8 @@ export const useBuildingPage = (loadOnMount: boolean = true) => {
     const [filters, setFilters] = useState<filters>(initialFilters);
     const [pageNo, setPageNo] = useState<number>(0);
     const [pageSize, setPageSize] = useState<number>(initialPageSize);
+    const { user, hasRole } = useAuth();
+
 
     useEffect(() => {
         if (!loadOnMount) {
@@ -123,7 +126,12 @@ export const useBuildingPage = (loadOnMount: boolean = true) => {
     };
 
     const handleClear = () => {
-        setFilters(initialFilters);
+        const projectId = user?.tenantId;
+        if(projectId) {
+            setFilters(prev => ({ ...prev, projectId: projectId }));
+        }else{
+            setFilters(initialFilters);
+        }
         setPageNo(0);
     };
 

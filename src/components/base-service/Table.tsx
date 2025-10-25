@@ -19,18 +19,62 @@ interface TableItemProps {
     buildingCode?: string;
     buildingName?: string;
     floors?: number;
+    // News fields
+    newsId?: string;
+    title?: string;
+    summary?: string;
+    publishAt?: string;
+    expireAt?: string;
 }
 
 interface TableProps {
     data: TableItemProps[];
     headers?: string[];
     type: string;
+    onEdit?: (id: string) => void;
+    onDelete?: (id: string) => void;
 }
 
-const Table = ({ data, headers, type }: TableProps) => {
+const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
     const t = useTranslations();
     const [selectedId, setSelectedId] = useState<number | undefined>();
     console.log(data);
+
+    const formatDate = (dateString: string) => {
+        if (!dateString) return '-';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('vi-VN');
+        } catch {
+            return '-';
+        }
+    };
+
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case 'DRAFT':
+                return 'Nháp';
+            case 'PUBLISHED':
+                return 'Đã xuất bản';
+            case 'ARCHIVED':
+                return 'Đã lưu trữ';
+            default:
+                return status;
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'DRAFT':
+                return 'text-gray-600 bg-gray-100';
+            case 'PUBLISHED':
+                return 'text-green-700 bg-green-100';
+            case 'ARCHIVED':
+                return 'text-orange-700 bg-orange-100';
+            default:
+                return 'text-gray-600 bg-gray-100';
+        }
+    };
 
     return (
         <div className="overflow-x-auto bg-white mt-6 border-t-4 bolder-solid border-[#14AE5C] h-[600px] overflow-y-auto">
@@ -132,6 +176,59 @@ const Table = ({ data, headers, type }: TableProps) => {
                                                         />
                                                     </Link>
                                                 </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            }
+                            if(type === "news"){
+                                return (
+                                    <tr 
+                                        key={item.newsId} 
+                                        className={`${rowClass} ${borderClass} cursor-pointer`}
+                                    >
+        
+                                        <td className="px-4 py-3 text-[14px] text-[#024023] font-semibold text-left max-w-xs truncate">
+                                            {item.title}
+                                        </td>
+                                        <td className="px-4 py-3 text-[14px] text-gray-700 text-left max-w-sm truncate">{item.summary}</td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(item.status || '')}`}>
+                                                {getStatusLabel(item.status || '')}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center text-[14px] text-gray-700">{formatDate(item.publishAt || '')}</td>
+                                        <td className="px-4 py-3 text-center text-[14px] text-gray-700">{formatDate(item.expireAt || '')}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex space-x-2 justify-center">
+                                                {onEdit && (
+                                                    <button 
+                                                        className="hover:opacity-70 transition"
+                                                        onClick={() => item.newsId && onEdit(item.newsId)}
+                                                        title="Chỉnh sửa"
+                                                    >
+                                                        <Image 
+                                                            src={Edit} 
+                                                            alt="Edit" 
+                                                            width={32} 
+                                                            height={32}
+                                                        />
+                                                    </button>
+                                                )}
+                                                {onDelete && (
+                                                    <button 
+                                                        className="hover:opacity-70 transition"
+                                                        onClick={() => item.newsId && onDelete(item.newsId)}
+                                                        title="Xóa"
+                                                    >
+                                                        <Image 
+                                                            src={Delete} 
+                                                            alt="Delete" 
+                                                            width={32} 
+                                                            height={32}
+                                                        />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

@@ -15,6 +15,7 @@ export const useDeleteBuilding = () => {
         setError(null);
 
         try {
+            console.log("buildingId", buildingId);
             await deleteBuilding(buildingId);
             setIsLoading(false);
             return true; 
