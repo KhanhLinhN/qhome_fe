@@ -56,7 +56,8 @@ const Select = <T,>({ options, value, onSelect, renderItem, getValue, placeholde
   return (
     <div className="relative" ref={divRef}>
       <div
-        className="h-10 min-w-[130px] rounded-md border-[1px] border-[#2ad47a] px-3 py-2.5 bg-white cursor-pointer flex flex-row items-center justify-between gap-x-3"
+        className="h-10 min-w-[150px] max-w-80 rounded-md border-[1px] border-[#2ad47a] px-3 py-2.5 bg-white cursor-pointer flex flex-row items-center justify-between gap-x-3 "
+        
         onClick={isOpen ? onClose : onOpen}
       >
         <div
@@ -80,7 +81,7 @@ const Select = <T,>({ options, value, onSelect, renderItem, getValue, placeholde
           <input
             type="text"
             placeholder={placeholder}
-            className="w-full h-10 min-h-10 flex-none rounded-md border-[1px] border-[#E7E7E7] bg-white font-normal text-sm placeholder-[#81A996] text-primary-2 px-3"
+            className="w-full h-10 min-h-10 flex-none rounded-md border-[1px] border-[#E7E7E7] bg-white font-normal text-sm placeholder-[#81A996] text-primary-2 px-3 whitespace-nowrap"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />

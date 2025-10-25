@@ -88,9 +88,14 @@ export default function UserPermissionDetailPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="text-center py-12 text-slate-500">
-          Đang tải dữ liệu...
+      <div className="lg:col-span-1 space-y-6">
+        <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA] min-h-screen">
+          <div className="px-[41px] py-12 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
+              <p className="text-gray-600">Đang tải dữ liệu...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -98,48 +103,53 @@ export default function UserPermissionDetailPage() {
 
   if (!employee) {
     return (
-      <div className="p-8">
-        <div className="text-center py-12">
-          <p className="text-slate-500 mb-4">User not found</p>
-          <Link
-            href={`/users/permissions?tenant=${tenantId}&tenantName=${encodeURIComponent(tenantName)}`}
-            className="text-[#6B9B6E] hover:underline"
-          >
-            ← Back to User List
-          </Link>
+      <div className="lg:col-span-1 space-y-6">
+        <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA] min-h-screen">
+          <div className="px-[41px] py-12 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-red-600 mb-4">User not found</p>
+              <Link
+                href={`/users/permissions?tenant=${tenantId}&tenantName=${encodeURIComponent(tenantName)}`}
+                className="text-[#02542D] hover:underline"
+              >
+                ← Back to User List
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
-        <Link href="/dashboard" className="hover:text-[#6B9B6E]">Dashboard</Link>
-        <span>›</span>
+    <div className="lg:col-span-1 space-y-6">
+      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
+          <Link href="/dashboard" className="hover:text-[#02542D]">Dashboard</Link>
+          <span>›</span>
+          <Link
+            href={`/users/permissions?tenant=${tenantId}&tenantName=${encodeURIComponent(tenantName)}`}
+            className="hover:text-[#02542D]"
+          >
+            {tenantName}
+          </Link>
+          <span>›</span>
+          <span className="text-slate-700 font-medium">{username}</span>
+        </div>
+
+        {/* Back Link */}
         <Link
           href={`/users/permissions?tenant=${tenantId}&tenantName=${encodeURIComponent(tenantName)}`}
-          className="hover:text-[#6B9B6E]"
+          className="inline-flex items-center text-[#02542D] hover:underline mb-6"
         >
-          {tenantName}
+          ← Back to User List
         </Link>
-        <span>›</span>
-        <span className="text-slate-700 font-medium">{username}</span>
-      </div>
 
-      {/* Back Link */}
-      <Link
-        href={`/users/permissions?tenant=${tenantId}&tenantName=${encodeURIComponent(tenantName)}`}
-        className="inline-flex items-center text-[#6B9B6E] hover:underline mb-6"
-      >
-        ← Back to User List
-      </Link>
-
-      {/* User Info Card */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="w-16 h-16 bg-[#6B9B6E] text-white rounded-full flex items-center justify-center font-bold text-2xl">
+        {/* User Info Card */}
+        <div className="bg-white rounded-xl p-6 mb-6">
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 bg-[#02542D] text-white rounded-full flex items-center justify-center font-bold text-2xl">
             {employee.username.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
@@ -147,7 +157,15 @@ export default function UserPermissionDetailPage() {
               {employee.username}
             </h1>
             <p className="text-slate-600 mb-3">📧 {employee.email}</p>
-            <p className="text-slate-600 mb-4">🏢 Tenant: {tenantName}</p>
+            <p className="text-slate-600 mb-4 flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Building-5-Fill--Streamline-Mingcute-Fill" height="16" width="16">
+                <g fill="none" fillRule="evenodd">
+                  <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                  <path fill="#475569" d="M10 2a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v2.6666666666666665h1.3333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v5.333333333333333a0.6666666666666666 0.6666666666666666 0 1 1 0 1.3333333333333333H2a0.6666666666666666 0.6666666666666666 0 1 1 0 -1.3333333333333333V6a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h1.3333333333333333V3.333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h4ZM4.666666666666666 6H3.333333333333333v6.666666666666666h1.3333333333333333V6Zm8 1.3333333333333333h-1.3333333333333333v5.333333333333333h1.3333333333333333v-5.333333333333333Zm-4 2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333V4.666666666666666Z" strokeWidth="0.6667"></path>
+                </g>
+              </svg>
+              Tenant: {tenantName}
+            </p>
 
             {/* Roles */}
             <div className="mb-4">
@@ -159,7 +177,7 @@ export default function UserPermissionDetailPage() {
                   employee.assignedRoles.map((role, idx) => (
                     <span
                       key={`${role.roleName}-${idx}`}
-                      className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-[#6B9B6E] text-white uppercase"
+                      className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-[#02542D] text-white uppercase"
                     >
                       {role.roleName}
                     </span>
@@ -175,7 +193,7 @@ export default function UserPermissionDetailPage() {
               </div>
               <button
                 onClick={() => setShowEditModal(true)}
-                className="px-4 py-2 bg-[#6B9B6E] text-white rounded-md hover:bg-[#5a8259] transition font-medium text-sm flex items-center gap-2"
+                className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024030] transition font-medium text-sm flex items-center gap-2"
               >
                 ✏️ Edit Permissions
               </button>
@@ -184,9 +202,9 @@ export default function UserPermissionDetailPage() {
         </div>
       </div>
 
-      {/* Permission Breakdown */}
-      {summary && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
+        {/* Permission Breakdown */}
+        {summary && (
+          <div className="bg-white rounded-xl p-6 mb-6">
           <h2 className="text-xl font-bold text-slate-800 mb-4">
             📊 Permission Breakdown
           </h2>
@@ -215,15 +233,15 @@ export default function UserPermissionDetailPage() {
         </div>
       )}
 
-      {/* Search Permissions */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="🔍 Search permissions..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
-        />
+        {/* Search Permissions */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Search permissions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#02542D]"
+          />
         {searchQuery && (
           <p className="text-sm text-slate-600 mt-2">
             Showing {filteredCount} of {totalPermissions} permissions
@@ -231,8 +249,8 @@ export default function UserPermissionDetailPage() {
         )}
       </div>
 
-      {/* Permissions List */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        {/* Permissions List */}
+        <div className="bg-white rounded-xl p-6">
         <h2 className="text-xl font-bold text-slate-800 mb-4">
           🔑 Effective Permissions
         </h2>
@@ -260,8 +278,8 @@ export default function UserPermissionDetailPage() {
         )}
       </div>
 
-      {/* Export Button */}
-      <div className="mt-6 flex justify-end">
+        {/* Export Button */}
+        <div className="mt-6 flex justify-end">
         <button
           onClick={() => {
             const permissions = employee?.allPermissions || [];
@@ -285,19 +303,20 @@ export default function UserPermissionDetailPage() {
         </button>
       </div>
 
-      {/* Edit Permissions Modal */}
-      {showEditModal && employee && (
-        <EditUserPermissionsModal
-          userId={employee.userId}
-          username={employee.username}
-          tenantId={tenantId}
-          tenantName={tenantName}
-          onClose={() => setShowEditModal(false)}
-          onSuccess={() => {
-            loadEmployeeData();
-          }}
-        />
-      )}
+        {/* Edit Permissions Modal */}
+        {showEditModal && employee && (
+          <EditUserPermissionsModal
+            userId={employee.userId}
+            username={employee.username}
+            tenantId={tenantId}
+            tenantName={tenantName}
+            onClose={() => setShowEditModal(false)}
+            onSuccess={() => {
+              loadEmployeeData();
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -80,7 +80,7 @@ export default function Home() {
 
   return (
     <div className="lg:col-span-1 space-y-6">
-      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA] p-6 md:p-10">
+      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
           <h1 className="text-2xl font-semibold text-[#02542D] mb-4">{t('requestlist')}</h1>
           <div className="bg-white p-6 rounded-xl w-full">
               <FilterForm
@@ -105,6 +105,7 @@ export default function Home() {
           </div>
       </div>
     </div>
+
   )
 
 };

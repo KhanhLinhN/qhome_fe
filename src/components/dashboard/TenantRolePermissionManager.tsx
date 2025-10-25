@@ -520,7 +520,7 @@ function AddPermissionModal({ availablePermissions, onAdd, onClose }: AddPermiss
         <div className="px-6 py-4 border-b border-slate-200 space-y-3">
           <input
             type="text"
-            placeholder="🔍 Search permissions..."
+            placeholder="Search permissions..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"

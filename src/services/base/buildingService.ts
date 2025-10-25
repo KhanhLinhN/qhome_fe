@@ -41,19 +41,65 @@ export async function getBuilding(id: string): Promise<Building> {
     `${BASE_URL}/api/buildings/${id}`,
     { withCredentials: true }
   );
+  console.log('Building', response.data);
   return response.data;
 }
 
 /**
  * Tạo building mới
- * POST /api/buildings
+ * POST /api/buildings?tenantId=xxx
  */
-export async function createBuilding(data: Partial<Building>): Promise<Building> {
+export async function createBuilding(id: string, data: Partial<Building>): Promise<Building> {
+  if (!id) {
+    throw new Error('tenantId is required');
+  }
+  
   const response = await axios.post(
     `${BASE_URL}/api/buildings`,
+    data,
+    { 
+      params: { tenantId: id },
+      withCredentials: true 
+    }
+  );
+  return response.data;
+}
+
+/**
+ * Cập nhật building
+ * PUT /api/buildings/:id
+ */
+export async function updateBuilding(id: string, data: Partial<Building>): Promise<Building> {
+  const response = await axios.put(
+    `${BASE_URL}/api/buildings/${id}`,
     data,
     { withCredentials: true }
   );
   return response.data;
 }
 
+/**
+ * Xóa building
+ * DELETE /api/buildings/:id
+ */
+export async function deleteBuilding(id: string): Promise<void> {
+  const response = await axios.delete(
+    `${BASE_URL}/api/buildings/${id}/do`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+/**
+ * Lấy danh sách units theo buildingId
+ * GET /api/units?buildingId=xxx
+ */
+export async function getUnitsByBuildingId(buildingId: string): Promise<any[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/units/building/${buildingId}`,
+    { 
+      withCredentials: true 
+    }
+  );
+  return response.data;
+}

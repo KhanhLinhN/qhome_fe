@@ -1,8 +1,10 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { getAllDeletionRequests, getMyDeletionRequests, TenantDeletionRequest, TenantDeletionStatus } from '@/src/services/base';
 import { useAuth } from '@/src/contexts/AuthContext';
+import Delete from '@/src/assets/Delete.svg';
 
 export default function AdminDeletionRequestsPage() {
   const { user, hasRole } = useAuth();
@@ -75,8 +77,9 @@ export default function AdminDeletionRequestsPage() {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">
-          🗑️ {hasRole('admin') ? 'Quản Lý Yêu Cầu Xóa Tenant' : 'Yêu Cầu Xóa Tenant Của Tôi'}
+        <h1 className="text-2xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+          <Image src={Delete} alt="Delete" width={24} height={24} />
+          {hasRole('admin') ? 'Quản Lý Yêu Cầu Xóa Tenant' : 'Yêu Cầu Xóa Tenant Của Tôi'}
         </h1>
         <p className="text-sm text-slate-600">
           {hasRole('admin') 
@@ -132,7 +135,7 @@ export default function AdminDeletionRequestsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="🔍 Tìm kiếm theo ID, Tenant ID, lý do..."
+            placeholder="Tìm kiếm theo ID, Tenant ID, lý do..."
             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
           />
         </div>
@@ -175,7 +178,7 @@ export default function AdminDeletionRequestsPage() {
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                     {searchQuery || statusFilter !== 'all'
-                      ? '🔍 Không tìm thấy yêu cầu nào'
+                      ? 'Không tìm thấy yêu cầu nào'
                       : '📭 Chưa có yêu cầu xóa nào'
                     }
                   </td>

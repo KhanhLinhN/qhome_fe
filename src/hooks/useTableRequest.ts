@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { RequestService, StatusCounts, GetRequestsParams, Page } from '@/src/services/customer-interaction/requestService';
 import { RequestFilters } from '@/src/components/customer-interaction/FilterForm';
 import { Request } from '@/src/types/request';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 const initialFilters: RequestFilters = {
     requestId: '',
     title: '',
     residentName: '',
+    tenantId: '',
     status: '',
     priority: '',
     dateFrom: '',
@@ -16,6 +18,9 @@ const initialFilters: RequestFilters = {
 const requestService = new RequestService();
 
 export const useRequests = (loadOnMount: boolean = true) => {
+    const { user } = useAuth();
+    const tenantId = user?.tenantId;
+
     const [data, setData] = useState<Page<Request> | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -29,18 +34,23 @@ export const useRequests = (loadOnMount: boolean = true) => {
         setLoading(true);
         setError(null);
         try {
+            // Đảm bảo tenantId luôn được thêm vào params
             const params: GetRequestsParams = {
                 ...currentFilters,
+                tenantId: tenantId,
                 pageNo: currentPage,
             };
 
-            const filters = {
-                ...currentFilters
+            const filterParams = {
+                ...currentFilters,
+                tenantId: tenantId
             }
+
+            console.log('Fetching with params:', params);
                 
             const [listResponse, countsResponse] = await Promise.all([
                 requestService.getRequestList(params),
-                requestService.getRequestCounts(filters)
+                requestService.getRequestCounts(filterParams)
             ]);
 
             setData(listResponse);
@@ -51,13 +61,28 @@ export const useRequests = (loadOnMount: boolean = true) => {
         } finally {
             setLoading(false);
         }
-    }, []); 
+    }, [tenantId]); 
 
+    // Tự động set tenantId vào filters khi có
+    useEffect(() => {
+        if (tenantId) {
+            setFilters(prev => ({
+                ...prev,
+                tenantId: tenantId
+            }));
+        }
+    }, [tenantId]);
+
+    // Fetch data khi mount hoặc khi tenantId thay đổi
     useEffect(() => {
         if (loadOnMount) {
-            fetchData(initialFilters, 0);
+            const filtersWithTenant = {
+                ...initialFilters,
+                tenantId: tenantId || ''
+            };
+            fetchData(filtersWithTenant, 0);
         }
-    }, [fetchData, loadOnMount]);
+    }, [fetchData, loadOnMount, tenantId]);
 
 
     const handleFilterChange = (name: keyof RequestFilters, value: string) => {
@@ -74,7 +99,11 @@ export const useRequests = (loadOnMount: boolean = true) => {
     };
 
     const handleClear = () => {
-        setFilters(initialFilters);
+        // Reset filters nhưng giữ lại tenantId
+        setFilters({
+            ...initialFilters,
+            tenantId: tenantId || ''
+        });
         setPageNo(0);
     };
 

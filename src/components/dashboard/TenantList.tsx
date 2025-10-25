@@ -133,7 +133,7 @@ export default function TenantList() {
                       onClick={(e) => e.stopPropagation()}
                       className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition"
                     >
-                      🔍 View Permissions
+                      View Permissions
                     </Link>
                     <button
                       onClick={(e) => {

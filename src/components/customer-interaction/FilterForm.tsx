@@ -8,6 +8,7 @@ export interface RequestFilters {
     requestId?: string; 
     title?: string;
     residentName?: string;
+    tenantId?: string;
     status?: string;
     priority?: string;
     dateFrom?: string; 

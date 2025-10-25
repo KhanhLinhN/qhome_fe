@@ -206,7 +206,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       <div className="mb-6">
         <input
           type="text"
-          placeholder="🔍 Tìm kiếm theo tên hoặc email..."
+          placeholder="Tìm kiếm theo tên hoặc email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"

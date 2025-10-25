@@ -103,17 +103,20 @@ export default function AccountingDashboard(){
   };
 
   return (
-    <div className="space-y-6">
-      {/* Danh sách Tenants - Mục đầu tiên, click để xem Buildings */}
-      <TenantList />
+    <div className="lg:col-span-1 space-y-6">
+      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
+        <h1 className="text-2xl font-semibold text-[#02542D] mb-4">Accounting Dashboard</h1>
+        
+        {/* Danh sách Tenants - Mục đầu tiên, click để xem Buildings */}
+        <TenantList />
 
-      {/* Admin Quick Actions */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        {/* Admin Quick Actions */}
+        <div className="bg-white rounded-xl p-6">
         <h3 className="text-lg font-semibold text-slate-800 mb-4">⚡ Quick Actions</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link 
             href="/roles"
-            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#6B9B6E] hover:bg-green-50 transition group"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">🔐</div>
             <div className="font-medium text-slate-800 text-center">Roles & Permissions</div>
@@ -122,7 +125,7 @@ export default function AccountingDashboard(){
 
           <Link 
             href="/users"
-            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#6B9B6E] hover:bg-green-50 transition group"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">👥</div>
             <div className="font-medium text-slate-800 text-center">User Management</div>
@@ -131,7 +134,7 @@ export default function AccountingDashboard(){
 
           <Link 
             href="/settings"
-            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#6B9B6E] hover:bg-green-50 transition group"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">⚙️</div>
             <div className="font-medium text-slate-800 text-center">System Settings</div>
@@ -140,7 +143,7 @@ export default function AccountingDashboard(){
 
           <Link 
             href="/reports"
-            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#6B9B6E] hover:bg-green-50 transition group"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">📊</div>
             <div className="font-medium text-slate-800 text-center">Reports</div>
@@ -149,61 +152,50 @@ export default function AccountingDashboard(){
         </div>
       </div>
 
-      {/* Hàng thẻ thống kê gọn */}
-      <div className="grid md:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-2xl p-4">
+        {/* Hàng thẻ thống kê gọn */}
+        <div className="grid md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl p-4">
           <div className="text-slate-500 text-sm">Hộ cư dân</div>
           <div className="text-2xl font-semibold mt-1">—</div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-4">
-          <div className="text-slate-500 text-sm">Doanh thu kỳ</div>
-          <div className="text-2xl font-semibold mt-1">—</div>
+
+        {/* Filters */}
+        <InvoicesFilters
+          buildings={buildings} cycles={cycles} templates={templates}
+          value={filters}
+          onChange={(v)=>setFilters(f=>({ ...f, ...v }))}
+          onRefresh={()=>{ setPage(0); refresh().catch(e=>show(String(e),"error")); }}
+        />
+
+        {/* Actions */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-slate-500">
+            Đã chọn: <b>{selected.size}</b>
+          </div>
+          <div className="flex gap-2">
+            <button className="btn-secondary" onClick={handlePreview}>Gửi thông báo</button>
+          </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-4">
-          <div className="text-slate-500 text-sm">Nợ quá hạn</div>
-          <div className="text-2xl font-semibold mt-1">—</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-4">
-          <div className="text-slate-500 text-sm">Ticket mở</div>
-          <div className="text-2xl font-semibold mt-1">—</div>
+
+        {/* Table */}
+        <InvoiceTable
+          rows={rows}
+          page={page} size={size} total={total}
+          onPageChange={p=>setPage(p)}
+          selected={selected} onSelectChange={setSelected}
+          onView={handleView}
+          onToggleNotify={handleToggleNotify}
+        />
+
+        {/* Preview & Send */}
+        <NotifyPreviewDialog
+          open={previewOpen}
+          onClose={()=>setPreviewOpen(false)}
+          items={previewItems}
+          onSend={handleSend}
+        />
         </div>
       </div>
-
-      {/* Filters */}
-      <InvoicesFilters
-        buildings={buildings} cycles={cycles} templates={templates}
-        value={filters}
-        onChange={(v)=>setFilters(f=>({ ...f, ...v }))}
-        onRefresh={()=>{ setPage(0); refresh().catch(e=>show(String(e),"error")); }}
-      />
-
-      {/* Actions */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-slate-500">
-          Đã chọn: <b>{selected.size}</b>
-        </div>
-        <div className="flex gap-2">
-          <button className="btn-secondary" onClick={handlePreview}>Gửi thông báo</button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <InvoiceTable
-        rows={rows}
-        page={page} size={size} total={total}
-        onPageChange={p=>setPage(p)}
-        selected={selected} onSelectChange={setSelected}
-        onView={handleView}
-        onToggleNotify={handleToggleNotify}
-      />
-
-      {/* Preview & Send */}
-      <NotifyPreviewDialog
-        open={previewOpen}
-        onClose={()=>setPreviewOpen(false)}
-        items={previewItems}
-        onSend={handleSend}
-      />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { createDeletionRequest, type CreateDeletionReq } from '@/src/services/base';
+import Delete from '@/src/assets/Delete.svg';
 
 type Props = {
   tenantId: string;
@@ -60,8 +62,9 @@ export default function CreateDeletionRequestModal({
         <div className="px-6 py-4 border-b border-slate-200 bg-red-50">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-red-900">
-                🗑️ Yêu cầu Xóa Tenant
+              <h3 className="text-lg font-semibold text-red-900 flex items-center gap-2">
+                <Image src={Delete} alt="Delete" width={20} height={20} />
+                Yêu cầu Xóa Tenant
               </h3>
               <p className="text-sm text-red-700 mt-1">
                 Tenant: <span className="font-medium">{tenantName}</span>
@@ -132,10 +135,15 @@ export default function CreateDeletionRequestModal({
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition disabled:bg-slate-300 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center gap-2"
               disabled={isSubmitting || reason.trim().length < 10}
             >
-              {isSubmitting ? '⏳ Đang gửi...' : '🗑️ Gửi Yêu Cầu'}
+              {isSubmitting ? '⏳ Đang gửi...' : (
+                <>
+                  <Image src={Delete} alt="Delete" width={16} height={16} />
+                  Gửi Yêu Cầu
+                </>
+              )}
             </button>
           </div>
         </form>

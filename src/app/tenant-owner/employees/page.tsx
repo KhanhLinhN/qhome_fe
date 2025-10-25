@@ -1,9 +1,11 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/src/contexts/AuthContext';
 import Topbar from '@/src/components/layout/Topbar';
 import Sidebar from '@/src/components/layout/Sidebar';
 import axios from '@/src/lib/axios';
+import Delete from '@/src/assets/Delete.svg';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 const IAM_URL = process.env.NEXT_PUBLIC_IAM_URL || 'http://localhost:8088';
@@ -167,12 +169,17 @@ export default function TenantOwnerEmployeesPage() {
 
             {/* Deletion Status Card */}
             {deletionStatus && (
-              <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
+              <div className="bg-white rounded-xl p-6 mb-6">
                 <h2 className="text-lg font-semibold text-slate-800 mb-4">📊 Trạng thái Xóa Tenant</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className={`p-4 rounded-lg border ${deletionStatus.buildingsReady ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-2xl">🏢</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Building-5-Fill--Streamline-Mingcute-Fill" height="24" width="24">
+                        <g fill="none" fillRule="evenodd">
+                          <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                          <path fill="#1e293b" d="M10 2a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v2.6666666666666665h1.3333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v5.333333333333333a0.6666666666666666 0.6666666666666666 0 1 1 0 1.3333333333333333H2a0.6666666666666666 0.6666666666666666 0 1 1 0 -1.3333333333333333V6a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h1.3333333333333333V3.333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h4ZM4.666666666666666 6H3.333333333333333v6.666666666666666h1.3333333333333333V6Zm8 1.3333333333333333h-1.3333333333333333v5.333333333333333h1.3333333333333333v-5.333333333333333Zm-4 2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333V4.666666666666666Z" strokeWidth="0.6667"></path>
+                        </g>
+                      </svg>
                       <span className="font-medium text-slate-800">Buildings</span>
                     </div>
                     <div className="text-sm text-slate-600">
@@ -221,7 +228,7 @@ export default function TenantOwnerEmployeesPage() {
             )}
 
             {/* Employees List */}
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="bg-white rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-800">
                   👥 Danh sách Nhân viên ({employees.length})
@@ -230,9 +237,14 @@ export default function TenantOwnerEmployeesPage() {
                   <button
                     onClick={handleUnassignAllEmployees}
                     disabled={unassigning === 'all'}
-                    className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
-                    {unassigning === 'all' ? '⏳ Đang xử lý...' : '🗑️ Gỡ bỏ tất cả'}
+                    {unassigning === 'all' ? '⏳ Đang xử lý...' : (
+                      <>
+                        <Image src={Delete} alt="Delete" width={16} height={16} />
+                        Gỡ bỏ tất cả
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -250,7 +262,7 @@ export default function TenantOwnerEmployeesPage() {
               ) : (
                 <div className="space-y-3">
                   {employees.map((employee) => (
-                    <div key={employee.userId} className="p-4 border border-slate-200 rounded-lg hover:border-red-300 transition">
+                    <div key={employee.userId} className="p-4 rounded-xl hover:border-red-300 transition bg-white border border-slate-200">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
@@ -277,9 +289,14 @@ export default function TenantOwnerEmployeesPage() {
                         <button
                           onClick={() => handleUnassignEmployee(employee.userId, employee.username)}
                           disabled={unassigning === employee.userId}
-                          className="px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                          {unassigning === employee.userId ? '⏳ Đang xử lý...' : '🗑️ Gỡ bỏ'}
+                          {unassigning === employee.userId ? '⏳ Đang xử lý...' : (
+                            <>
+                              <Image src={Delete} alt="Delete" width={16} height={16} />
+                              Gỡ bỏ
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>

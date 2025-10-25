@@ -34,9 +34,9 @@ export default function LoginForm(){
       show(t("Login.success"), "success");
       
       // Redirect sau 500ms
-      setTimeout(() => {
+      // setTimeout(() => {
         router.push(redirectPath);
-      }, 500);
+      // }, 500);
       
     } catch (e:any) {
       // Hiển thị message cho user
@@ -107,7 +107,7 @@ export default function LoginForm(){
         {loading ? t("Login.loading") : t("Login.submit")}
       </button>
 
-      <div className="text-center text-xs text-slate-500 pt-2">{t("Login.contact_support")}</div>
+      {/* <div className="text-center text-xs text-slate-500 pt-2">{t("Login.contact_support")}</div> */}
     </form>
   );
-}
+};
