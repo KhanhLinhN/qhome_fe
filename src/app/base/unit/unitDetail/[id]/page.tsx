@@ -16,7 +16,7 @@ import { deleteUnit } from '@/src/services/base/unitService';
 export default function UnitDetail () {
 
     const { user, hasRole } = useAuth();
-    const t = useTranslations('Building'); 
+    const t = useTranslations('Unit'); 
     const router = useRouter();
     const params = useParams();
     const unitId = params.id;
@@ -96,8 +96,8 @@ export default function UnitDetail () {
                 isOpen={isPopupOpen}
                 onClose={handleClosePopup}
                 onConfirm={handleConfirmDelete}
-                popupTitle="Xóa căn hộ"
-                popupContext="Bạn có chắc chắn muốn xóa căn hộ này không?"
+                popupTitle={t('deleteUnitT')}
+                popupContext={t('deleteUnitC')}
                 isDanger={true}
             />
             
@@ -110,7 +110,7 @@ export default function UnitDetail () {
                     className="w-5 h-5 mr-2" 
                 />
                 <span className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150 `}>
-                    {t('return')}
+                    {t('returnUnitList')}
                 </span>
             </div>
 
@@ -119,12 +119,12 @@ export default function UnitDetail () {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className={`text-2xl font-semibold text-[#02542D] mr-3`}>
-                            Chi tiết Căn hộ
+                            {t('unitDetail')}
                         </h1>
                         <span 
                             className={`text-sm font-semibold px-3 py-1 rounded-full ${unitData?.status === 'INACTIVE' ? 'bg-[#EEEEEE] text-[#02542D]' : 'bg-[#739559] text-white'}`}
                         >
-                            {unitData?.status === 'INACTIVE' ? t('inactive') : t('active')}
+                            {unitData?.status ? t(unitData?.status.toLowerCase() ?? '') : ''}
                         </span>
                     </div>
 
@@ -159,45 +159,39 @@ export default function UnitDetail () {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                     
                     <DetailField 
-                        label="Mã căn hộ"
+                        label={t('unitCode')}
                         value={unitData?.code ?? ""} 
                         readonly={true}
                     />
                     <div className="col-span-1 hidden md:block"></div>
 
                     <DetailField 
-                        label="Tên căn hộ"
+                        label={t('unitName')}
                         value={unitData?.name ?? ""} 
                         readonly={true}
                     />
 
                     <DetailField 
-                        label="Tòa nhà" 
+                        label={t('buildingName')} 
                         value={loadingBuilding ? 'Loading...' : buildingName || ""} 
                         readonly={true}
                     />
 
                     <DetailField 
-                        label="Tầng"
+                        label={t('floor')}
                         value={unitData?.floor?.toString() ?? ""} 
                         readonly={true}
                     />
                     
                     <DetailField 
-                        label="Số phòng ngủ"
+                        label={t('bedrooms')}
                         value={unitData?.bedrooms?.toString() ?? ""} 
                         readonly={true}
                     />
 
                     <DetailField 
-                        label="Diện tích (m²)"
-                        value={unitData?.area?.toString() ?? ""} 
-                        readonly={true}
-                    />
-
-                    <DetailField 
-                        label="Chủ sở hữu"
-                        value={unitData?.ownerName ?? ""} 
+                        label={t('areaM2')}
+                        value={unitData?.areaM2?.toString() ?? ""} 
                         readonly={true}
                     />
                     

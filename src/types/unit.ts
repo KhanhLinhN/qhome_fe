@@ -5,7 +5,7 @@ export interface Unit {
     code: string;
     name: string;
     floor: number;
-    area?: number;
+    areaM2?: number;
     bedrooms?: number;
     status?: string;
     ownerName?: string;

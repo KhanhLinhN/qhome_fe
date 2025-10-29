@@ -162,7 +162,7 @@ export default function UserPermissionsPage() {
 
                   {/* Permission Count */}
                   <div className="text-sm text-slate-600">
-                    🔑 <span className="font-semibold">{employee.allPermissions?.length || 0}</span> permissions
+                     <span className="font-semibold">{employee.allPermissions?.length || 0}</span> permissions
                   </div>
                 </div>
 

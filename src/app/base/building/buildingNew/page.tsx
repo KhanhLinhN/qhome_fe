@@ -12,6 +12,7 @@ import { useBuildingAdd } from '@/src/hooks/useBuildingAdd';
 import { getAllTenants } from '@/src/services/base/tenantService';
 import { Project } from '@/src/types/project';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { checkBuildingCodeExists } from '@/src/services/base/buildingService';
 
 export default function BuildingAdd () {
 
@@ -24,6 +25,12 @@ export default function BuildingAdd () {
     const [projects, setProjects] = useState<Project[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(true);
     const { show } = useNotifications();
+    const [codeError, setCodeError] = useState<string>('');
+    const [errors, setErrors] = useState<{
+        name?: string;
+        address?: string;
+        floors?: string;
+    }>({});
     
     useEffect(() => {
         const fetchProjects = async () => {
@@ -61,8 +68,28 @@ export default function BuildingAdd () {
         totalApartmentsActive: 0,
         floorsMaxStr: '0',
         totalApartmentsAllStr: '0',
-        status: 'INACTIVE',
+        status: 'ACTIVE',
     });
+
+    // Check code khi code hoặc tenantId thay đổi
+    useEffect(() => {
+        const checkCode = async () => {
+            if (!formData.code || !tenantId) {
+                setCodeError('');
+                return;
+            }
+            
+            const exists = await checkBuildingCodeExists(formData.code, tenantId);
+            if (exists) {
+                setCodeError(t('codeError'));
+            } else {
+                setCodeError('');
+            }
+        };
+
+        const timeoutId = setTimeout(checkCode, 500); // Debounce 500ms
+        return () => clearTimeout(timeoutId);
+    }, [formData.code, tenantId]);
     
     const handleBack = () => {
         router.back(); 
@@ -76,21 +103,21 @@ export default function BuildingAdd () {
         e.preventDefault();
         if (isSubmitting) return;
 
-        // Validation
-        if (!formData.name?.trim()) {
-            show('Vui lòng nhập tên tòa nhà', 'error');
+        // Validate all fields at once
+        const isValid = validateAllFields();
+        
+        if (!isValid) {
+            show(t('error'), 'error');
             return;
         }
-        if (!formData.address?.trim()) {
-            show('Vui lòng nhập địa chỉ', 'error');
-            return;
-        }
+        
         if (!tenantId) {
-            show('Vui lòng chọn dự án', 'error');
+            show(t('projectError'), 'error');
             return;
         }
-        if (!formData.floorsMax || formData.floorsMax <= 0) {
-            show('Số tầng phải lớn hơn 0', 'error');
+        
+        if (codeError) {
+            show(codeError, 'error');
             return;
         }
 
@@ -99,11 +126,11 @@ export default function BuildingAdd () {
             const { floorsMaxStr, totalApartmentsAllStr, ...buildingData } = formData;
             console.log('Dữ liệu gửi đi:', buildingData);
             await addBuilding(buildingData, tenantId);
-            show('Tạo tòa nhà thành công!', 'success');
+            show(t('success'), 'success');
             router.push(`/base/building/buildingList`);
         } catch (error) {
             console.error('Lỗi khi tạo building:', error);
-            show('Có lỗi xảy ra khi tạo tòa nhà!', 'error');
+            show(t('errorBuilding'), 'error');
         } finally {
             setIsSubmit(false);
         }
@@ -124,6 +151,62 @@ export default function BuildingAdd () {
             .toUpperCase();
     };
 
+    const validateField = (fieldName: string, value: string | number) => {
+        const newErrors = { ...errors };
+        
+        switch (fieldName) {
+            case 'name':
+                if (!value || String(value).trim() === '') {
+                    newErrors.name = t('nameError');
+                } else {
+                    delete newErrors.name;
+                }
+                break;
+            case 'address':
+                if (!value || String(value).trim() === '') {
+                    newErrors.address = t('addressError');
+                } else {
+                    delete newErrors.address;
+                }
+                break;
+            case 'floorsMax':
+                const floors = typeof value === 'number' ? value : parseInt(String(value));
+                if (!floors || floors <= 0) {
+                    newErrors.floors = t('floorsError');
+                } else {
+                    delete newErrors.floors;
+                }
+                break;
+        }
+        setErrors(newErrors);
+    };
+
+    const validateAllFields = () => {
+        const newErrors: {
+            name?: string;
+            address?: string;
+            floors?: string;
+        } = {};
+        
+        // Validate name
+        if (!formData.name || formData.name.trim() === '') {
+            newErrors.name = t('nameError');
+        }
+        
+        // Validate address
+        if (!formData.address || formData.address.trim() === '') {
+            newErrors.address = t('addressError');
+        }
+        
+        // Validate floors
+        if (!formData.floorsMax || formData.floorsMax <= 0) {
+            newErrors.floors = t('floorsError');
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         if (name === 'name') {
@@ -133,18 +216,27 @@ export default function BuildingAdd () {
                 name: value,
                 code: newCode,
             }));
-        } else if (name === 'floorsMax') {
-            setFormData(prev => ({
-                ...prev,
-                floorsMaxStr: value,
-                floorsMax: parseInt(value) || 0,
-            }));
+            validateField('name', value);
+        // } else if (name === 'floorsMax') {
+        //     const floorsValue = parseInt(value) || 0;
+        //     setFormData(prev => ({
+        //         ...prev,
+        //         floorsMaxStr: value,
+        //         floorsMax: floorsValue,
+        //     }));
+        //     validateField('floorsMax', floorsValue);
         } else if (name === 'totalApartmentsAll') {
             setFormData(prev => ({
                 ...prev,
                 totalApartmentsAllStr: value,
                 totalApartmentsAll: parseInt(value) || 0,
             }));
+        } else if (name === 'address') {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value,
+            }));
+            validateField('address', value);
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -206,6 +298,7 @@ export default function BuildingAdd () {
                         name="code"
                         placeholder={t('buildingCode')}
                         readonly={true}
+                        error={codeError}
                     /> */}
 
                     <DetailField 
@@ -215,6 +308,7 @@ export default function BuildingAdd () {
                         name="name"
                         placeholder={t('buildingName')}
                         readonly={false}
+                        error={errors.name}
                     />
 
                     <div className={`flex flex-col mb-4 col-span-1`}>
@@ -241,6 +335,7 @@ export default function BuildingAdd () {
                         name="address"
                         placeholder={t('address')}
                         readonly={false}
+                        error={errors.address}
                     />
 
                     <div className={`flex flex-col mb-4 col-span-1`}>
@@ -260,14 +355,15 @@ export default function BuildingAdd () {
 
                     
 
-                    <DetailField 
+                    {/* <DetailField 
                         label={t('floors')}
                         value={formData.floorsMaxStr ?? "0"}
                         onChange={handleChange}
                         name="floorsMax"
                         placeholder={t('floors')}
                         readonly={false}
-                    />
+                        error={errors.floors}
+                    /> */}
 
                     <div className="col-span-full flex justify-center space-x-3 mt-8">
                         <button 

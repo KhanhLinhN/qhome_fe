@@ -21,6 +21,7 @@ export default function BuildingDetail () {
 
     const { user, hasRole } = useAuth();
     const t = useTranslations('Building'); 
+    const tUnits = useTranslations('Unit');
     const router = useRouter();
     const params = useParams();
     const buildingId = params.id;
@@ -41,7 +42,8 @@ export default function BuildingDetail () {
                 setLoadingUnits(true);
                 setUnitsError(null);
                 const data = await getUnitsByBuildingId(buildingId);
-                setUnits(data);
+                const activeUnits = data.filter(unit => unit.status?.toUpperCase() !== 'INACTIVE');
+                setUnits(activeUnits);
             } catch (err: any) {
                 console.error('Failed to load units:', err);
                 setUnitsError(err?.message || 'Không thể tải danh sách căn hộ');
@@ -148,7 +150,7 @@ export default function BuildingDetail () {
                                 className="w-6 h-6" 
                             />
                         </button>
-                        <button 
+                        {/* <button 
                             className="p-2 rounded-lg bg-red-500 hover:bg-opacity-80 transition duration-150"
                             onClick={handleDelete}
                         >
@@ -159,7 +161,7 @@ export default function BuildingDetail () {
                                 height={24}
                                 className="w-6 h-6" 
                             />
-                        </button>
+                        </button> */}
                     </div>
                 </div>
                 
@@ -215,12 +217,9 @@ export default function BuildingDetail () {
                 <div className="border-b pb-4 mb-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-semibold text-[#02542D]">
-                            Danh sách Căn hộ / Units
+                            {tUnits('unitList')}
                         </h2>
                         <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-500">
-                                {units.length} căn hộ
-                            </span>
                             <button
                                 onClick={() => router.push(`/base/unit/unitNew?buildingId=${buildingId}`)}
                                 className="px-4 py-2 bg-[#14AE5C] text-white text-sm rounded-lg hover:bg-[#0c793f] transition flex items-center gap-2 shadow-sm"
@@ -228,30 +227,30 @@ export default function BuildingDetail () {
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                                 </svg>
-                                Thêm căn hộ
+                                {tUnits('addUnit')}
                             </button>
                         </div>
                     </div>
                 </div>
 
                 {loadingUnits ? (
-                    <div className="text-center py-8 text-gray-500">Đang tải...</div>
+                    <div className="text-center py-8 text-gray-500">{t('loading')}</div>
                 ) : unitsError ? (
                     <div className="text-center py-8 text-red-500">{unitsError}</div>
                 ) : units.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">Chưa có căn hộ nào</div>
+                    <div className="text-center py-8 text-gray-500">{tUnits('noUnit')}</div>
                 ) : (
                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                         <table className="w-full text-sm">
                             <thead className="bg-gray-100 border-b border-gray-200">
                                 <tr>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-600">Mã căn hộ</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-600">Tên căn hộ</th>
-                                    <th className="px-4 py-3 text-center font-medium text-gray-600">Tầng</th>
-                                    <th className="px-4 py-3 text-center font-medium text-gray-600">Diện tích (m²)</th>
-                                    <th className="px-4 py-3 text-center font-medium text-gray-600">Trạng thái</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-600">Chủ sở hữu</th>
-                                    <th className="px-4 py-3 text-center font-medium text-gray-600">Thao tác</th>
+                                    <th className="px-4 py-3 text-left font-medium text-gray-600">{tUnits('unitCode')}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-gray-600">{tUnits('unitName')}</th>
+                                    <th className="px-4 py-3 text-center font-medium text-gray-600">{tUnits('floor')}</th>
+                                    <th className="px-4 py-3 text-center font-medium text-gray-600">{tUnits('areaM2')}</th>
+                                    <th className="px-4 py-3 text-center font-medium text-gray-600">{tUnits('status')}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-gray-600">{tUnits('ownerName')}</th>
+                                    <th className="px-4 py-3 text-center font-medium text-gray-600">{tUnits('action')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -262,21 +261,21 @@ export default function BuildingDetail () {
                                         </td>
                                         <td className="px-4 py-3">{unit.name}</td>
                                         <td className="px-4 py-3 text-center">{unit.floor}</td>
-                                        <td className="px-4 py-3 text-center">{unit.area || '-'}</td>
+                                        <td className="px-4 py-3 text-center">{unit.areaM2 || '-'}</td>
                                         <td className="px-4 py-3 text-center">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                 unit.status === 'ACTIVE' || unit.status === 'Active'
                                                     ? 'bg-green-100 text-green-800' 
                                                     : 'bg-gray-100 text-gray-800'
                                             }`}>
-                                                {unit.status || 'N/A'}
+                                                {unit.status ? tUnits(unit.status.toLowerCase() ?? '') : ''}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">
                                             <div>
-                                                <div className="font-medium text-gray-900">{unit.ownerName || '-'}</div>
+                                                <div className="font-medium text-gray-900">{unit.ownerName ? unit.ownerName : '-'}</div>
                                                 {unit.ownerContact && (
-                                                    <div className="text-xs text-gray-500">{unit.ownerContact}</div>
+                                                    <div className="text-xs text-gray-500">{unit.ownerContact ? unit.ownerContact : '-'}</div>
                                                 )}
                                             </div>
                                         </td>

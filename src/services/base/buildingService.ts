@@ -1,7 +1,3 @@
-/**
- * Base Service - Building Management
- * Tương ứng với base-service backend (port 8081)
- */
 import axios from "@/src/lib/axios";
 
 export type Building = {
@@ -17,10 +13,7 @@ export type Building = {
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
-/**
- * Lấy danh sách buildings theo tenantId
- * GET /api/buildings?tenantId=xxx
- */
+
 export async function getBuildingsByTenant(tenantId: string): Promise<Building[]> {
   const response = await axios.get(
     `${BASE_URL}/api/buildings`,
@@ -32,10 +25,7 @@ export async function getBuildingsByTenant(tenantId: string): Promise<Building[]
   return response.data;
 }
 
-/**
- * Lấy thông tin 1 building
- * GET /api/buildings/:id
- */
+
 export async function getBuilding(id: string): Promise<Building> {
   const response = await axios.get(
     `${BASE_URL}/api/buildings/${id}`,
@@ -102,4 +92,20 @@ export async function getUnitsByBuildingId(buildingId: string): Promise<any[]> {
     }
   );
   return response.data;
+}
+
+/**
+ * Kiểm tra code building có tồn tại trong tenant không
+ * @param code - Building code cần check
+ * @param tenantId - Tenant ID
+ * @returns true nếu code đã tồn tại, false nếu chưa
+ */
+export async function checkBuildingCodeExists(code: string, tenantId: string): Promise<boolean> {
+  try {
+    const buildings = await getBuildingsByTenant(tenantId);
+    return buildings.some(building => building.code.toLowerCase() === code.toLowerCase());
+  } catch (error) {
+    console.error('Error checking building code:', error);
+    return false;
+  }
 }

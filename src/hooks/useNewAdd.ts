@@ -3,7 +3,7 @@ import { News, CreateNewsRequest, createNews } from '@/src/services/customer-int
 import { useAuth } from '../contexts/AuthContext';
 
 interface UseNewAddResult {
-    addNews: (data: News) => Promise<News>;
+    addNews: (data: News, tenantId?: string) => Promise<News>;
     loading: boolean;
     error: Error | null;
     isSubmitting: boolean;
@@ -16,12 +16,15 @@ export const useNewAdd = (): UseNewAddResult => {
 
     const { user } = useAuth();
 
-    const addNews = async (data: News): Promise<News> => {
+    const addNews = async (data: News, tenantId?: string): Promise<News> => {
         setIsSubmitting(true);
         setError(null);
         
         try {
-            if (!user?.tenantId) {
+            // Use provided tenantId or fall back to user.tenantId
+            const effectiveTenantId = tenantId || user?.tenantId;
+            
+            if (!effectiveTenantId) {
                 throw new Error('Tenant ID not found');
             }
 
@@ -42,7 +45,7 @@ export const useNewAdd = (): UseNewAddResult => {
                     : undefined
             };
 
-            const result = await createNews(user.tenantId, request);
+            const result = await createNews(effectiveTenantId, request);
             return result;
         } catch (err) {
             setError(err as Error);

@@ -11,7 +11,7 @@ export type Unit = {
   code: string;
   name: string;
   floor: number;
-  area?: number;
+  areaM2?: number;
   bedrooms?: number;
   status?: string;
   ownerName?: string;
@@ -95,5 +95,21 @@ export async function deleteUnit(id: string): Promise<void> {
     { withCredentials: true }
   );
   return response.data;
+}
+
+/**
+ * Kiểm tra code unit có tồn tại trong building không
+ * @param code - Unit code cần check
+ * @param buildingId - Building ID
+ * @returns true nếu code đã tồn tại, false nếu chưa
+ */
+export async function checkUnitCodeExists(code: string, buildingId: string): Promise<boolean> {
+  try {
+    const units = await getUnitsByBuilding(buildingId);
+    return units.some(unit => unit.code.toLowerCase() === code.toLowerCase());
+  } catch (error) {
+    console.error('Error checking unit code:', error);
+    return false;
+  }
 }
 

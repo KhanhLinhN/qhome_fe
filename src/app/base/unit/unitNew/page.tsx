@@ -10,20 +10,29 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { Unit } from '@/src/types/unit';
 import { useUnitAdd } from '@/src/hooks/useUnitAdd';
 import { getBuilding } from '@/src/services/base/buildingService';
+import { checkUnitCodeExists } from '@/src/services/base/unitService';
+import { useNotifications } from '@/src/hooks/useNotifications';
 
 export default function UnitAdd () {
 
     const { user, hasRole } = useAuth();
     const t = useTranslations('Unit');
-    const tProject = useTranslations('Project');
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isSubmit, setIsSubmit] = useState(false);
-    
+    const { show } = useNotifications();
+
     // Get buildingId from URL params
     const buildingId = searchParams.get('buildingId') || '';
-    const tenantId = user?.tenantId || '';
     const [buildingCode, setBuildingCode] = useState<string>('');
+    const [tenantId, setTenantId] = useState<string>('');
+    const [codeError, setCodeError] = useState<string>('');
+    const [errors, setErrors] = useState<{
+        name?: string;
+        floor?: string;
+        bedrooms?: string;
+        area?: string;
+    }>({});
 
     const { addUnit, loading, error, isSubmitting } = useUnitAdd();
 
@@ -36,12 +45,12 @@ export default function UnitAdd () {
         code: '',
         name: '',
         floor: 0,
-        area: 0,
+        areaM2: 0,
         bedrooms: 0,
         floorStr: '0',
         areaStr: '0',
         bedroomsStr: '0',
-        status: 'INACTIVE',
+        status: 'ACTIVE',
         ownerName: '',
         ownerContact: '',
     });
@@ -52,13 +61,35 @@ export default function UnitAdd () {
             if (!buildingId) return;
             try {
                 const building = await getBuilding(buildingId);
+                console.log("building", building);
                 setBuildingCode(building.code);
+                setTenantId(building.tenantId);
             } catch (err) {
                 console.error('Failed to fetch building:', err);
             }
         };
         fetchBuildingCode();
     }, [buildingId]);
+
+    // Check code khi code hoặc buildingId thay đổi
+    useEffect(() => {
+        const checkCode = async () => {
+            if (!formData.code || !buildingId) {
+                setCodeError('');
+                return;
+            }
+            
+            const exists = await checkUnitCodeExists(formData.code, buildingId);
+            if (exists) {
+                setCodeError(t('codeError'));
+            } else {
+                setCodeError('');
+            }
+        };
+
+        const timeoutId = setTimeout(checkCode, 500); // Debounce 500ms
+        return () => clearTimeout(timeoutId);
+    }, [formData.code, buildingId]);
     
     const handleBack = () => {
         router.back(); 
@@ -70,10 +101,25 @@ export default function UnitAdd () {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        const building = await getBuilding(buildingId);
+        setTenantId(building.tenantId);
         if (isSubmitting) return;
 
+        // Validate all fields at once
+        const isValid = validateAllFields();
+
         if (!buildingId || !tenantId) {
-            alert('Missing buildingId or tenantId');
+            show(t('missingBuildingId'), 'error');
+            return;
+        }
+
+        if (codeError) {
+            show(codeError, 'error');
+            return;
+        }
+
+        if (!isValid) {
+            show(t('error'), 'error');
             return;
         }
 
@@ -90,7 +136,7 @@ export default function UnitAdd () {
             router.push(`/base/building/buildingDetail/${buildingId}`);
         } catch (error) {
             console.error('Lỗi khi tạo unit:', error);
-            alert('Có lỗi xảy ra!');
+            show(t('errorUnit'), 'error');
         } finally {
             setIsSubmit(false);
         }
@@ -100,6 +146,78 @@ export default function UnitAdd () {
     const generateUnitCode = (floor: number, bedrooms: number): string => {
         if (!buildingCode) return '';
         return `${buildingCode}${floor}${bedrooms}`;
+    };
+
+    const validateField = (fieldName: string, value: string | number) => {
+        const newErrors = { ...errors };
+        
+        switch (fieldName) {
+            case 'name':
+                if (!value || String(value).trim() === '') {
+                    newErrors.name = t('nameError');
+                } else {
+                    delete newErrors.name;
+                }
+                break;
+            case 'floor':
+                const floor = typeof value === 'number' ? value : parseInt(String(value));
+                if (!floor || floor < 0) {
+                    newErrors.floor = t('floorError');
+                } else {
+                    delete newErrors.floor;
+                }
+                break;
+            case 'bedrooms':
+                const bedrooms = typeof value === 'number' ? value : parseInt(String(value));
+                if (bedrooms <= 0) {
+                    newErrors.bedrooms = t('bedroomsError');
+                } else {
+                    delete newErrors.bedrooms;
+                }
+                break;
+            case 'area':
+                const area = typeof value === 'number' ? value : parseFloat(String(value));
+                if (area <= 0) {
+                    newErrors.area = t('areaError');
+                } else {
+                    delete newErrors.area;
+                }
+                break;
+        }
+        
+        setErrors(newErrors);
+    };
+
+    const validateAllFields = () => {
+        const newErrors: {
+            name?: string;
+            floor?: string;
+            bedrooms?: string;
+            area?: string;
+        } = {};
+        
+        // Validate name
+        if (!formData.name || formData.name.trim() === '') {
+            newErrors.name = t('nameError');
+        }
+        
+        // Validate floor
+        if (formData.floor === undefined || formData.floor < 0) {
+            newErrors.floor = t('floorError');
+        }
+        
+        // Validate bedrooms
+        if (formData.bedrooms === undefined || formData.bedrooms <= 0) {
+            newErrors.bedrooms = t('bedroomsError');
+        }
+        
+        // Validate area
+        if (!formData.areaM2 || formData.areaM2 <= 0) {
+            newErrors.area = t('areaError');
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -113,6 +231,7 @@ export default function UnitAdd () {
                 floor: floorNum,
                 code: newCode,
             }));
+            validateField('floor', floorNum);
         } else if (name === 'bedrooms') {
             const bedroomsNum = parseInt(value) || 0;
             const newCode = generateUnitCode(formData.floor || 0, bedroomsNum);
@@ -122,12 +241,21 @@ export default function UnitAdd () {
                 bedrooms: bedroomsNum,
                 code: newCode,
             }));
+            validateField('bedrooms', bedroomsNum);
         } else if (name === 'area') {
+            const areaNum = parseFloat(value) || 0;
             setFormData(prev => ({
                 ...prev,
                 areaStr: value,
-                area: parseFloat(value) || 0,
+                areaM2: areaNum,
             }));
+            validateField('area', areaNum);
+        } else if (name === 'name') {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value,
+            }));
+            validateField('name', value);
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -181,68 +309,64 @@ export default function UnitAdd () {
                         name="code"
                         placeholder="Mã căn hộ"
                         readonly={true}
+                        error={codeError}
                     />
 
-                    <div className={`flex flex-col mb-4 col-span-1`}>
+                    {/* <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            {tProject('status')}
+                            {t('status')}
                         </label>
                         <Select
                             options={[
-                                { name: tProject('inactive'), value: 'INACTIVE' },
-                                { name: tProject('active'), value: 'ACTIVE' },
+                                { name: t('inactive'), value: 'INACTIVE' },
+                                { name: t('active'), value: 'ACTIVE' },
                             ]}
                             value={formData.status}
                             onSelect={handleStatusChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder={tProject('status')}
+                            placeholder={t('status')}
                         />
-                    </div>
+                    </div> */}
 
                     <DetailField 
-                        label="Tên căn hộ"
+                        label={t('unitName')}
                         value={formData.name ?? ""}
                         onChange={handleChange}
                         name="name"
-                        placeholder="Tên căn hộ"
+                        placeholder={t('unitName')}
                         readonly={false}
+                        error={errors.name}
                     />
 
                     <DetailField 
-                        label="Tầng"
+                        label={t('floor')}
                         value={formData.floorStr ?? "0"}
                         onChange={handleChange}
                         name="floor"
-                        placeholder="Tầng"
+                        placeholder={t('floor')}
                         readonly={false}
+                        error={errors.floor}
                     />
 
                     <DetailField 
-                        label="Số phòng ngủ"
+                        label={t('bedrooms')}
                         value={formData.bedroomsStr ?? "0"}
                         onChange={handleChange}
                         name="bedrooms"
-                        placeholder="Số phòng ngủ"
+                        placeholder={t('bedrooms')}
                         readonly={false}
+                        error={errors.bedrooms}
                     />
 
                     <DetailField 
-                        label="Diện tích (m²)"
+                        label={t('areaM2')}
                         value={formData.areaStr ?? "0"}
                         onChange={handleChange}
                         name="area"
-                        placeholder="Diện tích"
+                        placeholder={t('areaM2')}
                         readonly={false}
-                    />
-
-                    <DetailField 
-                        label="Chủ sở hữu"
-                        value={formData.ownerName ?? ""}
-                        onChange={handleChange}
-                        name="ownerName"
-                        placeholder="Chủ sở hữu"
-                        readonly={false}
+                        error={errors.area}
                     />
 
                     <div className="col-span-full flex justify-center space-x-3 mt-8">

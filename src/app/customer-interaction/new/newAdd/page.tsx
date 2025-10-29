@@ -12,6 +12,7 @@ import DateBox from '@/src/components/customer-interaction/DateBox';
 import { useNewAdd } from '@/src/hooks/useNewAdd';
 import { News, uploadNewsImage } from '@/src/services/customer-interaction/newService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getAllTenants, Tenant } from '@/src/services/base/tenantService';
 
 interface NewsImage {
     url: string;
@@ -47,6 +48,9 @@ export default function NewsAdd() {
     const { addNews, loading, error, isSubmitting } = useNewAdd();
     const { show } = useNotifications();
 
+    const [tenants, setTenants] = useState<Tenant[]>([]);
+    const [selectedTenantId, setSelectedTenantId] = useState<string>('');
+    const [loadingTenants, setLoadingTenants] = useState(false);
     const [buildings, setBuildings] = useState<Building[]>([]);
     const [selectedBuildings, setSelectedBuildings] = useState<Building[]>([]);
     const [loadingBuildings, setLoadingBuildings] = useState(false);
@@ -84,24 +88,51 @@ export default function NewsAdd() {
     const [coverImagePreview, setCoverImagePreview] = useState<string>('');
     const imageInputRef = React.useRef<HTMLInputElement>(null);
 
-    // Fetch buildings when component mounts
+    // Fetch tenants when component mounts
+    useEffect(() => {
+        const fetchTenants = async () => {
+            setLoadingTenants(true);
+            try {
+                const data = await getAllTenants();
+                setTenants(data);
+                
+                // Set default tenant if user has tenantId
+                if (user?.tenantId) {
+                    setSelectedTenantId(user.tenantId);
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải danh sách dự án:', error);
+                show('Không thể tải danh sách dự án', 'error');
+            } finally {
+                setLoadingTenants(false);
+            }
+        };
+
+        fetchTenants();
+    }, [user?.tenantId, show]);
+
+    // Fetch buildings when tenant is selected
     useEffect(() => {
         const fetchBuildings = async () => {
-            if (user?.tenantId) {
+            if (selectedTenantId) {
                 setLoadingBuildings(true);
                 try {
-                    const data = await getBuildingsByTenant(user.tenantId);
+                    const data = await getBuildingsByTenant(selectedTenantId);
                     setBuildings(data);
                 } catch (error) {
                     console.error('Lỗi khi tải danh sách tòa nhà:', error);
+                    show('Không thể tải danh sách tòa nhà', 'error');
                 } finally {
                     setLoadingBuildings(false);
                 }
+            } else {
+                setBuildings([]);
+                setSelectedBuildings([]);
             }
         };
 
         fetchBuildings();
-    }, [user?.tenantId]);
+    }, [selectedTenantId, show]);
 
     const handleBack = () => {
         router.back();
@@ -109,9 +140,13 @@ export default function NewsAdd() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (isSubmitting || !user?.tenantId) return;
+        if (isSubmitting) return;
 
         // Validation
+        if (!selectedTenantId) {
+            show('Vui lòng chọn dự án', 'error');
+            return;
+        }
         if (!formData.title.trim()) {
             show('Vui lòng nhập tiêu đề tin tức', 'error');
             return;
@@ -151,7 +186,7 @@ export default function NewsAdd() {
                 targets: formData.targets,
             };
 
-            const createdNews = await addNews(newsData);
+            const createdNews = await addNews(newsData, selectedTenantId);
             console.log('News created:', createdNews);
 
             // Step 3: Upload từng detail image với newsId
@@ -162,7 +197,7 @@ export default function NewsAdd() {
                     if (img.file) {
                         try {
                             const uploadedImage = await uploadNewsImage(
-                                user.tenantId,
+                                selectedTenantId,
                                 createdNews.id,
                                 img.file,
                                 img.caption,
@@ -261,6 +296,22 @@ export default function NewsAdd() {
         setFormData((prevData) => ({
             ...prevData,
             status: item.value,
+        }));
+    };
+
+    const handleTenantChange = (item: { name: string; value: string }) => {
+        setSelectedTenantId(item.value);
+        // Reset buildings khi đổi tenant
+        setSelectedBuildings([]);
+        setFormData((prevData) => ({
+            ...prevData,
+            targets: [
+                {
+                    targetType: 'ALL',
+                    buildingId: null,
+                    buildingName: null,
+                },
+            ],
         }));
     };
 
@@ -437,6 +488,25 @@ export default function NewsAdd() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                    {/* Project/Tenant Selection */}
+                    <div className={`flex flex-col mb-4 col-span-full`}>
+                        <label className="text-md font-bold text-[#02542D] mb-1">
+                            Dự án <span className="text-red-500">*</span>
+                        </label>
+                        <Select
+                            options={tenants.map(tenant => ({ 
+                                name: tenant.name, 
+                                value: tenant.id 
+                            }))}
+                            value={selectedTenantId}
+                            onSelect={handleTenantChange}
+                            renderItem={(item) => item.name}
+                            getValue={(item) => item.value}
+                            placeholder={loadingTenants ? 'Đang tải...' : 'Chọn dự án'}
+                            disable={loadingTenants}
+                        />
+                    </div>
+
                     {/* Title */}
                     <div className="col-span-full">
                         <DetailField
