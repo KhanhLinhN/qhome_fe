@@ -15,7 +15,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 export default function Home() {
   const { user, hasRole } = useAuth();
   const t = useTranslations('Building');
-  const headers = [t('buildingCode'), t('buildingName'), t('projectName'), t('floors'), t('status'), t('createAt'), t('createBy'), t('action')];
+  const headers = [t('buildingCode'), t('buildingName'), t('floors'), t('status'), t('createAt'), t('createBy'), t('action')];
 
   const {
     data,
@@ -34,7 +34,6 @@ export default function Home() {
     buildingId: item.id,      
     buildingCode: item.code,  
     buildingName: item.name,  
-    projectName: item.tenanName, 
     floors: item.floorsMax,  
     status: item.status,
     createBy: item.createdBy,
@@ -83,7 +82,7 @@ export default function Home() {
 
   return (
     <div className="lg:col-span-1 space-y-6 ">
-      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
+      <div className="max-w-screen overflow-x-hidden ">
           <h1 className="text-2xl font-semibold text-[#02542D] mb-4">{t('requestlist')}</h1>
           <div className="bg-white p-6 rounded-xl w-full min-h-[200px]">
               <FilterForm

@@ -5,6 +5,8 @@ import { useVehiclePage } from '@/src/hooks/useVehiclePage';
 import Image from 'next/image';
 import DropdownArrow from '@/src/assets/DropdownArrow.svg';
 import { VehicleKind } from '@/src/types/vehicle';
+import Link from 'next/link';
+import EditTable from '@/src/assets/EditTable.svg';
 
 export default function VehicleAllPage() {
   const t = useTranslations('Vehicle');
@@ -59,7 +61,7 @@ export default function VehicleAllPage() {
 
   return (
     <div className="lg:col-span-1 space-y-6">
-      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
+      <div className="max-w-screen overflow-x-hidden ">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold text-[#02542D]">{t('vehicleList')}</h1>
           <button
@@ -81,7 +83,7 @@ export default function VehicleAllPage() {
                 <div key={building.id} className="border border-gray-200 rounded-lg overflow-hidden">
                   {/* Building Header */}
                   <div
-                    className="flex items-center justify-between p-4 bg-[#F5F7FA] cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-4  cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => toggleBuilding(building.id)}
                   >
                     <div className="flex items-center gap-3">
@@ -108,7 +110,7 @@ export default function VehicleAllPage() {
 
                   {/* Units List */}
                   {building.isExpanded && building.units && (
-                    <div className="bg-white">
+                    <div className="bg-white overflow-auto">
                       {building.units.map((unit) => (
                         <div key={unit.id} className="border-t border-gray-200">
                           {/* Unit Header */}
@@ -162,6 +164,9 @@ export default function VehicleAllPage() {
                                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
                                       {t('status')}
                                     </th>
+                                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                                      {t('action')}
+                                    </th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -192,6 +197,16 @@ export default function VehicleAllPage() {
                                         >
                                           {vehicle.active ? t('active') : t('inactive')}
                                         </span>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <Link href={`/base/vehicles/vehicleDetail/${vehicle.id}`} className="inline-flex items-center">
+                                          <Image 
+                                            src={EditTable} 
+                                            alt="View Detail" 
+                                            width={24} 
+                                            height={24}
+                                          />
+                                        </Link>
                                       </td>
                                     </tr>
                                   ))}

@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Vehicle } from '@/src/types/vehicle';
 import { Building } from '@/src/types/building';
 import { Unit } from '@/src/types/unit';
-import { getBuildingsByTenant } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding } from '@/src/services/base/unitService';
-import { getActiveVehicles, getPendingVehicles, getVehiclesByUnit } from '@/src/services/base/vehicleService';
+import { getActiveVehicles, getPendingVehicles, getAllVehiclesRequest } from '@/src/services/base/vehicleService';
 import { useAuth } from '../contexts/AuthContext';
 
 export interface BuildingWithUnits extends Building {
@@ -22,26 +22,28 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
   const [buildings, setBuildings] = useState<BuildingWithUnits[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   // Load dữ liệu ban đầu
   useEffect(() => {
     const loadData = async () => {
-      if (!user?.tenantId) {
+      if (!user) {
         setLoading(false);
         return;
       }
-
+      
+      console.log("use");
       setLoading(true);
       setError(null);
 
       try {
         // Lấy danh sách buildings
-        const buildingsData = await getBuildingsByTenant(user.tenantId);
+        const buildingsData = await getBuildings();
         
         // Lấy danh sách vehicles theo type
         const vehiclesData = type === 'active' 
-          ? await getActiveVehicles(user.tenantId)
-          : await getPendingVehicles(user.tenantId);
+          ? await getActiveVehicles()
+          : await getAllVehiclesRequest();
+        // const vehiclesData = await getActiveVehicles();
+        console.log("vehiclesData", vehiclesData);
 
         // Nhóm vehicles theo unitId
         const vehiclesByUnit = vehiclesData.reduce((acc, vehicle) => {
@@ -52,7 +54,6 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
           return acc;
         }, {} as Record<string, Vehicle[]>);
 
-        // Lọc chỉ những buildings có units có vehicles
         const buildingsWithData: BuildingWithUnits[] = [];
 
         for (const building of buildingsData) {
@@ -78,6 +79,7 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
         }
 
         setBuildings(buildingsWithData);
+        console.log("buildingsWithData", buildingsWithData)
       } catch (err) {
         console.error('Error loading vehicle data:', err);
         setError('Failed to load vehicle data');
@@ -126,10 +128,11 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
     setError(null);
 
     try {
-      const buildingsData = await getBuildingsByTenant(user.tenantId);
+      const buildingsData = await getBuildings();
       const vehiclesData = type === 'active' 
-        ? await getActiveVehicles(user.tenantId)
-        : await getPendingVehicles(user.tenantId);
+          ? await getActiveVehicles()
+          : await getAllVehiclesRequest();
+        // : await getPendingVehicles(user.tenantId);
 
       const vehiclesByUnit = vehiclesData.reduce((acc, vehicle) => {
         if (!acc[vehicle.unitId]) {

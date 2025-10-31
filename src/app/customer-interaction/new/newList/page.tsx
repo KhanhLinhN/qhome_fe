@@ -87,7 +87,7 @@ export default function NewsList() {
     // Handle loading state
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#F5F7FA] p-4 sm:p-8">
+            <div className="min-h-screen  p-4 sm:p-8">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-center py-12">
                         <div className="text-center">
@@ -103,7 +103,7 @@ export default function NewsList() {
     // Handle error state
     if (error) {
         return (
-            <div className="min-h-screen bg-[#F5F7FA] p-4 sm:p-8">
+            <div className="min-h-screen  p-4 sm:p-8">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-center py-12">
                         <div className="text-center">
@@ -122,7 +122,7 @@ export default function NewsList() {
     }
 
     return (
-        <div className="min-h-screen bg-[#F5F7FA] p-4 sm:p-8 font-sans">
+        <div className="min-h-screen  p-4 sm:p-8 font-sans">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col gap-4 mb-6">

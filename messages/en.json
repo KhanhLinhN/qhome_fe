@@ -251,7 +251,9 @@
     "projectError": "Please select a project",
     "success": "Building created successfully",
     "errorBuilding": "An error occurred while creating the building",
-    "missingBuildingId": "Missing buildingId or tenantId"
+    "missingBuildingId": "Missing buildingId or tenantId",
+    "status": "Status",
+    "action": "Action"
   },
   "Vehicle": {
     "vehicleList": "Vehicle List",
@@ -278,6 +280,17 @@
     "building": "Building",
     "unit": "Unit",
     "approveVehicle": "Approve",
-    "deleteVehicle": "Delete"
+    "deleteVehicle": "Delete",
+    "vehicleDetail": "Vehicle Detail",
+    "vehicleRegistrationDetail": "Vehicle Registration Detail",
+    "vehicleRegistration": "Vehicle Registration",
+    "vehicleRegistrationList": "Vehicle Registration List",
+    "vehicleRegistrationStatus": "Vehicle Registration Status",
+    "unitCode": "Apartment Code",
+    "unitName": "Apartment Name",
+    "createAt": "Created At",
+    "createBy": "Created By",
+    "vehicleListReturn": "Return vehicle list",
+    "action": "Action"
   }
 }

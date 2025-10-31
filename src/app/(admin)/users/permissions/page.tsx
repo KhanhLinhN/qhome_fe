@@ -54,7 +54,7 @@ export default function UserPermissionsPage() {
   if (loading) {
     return (
       <div className="lg:col-span-1 space-y-6">
-        <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA] min-h-screen">
+        <div className="max-w-screen overflow-x-hidden  min-h-screen">
           <div className="px-[41px] py-12 flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
@@ -68,7 +68,7 @@ export default function UserPermissionsPage() {
 
   return (
     <div className="lg:col-span-1 space-y-6">
-      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
+      <div className="max-w-screen overflow-x-hidden ">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">

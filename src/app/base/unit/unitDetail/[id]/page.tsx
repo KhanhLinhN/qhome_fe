@@ -91,7 +91,7 @@ export default function UnitDetail () {
     }
 
     return (
-        <div className={`min-h-screen bg-[#F5F7FA] p-4 sm:p-8 font-sans`}>
+        <div className={`min-h-screen  p-4 sm:p-8 font-sans`}>
             <PopupConfirm
                 isOpen={isPopupOpen}
                 onClose={handleClosePopup}

@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import TenantList from "@/src/components/dashboard/TenantList";
+// import TenantList from "@/src/components/dashboard/TenantList";
 import InvoicesFilters from "@/src/components/account/InvoicesFilters";
 import InvoiceTable from "@/src/components/account/InvoiceTable";
 import NotifyPreviewDialog from "@/src/components/account/NotifyPreviewDialog";
@@ -104,11 +104,11 @@ export default function AccountingDashboard(){
 
   return (
     <div className="lg:col-span-1 space-y-6">
-      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
+      <div className="max-w-screen overflow-x-hidden ">
         <h1 className="text-2xl font-semibold text-[#02542D] mb-4">Accounting Dashboard</h1>
         
         {/* Danh sách Tenants - Mục đầu tiên, click để xem Buildings */}
-        <TenantList />
+        {/* <TenantList /> */}
 
         {/* Admin Quick Actions */}
         <div className="bg-white rounded-xl p-6">

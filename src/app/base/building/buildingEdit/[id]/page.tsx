@@ -53,25 +53,6 @@ export default function BuildingEdit() {
         }
     }, [buildingData]);
 
-    useEffect(() => {
-        const loadTenantName = async () => {
-            if (!buildingData?.tenantId) return;
-            
-            try {
-                setLoadingTenant(true);
-                const tenant = await getTenant(buildingData.tenantId);
-                setTenantName(tenant.name);
-            } catch (err: any) {
-                console.error('Failed to load tenant:', err);
-                setTenantName('N/A');
-            } finally {
-                setLoadingTenant(false);
-            }
-        };
-
-        loadTenantName();
-    }, [buildingData?.tenantId]);
-
     const handleBack = () => {
         router.back();
     };
@@ -195,7 +176,7 @@ export default function BuildingEdit() {
     }
 
     return (
-        <div className={`min-h-screen bg-[#F5F7FA] p-4 sm:p-8 font-sans`}>
+        <div className={`min-h-screen  p-4 sm:p-8 font-sans`}>
             <div className="max-w-4xl mx-auto mb-6 flex items-center cursor-pointer" onClick={handleBack}>
                 <Image
                     src={Arrow}
@@ -262,12 +243,6 @@ export default function BuildingEdit() {
                         placeholder={t('buildingName')}
                     />
                     
-                    <DetailField
-                        label={tProject('projectName')}
-                        value={loadingTenant ? 'Loading...' : tenantName || buildingData?.tenanName || ""}
-                        readonly={true}
-                        placeholder={tProject('projectName')}
-                    />
 
                     <DetailField
                         label={t('address')}

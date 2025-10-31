@@ -1,7 +1,6 @@
 export interface Unit {
     id: string;
     buildingId: string;
-    tenantId?: string;
     code: string;
     name: string;
     floor: number;

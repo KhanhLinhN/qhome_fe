@@ -14,11 +14,10 @@ export type Building = {
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
 
-export async function getBuildingsByTenant(tenantId: string): Promise<Building[]> {
+export async function getBuildings(): Promise<Building[]> {
   const response = await axios.get(
     `${BASE_URL}/api/buildings`,
     { 
-      params: { tenantId },
       withCredentials: true 
     }
   );
@@ -36,19 +35,13 @@ export async function getBuilding(id: string): Promise<Building> {
 }
 
 /**
- * Tạo building mới
- * POST /api/buildings?tenantId=xxx
+ * POST /api/buildings
  */
-export async function createBuilding(id: string, data: Partial<Building>): Promise<Building> {
-  if (!id) {
-    throw new Error('tenantId is required');
-  }
-  
+export async function createBuilding(data: Partial<Building>): Promise<Building> {
   const response = await axios.post(
     `${BASE_URL}/api/buildings`,
     data,
     { 
-      params: { tenantId: id },
       withCredentials: true 
     }
   );
@@ -56,7 +49,6 @@ export async function createBuilding(id: string, data: Partial<Building>): Promi
 }
 
 /**
- * Cập nhật building
  * PUT /api/buildings/:id
  */
 export async function updateBuilding(id: string, data: Partial<Building>): Promise<Building> {
@@ -69,7 +61,6 @@ export async function updateBuilding(id: string, data: Partial<Building>): Promi
 }
 
 /**
- * Xóa building
  * DELETE /api/buildings/:id
  */
 export async function deleteBuilding(id: string): Promise<void> {
@@ -81,8 +72,7 @@ export async function deleteBuilding(id: string): Promise<void> {
 }
 
 /**
- * Lấy danh sách units theo buildingId
- * GET /api/units?buildingId=xxx
+ * GET /api/units/building/:buildingId
  */
 export async function getUnitsByBuildingId(buildingId: string): Promise<any[]> {
   const response = await axios.get(
@@ -95,14 +85,11 @@ export async function getUnitsByBuildingId(buildingId: string): Promise<any[]> {
 }
 
 /**
- * Kiểm tra code building có tồn tại trong tenant không
- * @param code - Building code cần check
- * @param tenantId - Tenant ID
- * @returns true nếu code đã tồn tại, false nếu chưa
+ * GET /api/buildings/check-code?code=:code
  */
-export async function checkBuildingCodeExists(code: string, tenantId: string): Promise<boolean> {
+export async function checkBuildingCodeExists(code: string): Promise<boolean> {
   try {
-    const buildings = await getBuildingsByTenant(tenantId);
+    const buildings = await getBuildings();
     return buildings.some(building => building.code.toLowerCase() === code.toLowerCase());
   } catch (error) {
     console.error('Error checking building code:', error);

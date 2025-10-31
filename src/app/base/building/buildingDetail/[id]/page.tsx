@@ -12,10 +12,10 @@ import { useTranslations } from 'next-intl';
 import { useBuildingDetailPage } from '@/src/hooks/useBuildingDetailPage';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getUnitsByBuildingId } from '@/src/services/base/buildingService';
-import { getTenant } from '@/src/services/base/tenantService';
 import { Unit } from '@/src/types/unit';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useDeleteBuilding } from '@/src/hooks/useBuildingDelete';
+import FormulaPopup from '@/src/components/common/FormulaPopup';
 
 export default function BuildingDetail () {
 
@@ -30,8 +30,6 @@ export default function BuildingDetail () {
     const [units, setUnits] = useState<Unit[]>([]);
     const [loadingUnits, setLoadingUnits] = useState(false);
     const [unitsError, setUnitsError] = useState<string | null>(null);
-    const [tenantName, setTenantName] = useState<string>('');
-    const [loadingTenant, setLoadingTenant] = useState(false);
     const { deleteBuildingById, isLoading: isDeleting } = useDeleteBuilding();    
     
     useEffect(() => {
@@ -54,25 +52,6 @@ export default function BuildingDetail () {
 
         loadUnits();
     }, [buildingId]);
-
-    useEffect(() => {
-        const loadTenantName = async () => {
-            if (!buildingData?.tenantId) return;
-            
-            try {
-                setLoadingTenant(true);
-                const tenant = await getTenant(buildingData.tenantId);
-                setTenantName(tenant.name);
-            } catch (err: any) {
-                console.error('Failed to load tenant:', err);
-                setTenantName('N/A');
-            } finally {
-                setLoadingTenant(false);
-            }
-        };
-
-        loadTenantName();
-    }, [buildingData?.tenantId]);
     
     const handleBack = () => {
         router.push(`/base/building/buildingList`);
@@ -101,7 +80,7 @@ export default function BuildingDetail () {
     };
 
     return (
-        <div className={`min-h-screen bg-[#F5F7FA] p-4 sm:p-8 font-sans`}>
+        <div className={`min-h-screen p-4 sm:p-8 font-sans`}>
             <PopupConfirm
                 isOpen={isPopupOpen}
                 onClose={handleClosePopup}
@@ -177,12 +156,6 @@ export default function BuildingDetail () {
                     <DetailField 
                         label={t('buildingName')}
                         value={buildingData?.name ?? ""} 
-                        readonly={true}
-                    />
-
-                    <DetailField 
-                        label={t('projectName')} 
-                        value={loadingTenant ? 'Loading...' : tenantName || buildingData?.tenanName || ""} 
                         readonly={true}
                     />
 

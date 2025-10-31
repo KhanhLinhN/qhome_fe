@@ -10,6 +10,7 @@ export default function VehicleRegistrationPage() {
   const t = useTranslations('Vehicle');
   const router = useRouter();
   const { buildings, loading, error, toggleBuilding, toggleUnit, refresh } = useVehiclePage('pending');
+  console.log("buildings", buildings);
 
   const getVehicleKindLabel = (kind: VehicleKind) => {
     switch (kind) {
@@ -59,7 +60,7 @@ export default function VehicleRegistrationPage() {
 
   return (
     <div className="lg:col-span-1 space-y-6">
-      <div className="max-w-screen overflow-x-hidden bg-[#F5F7FA]">
+      <div className="max-w-screen overflow-x-hidden ">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold text-[#02542D]">{t('registrationList')}</h1>
           <button
@@ -81,7 +82,7 @@ export default function VehicleRegistrationPage() {
                 <div key={building.id} className="border border-gray-200 rounded-lg overflow-hidden">
                   {/* Building Header */}
                   <div
-                    className="flex items-center justify-between p-4 bg-[#F5F7FA] cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-4  cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => toggleBuilding(building.id)}
                   >
                     <div className="flex items-center gap-3">

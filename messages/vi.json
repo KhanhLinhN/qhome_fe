@@ -311,7 +311,9 @@
   "projectError": "Vui lòng chọn dự án",
   "success": "Tạo căn hộ thành công",
   "errorUnit": "Có lỗi xảy ra khi tạo căn hộ",
-  "missingBuildingId": "Thiếu buildingId hoặc tenantId"
+  "missingBuildingId": "Thiếu buildingId hoặc tenantId",
+  "status": "Trạng thái",
+  "action": "Hành động"
   },
   "Vehicle": {
   "vehicleList": "Danh sách phương tiện",
@@ -338,6 +340,17 @@
   "building": "Tòa nhà",
   "unit": "Căn hộ",
   "approveVehicle": "Phê duyệt",
-  "deleteVehicle": "Xóa"
+  "deleteVehicle": "Xóa",
+  "vehicleDetail": "Chi tiết phương tiện",
+  "vehicleRegistrationDetail": "Chi tiết đơn đăng ký phương tiện",
+  "vehicleRegistration": "Đơn đăng ký phương tiện",
+  "vehicleRegistrationList": "Danh sách đơn đăng ký phương tiện",
+  "vehicleRegistrationStatus": "Trạng thái đơn đăng ký phương tiện",
+  "unitCode": "Mã căn hộ",
+  "unitName": "Tên căn hộ",
+  "createAt": "Ngày tạo",
+  "createBy": "Người tạo",
+  "vehicleListReturn": "Quay lại danh sách phương tiện",
+  "action": "Hành động"
   }
 }
