@@ -4,37 +4,33 @@ import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import DetailField from '@/src/components/base-service/DetailField';
 import Select from '@/src/components/customer-interaction/Select';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getBuildings, Building } from '@/src/services/base/buildingService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
-import { useNewAdd } from '@/src/hooks/useNewAdd';
+import { useNewEdit } from '@/src/hooks/useNewEdit';
 import { 
-    updateNews, 
-    CreateNewsRequest, 
     UpdateNewsRequest, 
     NewsImageDto, 
-    uploadMultipleNewsImages,
+    uploadMultipleNewsImages, 
+    deleteNewsImage, 
+    updateNewsImageCaption,
     uploadNewsImageFile,
     uploadNewsImageFiles
 } from '@/src/services/customer-interaction/newService';
 import { NotificationScope, NewsStatus } from '@/src/types/news';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { getAllTenants, Tenant } from '@/src/services/base/tenantService';
+import Delete from '@/src/assets/Delete.svg';
 
 interface NewsImage {
+    id?: string;
     url: string;
     caption: string;
     sortOrder: number;
     file?: File;
     preview?: string;
-}
-
-interface NewsTarget {
-    targetType: string;
-    buildingId: string | null;
-    buildingName?: string | null;
 }
 
 interface NewsFormData {
@@ -52,11 +48,13 @@ interface NewsFormData {
     targetBuildingId?: string | null;
 }
 
-export default function NewsAdd() {
+export default function NewsEdit() {
     const router = useRouter();
+    const params = useParams();
     const t = useTranslations('News');
     const { user } = useAuth();
-    const { addNews, loading, error, isSubmitting } = useNewAdd();
+    const newsId = params?.id as string;
+    const { news, updateNewsItem, loading: loadingNews, error, isSubmitting } = useNewEdit(newsId);
     const { show } = useNotifications();
 
     const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -65,8 +63,6 @@ export default function NewsAdd() {
     const [buildings, setBuildings] = useState<Building[]>([]);
     const [selectedBuildingId, setSelectedBuildingId] = useState<string>('all'); // 'all' means all buildings, otherwise building.id
     const [loadingBuildings, setLoadingBuildings] = useState(false);
-    const [uploadingCoverImage, setUploadingCoverImage] = useState(false);
-    const [uploadingDetailImage, setUploadingDetailImage] = useState(false);
 
     const [formData, setFormData] = useState<NewsFormData>({
         title: '',
@@ -93,6 +89,8 @@ export default function NewsAdd() {
     
     const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
     const [coverImagePreview, setCoverImagePreview] = useState<string>('');
+    const [uploadingCoverImage, setUploadingCoverImage] = useState(false);
+    const [uploadingDetailImage, setUploadingDetailImage] = useState(false);
     const imageInputRef = React.useRef<HTMLInputElement>(null);
 
     // Validation errors state
@@ -104,10 +102,42 @@ export default function NewsAdd() {
         expireAt?: string;
     }>({});
 
-    // Fetch buildings when scope is EXTERNAL (or when tenant is selected for filtering)
+    // Load existing news data when it's fetched
+    useEffect(() => {
+        if (news) {
+            const isAllBuildings = news.scope === 'EXTERNAL' && !news.targetBuildingId;
+            
+            setFormData({
+                title: news.title || '',
+                summary: news.summary || '',
+                bodyHtml: news.bodyHtml || '',
+                coverImageUrl: news.coverImageUrl || '',
+                status: news.status || 'DRAFT',
+                publishAt: news.publishAt || '',
+                expireAt: news.expireAt || '',
+                displayOrder: news.displayOrder || 1,
+                images: (news.images || []).map(img => ({
+                    id: img.id,
+                    url: img.url,
+                    caption: img.caption || '',
+                    sortOrder: img.sortOrder || 0,
+                    preview: img.url,
+                })),
+                scope: news.scope || 'EXTERNAL',
+                targetRole: news.targetRole,
+                targetBuildingId: news.targetBuildingId || undefined,
+            });
+            setCoverImagePreview(news.coverImageUrl || '');
+            
+            // Set selectedBuildingId based on targetBuildingId
+            setSelectedBuildingId(isAllBuildings ? 'all' : (news.targetBuildingId || 'all'));
+        }
+    }, [news]);
+
+    // Fetch buildings when tenant is selected or when news loads with targetBuildingId
     useEffect(() => {
         const fetchBuildings = async () => {
-            if (formData.scope === 'EXTERNAL') {
+            if (selectedTenantId || (news && news.scope === 'EXTERNAL')) {
                 setLoadingBuildings(true);
                 try {
                     const allBuildings = await getBuildings();
@@ -129,10 +159,10 @@ export default function NewsAdd() {
         };
 
         fetchBuildings();
-    }, [formData.scope, selectedTenantId, show]);
+    }, [selectedTenantId, show, formData.targetBuildingId, news]);
 
     const handleBack = () => {
-        router.push('/customer-interaction/new/newList');
+        router.push(`/customer-interaction/new/newDetail/${newsId}`);
     };
 
     // Validate individual field
@@ -186,16 +216,7 @@ export default function NewsAdd() {
                     if (publishAt && publishAt >= expireAt) {
                         newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày xuất bản';
                     } else {
-                        // For create page: expireAt must be > today
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const expireDate = new Date(value);
-                        expireDate.setHours(0, 0, 0, 0);
-                        if (expireDate <= today) {
-                            newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày hôm nay';
-                        } else {
-                            delete newErrors.expireAt;
-                        }
+                        delete newErrors.expireAt;
                     }
                 }
                 break;
@@ -247,17 +268,6 @@ export default function NewsAdd() {
             }
         }
 
-        // For create page: expireAt must be > today
-        if (formData.expireAt) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const expireDate = new Date(formData.expireAt);
-            expireDate.setHours(0, 0, 0, 0);
-            if (expireDate <= today) {
-                newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày hôm nay';
-            }
-        }
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -283,9 +293,28 @@ export default function NewsAdd() {
         }
 
         try {
-            // Step 1: Create news first (without coverImageUrl if it's a file - will upload after)
-            // Build request object, only including fields that have values
-            const request: CreateNewsRequest = {
+            // Step 1: Upload cover image first if there's a new file (before updating news)
+            let coverImageUrl = formData.coverImageUrl && formData.coverImageUrl.trim() ? formData.coverImageUrl : undefined;
+            
+            if (coverImageFile) {
+                setUploadingCoverImage(true);
+                try {
+                    const ownerId = newsId;
+                    const coverResponse = await uploadNewsImageFile(coverImageFile, ownerId, user?.userId);
+                    coverImageUrl = coverResponse.fileUrl; // Use fileUrl from response
+                } catch (error) {
+                    console.error('Error uploading cover image:', error);
+                    show('Lỗi khi upload ảnh bìa', 'error');
+                    setUploadingCoverImage(false);
+                    return;
+                } finally {
+                    setUploadingCoverImage(false);
+                }
+            }
+
+            // Step 2: Update news with coverImageUrl (if available)
+            // Build request object, only including fields that should be updated
+            const request: UpdateNewsRequest = {
                 title: formData.title,
                 bodyHtml: formData.bodyHtml,
                 status: formData.status,
@@ -297,9 +326,8 @@ export default function NewsAdd() {
             if (formData.summary && formData.summary.trim()) {
                 request.summary = formData.summary.trim();
             }
-            // Only add coverImageUrl if it's a URL (not a file - file will be uploaded after)
-            if (!coverImageFile && formData.coverImageUrl && formData.coverImageUrl.trim()) {
-                request.coverImageUrl = formData.coverImageUrl.trim();
+            if (coverImageUrl) {
+                request.coverImageUrl = coverImageUrl;
             }
             if (formData.publishAt) {
                 request.publishAt = formData.publishAt;
@@ -313,46 +341,32 @@ export default function NewsAdd() {
             if (formData.scope === 'EXTERNAL') {
                 request.targetBuildingId = selectedBuildingId === 'all' ? null : (selectedBuildingId || null);
             }
-            // Don't include images in initial creation
+            // Don't include images in update request
 
-            console.log('Creating news:', request);
-            const createdNews = await addNews(request);
-            
-            if (!createdNews.id) {
-                throw new Error('News created but no ID returned');
-            }
+            await updateNewsItem(request);
 
-            const newsId = createdNews.id;
+            // Step 3: Handle images - separate new images and existing images
+            const imagesWithFiles = formData.images.filter(img => img.file && !img.id);
+            const imagesWithUrls = formData.images.filter(img => !img.file && img.url && !img.id);
+            const existingImages = formData.images.filter(img => img.id);
 
-            // Step 2: Upload cover image if there's a file (after creating news to get newsId)
-            let coverImageUrl = request.coverImageUrl; // Keep existing URL if any
-            
-            if (coverImageFile) {
-                setUploadingCoverImage(true);
-                try {
-                    // Upload with newsId as ownerId
-                    const coverResponse = await uploadNewsImageFile(coverImageFile, newsId, user?.userId);
-                    coverImageUrl = coverResponse.fileUrl; // Use fileUrl from response
-                    
-                    // Update news with coverImageUrl
-                    const updateRequest: UpdateNewsRequest = {
-                        coverImageUrl: coverImageUrl,
-                    };
-                    await updateNews(newsId, updateRequest);
-                } catch (error) {
-                    console.error('Error uploading cover image:', error);
-                    show('Lỗi khi upload ảnh bìa', 'error');
-                    setUploadingCoverImage(false);
-                    return;
-                } finally {
-                    setUploadingCoverImage(false);
+            // Delete images that were removed (compare with original news.images)
+            if (news && news.images) {
+                const originalImageIds = news.images.map(img => img.id).filter(id => id) as string[];
+                const currentImageIds = existingImages.map(img => img.id).filter(id => id) as string[];
+                const deletedImageIds = originalImageIds.filter(id => !currentImageIds.includes(id));
+                
+                // Delete removed images
+                for (const imageId of deletedImageIds) {
+                    try {
+                        await deleteNewsImage(imageId);
+                    } catch (error) {
+                        console.error(`Error deleting image ${imageId}:`, error);
+                    }
                 }
             }
 
-            // Step 3: Upload detail images and add to news
-            const imagesWithFiles = formData.images.filter(img => img.file);
-            const imagesWithUrls = formData.images.filter(img => img.url && !img.file);
-            
+            // Upload new detail images and add to news
             if (imagesWithFiles.length > 0 || imagesWithUrls.length > 0) {
                 setUploadingDetailImage(true);
                 try {
@@ -372,7 +386,7 @@ export default function NewsAdd() {
                             newsId: newsId,
                             url: uploadedImageUrls[index],
                             caption: img.caption || '',
-                            sortOrder: index,
+                            sortOrder: existingImages.length + index,
                             fileSize: uploadResponses[index]?.fileSize,
                             contentType: uploadResponses[index]?.contentType,
                         })),
@@ -380,13 +394,25 @@ export default function NewsAdd() {
                             newsId: newsId,
                             url: img.url,
                             caption: img.caption || '',
-                            sortOrder: imagesWithFiles.length + index,
+                            sortOrder: existingImages.length + imagesWithFiles.length + index,
                         })),
                     ];
 
-                    // Add images to news via NewsImageController
+                    // Add new images to news via NewsImageController
                     if (imageDtos.length > 0) {
                         await uploadMultipleNewsImages(imageDtos);
+                    }
+
+                    // Update captions for existing images that changed
+                    for (const existingImg of existingImages) {
+                        const originalImg = news?.images?.find(img => img.id === existingImg.id);
+                        if (originalImg && originalImg.caption !== existingImg.caption && existingImg.id) {
+                            try {
+                                await updateNewsImageCaption(existingImg.id, existingImg.caption || '');
+                            } catch (error) {
+                                console.error(`Error updating image caption ${existingImg.id}:`, error);
+                            }
+                        }
                     }
                 } catch (error) {
                     console.error('Error uploading detail images:', error);
@@ -396,16 +422,28 @@ export default function NewsAdd() {
                 } finally {
                     setUploadingDetailImage(false);
                 }
+            } else {
+                // Only caption updates for existing images - update via NewsImageController
+                for (const existingImg of existingImages) {
+                    const originalImg = news?.images?.find(img => img.id === existingImg.id);
+                    if (originalImg && originalImg.caption !== existingImg.caption && existingImg.id) {
+                        try {
+                            await updateNewsImageCaption(existingImg.id, existingImg.caption || '');
+                        } catch (error) {
+                            console.error(`Error updating image caption ${existingImg.id}:`, error);
+                        }
+                    }
+                }
             }
             
             // Show success message
-            show('Tạo tin tức thành công!', 'success');
+            show('Cập nhật tin tức thành công!', 'success');
             
-            // Redirect to news list
-            router.push(`/customer-interaction/new/newList`);
+            // Redirect to news detail
+            router.push(`/customer-interaction/new/newDetail/${newsId}`);
         } catch (error) {
-            console.error('Lỗi khi tạo tin tức:', error);
-            show('Có lỗi xảy ra khi tạo tin tức!', 'error');
+            console.error('Lỗi khi cập nhật tin tức:', error);
+            show('Có lỗi xảy ra khi cập nhật tin tức!', 'error');
         }
     };
 
@@ -501,15 +539,6 @@ export default function NewsAdd() {
         }));
     };
 
-    const handleTenantChange = (item: { name: string; value: string }) => {
-        setSelectedTenantId(item.value);
-        // Reset building selection khi đổi tenant
-        setSelectedBuildingId('all');
-        setFormData((prevData) => ({
-            ...prevData,
-            targetBuildingId: undefined,
-        }));
-    };
 
     const handleScopeChange = (item: { name: string; value: string }) => {
         setSelectedBuildingId('all');
@@ -533,8 +562,7 @@ export default function NewsAdd() {
         const file = e.target.files?.[0];
         if (file) {
             setCoverImageFile(file);
-            
-            // Show preview only (upload sau khi tạo news)
+            // Show preview
             const reader = new FileReader();
             reader.onloadend = () => {
                 setCoverImagePreview(reader.result as string);
@@ -546,7 +574,7 @@ export default function NewsAdd() {
     const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Show preview only (upload sau khi tạo news)
+            // Show preview
             const reader = new FileReader();
             reader.onloadend = () => {
                 setNewImage((prev) => ({
@@ -560,14 +588,14 @@ export default function NewsAdd() {
     };
 
     const handleAddImage = () => {
-        // Add image với file (sẽ upload sau khi tạo news)
-        if (newImage.file) {
+        // Add image với file (sẽ upload sau)
+        if (newImage.file || newImage.url) {
             setFormData((prev) => ({
                 ...prev,
                 images: [
                     ...prev.images,
                     { 
-                        url: '', // Sẽ có URL sau khi upload
+                        url: newImage.url || '', // Should be uploaded URL
                         caption: newImage.caption, 
                         sortOrder: prev.images.length,
                         file: newImage.file,
@@ -587,7 +615,7 @@ export default function NewsAdd() {
                 imageInputRef.current.value = '';
             }
         } else {
-            show('Vui lòng chọn ảnh!', 'error');
+            show('Vui lòng chọn ảnh hoặc nhập URL!', 'error');
         }
     };
 
@@ -606,6 +634,39 @@ export default function NewsAdd() {
             ),
         }));
     };
+
+    if (loadingNews) {
+        return (
+            <div className="min-h-screen p-4 sm:p-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#02542D] mx-auto mb-4"></div>
+                            <p className="text-gray-600">Đang tải...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!news) {
+        return (
+            <div className="min-h-screen p-4 sm:p-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
+                        <p className="text-red-600 mb-4">Không tìm thấy tin tức</p>
+                        <button
+                            onClick={handleBack}
+                            className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-opacity-80"
+                        >
+                            Quay lại
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     function handleTargetRoleChange(item: { name: string; value: string; }): void {
         setFormData((prev) => ({
@@ -630,7 +691,7 @@ export default function NewsAdd() {
                 <span
                     className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150 `}
                 >
-                    Quay lại danh sách tin tức
+                    Quay lại
                 </span>
             </div>
 
@@ -641,14 +702,12 @@ export default function NewsAdd() {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className={`text-2xl font-semibold text-[#02542D] mr-3`}>
-                            Thêm tin tức mới
+                            Chỉnh sửa tin tức
                         </h1>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                    {/* Project/Tenant Selection */}
-
                     {/* Title */}
                     <div className="col-span-full">
                         <DetailField
@@ -693,7 +752,7 @@ export default function NewsAdd() {
                         />
                     </div>
 
-                    {/* Cover Image Upload */}
+                    {/* Cover Image */}
                     <div className="col-span-full">
                         <label className="text-md font-bold text-[#02542D] mb-2 block">
                             Ảnh bìa
@@ -705,10 +764,10 @@ export default function NewsAdd() {
                                 onChange={handleCoverImageChange}
                                 className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#02542D] file:text-white hover:file:bg-opacity-80 file:cursor-pointer border border-gray-300 rounded-lg cursor-pointer"
                             />
-                            {coverImagePreview && (
+                            {(coverImagePreview || formData.coverImageUrl) && (
                                 <div className="relative w-full max-w-md">
                                     <img
-                                        src={coverImagePreview}
+                                        src={coverImagePreview || formData.coverImageUrl}
                                         alt="Cover preview"
                                         className="w-full h-48 object-cover rounded-lg border border-gray-300"
                                     />
@@ -870,7 +929,7 @@ export default function NewsAdd() {
                     {/* Images Section */}
                     <div className="col-span-full mt-6">
                         <h3 className="text-lg font-bold text-[#02542D] mb-4">
-                            Hình ảnh chi tiết
+                            Hình ảnh chi tiết ({formData.images.length})
                         </h3>
 
                         {/* Add Image Form */}
@@ -885,14 +944,14 @@ export default function NewsAdd() {
                                         type="file"
                                         accept="image/*"
                                         onChange={handleImageFileChange}
-                                        className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#02542D] file:text-white hover:file:bg-opacity-80 file:cursor-pointer border border-gray-300 rounded-lg cursor-pointer"
+                                        className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#02542D] file:text-white hover:file:bg-opacity-80 file:cursor-pointer border border-gray-300 rounded-lg cursor-pointer mb-2"
                                     />
                                 </div>
                                 
-                                {newImage.preview && (
+                                {(newImage.preview || newImage.url) && (
                                     <div className="relative w-full max-w-xs">
                                         <img
-                                            src={newImage.preview}
+                                            src={newImage.preview || newImage.url}
                                             alt="Preview"
                                             className="w-full h-32 object-cover rounded-lg border border-gray-300"
                                         />
@@ -927,52 +986,49 @@ export default function NewsAdd() {
                             </button>
                         </div>
 
-                        {/* Image List */}
+                        {/* Edit captions for existing images */}
                         {formData.images.length > 0 && (
-                            <div className="space-y-3">
+                            <div className="mt-4 space-y-3">
                                 <h4 className="text-md font-semibold text-gray-700">
-                                    Danh sách hình ảnh ({formData.images.length})
+                                    Chỉnh sửa mô tả hình ảnh
                                 </h4>
                                 {formData.images.map((image, index) => (
                                     <div
-                                        key={index}
-                                        className="flex items-start gap-4 bg-white border border-gray-200 p-4 rounded-lg"
+                                        key={image.id || index}
+                                        className="flex items-center gap-3 bg-white border border-gray-200 p-3 rounded-lg"
                                     >
                                         {(image.preview || image.url) && (
                                             <img
                                                 src={image.preview || image.url}
-                                                alt={image.caption || 'Image'}
-                                                className="w-24 h-24 object-cover rounded-lg border border-gray-300 flex-shrink-0"
+                                                alt={image.caption || `Image ${index + 1}`}
+                                                className="w-16 h-16 object-cover rounded-lg border border-gray-300 flex-shrink-0"
                                             />
                                         )}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="space-y-3">
-                                                <div>
-                                                    <label className="text-xs font-semibold text-gray-600 mb-1 block">
-                                                        Mô tả hình ảnh #{index + 1}
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={image.caption}
-                                                        onChange={(e) => handleImageCaptionChange(index, e.target.value)}
-                                                        placeholder="Nhập mô tả cho hình ảnh này"
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#02542D] focus:border-transparent outline-none text-sm"
-                                                    />
-                                                </div>
-                                                {image.file && (
-                                                    <p className="text-xs text-gray-400">
-                                                        File: {image.file.name}
-                                                    </p>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveImage(index)}
-                                                    className="px-3 py-1.5 text-sm text-red-600 border border-red-600 rounded hover:bg-red-50 transition"
-                                                >
-                                                    Xóa hình ảnh
-                                                </button>
-                                            </div>
+                                        <div className="flex-1">
+                                            <label className="text-xs font-semibold text-gray-600 mb-1 block">
+                                                Mô tả hình ảnh #{index + 1}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={image.caption}
+                                                onChange={(e) => handleImageCaptionChange(index, e.target.value)}
+                                                placeholder="Nhập mô tả cho hình ảnh này"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#02542D] focus:border-transparent outline-none text-sm"
+                                            />
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveImage(index)}
+                                            className="px-3 py-2 text-sm bg-red-600 border border-red-600 rounded hover:bg-red-800 transition flex-shrink-0"
+                                        >
+                                            <Image
+                                                src={Delete}
+                                                alt="Delete"
+                                                width={20}
+                                                height={20}
+                                                className="w-5 h-5"
+                                            />
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -992,9 +1048,9 @@ export default function NewsAdd() {
                         <button
                             type="submit"
                             className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={isSubmitting || uploadingCoverImage || uploadingDetailImage}
-                        >
-                            {(isSubmitting || uploadingCoverImage || uploadingDetailImage) ? 'Đang lưu...' : 'Lưu'}
+                                    disabled={isSubmitting || uploadingCoverImage || uploadingDetailImage}
+                            >
+                                {(isSubmitting || uploadingCoverImage || uploadingDetailImage) ? 'Đang lưu...' : 'Cập nhật'}
                         </button>
                     </div>
                 </div>

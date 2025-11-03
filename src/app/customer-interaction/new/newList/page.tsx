@@ -7,8 +7,8 @@ import { deleteNews } from '@/src/services/customer-interaction/newService';
 import { useAuth } from '@/src/contexts/AuthContext';
 import Table from '@/src/components/base-service/Table';
 import Select from '@/src/components/customer-interaction/Select';
-import { getAllTenants, Tenant } from '@/src/services/base/tenantService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { NewsStatus } from '@/src/types/news';
 
 export default function NewsList() {
     const t = useTranslations('News');
@@ -16,47 +16,22 @@ export default function NewsList() {
     const { user } = useAuth();
     const { show } = useNotifications();
     
-    const [tenants, setTenants] = useState<Tenant[]>([]);
-    const [selectedTenantId, setSelectedTenantId] = useState<string>('');
-    const [loadingTenants, setLoadingTenants] = useState(false);
+    const [selectedStatus, setSelectedStatus] = useState<NewsStatus | ''>('');
     
-    const { newsList, loading, error, refetch } = useNewsList(selectedTenantId);
+    const { newsList, loading, error, refetch } = useNewsList(selectedStatus || undefined);
 
     const headers = ['Tiêu đề', 'Tóm tắt', 'Trạng thái', 'Ngày xuất bản', 'Ngày hết hạn', 'Hành động'];
-
-    // Fetch tenants when component mounts
-    useEffect(() => {
-        const fetchTenants = async () => {
-            setLoadingTenants(true);
-            try {
-                const data = await getAllTenants();
-                setTenants(data);
-                
-                // Set default tenant if user has tenantId
-                if (user?.tenantId) {
-                    setSelectedTenantId(user.tenantId);
-                }
-            } catch (error) {
-                console.error('Lỗi khi tải danh sách dự án:', error);
-                show('Không thể tải danh sách dự án', 'error');
-            } finally {
-                setLoadingTenants(false);
-            }
-        };
-
-        fetchTenants();
-    }, [user?.tenantId, show]);
 
     const handleAdd = () => {
         router.push('/customer-interaction/new/newAdd');
     };
 
-    const handleTenantChange = (item: { name: string; value: string }) => {
-        setSelectedTenantId(item.value);
+    const handleStatusChange = (item: { name: string; value: string }) => {
+        setSelectedStatus(item.value as NewsStatus | '');
     };
 
     const handleEdit = (id: string) => {
-        router.push(`/customer-interaction/new/newEdit/${id}`);
+        router.push(`/customer-interaction/new/newDetail/${id}`);
     };
 
     const handleDelete = async (id: string) => {
@@ -142,28 +117,28 @@ export default function NewsList() {
                     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                         <div className="flex items-center gap-4">
                             <label className="text-sm font-semibold text-[#02542D] whitespace-nowrap">
-                                Lọc theo dự án:
+                                Lọc theo trạng thái:
                             </label>
                             <div className="w-full max-w-md">
                                 <Select
                                     options={[
-                                        { name: 'Tất cả dự án', value: '' },
-                                        ...tenants.map(tenant => ({ 
-                                            name: tenant.name, 
-                                            value: tenant.id 
-                                        }))
+                                        { name: 'Tất cả trạng thái', value: '' },
+                                        { name: 'Nháp', value: 'DRAFT' },
+                                        { name: 'Đã lên lịch', value: 'SCHEDULED' },
+                                        { name: 'Đã xuất bản', value: 'PUBLISHED' },
+                                        { name: 'Ẩn', value: 'HIDDEN' },
+                                        { name: 'Hết hạn', value: 'EXPIRED' },
                                     ]}
-                                    value={selectedTenantId}
-                                    onSelect={handleTenantChange}
+                                    value={selectedStatus}
+                                    onSelect={handleStatusChange}
                                     renderItem={(item) => item.name}
                                     getValue={(item) => item.value}
-                                    placeholder={loadingTenants ? 'Đang tải...' : 'Chọn dự án'}
-                                    disable={loadingTenants}
+                                    placeholder="Chọn trạng thái"
                                 />
                             </div>
-                            {selectedTenantId && (
+                            {selectedStatus && (
                                 <button
-                                    onClick={() => setSelectedTenantId('')}
+                                    onClick={() => setSelectedStatus('')}
                                     className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                                 >
                                     Xóa bộ lọc
