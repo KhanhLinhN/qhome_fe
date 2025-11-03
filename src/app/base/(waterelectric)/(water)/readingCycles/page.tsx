@@ -1,0 +1,329 @@
+'use client'
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { useAuth } from '@/src/contexts/AuthContext';
+import DateBox from '@/src/components/customer-interaction/DateBox';
+import Edit from '@/src/assets/Edit.svg';
+import Delete from '@/src/assets/Delete.svg';
+import {
+  getAllReadingCycles,
+  createReadingCycle,
+  updateReadingCycle,
+  changeReadingCycleStatus,
+  deleteReadingCycle,
+  ReadingCycleDto,
+  ReadingCycleStatus,
+  ReadingCycleCreateReq,
+  ReadingCycleUpdateReq,
+} from '@/src/services/base/waterService';
+import { useNotifications } from '@/src/hooks/useNotifications';
+import CycleModal from '@/src/components/water/CycleModal';
+import StatusChangeModal from '@/src/components/water/StatusChangeModal';
+
+export default function ReadingCyclesPage() {
+  const { user, hasRole } = useAuth();
+  const { show } = useNotifications();
+  const [cycles, setCycles] = useState<ReadingCycleDto[]>([]);
+  const [filteredCycles, setFilteredCycles] = useState<ReadingCycleDto[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isStatusChangeOpen, setIsStatusChangeOpen] = useState(false);
+  const [selectedCycle, setSelectedCycle] = useState<ReadingCycleDto | null>(null);
+  const [cycleForStatusChange, setCycleForStatusChange] = useState<ReadingCycleDto | null>(null);
+  const [statusFilter, setStatusFilter] = useState<ReadingCycleStatus | 'ALL'>('ALL');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+
+  // Load cycles on mount
+  useEffect(() => {
+    loadCycles();
+  }, []);
+
+  // Filter cycles
+  useEffect(() => {
+    let filtered = cycles;
+
+    if (statusFilter !== 'ALL') {
+      filtered = filtered.filter(c => c.status === statusFilter);
+    }
+
+    if (dateFrom && dateTo) {
+      filtered = filtered.filter(c => {
+        const from = new Date(c.fromDate || c.periodFrom);
+        const to = new Date(c.toDate || c.periodTo);
+        const filterFrom = new Date(dateFrom);
+        const filterTo = new Date(dateTo);
+        return (from >= filterFrom && from <= filterTo) || (to >= filterFrom && to <= filterTo);
+      });
+    }
+
+    setFilteredCycles(filtered);
+  }, [cycles, statusFilter, dateFrom, dateTo]);
+
+  const loadCycles = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllReadingCycles();
+      setCycles(data);
+    } catch (error) {
+      console.error('Failed to load cycles:', error);
+      show('Failed to load reading cycles', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async (req: ReadingCycleCreateReq | ReadingCycleUpdateReq) => {
+    try {
+      await createReadingCycle(req as ReadingCycleCreateReq);
+      show('Reading cycle created successfully', 'success');
+      setIsCreateOpen(false);
+      loadCycles();
+    } catch (error: any) {
+      show(error?.message || 'Failed to create reading cycle', 'error');
+    }
+  };
+
+  const handleUpdate = async (cycleId: string, req: ReadingCycleCreateReq | ReadingCycleUpdateReq) => {
+    try {
+      await updateReadingCycle(cycleId, req as ReadingCycleUpdateReq);
+      show('Reading cycle updated successfully', 'success');
+      setIsEditOpen(false);
+      setSelectedCycle(null);
+      loadCycles();
+    } catch (error: any) {
+      show(error?.message || 'Failed to update reading cycle', 'error');
+    }
+  };
+
+  const handleStatusChange = async (cycleId: string, status: ReadingCycleStatus) => {
+    try {
+      await changeReadingCycleStatus(cycleId, status);
+      show('Status updated successfully', 'success');
+      setIsStatusChangeOpen(false);
+      setCycleForStatusChange(null);
+      loadCycles();
+    } catch (error: any) {
+      show(error?.message || 'Failed to update status', 'error');
+    }
+  };
+
+  const handleOpenStatusChange = (cycle: ReadingCycleDto) => {
+    setCycleForStatusChange(cycle);
+    setIsStatusChangeOpen(true);
+  };
+
+  const handleDelete = async (cycleId: string) => {
+    if (!confirm('Are you sure you want to delete this reading cycle?')) return;
+
+    try {
+      await deleteReadingCycle(cycleId);
+      show('Reading cycle deleted successfully', 'success');
+      loadCycles();
+    } catch (error: any) {
+      show(error?.message || 'Failed to delete reading cycle', 'error');
+    }
+  };
+
+  const handleEdit = (cycle: ReadingCycleDto) => {
+    setSelectedCycle(cycle);
+    setIsEditOpen(true);
+  };
+
+  return (
+    <div className="px-[41px] py-12">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold text-[#02542D]">Reading Cycles</h1>
+        <button
+          onClick={() => setIsCreateOpen(true)}
+          className="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#0c793f] transition-colors"
+        >
+          Create Cycle
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white p-6 rounded-xl mb-6">
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[#02542D] mb-2">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as ReadingCycleStatus | 'ALL')}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
+            >
+              <option value="ALL">All</option>
+              <option value="OPEN">Open</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#02542D] mb-2">From Date</label>
+            <DateBox
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              placeholderText="Select from date"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#02542D] mb-2">To Date</label>
+            <DateBox
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              placeholderText="Select to date"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Cycles Table */}
+      {filteredCycles.length > 0 && (
+        <div className="bg-white p-6 rounded-xl">
+          <h2 className="text-xl font-semibold text-[#02542D] mb-4">Cycles ({filteredCycles.length})</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b-2 border-solid border-[#14AE5C]">
+                  <th className="px-4 py-3 text-left text-sm font-bold text-[#024023] uppercase">Name</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">From Date</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">To Date</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Status</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Created At</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCycles.map((cycle) => (
+                  <tr key={cycle.id} className="border-b border-gray-200 hover:bg-gray-50">
+                    <td className="px-4 py-3 text-[#024023] font-semibold">{cycle.name}</td>
+                    <td className="px-4 py-3 text-center text-[#024023] font-semibold">
+                      {new Date(cycle.fromDate || cycle.periodFrom).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-center text-[#024023] font-semibold">
+                      {new Date(cycle.toDate || cycle.periodTo).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          (cycle.status as string) === 'OPEN'
+                            ? 'bg-blue-100 text-blue-700'
+                            : (cycle.status as string) === 'IN_PROGRESS'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : (cycle.status as string) === 'COMPLETED'
+                            ? 'bg-green-100 text-green-700'
+                            : (cycle.status as string) === 'CLOSED'
+                            ? 'bg-gray-100 text-gray-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {(cycle.status as string) === 'IN_PROGRESS' ? 'In Progress' : cycle.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center text-[#024023] font-semibold">
+                      {new Date(cycle.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex gap-2 justify-center">
+                        {/* <button
+                          onClick={() => handleOpenStatusChange(cycle)}
+                          className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm border border-gray-300"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Transfer-3-Fill--Streamline-Mingcute-Fill" height="16" width="16">
+                            <g fill="none" fillRule="nonzero">
+                              <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" stroke-width="0.6667"></path>
+                              <path fill="#000000" d="M5.706666666666667 7.933333333333334a1 1 0 0 1 0 1.4133333333333333l-0.6493333333333333 0.6506666666666666H10.666666666666666a1 1 0 0 1 0 2H5.057333333333333l0.6499999999999999 0.6493333333333333a1 1 0 1 1 -1.4146666666666665 1.4146666666666665l-2.3566666666666665 -2.357333333333333a1 1 0 0 1 0 -1.414l2.3566666666666665 -2.357333333333333a1 1 0 0 1 1.4146666666666665 0Zm4.586666666666666 -6a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.3566666666666665 2.357333333333333a1 1 0 0 1 0.06866666666666665 1.338l-0.06866666666666665 0.076 -2.3566666666666665 2.357333333333333a1 1 0 0 1 -1.4833333333333334 -1.3386666666666667l0.06866666666666665 -0.076 0.6499999999999999 -0.6493333333333333H5.333333333333333a1 1 0 0 1 -0.09599999999999999 -1.996L5.333333333333333 3.9973333333333336h5.609333333333333l-0.6499999999999999 -0.6499999999999999a1 1 0 0 1 0 -1.4146666666666665Z" strokeWidth="0.6667"></path>
+                            </g>
+                          </svg>
+                        </button> */}
+                        <button
+                          onClick={() => handleEdit(cycle)}
+                          className="p-2 rounded-lg bg-[#739559] hover:bg-[#5a7347] transition duration-150"
+                        >
+                          <Image 
+                            src={Edit} 
+                            alt="Edit" 
+                            width={24} 
+                            height={24}
+                            className="w-6 h-6"
+                          />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(cycle.id)}
+                          className="p-2 rounded-lg bg-red-500 hover:bg-[#991b1b] transition duration-150"
+                        >
+                          <Image 
+                            src={Delete} 
+                            alt="Delete" 
+                            width={24} 
+                            height={24}
+                            className="w-6 h-6"
+                          />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {filteredCycles.length === 0 && !loading && (
+        <div className="bg-white p-6 rounded-xl text-center text-gray-500">
+          No reading cycles found
+        </div>
+      )}
+
+      {loading && (
+        <div className="bg-white p-6 rounded-xl text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#739559] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      )}
+
+      {/* Create Modal */}
+      {isCreateOpen && (
+        <CycleModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          onSubmit={handleCreate}
+          mode="create"
+          existingCycles={cycles}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {isEditOpen && selectedCycle && (
+        <CycleModal
+          isOpen={isEditOpen}
+          onClose={() => {
+            setIsEditOpen(false);
+            setSelectedCycle(null);
+          }}
+          onSubmit={(req) => handleUpdate(selectedCycle.id, req)}
+          mode="edit"
+          initialData={selectedCycle}
+          existingCycles={cycles}
+        />
+      )}
+
+      {/* Status Change Modal */}
+      {/* {isStatusChangeOpen && cycleForStatusChange && (
+        <StatusChangeModal
+          isOpen={isStatusChangeOpen}
+          onClose={() => {
+            setIsStatusChangeOpen(false);
+            setCycleForStatusChange(null);
+          }}
+          currentStatus={cycleForStatusChange.status}
+          cycleId={cycleForStatusChange.id}
+          onStatusChange={handleStatusChange}
+        />
+      )} */}
+    </div>
+  );
+}

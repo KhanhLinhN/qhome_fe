@@ -107,43 +107,6 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                             ? 'border-b border-solid border-[#CDCDCD]' 
                             : 'border-b-0';
                         
-                            if(type === "project"){
-                                return (
-                                    <tr 
-                                        key={item.projectId} 
-                                        className={`${rowClass} ${borderClass} cursor-pointer`}
-                                    >
-        
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold text-center">
-                                                {item.projectCode}
-                                        </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.projectName}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.address}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.status}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>
-        
-                                        <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.createBy}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023] text-center">
-                                            <div className="flex space-x-2 justify-center">
-                                                <button 
-                                                    className={` hover:bg-opacity-80 transition duration-150`}
-                                                    onClick={() => console.log('Chỉnh sửa dự án')}
-                                                >
-                                                    <Link href={`/base/project/projectDetail/${item.projectId}`}>
-                                                        <Image 
-                                                            src={Edit} 
-                                                            alt="Edit" 
-                                                            width={24} 
-                                                            height={24}
-                                                            className="w-10 h-10"
-                                                        />
-                                                    </Link>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            }
                             if(type === "building"){
                                 return (
                                     <tr 
@@ -155,7 +118,6 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                 {item.buildingCode}
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.buildingName}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.projectName}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.floors}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.status}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>

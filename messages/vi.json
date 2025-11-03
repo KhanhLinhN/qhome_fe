@@ -352,5 +352,26 @@
   "createBy": "Người tạo",
   "vehicleListReturn": "Quay lại danh sách phương tiện",
   "action": "Hành động"
+  },
+  "Water": {
+    "selectBuilding": "Chọn tòa nhà",
+    "noApartmentFound": "Không có căn hộ nào cho tòa nhà này",
+    "loading": "Đang tải dữ liệu...",
+    "waterMêtrList": "Danh sách chỉ số nước",
+    "settings": "Cài đặt",
+    "assignTask": "Gán công việc",
+    "apartmentCode": "Mã căn hộ",
+    "apartmentName": "Tên căn hộ",
+    "apartmentStatus": "Trạng thái",
+    "waterMeter": "Chỉ số nước",
+    "action": "Hành động",
+    "waterCycle": "Chu kỳ đọc nước",
+    "waterCycleFromDate": "Ngày bắt đầu",
+    "waterCycleToDate": "Ngày kết thúc",
+    "waterFormula": "Công thức tính nước",
+    "fromAmount": "Từ số (m³)",
+    "toAmount": "Đến số (m³)",
+    "price": "Giá (VND)",
+    "addRow": "Thêm hàng"
   }
 }

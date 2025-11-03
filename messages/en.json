@@ -292,5 +292,26 @@
     "createBy": "Created By",
     "vehicleListReturn": "Return vehicle list",
     "action": "Action"
+  },
+  "Water": {
+    "selectBuilding": "Select Building",
+    "noApartmentFound": "No apartment found for this building",
+    "loading": "Loading...",
+    "waterMêtrList": "Water Meter List",
+    "settings": "Settings",
+    "assignTask": "Assign Task",
+    "apartmentCode": "Apartment Code",
+    "apartmentName": "Apartment Name",
+    "apartmentStatus": "Apartment Status",
+    "waterMeter": "Water Meter",
+    "action": "Action",
+    "waterCycle": "Water Cycle",
+    "waterCycleFromDate": "From Date",
+    "waterCycleToDate": "To Date",
+    "waterFormula": "Water Formula",
+    "fromAmount": "From Amount (m³)",
+    "toAmount": "To Amount (m³)",
+    "price": "Price (VND)",
+    "addRow": "Add Row"
   }
 }
