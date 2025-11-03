@@ -25,6 +25,12 @@ interface TableItemProps {
     summary?: string;
     publishAt?: string;
     expireAt?: string;
+    // Notification fields
+    notificationId?: string;
+    message?: string;
+    type?: string;
+    scope?: string;
+    target?: string;
 }
 
 interface TableProps {
@@ -74,6 +80,32 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
             default:
                 return 'text-gray-600 bg-gray-100';
         }
+    };
+
+    const getTypeLabel = (type: string) => {
+        const typeMap: { [key: string]: string } = {
+            'INFO': 'Thông tin',
+            'WARNING': 'Cảnh báo',
+            'ALERT': 'Khẩn cấp',
+            'SUCCESS': 'Thành công',
+            'ANNOUNCEMENT': 'Thông báo chung',
+        };
+        return typeMap[type] || type;
+    };
+
+    const getTypeColor = (type: string) => {
+        const colorMap: { [key: string]: string } = {
+            'INFO': 'text-blue-700 bg-blue-100',
+            'WARNING': 'text-yellow-700 bg-yellow-100',
+            'ALERT': 'text-red-700 bg-red-100',
+            'SUCCESS': 'text-green-700 bg-green-100',
+            'ANNOUNCEMENT': 'text-purple-700 bg-purple-100',
+        };
+        return colorMap[type] || 'text-gray-600 bg-gray-100';
+    };
+
+    const getScopeLabel = (scope: string) => {
+        return scope === 'INTERNAL' ? 'Nội bộ' : 'Bên ngoài';
     };
 
     return (
@@ -181,6 +213,58 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                     <button 
                                                         className="hover:opacity-70 transition"
                                                         onClick={() => item.newsId && onDelete(item.newsId)}
+                                                        title="Xóa"
+                                                    >
+                                                        <Image 
+                                                            src={Delete} 
+                                                            alt="Delete" 
+                                                            width={32} 
+                                                            height={32}
+                                                        />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            }
+                            if(type === "notification"){
+                                return (
+                                    <tr 
+                                        key={item.notificationId} 
+                                        className={`${rowClass} ${borderClass} cursor-pointer`}
+                                    >
+        
+                                        <td className="px-4 py-3 text-[14px] text-[#024023] font-semibold text-left max-w-xs truncate">
+                                            {item.title}
+                                        </td>
+                                        <td className="px-4 py-3 text-[14px] text-gray-700 text-left max-w-sm truncate">{item.message}</td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(item.type || '')}`}>
+                                                {getTypeLabel(item.type || '')}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center text-[14px] text-gray-700">{formatDate(item.createdAt || '')}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex space-x-2 justify-center">
+                                                {onEdit && (
+                                                    <button 
+                                                        className="hover:opacity-70 transition"
+                                                        onClick={() => item.notificationId && onEdit(item.notificationId)}
+                                                        title="Chỉnh sửa"
+                                                    >
+                                                        <Image 
+                                                            src={Edit} 
+                                                            alt="Edit" 
+                                                            width={32} 
+                                                            height={32}
+                                                        />
+                                                    </button>
+                                                )}
+                                                {onDelete && (
+                                                    <button 
+                                                        className="hover:opacity-70 transition"
+                                                        onClick={() => item.notificationId && onDelete(item.notificationId)}
                                                         title="Xóa"
                                                     >
                                                         <Image 
