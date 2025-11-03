@@ -146,31 +146,6 @@ const FilterForm = ({ filters, page, onFilterChange, onAdd, onClear, onDelete, p
                         getValue={(item) => item.value}
                         placeholder={t('Building.status')}
                     />
-                    {/* { projectName === "" && ( */}
-                        <Select
-                            options={projectList ?? []}
-                            value={filters.projectId}
-                            onSelect={(item) => onFilterChange('projectId', item.id || "")}
-                            renderItem={(item) => item.name || ""}
-                            getValue={(item) => item.id || ""}
-                            disable={isProjectLocked}
-                            placeholder={t('Building.projectName')}
-                        />
-                    {/* )} */}
-
-                    {/* { projectName != "" && (
-                        <Select
-                            options={projectList ?? []}
-                            value={filters.projectId}
-                            onSelect={(item) => onFilterChange('projectId', item.id || "")}
-                            renderItem={(item) => item.name || ""}
-                            getValue={(item) => item.id || ""}
-                            disable={true}
-                            placeholder={t('Building.projectName')}
-                        />
-                    )} */}
-
-
 
                     <button
                         type="button"

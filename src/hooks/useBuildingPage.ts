@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 // 1. Import các service và type cần thiết
 import { PagedResponse } from '@/src/services/base/project/projectService';
 import { getAllTenants } from '@/src/services/base/tenantService';
-import { getBuildingsByTenant } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
 import { filters } from '@/src/components/base-service/FilterForm'; 
 import { Project } from '../types/project';
 import { Building } from '../types/building';
@@ -20,7 +20,6 @@ export const useBuildingPage = (loadOnMount: boolean = true) => {
     const [allProjects, setAllProjects] = useState<Project[]>([]);
     const [allBuildings, setAllBuildings] = useState<Building[]>([]); // Chỉ chứa building của 1 project
 
-    const [loadingProjects, setLoadingProjects] = useState(true);
     const [loadingBuildings, setLoadingBuildings] = useState(false); // Chỉ loading khi gọi API building
     const [error, setError] = useState<string | null>(null);
 
@@ -31,46 +30,13 @@ export const useBuildingPage = (loadOnMount: boolean = true) => {
 
 
     useEffect(() => {
-        if (!loadOnMount) {
-            setLoadingProjects(false);
-            return;
-        }
-
-        const loadInitialProjects = async () => {
-            setLoadingProjects(true);
-            setError(null);
-            try {
-                const projects = await getAllTenants();
-                setAllProjects(projects as unknown as Project[]);
-
-                const storedProjectId = localStorage.getItem('projectId');
-                if (storedProjectId) {
-                    setFilters(prev => ({ ...prev, projectId: storedProjectId }));
-                }
-            } catch (err) {
-                setError('Failed to fetch projects.');
-                console.error(err);
-            } finally {
-                setLoadingProjects(false);
-            }
-        };
-
-        loadInitialProjects();
-    }, [loadOnMount]); 
-
-    // reload building when project selected
-    useEffect(() => {
-        if (!filters.projectId) {
-            setAllBuildings([]); 
-            return;
-        }
-
-        const fetchBuildingsForProject = async () => {
+        const fetchBuildings = async () => {
             setLoadingBuildings(true);
             setError(null);
             try {
-                const buildings = await getBuildingsByTenant(filters.projectId!);
-                setAllBuildings(buildings as unknown as Building[]);
+                const buildings = await getBuildings();
+                setAllBuildings(buildings);
+                console.log('buildings', buildings);
                 setPageNo(0); 
             } catch (err) {
                 setError('Failed to fetch buildings for project.');
@@ -81,7 +47,7 @@ export const useBuildingPage = (loadOnMount: boolean = true) => {
             }
         };
 
-        fetchBuildingsForProject();
+        fetchBuildings();
     }, [filters.projectId]); 
 
     const filteredBuildings = useMemo(() => {
@@ -145,7 +111,7 @@ export const useBuildingPage = (loadOnMount: boolean = true) => {
 
     return {
         data, // PagedResponse<Building>
-        loading: loadingProjects || loadingBuildings, // Loading 
+        loading: loadingBuildings, // Loading 
         error,
         filters,
         allProjects, // return list project

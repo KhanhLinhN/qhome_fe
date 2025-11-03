@@ -1,6 +1,5 @@
 /**
  * Base Service - Unit Management
- * Tương ứng với base-service backend (port 8081)
  */
 import axios from "@/src/lib/axios";
 
@@ -11,7 +10,7 @@ export type Unit = {
   code: string;
   name: string;
   floor: number;
-  area?: number;
+  areaM2?: number;
   bedrooms?: number;
   status?: string;
   ownerName?: string;
@@ -21,7 +20,6 @@ export type Unit = {
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
 /**
- * Lấy danh sách units theo buildingId
  * GET /api/units/building/:buildingId
  */
 export async function getUnitsByBuilding(buildingId: string): Promise<Unit[]> {
@@ -33,7 +31,6 @@ export async function getUnitsByBuilding(buildingId: string): Promise<Unit[]> {
 }
 
 /**
- * Lấy thông tin 1 unit
  * GET /api/units/:id
  */
 export async function getUnit(id: string): Promise<Unit> {
@@ -45,12 +42,11 @@ export async function getUnit(id: string): Promise<Unit> {
 }
 
 /**
- * Tạo unit mới
  * POST /api/units
  */
 export async function createUnit(data: Partial<Unit>): Promise<Unit> {
-  if (!data.buildingId || !data.tenantId) {
-    throw new Error('buildingId and tenantId are required in data');
+  if (!data.buildingId) {
+    throw new Error('buildingId is required in data');
   }
 
   console.log("Creating unit with data:", JSON.stringify(data, null, 2));
@@ -73,7 +69,6 @@ export async function createUnit(data: Partial<Unit>): Promise<Unit> {
 }
 
 /**
- * Cập nhật unit
  * PUT /api/units/:id
  */
 export async function updateUnit(id: string, data: Partial<Unit>): Promise<Unit> {
@@ -86,7 +81,6 @@ export async function updateUnit(id: string, data: Partial<Unit>): Promise<Unit>
 }
 
 /**
- * Xóa unit
  * DELETE /api/units/:id
  */
 export async function deleteUnit(id: string): Promise<void> {
@@ -97,3 +91,15 @@ export async function deleteUnit(id: string): Promise<void> {
   return response.data;
 }
 
+/**
+ * GET /api/units/check-code?code=:code&buildingId=:buildingId
+ */
+export async function checkUnitCodeExists(code: string, buildingId: string): Promise<boolean> {
+  try {
+    const units = await getUnitsByBuilding(buildingId);
+    return units.some(unit => unit.code.toLowerCase() === code.toLowerCase());
+  } catch (error) {
+    console.error('Error checking unit code:', error);
+    return false;
+  }
+}

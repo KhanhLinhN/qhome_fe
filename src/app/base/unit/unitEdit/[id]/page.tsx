@@ -13,7 +13,7 @@ import { getBuilding } from '@/src/services/base/buildingService';
 
 export default function UnitEdit() {
     const { user, hasRole } = useAuth();
-    const t = useTranslations('Building');
+    const t = useTranslations('Unit');
     const tProject = useTranslations('Project');
     const router = useRouter();
     const params = useParams();
@@ -29,7 +29,7 @@ export default function UnitEdit() {
     }>({
         name: '',
         floor: 0,
-        area: 0,
+        areaM2: 0,
         bedrooms: 0,
         ownerName: '',
         ownerContact: '',
@@ -42,18 +42,24 @@ export default function UnitEdit() {
     const [buildingName, setBuildingName] = useState<string>('');
     const [buildingCode, setBuildingCode] = useState<string>('');
     const [loadingBuilding, setLoadingBuilding] = useState(false);
+    const [errors, setErrors] = useState<{
+        name?: string;
+        floor?: string;
+        bedrooms?: string;
+        area?: string;
+    }>({});
 
     useEffect(() => {
         if (unitData) {
             setFormData({
                 name: unitData.name ?? '',
                 floor: unitData.floor ?? 0,
-                area: unitData.area ?? 0,
+                areaM2: unitData.areaM2 ?? 0,
                 bedrooms: unitData.bedrooms ?? 0,
                 ownerName: unitData.ownerName ?? '',
                 ownerContact: unitData.ownerContact ?? '',
                 floorStr: unitData.floor?.toString() ?? '0',
-                areaStr: unitData.area?.toString() ?? '0',
+                areaStr: unitData.areaM2?.toString() ?? '0',
                 bedroomsStr: unitData.bedrooms?.toString() ?? '0',
                 status: unitData.status ?? 'INACTIVE',
             });
@@ -90,6 +96,78 @@ export default function UnitEdit() {
         return `${buildingCode}${floor}${bedrooms}`;
     };
 
+    const validateField = (fieldName: string, value: string | number) => {
+        const newErrors = { ...errors };
+        
+        switch (fieldName) {
+            case 'name':
+                if (!value || String(value).trim() === '') {
+                    newErrors.name = t('nameError');
+                } else {
+                    delete newErrors.name;
+                }
+                break;
+            case 'floor':
+                const floor = typeof value === 'number' ? value : parseInt(String(value));
+                if (floor < 0) {
+                    newErrors.floor = t('floorError');
+                } else {
+                    delete newErrors.floor;
+                }
+                break;
+            case 'bedrooms':
+                const bedrooms = typeof value === 'number' ? value : parseInt(String(value));
+                if (bedrooms < 0) {
+                    newErrors.bedrooms = t('bedroomsError');
+                } else {
+                    delete newErrors.bedrooms;
+                }
+                break;
+            case 'area':
+                const area = typeof value === 'number' ? value : parseFloat(String(value));
+                if (area <= 0) {
+                    newErrors.area = t('areaError');
+                } else {
+                    delete newErrors.area;
+                }
+                break;
+        }
+        
+        setErrors(newErrors);
+    };
+
+    const validateAllFields = () => {
+        const newErrors: {
+            name?: string;
+            floor?: string;
+            bedrooms?: string;
+            area?: string;
+        } = {};
+        
+        // Validate name
+        if (!formData.name || formData.name.trim() === '') {
+            newErrors.name = t('nameError');
+        }
+        
+        // Validate floor
+        if (formData.floor === undefined || formData.floor < 0) {
+            newErrors.floor = t('floorError');
+        }
+        
+        // Validate bedrooms
+        if (formData.bedrooms === undefined || formData.bedrooms < 0) {
+            newErrors.bedrooms = t('bedroomsError');
+        }
+        
+        // Validate area
+        if (!formData.areaM2 || formData.areaM2 <= 0) {
+            newErrors.area = t('areaError');
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         if (name === 'floor') {
@@ -99,6 +177,7 @@ export default function UnitEdit() {
                 floorStr: value,
                 floor: floorNum,
             }));
+            validateField('floor', floorNum);
         } else if (name === 'bedrooms') {
             const bedroomsNum = parseInt(value) || 0;
             setFormData(prev => ({
@@ -106,12 +185,21 @@ export default function UnitEdit() {
                 bedroomsStr: value,
                 bedrooms: bedroomsNum,
             }));
+            validateField('bedrooms', bedroomsNum);
         } else if (name === 'area') {
+            const areaNum = parseFloat(value) || 0;
             setFormData(prev => ({
                 ...prev,
                 areaStr: value,
-                area: parseFloat(value) || 0,
+                areaM2: areaNum,
             }));
+            validateField('area', areaNum);
+        } else if (name === 'name') {
+            setFormData(prevData => ({
+                ...prevData,
+                [name]: value,
+            }));
+            validateField('name', value);
         } else {
             setFormData(prevData => ({
                 ...prevData,
@@ -130,6 +218,13 @@ export default function UnitEdit() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (isSubmitting) return;
+
+        const isValid = validateAllFields();
+
+        if (!isValid) {
+            alert(t('error'));
+            return;
+        }
 
         try {
             const { floorStr, areaStr, bedroomsStr, ...unitUpdateData } = formData;
@@ -160,7 +255,7 @@ export default function UnitEdit() {
     }
 
     return (
-        <div className={`min-h-screen bg-[#F5F7FA] p-4 sm:p-8 font-sans`}>
+        <div className={`min-h-screen  p-4 sm:p-8 font-sans`}>
             <div className="max-w-4xl mx-auto mb-6 flex items-center cursor-pointer" onClick={handleBack}>
                 <Image
                     src={Arrow}
@@ -181,7 +276,7 @@ export default function UnitEdit() {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className={`text-2xl font-semibold text-[#02542D] mr-3`}>
-                            Chỉnh sửa Căn hộ
+                            {t('unitEdit')}
                         </h1>
                         <span
                             className={`text-sm font-semibold px-3 py-1 rounded-full ${
@@ -190,86 +285,81 @@ export default function UnitEdit() {
                                     : 'bg-[#739559] text-white'
                             }`}
                         >
-                            {formData.status === 'INACTIVE' ? t('inactive') : t('active')}
+                            {formData.status ? t(formData.status.toLowerCase() ?? '') : ''}
                         </span>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                     <DetailField
-                        label="Mã căn hộ"
+                        label={t('unitCode')}
                         value={generateUnitCode(formData.floor || 0, formData.bedrooms || 0) || unitData?.code || ""}
                         readonly={true}
-                        placeholder="Mã căn hộ"
+                        placeholder={t('unitCode')}
                     />
 
-                    <div className={`flex flex-col mb-4 col-span-1`}>
+                    {/* <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            {tProject('status')}
+                            {t('status')}
                         </label>
                         <Select
                             options={[
-                                { name: tProject('inactive'), value: 'INACTIVE' },
-                                { name: tProject('active'), value: 'ACTIVE' },
+                                { name: t('inactive'), value: 'INACTIVE' },
+                                { name: t('active'), value: 'ACTIVE' },
                             ]}
                             value={formData.status}
                             onSelect={handleStatusChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder={tProject('status')}
+                            placeholder={t('status')}
                         />
-                    </div>
-
+                    </div> */}
                     <DetailField
-                        label="Tên căn hộ"
-                        value={formData?.name || ""}
-                        readonly={false}
-                        placeholder="Tên căn hộ"
-                        name="name"
-                        onChange={handleChange}
-                    />
-                    
-                    <DetailField
-                        label="Tòa nhà"
+                        label={t('buildingName')}
                         value={loadingBuilding ? 'Loading...' : buildingName || ""}
                         readonly={true}
-                        placeholder="Tòa nhà"
+                        placeholder={t('buildingName')}
                     />
 
                     <DetailField
-                        label="Tầng"
+                        label={t('unitName')}
+                        value={formData?.name || ""}
+                        readonly={false}
+                        placeholder={t('unitName')}
+                        name="name"
+                        onChange={handleChange}
+                        error={errors.name}
+                    />
+                    
+
+                    <DetailField
+                        label={t('floor')}
                         value={formData.floorStr || "0"}
                         readonly={false}
-                        placeholder="Tầng"
+                        placeholder={t('floor')}
                         name="floor"
                         onChange={handleChange}
+                        error={errors.floor}
                     />
 
                     <DetailField
-                        label="Số phòng ngủ"
+                        label={t('bedrooms')}
                         value={formData.bedroomsStr || "0"}
                         readonly={false}
-                        placeholder="Số phòng ngủ"
+                        placeholder={t('bedrooms')}
                         name="bedrooms"
                         onChange={handleChange}
+                        error={errors.bedrooms}
                     />
 
                     <DetailField
-                        label="Diện tích (m²)"
+                        label={t('areaM2')}
                         value={formData.areaStr || "0"}
                         readonly={false}
-                        placeholder="Diện tích"
+                        placeholder={t('areaM2')}
                         name="area"
                         onChange={handleChange}
-                    />
-
-                    <DetailField
-                        label="Chủ sở hữu"
-                        value={formData?.ownerName || ""}
-                        readonly={false}
-                        placeholder="Chủ sở hữu"
-                        name="ownerName"
-                        onChange={handleChange}
+                        error={errors.area}
                     />
 
                 </div>

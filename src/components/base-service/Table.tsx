@@ -25,6 +25,12 @@ interface TableItemProps {
     summary?: string;
     publishAt?: string;
     expireAt?: string;
+    // Notification fields
+    notificationId?: string;
+    message?: string;
+    type?: string;
+    scope?: string;
+    target?: string;
 }
 
 interface TableProps {
@@ -76,6 +82,32 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
         }
     };
 
+    const getTypeLabel = (type: string) => {
+        const typeMap: { [key: string]: string } = {
+            'INFO': 'Thông tin',
+            'WARNING': 'Cảnh báo',
+            'ALERT': 'Khẩn cấp',
+            'SUCCESS': 'Thành công',
+            'ANNOUNCEMENT': 'Thông báo chung',
+        };
+        return typeMap[type] || type;
+    };
+
+    const getTypeColor = (type: string) => {
+        const colorMap: { [key: string]: string } = {
+            'INFO': 'text-blue-700 bg-blue-100',
+            'WARNING': 'text-yellow-700 bg-yellow-100',
+            'ALERT': 'text-red-700 bg-red-100',
+            'SUCCESS': 'text-green-700 bg-green-100',
+            'ANNOUNCEMENT': 'text-purple-700 bg-purple-100',
+        };
+        return colorMap[type] || 'text-gray-600 bg-gray-100';
+    };
+
+    const getScopeLabel = (scope: string) => {
+        return scope === 'INTERNAL' ? 'Nội bộ' : 'Bên ngoài';
+    };
+
     return (
         <div className="overflow-x-auto bg-white mt-6 border-t-4 bolder-solid border-[#14AE5C] h-[600px] overflow-y-auto">
             <table className="w-full rounded-xl">
@@ -107,43 +139,6 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                             ? 'border-b border-solid border-[#CDCDCD]' 
                             : 'border-b-0';
                         
-                            if(type === "project"){
-                                return (
-                                    <tr 
-                                        key={item.projectId} 
-                                        className={`${rowClass} ${borderClass} cursor-pointer`}
-                                    >
-        
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold text-center">
-                                                {item.projectCode}
-                                        </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.projectName}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.address}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.status}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>
-        
-                                        <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.createBy}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023] text-center">
-                                            <div className="flex space-x-2 justify-center">
-                                                <button 
-                                                    className={` hover:bg-opacity-80 transition duration-150`}
-                                                    onClick={() => console.log('Chỉnh sửa dự án')}
-                                                >
-                                                    <Link href={`/base/project/projectDetail/${item.projectId}`}>
-                                                        <Image 
-                                                            src={Edit} 
-                                                            alt="Edit" 
-                                                            width={24} 
-                                                            height={24}
-                                                            className="w-10 h-10"
-                                                        />
-                                                    </Link>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            }
                             if(type === "building"){
                                 return (
                                     <tr 
@@ -155,7 +150,6 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                 {item.buildingCode}
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.buildingName}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.projectName}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.floors}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.status}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>
@@ -219,6 +213,58 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                     <button 
                                                         className="hover:opacity-70 transition"
                                                         onClick={() => item.newsId && onDelete(item.newsId)}
+                                                        title="Xóa"
+                                                    >
+                                                        <Image 
+                                                            src={Delete} 
+                                                            alt="Delete" 
+                                                            width={32} 
+                                                            height={32}
+                                                        />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            }
+                            if(type === "notification"){
+                                return (
+                                    <tr 
+                                        key={item.notificationId} 
+                                        className={`${rowClass} ${borderClass} cursor-pointer`}
+                                    >
+        
+                                        <td className="px-4 py-3 text-[14px] text-[#024023] font-semibold text-left max-w-xs truncate">
+                                            {item.title}
+                                        </td>
+                                        <td className="px-4 py-3 text-[14px] text-gray-700 text-left max-w-sm truncate">{item.message}</td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(item.type || '')}`}>
+                                                {getTypeLabel(item.type || '')}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center text-[14px] text-gray-700">{formatDate(item.createdAt || '')}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex space-x-2 justify-center">
+                                                {onEdit && (
+                                                    <button 
+                                                        className="hover:opacity-70 transition"
+                                                        onClick={() => item.notificationId && onEdit(item.notificationId)}
+                                                        title="Chỉnh sửa"
+                                                    >
+                                                        <Image 
+                                                            src={Edit} 
+                                                            alt="Edit" 
+                                                            width={32} 
+                                                            height={32}
+                                                        />
+                                                    </button>
+                                                )}
+                                                {onDelete && (
+                                                    <button 
+                                                        className="hover:opacity-70 transition"
+                                                        onClick={() => item.notificationId && onDelete(item.notificationId)}
                                                         title="Xóa"
                                                     >
                                                         <Image 

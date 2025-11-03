@@ -1,7 +1,5 @@
 export interface Building{
     id: string,
-    tenantId: string,
-    tenanName?: string,
     status?: string,
     code: string,
     name: string,

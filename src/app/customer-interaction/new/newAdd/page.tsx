@@ -7,11 +7,21 @@ import Select from '@/src/components/customer-interaction/Select';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { getBuildingsByTenant, Building } from '@/src/services/base/buildingService';
+import { getBuildings, Building } from '@/src/services/base/buildingService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import { useNewAdd } from '@/src/hooks/useNewAdd';
-import { News, uploadNewsImage } from '@/src/services/customer-interaction/newService';
+import { 
+    updateNews, 
+    CreateNewsRequest, 
+    UpdateNewsRequest, 
+    NewsImageDto, 
+    uploadMultipleNewsImages,
+    uploadNewsImageFile,
+    uploadNewsImageFiles
+} from '@/src/services/customer-interaction/newService';
+import { NotificationScope, NewsStatus } from '@/src/types/news';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getAllTenants, Tenant } from '@/src/services/base/tenantService';
 
 interface NewsImage {
     url: string;
@@ -32,12 +42,14 @@ interface NewsFormData {
     summary: string;
     bodyHtml: string;
     coverImageUrl: string;
-    status: string;
+    status: NewsStatus;
     publishAt: string;
     expireAt: string;
     displayOrder: number;
     images: NewsImage[];
-    targets: NewsTarget[];
+    scope: NotificationScope;
+    targetRole?: string;
+    targetBuildingId?: string | null;
 }
 
 export default function NewsAdd() {
@@ -47,8 +59,11 @@ export default function NewsAdd() {
     const { addNews, loading, error, isSubmitting } = useNewAdd();
     const { show } = useNotifications();
 
+    const [tenants, setTenants] = useState<Tenant[]>([]);
+    const [selectedTenantId, setSelectedTenantId] = useState<string>('');
+    const [loadingTenants, setLoadingTenants] = useState(false);
     const [buildings, setBuildings] = useState<Building[]>([]);
-    const [selectedBuildings, setSelectedBuildings] = useState<Building[]>([]);
+    const [selectedBuildingId, setSelectedBuildingId] = useState<string>('all'); // 'all' means all buildings, otherwise building.id
     const [loadingBuildings, setLoadingBuildings] = useState(false);
     const [uploadingCoverImage, setUploadingCoverImage] = useState(false);
     const [uploadingDetailImage, setUploadingDetailImage] = useState(false);
@@ -63,13 +78,9 @@ export default function NewsAdd() {
         expireAt: '',
         displayOrder: 1,
         images: [],
-        targets: [
-            {
-                targetType: 'ALL',
-                buildingId: null,
-                buildingName: null,
-            },
-        ],
+        scope: 'EXTERNAL',
+        targetRole: undefined,
+        targetBuildingId: undefined,
     });
 
     const [newImage, setNewImage] = useState<NewsImage>({
@@ -84,97 +95,307 @@ export default function NewsAdd() {
     const [coverImagePreview, setCoverImagePreview] = useState<string>('');
     const imageInputRef = React.useRef<HTMLInputElement>(null);
 
-    // Fetch buildings when component mounts
+    // Validation errors state
+    const [errors, setErrors] = useState<{
+        title?: string;
+        summary?: string;
+        bodyHtml?: string;
+        publishAt?: string;
+        expireAt?: string;
+    }>({});
+
+    // Fetch buildings when scope is EXTERNAL (or when tenant is selected for filtering)
     useEffect(() => {
         const fetchBuildings = async () => {
-            if (user?.tenantId) {
+            if (formData.scope === 'EXTERNAL') {
                 setLoadingBuildings(true);
                 try {
-                    const data = await getBuildingsByTenant(user.tenantId);
-                    setBuildings(data);
+                    const allBuildings = await getBuildings();
+                    // Filter by tenantId if selectedTenantId exists
+                    const filtered = selectedTenantId 
+                        ? allBuildings.filter((b: Building) => b.tenantId === selectedTenantId)
+                        : allBuildings;
+                    setBuildings(filtered);
                 } catch (error) {
                     console.error('Lỗi khi tải danh sách tòa nhà:', error);
+                    show('Không thể tải danh sách tòa nhà', 'error');
                 } finally {
                     setLoadingBuildings(false);
                 }
+            } else {
+                setBuildings([]);
+                setSelectedBuildingId('all');
             }
         };
 
         fetchBuildings();
-    }, [user?.tenantId]);
+    }, [formData.scope, selectedTenantId, show]);
 
     const handleBack = () => {
-        router.back();
+        router.push('/customer-interaction/new/newList');
+    };
+
+    // Validate individual field
+    const validateField = (fieldName: string, value: string, currentFormData?: NewsFormData) => {
+        const data = currentFormData || formData;
+        const newErrors = { ...errors };
+        
+        switch (fieldName) {
+            case 'title':
+                if (!value || value.trim() === '') {
+                    newErrors.title = 'Vui lòng nhập tiêu đề tin tức';
+                } else {
+                    delete newErrors.title;
+                }
+                break;
+            case 'summary':
+                if (!value || value.trim() === '') {
+                    newErrors.summary = 'Vui lòng nhập tóm tắt tin tức';
+                } else {
+                    delete newErrors.summary;
+                }
+                break;
+            case 'bodyHtml':
+                if (!value || value.trim() === '') {
+                    newErrors.bodyHtml = 'Vui lòng nhập nội dung tin tức';
+                } else {
+                    delete newErrors.bodyHtml;
+                }
+                break;
+            case 'publishAt':
+                if (!value || value.trim() === '') {
+                    newErrors.publishAt = 'Vui lòng chọn ngày xuất bản';
+                } else {
+                    // Validate publishAt < expireAt
+                    const expireAt = fieldName === 'publishAt' ? data.expireAt : value;
+                    const publishAt = fieldName === 'publishAt' ? value : data.publishAt;
+                    if (expireAt && publishAt >= expireAt) {
+                        newErrors.publishAt = 'Ngày xuất bản phải nhỏ hơn ngày hết hạn';
+                    } else {
+                        delete newErrors.publishAt;
+                    }
+                }
+                break;
+            case 'expireAt':
+                if (!value || value.trim() === '') {
+                    newErrors.expireAt = 'Vui lòng chọn ngày hết hạn';
+                } else {
+                    // Validate publishAt < expireAt
+                    const publishAt = fieldName === 'expireAt' ? data.publishAt : value;
+                    const expireAt = fieldName === 'expireAt' ? value : data.expireAt;
+                    if (publishAt && publishAt >= expireAt) {
+                        newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày xuất bản';
+                    } else {
+                        // For create page: expireAt must be > today
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const expireDate = new Date(value);
+                        expireDate.setHours(0, 0, 0, 0);
+                        if (expireDate <= today) {
+                            newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày hôm nay';
+                        } else {
+                            delete newErrors.expireAt;
+                        }
+                    }
+                }
+                break;
+        }
+        
+        setErrors(newErrors);
+    };
+
+    // Validate all fields
+    const validateAllFields = (): boolean => {
+        const newErrors: {
+            title?: string;
+            summary?: string;
+            bodyHtml?: string;
+            publishAt?: string;
+            expireAt?: string;
+        } = {};
+
+        // Validate title
+        if (!formData.title || formData.title.trim() === '') {
+            newErrors.title = 'Vui lòng nhập tiêu đề tin tức';
+        }
+
+        // Validate summary
+        if (!formData.summary || formData.summary.trim() === '') {
+            newErrors.summary = 'Vui lòng nhập tóm tắt tin tức';
+        }
+
+        // Validate bodyHtml
+        if (!formData.bodyHtml || formData.bodyHtml.trim() === '') {
+            newErrors.bodyHtml = 'Vui lòng nhập nội dung tin tức';
+        }
+
+        // Validate publishAt
+        if (!formData.publishAt || formData.publishAt.trim() === '') {
+            newErrors.publishAt = 'Vui lòng chọn ngày xuất bản';
+        }
+
+        // Validate expireAt
+        if (!formData.expireAt || formData.expireAt.trim() === '') {
+            newErrors.expireAt = 'Vui lòng chọn ngày hết hạn';
+        }
+
+        // Validate publishAt < expireAt
+        if (formData.publishAt && formData.expireAt) {
+            if (formData.publishAt >= formData.expireAt) {
+                newErrors.publishAt = 'Ngày xuất bản phải nhỏ hơn ngày hết hạn';
+                newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày xuất bản';
+            }
+        }
+
+        // For create page: expireAt must be > today
+        if (formData.expireAt) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const expireDate = new Date(formData.expireAt);
+            expireDate.setHours(0, 0, 0, 0);
+            if (expireDate <= today) {
+                newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày hôm nay';
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (isSubmitting || !user?.tenantId) return;
+        if (isSubmitting) return;
 
-        // Validation
-        if (!formData.title.trim()) {
-            show('Vui lòng nhập tiêu đề tin tức', 'error');
+        // Validate all fields
+        if (!validateAllFields()) {
+            show('Vui lòng kiểm tra lại các trường bắt buộc', 'error');
             return;
         }
-        if (!formData.summary.trim()) {
-            show('Vui lòng nhập tóm tắt tin tức', 'error');
+
+        // Additional validations
+        if (formData.scope === 'EXTERNAL' && selectedBuildingId === '') {
+            show('Vui lòng chọn tòa nhà hoặc chọn "Tất cả tòa nhà" cho tin tức EXTERNAL', 'error');
             return;
         }
-        if (!formData.bodyHtml.trim()) {
-            show('Vui lòng nhập nội dung tin tức', 'error');
-            return;
-        }
-        if (!formData.publishAt) {
-            show('Vui lòng chọn ngày xuất bản', 'error');
-            return;
-        }
-        if (formData.targets[0]?.targetType === 'BUILDING' && selectedBuildings.length === 0) {
-            show('Vui lòng chọn ít nhất một tòa nhà', 'error');
+        if (formData.scope === 'INTERNAL' && !formData.targetRole) {
+            show('Vui lòng nhập target role cho tin tức INTERNAL', 'error');
             return;
         }
 
         try {
-            console.log('Dữ liệu gửi đi:', formData);
-            
-
-            // Step 2: Tạo news trước (chưa có detail images)
-            const newsData: News = {
+            // Step 1: Create news first (without coverImageUrl if it's a file - will upload after)
+            // Build request object, only including fields that have values
+            const request: CreateNewsRequest = {
                 title: formData.title,
-                summary: formData.summary,
                 bodyHtml: formData.bodyHtml,
-                coverImageUrl: formData.coverImageUrl,
                 status: formData.status,
-                publishAt: formData.publishAt,
-                expireAt: formData.expireAt,
-                displayOrder: formData.displayOrder,
-                images: [], // Chưa có images
-                targets: formData.targets,
+                scope: formData.scope,
+                displayOrder: formData.displayOrder || 0,
             };
 
-            const createdNews = await addNews(newsData);
-            console.log('News created:', createdNews);
+            // Add optional fields only if they have values
+            if (formData.summary && formData.summary.trim()) {
+                request.summary = formData.summary.trim();
+            }
+            // Only add coverImageUrl if it's a URL (not a file - file will be uploaded after)
+            if (!coverImageFile && formData.coverImageUrl && formData.coverImageUrl.trim()) {
+                request.coverImageUrl = formData.coverImageUrl.trim();
+            }
+            if (formData.publishAt) {
+                request.publishAt = formData.publishAt;
+            }
+            if (formData.expireAt) {
+                request.expireAt = formData.expireAt;
+            }
+            if (formData.scope === 'INTERNAL' && formData.targetRole && formData.targetRole.trim()) {
+                request.targetRole = formData.targetRole.trim();
+            }
+            if (formData.scope === 'EXTERNAL') {
+                request.targetBuildingId = selectedBuildingId === 'all' ? null : (selectedBuildingId || null);
+            }
+            // Don't include images in initial creation
 
-            // Step 3: Upload từng detail image với newsId
-            if (formData.images.length > 0 && createdNews?.id) {
-                setUploadingDetailImage(true);
-                for (let i = 0; i < formData.images.length; i++) {
-                    const img = formData.images[i];
-                    if (img.file) {
-                        try {
-                            const uploadedImage = await uploadNewsImage(
-                                user.tenantId,
-                                createdNews.id,
-                                img.file,
-                                img.caption,
-                                i
-                            );
-                            console.log(`Image ${i + 1} uploaded:`, uploadedImage);
-                        } catch (error) {
-                            console.error(`Lỗi khi upload ảnh ${i + 1}:`, error);
-                        }
-                    }
+            console.log('Creating news:', request);
+            const createdNews = await addNews(request);
+            
+            if (!createdNews.id) {
+                throw new Error('News created but no ID returned');
+            }
+
+            const newsId = createdNews.id;
+
+            // Step 2: Upload cover image if there's a file (after creating news to get newsId)
+            let coverImageUrl = request.coverImageUrl; // Keep existing URL if any
+            
+            if (coverImageFile) {
+                setUploadingCoverImage(true);
+                try {
+                    // Upload with newsId as ownerId
+                    const coverResponse = await uploadNewsImageFile(coverImageFile, newsId, user?.userId);
+                    coverImageUrl = coverResponse.fileUrl; // Use fileUrl from response
+                    
+                    // Update news with coverImageUrl
+                    const updateRequest: UpdateNewsRequest = {
+                        coverImageUrl: coverImageUrl,
+                    };
+                    await updateNews(newsId, updateRequest);
+                } catch (error) {
+                    console.error('Error uploading cover image:', error);
+                    show('Lỗi khi upload ảnh bìa', 'error');
+                    setUploadingCoverImage(false);
+                    return;
+                } finally {
+                    setUploadingCoverImage(false);
                 }
-                setUploadingDetailImage(false);
+            }
+
+            // Step 3: Upload detail images and add to news
+            const imagesWithFiles = formData.images.filter(img => img.file);
+            const imagesWithUrls = formData.images.filter(img => img.url && !img.file);
+            
+            if (imagesWithFiles.length > 0 || imagesWithUrls.length > 0) {
+                setUploadingDetailImage(true);
+                try {
+                    // Upload files to get URLs
+                    let uploadedImageUrls: string[] = [];
+                    let uploadResponses: any[] = [];
+                    if (imagesWithFiles.length > 0) {
+                        const files = imagesWithFiles.map(img => img.file!);
+                        const ownerId = newsId;
+                        uploadResponses = await uploadNewsImageFiles(files, ownerId, user?.userId);
+                        uploadedImageUrls = uploadResponses.map(res => res.fileUrl); // Use fileUrl from response
+                    }
+
+                    // Prepare imageDtos with newsId for NewsImageController
+                    const imageDtos: NewsImageDto[] = [
+                        ...imagesWithFiles.map((img, index) => ({
+                            newsId: newsId,
+                            url: uploadedImageUrls[index],
+                            caption: img.caption || '',
+                            sortOrder: index,
+                            fileSize: uploadResponses[index]?.fileSize,
+                            contentType: uploadResponses[index]?.contentType,
+                        })),
+                        ...imagesWithUrls.map((img, index) => ({
+                            newsId: newsId,
+                            url: img.url,
+                            caption: img.caption || '',
+                            sortOrder: imagesWithFiles.length + index,
+                        })),
+                    ];
+
+                    // Add images to news via NewsImageController
+                    if (imageDtos.length > 0) {
+                        await uploadMultipleNewsImages(imageDtos);
+                    }
+                } catch (error) {
+                    console.error('Error uploading detail images:', error);
+                    show('Lỗi khi upload hình ảnh chi tiết', 'error');
+                    setUploadingDetailImage(false);
+                    return;
+                } finally {
+                    setUploadingDetailImage(false);
+                }
             }
             
             // Show success message
@@ -196,6 +417,8 @@ export default function NewsAdd() {
             ...prev,
             [name]: value,
         }));
+        // Validate field on change
+        validateField(name, value);
     };
 
     const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,10 +460,17 @@ export default function NewsAdd() {
 
     const handlePublishAtChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const isoDate = formatDateToISO(e.target.value);
-        setFormData((prev) => ({
-            ...prev,
-            publishAt: isoDate,
-        }));
+        setFormData((prev) => {
+            const newData = { ...prev, publishAt: isoDate };
+            // Validate with updated data
+            setTimeout(() => {
+                validateField('publishAt', isoDate, newData);
+                if (newData.expireAt) {
+                    validateField('expireAt', newData.expireAt, newData);
+                }
+            }, 0);
+            return newData;
+        });
     };
 
     const handleExpireAtChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -251,79 +481,52 @@ export default function NewsAdd() {
             date.setUTCHours(23, 59, 59, 999);
             isoDate = date.toISOString();
         }
-        setFormData((prev) => ({
-            ...prev,
-            expireAt: isoDate,
-        }));
+        setFormData((prev) => {
+            const newData = { ...prev, expireAt: isoDate };
+            // Validate with updated data
+            setTimeout(() => {
+                validateField('expireAt', isoDate, newData);
+                if (newData.publishAt) {
+                    validateField('publishAt', newData.publishAt, newData);
+                }
+            }, 0);
+            return newData;
+        });
     };
 
     const handleStatusChange = (item: { name: string; value: string }) => {
         setFormData((prevData) => ({
             ...prevData,
-            status: item.value,
+            status: item.value as NewsStatus,
         }));
     };
 
-    const handleTargetTypeChange = (item: { name: string; value: string }) => {
-        setSelectedBuildings([]);
-        if (item.value === 'ALL') {
-            setFormData((prevData) => ({
-                ...prevData,
-                targets: [
-                    {
-                        targetType: 'ALL',
-                        buildingId: null,
-                        buildingName: null,
-                    },
-                ],
-            }));
-        } else if (item.value === 'BUILDING') {
-            setFormData((prevData) => ({
-                ...prevData,
-                targets: [
-                    {
-                        targetType: 'BUILDING',
-                        buildingId: null,
-                        buildingName: null,
-                    },
-                ],
-            }));
-        } else {
-            setFormData((prevData) => ({
-                ...prevData,
-                targets: [],
-            }));
-        }
+    const handleTenantChange = (item: { name: string; value: string }) => {
+        setSelectedTenantId(item.value);
+        // Reset building selection khi đổi tenant
+        setSelectedBuildingId('all');
+        setFormData((prevData) => ({
+            ...prevData,
+            targetBuildingId: undefined,
+        }));
     };
 
-    const handleBuildingToggle = (building: Building) => {
-        const isSelected = selectedBuildings.some(b => b.id === building.id);
-        
-        if (isSelected) {
-            // Remove building
-            const newSelected = selectedBuildings.filter(b => b.id !== building.id);
-            setSelectedBuildings(newSelected);
-            setFormData((prev) => ({
-                ...prev,
-                targets: newSelected.map(b => ({
-                    targetType: 'BUILDING',
-                    buildingId: b.id,
-                    buildingName: b.name,
-                })),
-            }));
-        } else {
-            // Add building
-            const newSelected = [...selectedBuildings, building];
-            setSelectedBuildings(newSelected);
-            setFormData((prev) => ({
-                ...prev,
-                targets: newSelected.map(b => ({
-                    targetType: 'BUILDING',
-                    buildingId: b.id,
-                    buildingName: b.name,
-                })),
-            }));
-        }
+    const handleScopeChange = (item: { name: string; value: string }) => {
+        setSelectedBuildingId('all');
+        setFormData((prevData) => ({
+            ...prevData,
+            scope: item.value as NotificationScope,
+            targetRole: undefined,
+            targetBuildingId: undefined,
+        }));
+    };
+
+    const handleBuildingChange = (item: { name: string; value: string }) => {
+        setSelectedBuildingId(item.value);
+        setFormData((prev) => ({
+            ...prev,
+            targetBuildingId: item.value === 'all' ? null as any : item.value,
+        }));
     };
 
     const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -404,8 +607,15 @@ export default function NewsAdd() {
         }));
     };
 
+    function handleTargetRoleChange(item: { name: string; value: string; }): void {
+        setFormData((prev) => ({
+            ...prev,
+            targetRole: item.value,
+        }));
+    }
+
     return (
-        <div className={`min-h-screen bg-[#F5F7FA] p-4 sm:p-8 font-sans`}>
+        <div className={`min-h-screen  p-4 sm:p-8 font-sans`}>
             <div
                 className="max-w-4xl mx-auto mb-6 flex items-center cursor-pointer"
                 onClick={handleBack}
@@ -437,6 +647,8 @@ export default function NewsAdd() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                    {/* Project/Tenant Selection */}
+
                     {/* Title */}
                     <div className="col-span-full">
                         <DetailField
@@ -446,6 +658,8 @@ export default function NewsAdd() {
                             name="title"
                             placeholder="Nhập tiêu đề tin tức"
                             readonly={false}
+                            required={true}
+                            error={errors.title}
                         />
                     </div>
 
@@ -459,6 +673,8 @@ export default function NewsAdd() {
                             type="textarea"
                             placeholder="Nhập tóm tắt ngắn gọn"
                             readonly={false}
+                            required={true}
+                            error={errors.summary}
                         />
                     </div>
 
@@ -472,6 +688,8 @@ export default function NewsAdd() {
                             type="textarea"
                             placeholder="Nhập nội dung HTML"
                             readonly={false}
+                            required={true}
+                            error={errors.bodyHtml}
                         />
                     </div>
 
@@ -523,7 +741,10 @@ export default function NewsAdd() {
                         <Select
                             options={[
                                 { name: 'Nháp', value: 'DRAFT' },
+                                { name: 'Đã lên lịch', value: 'SCHEDULED' },
                                 { name: 'Đã xuất bản', value: 'PUBLISHED' },
+                                { name: 'Ẩn', value: 'HIDDEN' },
+                                { name: 'Hết hạn', value: 'EXPIRED' },
                                 { name: 'Đã lưu trữ', value: 'ARCHIVED' },
                             ]}
                             value={formData.status}
@@ -552,89 +773,95 @@ export default function NewsAdd() {
                     {/* Publish At */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Ngày xuất bản
+                            Ngày xuất bản <span className="text-red-500">*</span>
                         </label>
                         <DateBox
                             value={formatISOToDate(formData.publishAt)}
                             onChange={handlePublishAtChange}
                             placeholderText="Chọn ngày xuất bản"
                         />
+                        {errors.publishAt && (
+                            <span className="text-red-500 text-xs mt-1">{errors.publishAt}</span>
+                        )}
                     </div>
 
                     {/* Expire At */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Ngày hết hạn
+                            Ngày hết hạn <span className="text-red-500">*</span>
                         </label>
                         <DateBox
                             value={formatISOToDate(formData.expireAt)}
                             onChange={handleExpireAtChange}
                             placeholderText="Chọn ngày hết hạn"
                         />
+                        {errors.expireAt && (
+                            <span className="text-red-500 text-xs mt-1">{errors.expireAt}</span>
+                        )}
                     </div>
 
-                    {/* Target Type */}
+                    {/* Scope */}
                     <div className={`flex flex-col mb-4 col-span-full`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Đối tượng nhận
+                            Phạm vi (Scope)
                         </label>
                         <Select
                             options={[
-                                { name: 'Tất cả', value: 'ALL' },
-                                { name: 'Tòa nhà cụ thể', value: 'BUILDING' }
+                                { name: 'Nội bộ (INTERNAL)', value: 'INTERNAL' },
+                                { name: 'Bên ngoài (EXTERNAL)', value: 'EXTERNAL' }
                             ]}
-                            value={formData.targets[0]?.targetType || 'ALL'}
-                            onSelect={handleTargetTypeChange}
+                            value={formData.scope}
+                            onSelect={handleScopeChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder="Chọn đối tượng"
+                            placeholder="Chọn phạm vi"
                         />
 
-                        {formData.targets[0]?.targetType === 'BUILDING' && (
+                        {formData.scope === 'INTERNAL' && (
+                            <div className="mt-4">
+                                <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                                    Target Role <span className="text-red-500">*</span>
+                                </label>
+                                <Select
+                                    options={[
+                                        { name: 'Tất cả', value: 'ALL' },
+                                        { name: 'Quản trị viên', value: 'ADMIN' },
+                                        { name: 'Kỹ sư', value: 'TECHNICIAN' },
+                                        { name: 'Hỗ trợ', value: 'SUPPORTER' },
+                                        { name: 'Tài khoản', value: 'ACCOUNT' },
+                                        { name: 'Cư dân', value: 'RESIDENT' },
+                                    ]}
+                                    value={formData.targetRole}
+                                    onSelect={handleTargetRoleChange}
+                                    renderItem={(item) => item.name}
+                                    getValue={(item) => item.value}
+                                    placeholder="Chọn target role"
+                                />
+                            </div>
+                        )}
+
+                        {formData.scope === 'EXTERNAL' && (
                             <div className="mt-4">
                                 <label className="text-sm font-semibold text-gray-700 mb-2 block">
                                     Chọn tòa nhà
                                 </label>
                                 {loadingBuildings ? (
                                     <p className="text-gray-500 text-sm">Đang tải danh sách tòa nhà...</p>
-                                ) : buildings.length === 0 ? (
-                                    <p className="text-gray-500 text-sm">Không có tòa nhà nào</p>
                                 ) : (
-                                    <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3 bg-gray-50">
-                                        {buildings.map((building) => {
-                                            const isSelected = selectedBuildings.some(b => b.id === building.id);
-                                            return (
-                                                <label
-                                                    key={building.id}
-                                                    className={`flex items-center p-3 rounded-lg cursor-pointer transition ${
-                                                        isSelected 
-                                                            ? 'bg-[#02542D] text-white' 
-                                                            : 'bg-white hover:bg-gray-100'
-                                                    }`}
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isSelected}
-                                                        onChange={() => handleBuildingToggle(building)}
-                                                        className="w-4 h-4 rounded border-gray-300 text-[#02542D] focus:ring-[#02542D] mr-3"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <p className={`font-semibold text-sm ${isSelected ? 'text-white' : 'text-gray-800'}`}>
-                                                            {building.name}
-                                                        </p>
-                                                        <p className={`text-xs ${isSelected ? 'text-gray-200' : 'text-gray-500'}`}>
-                                                            {building.code} - {building.address}
-                                                        </p>
-                                                    </div>
-                                                </label>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                                {selectedBuildings.length > 0 && (
-                                    <p className="text-sm text-gray-600 mt-2">
-                                        Đã chọn: <span className="font-semibold">{selectedBuildings.length}</span> tòa nhà
-                                    </p>
+                                    <Select
+                                        options={[
+                                            { name: 'Tất cả tòa nhà', value: 'all' },
+                                            ...buildings.map(b => ({ 
+                                                name: `${b.name} (${b.code})`, 
+                                                value: b.id 
+                                            }))
+                                        ]}
+                                        value={selectedBuildingId}
+                                        onSelect={handleBuildingChange}
+                                        renderItem={(item) => item.name}
+                                        getValue={(item) => item.value}
+                                        placeholder="Chọn tòa nhà"
+                                    />
                                 )}
                             </div>
                         )}
@@ -711,9 +938,9 @@ export default function NewsAdd() {
                                         key={index}
                                         className="flex items-start gap-4 bg-white border border-gray-200 p-4 rounded-lg"
                                     >
-                                        {image.preview && (
+                                        {(image.preview || image.url) && (
                                             <img
-                                                src={image.preview}
+                                                src={image.preview || image.url}
                                                 alt={image.caption || 'Image'}
                                                 className="w-24 h-24 object-cover rounded-lg border border-gray-300 flex-shrink-0"
                                             />
@@ -765,9 +992,9 @@ export default function NewsAdd() {
                         <button
                             type="submit"
                             className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || uploadingCoverImage || uploadingDetailImage}
                         >
-                            {isSubmitting ? 'Đang lưu...' : 'Lưu'}
+                            {(isSubmitting || uploadingCoverImage || uploadingDetailImage) ? 'Đang lưu...' : 'Lưu'}
                         </button>
                     </div>
                 </div>

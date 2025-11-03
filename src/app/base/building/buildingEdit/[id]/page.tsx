@@ -30,11 +30,15 @@ export default function BuildingEdit() {
         totalApartmentsAll: 0,
         totalApartmentsActive: 0,
         floorsMaxStr: '0',
-        status: 'INACTIVE',
+        status: '',
     });
 
     const [tenantName, setTenantName] = useState<string>('');
     const [loadingTenant, setLoadingTenant] = useState(false);
+    const [errors, setErrors] = useState<{
+        address?: string;
+        floors?: string;
+    }>({});
 
     useEffect(() => {
         if (buildingData) {
@@ -44,32 +48,57 @@ export default function BuildingEdit() {
                 totalApartmentsAll: buildingData.totalApartmentsAll ?? 0,
                 totalApartmentsActive: buildingData.totalApartmentsActive ?? 0,
                 floorsMaxStr: buildingData.floorsMax?.toString() ?? '0',
-                status: buildingData.status ?? 'INACTIVE',
+                status: buildingData.status ?? 'ACTIVE',
             });
         }
     }, [buildingData]);
 
-    useEffect(() => {
-        const loadTenantName = async () => {
-            if (!buildingData?.tenantId) return;
-            
-            try {
-                setLoadingTenant(true);
-                const tenant = await getTenant(buildingData.tenantId);
-                setTenantName(tenant.name);
-            } catch (err: any) {
-                console.error('Failed to load tenant:', err);
-                setTenantName('N/A');
-            } finally {
-                setLoadingTenant(false);
-            }
-        };
-
-        loadTenantName();
-    }, [buildingData?.tenantId]);
-
     const handleBack = () => {
         router.back();
+    };
+
+    const validateField = (fieldName: string, value: string | number) => {
+        const newErrors = { ...errors };
+        
+        switch (fieldName) {
+            case 'address':
+                if (!value || String(value).trim() === '') {
+                    newErrors.address = t('addressError');
+                } else {
+                    delete newErrors.address;
+                }
+                break;
+            case 'floorsMax':
+                const floors = typeof value === 'number' ? value : parseInt(String(value));
+                if (!floors || floors <= 0) {
+                    newErrors.floors = t('floorsError');
+                } else {
+                    delete newErrors.floors;
+                }
+                break;
+        }
+        
+        setErrors(newErrors);
+    };
+
+    const validateAllFields = () => {
+        const newErrors: {
+            address?: string;
+            floors?: string;
+        } = {};
+        
+        // Validate address
+        if (!formData.address || formData.address.trim() === '') {
+            newErrors.address = t('addressError');
+        }
+        
+        // Validate floors
+        if (!formData.floorsMax || formData.floorsMax <= 0) {
+            newErrors.floors = t('floorsError');
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleChange = (
@@ -77,16 +106,24 @@ export default function BuildingEdit() {
     ) => {
         const { name, value } = e.target;
         if (name === 'floorsMax') {
+            const floorsValue = parseInt(value) || 0;
             setFormData(prev => ({
                 ...prev,
                 floorsMaxStr: value,
-                floorsMax: parseInt(value) || 0,
+                floorsMax: floorsValue,
             }));
+            validateField('floorsMax', floorsValue);
         } else if (name === 'totalApartmentsAll') {
             setFormData(prev => ({
                 ...prev,
                 totalApartmentsAll: parseInt(value) || 0,
             }));
+        } else if (name === 'address') {
+            setFormData((prevData) => ({
+                ...prevData,
+                [name]: value,
+            }));
+            validateField('address', value);
         } else {
             setFormData((prevData) => ({
                 ...prevData,
@@ -106,13 +143,11 @@ export default function BuildingEdit() {
         e.preventDefault();
         if (isSubmitting) return;
 
-        // Validation
-        if (!formData.address?.trim()) {
-            show('Vui lòng nhập địa chỉ', 'error');
-            return;
-        }
-        if (!formData.floorsMax || formData.floorsMax <= 0) {
-            show('Số tầng phải lớn hơn 0', 'error');
+        // Validate all fields at once
+        const isValid = validateAllFields();
+
+        if (!isValid) {
+            show(t('error'), 'error');
             return;
         }
 
@@ -141,7 +176,7 @@ export default function BuildingEdit() {
     }
 
     return (
-        <div className={`min-h-screen bg-[#F5F7FA] p-4 sm:p-8 font-sans`}>
+        <div className={`min-h-screen  p-4 sm:p-8 font-sans`}>
             <div className="max-w-4xl mx-auto mb-6 flex items-center cursor-pointer" onClick={handleBack}>
                 <Image
                     src={Arrow}
@@ -208,12 +243,6 @@ export default function BuildingEdit() {
                         placeholder={t('buildingName')}
                     />
                     
-                    <DetailField
-                        label={tProject('projectName')}
-                        value={loadingTenant ? 'Loading...' : tenantName || buildingData?.tenanName || ""}
-                        readonly={true}
-                        placeholder={tProject('projectName')}
-                    />
 
                     <DetailField
                         label={t('address')}
@@ -222,6 +251,7 @@ export default function BuildingEdit() {
                         placeholder={t('address')}
                         name="address"
                         onChange={handleChange}
+                        error={errors.address}
                     />
 
                     <DetailField
@@ -231,6 +261,7 @@ export default function BuildingEdit() {
                         placeholder={t('floors')}
                         name="floorsMax"
                         onChange={handleChange}
+                        error={errors.floors}
                     />
                 </div>
 
