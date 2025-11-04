@@ -5,7 +5,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { getBuildings, Building } from '@/src/services/base/buildingService';
 import {
   getAllReadingCycles,
-  getActiveServices,
+  getAllServices,
   createMeterReadingAssignment,
   MeterReadingAssignmentCreateReq,
   ReadingCycleDto,
@@ -13,6 +13,8 @@ import {
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import Select from '@/src/components/customer-interaction/Select';
+import DateBox from '@/src/components/customer-interaction/DateBox';
+import { getEmployeesByRole, EmployeeRoleDto } from '@/src/services/iam/employeeService';
 
 export default function AddAssignmentPage() {
   const router = useRouter();
@@ -24,6 +26,7 @@ export default function AddAssignmentPage() {
   const [cycles, setCycles] = useState<ReadingCycleDto[]>([]);
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [services, setServices] = useState<ServiceDto[]>([]);
+  const [staffList, setStaffList] = useState<EmployeeRoleDto[]>([]);
 
   // Form fields
   const [selectedCycleId, setSelectedCycleId] = useState<string>(
@@ -46,13 +49,24 @@ export default function AddAssignmentPage() {
         const [cyclesData, buildingsData, servicesData] = await Promise.all([
           getAllReadingCycles(),
           getBuildings(),
-          getActiveServices()
+          getAllServices()
         ]);
 
         setCycles(cyclesData);
         setBuildings(buildingsData);
-        // Filter services that require meter
-        setServices(servicesData.filter(s => s.requiresMeter));
+        // Filter services that are active and require meter
+        setServices(servicesData.filter(s => s.active && s.requiresMeter));
+
+        // Load staff with technician role
+        if (user?.tenantId) {
+          try {
+            const staffData = await getEmployeesByRole(user.tenantId, 'technician');
+            setStaffList(staffData);
+          } catch (error) {
+            console.error('Failed to load staff list:', error);
+            // Don't show error, just continue without staff list
+          }
+        }
       } catch (error) {
         console.error('Failed to load data:', error);
         show('Failed to load data', 'error');
@@ -62,7 +76,7 @@ export default function AddAssignmentPage() {
     };
 
     loadData();
-  }, [show]);
+  }, [show, user?.tenantId]);
 
   // Auto-fill dates when cycle is selected
   useEffect(() => {
@@ -89,7 +103,7 @@ export default function AddAssignmentPage() {
     }
 
     if (!assignedTo) {
-      show('Please enter staff ID to assign to', 'error');
+      show('Please select a staff member to assign to', 'error');
       return;
     }
 
@@ -162,6 +176,7 @@ export default function AddAssignmentPage() {
               renderItem={(cycle) => `${cycle.name} (${cycle.status}) - ${new Date(cycle.periodFrom).toLocaleDateString()} to ${new Date(cycle.periodTo).toLocaleDateString()}`}
               getValue={(cycle) => cycle.id}
               placeholder="Select a reading cycle..."
+              disable={true}
             />
           </div>
 
@@ -207,15 +222,15 @@ export default function AddAssignmentPage() {
           {/* Assigned To */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assign To (Staff ID) <span className="text-red-500">*</span>
+              Assign To <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
+            <Select
+              options={staffList}
               value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              placeholder="Enter staff user ID"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
-              required
+              onSelect={(staff) => setAssignedTo(staff.userId)}
+              renderItem={(staff) => `${staff.fullName || staff.username} (${staff.email})`}
+              getValue={(staff) => staff.userId}
+              placeholder="Select a staff member..."
             />
           </div>
 
@@ -225,22 +240,20 @@ export default function AddAssignmentPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Start Date <span className="text-gray-500 text-xs">(Optional - defaults to cycle start)</span>
               </label>
-              <input
-                type="date"
+              <DateBox
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
+                placeholderText="Select start date"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 End Date <span className="text-gray-500 text-xs">(Optional - defaults to cycle end)</span>
               </label>
-              <input
-                type="date"
+              <DateBox
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
+                placeholderText="Select end date"
               />
             </div>
           </div>

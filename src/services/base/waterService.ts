@@ -673,6 +673,7 @@ export async function getAllServices(): Promise<ServiceDto[]> {
     `${BASE_URL}/api/services`,
     { withCredentials: true }
   );
+  console.log(response.data);
   return response.data;
 }
 
