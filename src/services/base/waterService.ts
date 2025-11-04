@@ -90,20 +90,36 @@ export interface MeterReadingCreateReq {
 export interface MeterReadingAssignmentDto {
   id: string;
   cycleId: string;
+  cycleName: string;
+  buildingId?: string;
+  buildingCode?: string;
+  buildingName?: string;
+  serviceId: string;
+  serviceCode: string;
+  serviceName: string;
   assignedTo: string;
   assignedBy: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  floors: number[];
-  buildingId: string;
-  createdAt: string;
+  assignedAt: string;
+  startDate: string;
+  endDate: string;
   completedAt?: string;
+  note?: string;
+  floorFrom?: number;
+  floorTo?: number;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface MeterReadingAssignmentCreateReq {
   cycleId: string;
+  buildingId?: string;
+  serviceId: string;
   assignedTo: string;
-  floors: number[];
-  buildingId: string;
+  startDate?: string;
+  endDate?: string;
+  note?: string;
+  floorFrom?: number;
+  floorTo?: number;
 }
 
 export interface AssignmentProgressDto {
@@ -111,6 +127,24 @@ export interface AssignmentProgressDto {
   readMeters: number;
   remainingMeters: number;
   progressPercentage: number;
+}
+
+// Types for Service
+export interface ServiceDto {
+  id: string;
+  code: string;
+  name: string;
+  nameEn?: string;
+  type: string;
+  unit?: string;
+  unitLabel?: string;
+  billable: boolean;
+  requiresMeter: boolean;
+  active: boolean;
+  description?: string;
+  displayOrder?: number;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // Water Formula (stored as metadata or separate endpoint - assuming it's part of cycle config)
@@ -629,6 +663,39 @@ export async function updateBillingCycleStatus(
       params: { status },
       withCredentials: true
     }
+  );
+  return response.data;
+}
+
+// Service API
+export async function getAllServices(): Promise<ServiceDto[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/services`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function getActiveServices(): Promise<ServiceDto[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/services/active`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function getServiceById(serviceId: string): Promise<ServiceDto> {
+  const response = await axios.get(
+    `${BASE_URL}/api/services/${serviceId}`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function getServiceByCode(code: string): Promise<ServiceDto> {
+  const response = await axios.get(
+    `${BASE_URL}/api/services/code/${code}`,
+    { withCredentials: true }
   );
   return response.data;
 }

@@ -227,7 +227,7 @@ export default function ReadingCyclesPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex gap-2 justify-center">
-                        {/* <button
+                        <button
                           onClick={() => handleOpenStatusChange(cycle)}
                           className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm border border-gray-300"
                         >
@@ -237,7 +237,7 @@ export default function ReadingCyclesPage() {
                               <path fill="#000000" d="M5.706666666666667 7.933333333333334a1 1 0 0 1 0 1.4133333333333333l-0.6493333333333333 0.6506666666666666H10.666666666666666a1 1 0 0 1 0 2H5.057333333333333l0.6499999999999999 0.6493333333333333a1 1 0 1 1 -1.4146666666666665 1.4146666666666665l-2.3566666666666665 -2.357333333333333a1 1 0 0 1 0 -1.414l2.3566666666666665 -2.357333333333333a1 1 0 0 1 1.4146666666666665 0Zm4.586666666666666 -6a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.3566666666666665 2.357333333333333a1 1 0 0 1 0.06866666666666665 1.338l-0.06866666666666665 0.076 -2.3566666666666665 2.357333333333333a1 1 0 0 1 -1.4833333333333334 -1.3386666666666667l0.06866666666666665 -0.076 0.6499999999999999 -0.6493333333333333H5.333333333333333a1 1 0 0 1 -0.09599999999999999 -1.996L5.333333333333333 3.9973333333333336h5.609333333333333l-0.6499999999999999 -0.6499999999999999a1 1 0 0 1 0 -1.4146666666666665Z" strokeWidth="0.6667"></path>
                             </g>
                           </svg>
-                        </button> */}
+                        </button>
                         <button
                           onClick={() => handleEdit(cycle)}
                           className="p-2 rounded-lg bg-[#739559] hover:bg-[#5a7347] transition duration-150"
@@ -312,7 +312,7 @@ export default function ReadingCyclesPage() {
       )}
 
       {/* Status Change Modal */}
-      {/* {isStatusChangeOpen && cycleForStatusChange && (
+      {isStatusChangeOpen && cycleForStatusChange && (
         <StatusChangeModal
           isOpen={isStatusChangeOpen}
           onClose={() => {
@@ -323,7 +323,7 @@ export default function ReadingCyclesPage() {
           cycleId={cycleForStatusChange.id}
           onStatusChange={handleStatusChange}
         />
-      )} */}
+      )}
     </div>
   );
 }
