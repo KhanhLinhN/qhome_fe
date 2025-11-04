@@ -164,74 +164,76 @@ export default function AddAssignmentPage() {
 
       <div className="bg-white p-6 rounded-xl">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Reading Cycle */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Reading Cycle <span className="text-red-500">*</span>
-            </label>
-            <Select
-              options={cycles}
-              value={selectedCycleId}
-              onSelect={(cycle) => setSelectedCycleId(cycle.id)}
-              renderItem={(cycle) => `${cycle.name} (${cycle.status}) - ${new Date(cycle.periodFrom).toLocaleDateString()} to ${new Date(cycle.periodTo).toLocaleDateString()}`}
-              getValue={(cycle) => cycle.id}
-              placeholder="Select a reading cycle..."
-              disable={true}
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">  
+            {/* Reading Cycle */}
+            <div className={`flex flex-col mb-4 col-span-1`}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reading Cycle <span className="text-red-500">*</span>
+              </label>
+              <Select
+                options={cycles}
+                value={selectedCycleId}
+                onSelect={(cycle) => setSelectedCycleId(cycle.id)}
+                renderItem={(cycle) => `${cycle.name} (${cycle.status}) - ${new Date(cycle.periodFrom).toLocaleDateString()} to ${new Date(cycle.periodTo).toLocaleDateString()}`}
+                getValue={(cycle) => cycle.id}
+                placeholder="Select a reading cycle..."
+                disable={true}
+              />
+            </div>
 
-          {/* Building (Optional) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Building <span className="text-gray-500 text-xs">(Optional - leave empty for all buildings)</span>
-            </label>
-            <Select
-              options={buildings}
-              value={selectedBuildingId}
-              onSelect={(building) => setSelectedBuildingId(building.id)}
-              renderItem={(building) => `${building.name} (${building.code})`}
-              getValue={(building) => building.id}
-              placeholder="Select a building (optional)..."
-            />
-            {selectedBuildingId && (
-              <button
-                type="button"
-                onClick={() => setSelectedBuildingId('')}
-                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-              >
-                Clear selection
-              </button>
-            )}
-          </div>
+            {/* Building (Optional) */}
+            <div className={`flex flex-col mb-4 col-span-1`}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Building <span className="text-gray-500 text-xs">(Optional - leave empty for all buildings)</span>
+              </label>
+              <Select
+                options={buildings}
+                value={selectedBuildingId}
+                onSelect={(building) => setSelectedBuildingId(building.id)}
+                renderItem={(building) => `${building.name} (${building.code})`}
+                getValue={(building) => building.id}
+                placeholder="Select a building (optional)..."
+              />
+              {selectedBuildingId && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedBuildingId('')}
+                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Clear selection
+                </button>
+              )}
+            </div>
 
-          {/* Service */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Service <span className="text-red-500">*</span>
-            </label>
-            <Select
-              options={services}
-              value={selectedServiceId}
-              onSelect={(service) => setSelectedServiceId(service.id)}
-              renderItem={(service) => `${service.name} (${service.code})`}
-              getValue={(service) => service.id}
-              placeholder="Select a service..."
-            />
-          </div>
+            {/* Service */}
+            <div className={`flex flex-col mb-4 col-span-1`}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Service <span className="text-red-500">*</span>
+              </label>
+              <Select
+                options={services}
+                value={selectedServiceId}
+                onSelect={(service) => setSelectedServiceId(service.id)}
+                renderItem={(service) => `${service.name} (${service.code})`}
+                getValue={(service) => service.id}
+                placeholder="Select a service..."
+              />
+            </div>
 
-          {/* Assigned To */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assign To <span className="text-red-500">*</span>
-            </label>
-            <Select
-              options={staffList}
-              value={assignedTo}
-              onSelect={(staff) => setAssignedTo(staff.userId)}
-              renderItem={(staff) => `${staff.fullName || staff.username} (${staff.email})`}
-              getValue={(staff) => staff.userId}
-              placeholder="Select a staff member..."
-            />
+            {/* Assigned To */}
+            <div className={`flex flex-col mb-4 col-span-1`}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assign To <span className="text-red-500">*</span>
+              </label>
+              <Select
+                options={staffList}
+                value={assignedTo}
+                onSelect={(staff) => setAssignedTo(staff.userId)}
+                renderItem={(staff) => `${staff.fullName || staff.username} (${staff.email})`}
+                getValue={(staff) => staff.userId}
+                placeholder="Select a staff member..."
+              />
+            </div>
           </div>
 
           {/* Date Range */}
