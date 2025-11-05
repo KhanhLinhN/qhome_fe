@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import { useRouter, useParams } from 'next/navigation';
@@ -7,12 +7,14 @@ import { getNotificationDetail } from '@/src/services/customer-interaction/notiS
 import { Notification } from '@/src/types/notification';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { getBuilding, Building } from '@/src/services/base/buildingService';
+import { useTranslations } from 'next-intl';
 
 export default function NotificationDetail() {
     const router = useRouter();
     const params = useParams();
     const { show } = useNotifications();
     const id = params?.id as string;
+    const t = useTranslations("Noti");
 
     const [notification, setNotification] = useState<Notification | null>(null);
     const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ export default function NotificationDetail() {
                 }
             } catch (error) {
                 console.error('Error fetching notification detail:', error);
-                show('Không thể tải chi tiết thông báo', 'error');
+                show(t('fetchDetailError'), 'error');
             } finally {
                 setLoading(false);
             }
@@ -69,11 +71,11 @@ export default function NotificationDetail() {
 
     const getTypeLabel = (type: string) => {
         const typeMap: { [key: string]: string } = {
-            'INFO': 'Thông tin',
-            'WARNING': 'Cảnh báo',
-            'ALERT': 'Khẩn cấp',
-            'SUCCESS': 'Thành công',
-            'ANNOUNCEMENT': 'Thông báo chung',
+            'INFO': t('information'),
+            'WARNING': t('warning'),
+            'ALERT': t('alert'),
+            'SUCCESS': t('success'),
+            'ANNOUNCEMENT': t('announcement'),
         };
         return typeMap[type] || type;
     };
@@ -96,7 +98,7 @@ export default function NotificationDetail() {
                     <div className="flex items-center justify-center py-12">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#02542D] mx-auto mb-4"></div>
-                            <p className="text-gray-600">Đang tải...</p>
+                            <p className="text-gray-600">{t('loading')}</p>
                         </div>
                     </div>
                 </div>
@@ -109,12 +111,12 @@ export default function NotificationDetail() {
             <div className="min-h-screen p-4 sm:p-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
-                        <p className="text-red-600 mb-4">Không tìm thấy thông báo</p>
+                        <p className="text-red-600 mb-4">{t('notFound')}</p>
                         <button
                             onClick={handleBack}
                             className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-opacity-80"
                         >
-                            Quay lại
+                            {t('goBack')}
                         </button>
                     </div>
                 </div>
@@ -138,7 +140,7 @@ export default function NotificationDetail() {
                         className="w-5 h-5 mr-2"
                     />
                     <span className="text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150">
-                        Quay lại
+                        {t('goBack')}
                     </span>
                 </div>
 
@@ -157,7 +159,7 @@ export default function NotificationDetail() {
                                 {notification.scope === 'INTERNAL' ? 'Nội bộ' : 'Bên ngoài'}
                             </span>
                             {notification.createdAt && (
-                                <span>Ngày tạo: {formatDate(notification.createdAt)}</span>
+                                <span>{t('createdAt')}: {formatDate(notification.createdAt)}</span>
                             )}
                         </div>
                     </div>
@@ -178,14 +180,14 @@ export default function NotificationDetail() {
 
                     {/* Message */}
                     <div className="mb-6">
-                        <h2 className="text-xl font-semibold text-[#02542D] mb-2">Nội dung</h2>
+                        <h2 className="text-xl font-semibold text-[#02542D] mb-2">{t('content')}</h2>
                         <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{notification.message}</p>
                     </div>
 
                     {/* Action URL */}
                     {notification.actionUrl && (
                         <div className="mb-6">
-                            <h2 className="text-xl font-semibold text-[#02542D] mb-2">Action URL</h2>
+                            <h2 className="text-xl font-semibold text-[#02542D] mb-2">{t('actionUrl')}</h2>
                             <a
                                 href={notification.actionUrl}
                                 target="_blank"
@@ -199,23 +201,23 @@ export default function NotificationDetail() {
 
                     {/* Metadata */}
                     <div className="border-t pt-6 mt-6">
-                        <h2 className="text-lg font-semibold text-[#02542D] mb-4">Thông tin bổ sung</h2>
+                        <h2 className="text-lg font-semibold text-[#02542D] mb-4">{t('information')}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
-                                <span className="font-semibold text-gray-700">Phạm vi:</span>
+                                <span className="font-semibold text-gray-700">{t('scope')}:</span>
                                 <span className="ml-2 text-gray-600">
-                                    {notification.scope === 'INTERNAL' ? 'Nội bộ' : 'Bên ngoài'}
+                                    {notification.scope === 'INTERNAL' ? t('internal') : t('external')}
                                 </span>
                             </div>
                             {notification.targetRole && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Target Role:</span>
+                                    <span className="font-semibold text-gray-700">{t('targetRole')}:</span>
                                     <span className="ml-2 text-gray-600">{notification.targetRole}</span>
                                 </div>
                             )}
                             {notification.scope === 'EXTERNAL' && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Tòa nhà:</span>
+                                    <span className="font-semibold text-gray-700">{t('building')}:</span>
                                     <span className="ml-2 text-gray-600">
                                         {building 
                                             ? `${building.name} (${building.code})`
@@ -227,25 +229,25 @@ export default function NotificationDetail() {
                             )}
                             {notification.referenceId && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Reference ID:</span>
+                                    <span className="font-semibold text-gray-700">{t('referenceId')}:</span>
                                     <span className="ml-2 text-gray-600">{notification.referenceId}</span>
                                 </div>
                             )}
                             {notification.referenceType && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Reference Type:</span>
+                                    <span className="font-semibold text-gray-700">{t('referenceType')}:</span>
                                     <span className="ml-2 text-gray-600">{notification.referenceType}</span>
                                 </div>
                             )}
                             {notification.createdAt && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Ngày tạo:</span>
+                                    <span className="font-semibold text-gray-700">{t('createdAt')}:</span>
                                     <span className="ml-2 text-gray-600">{formatDate(notification.createdAt)}</span>
                                 </div>
                             )}
                             {notification.updatedAt && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Ngày cập nhật:</span>
+                                    <span className="font-semibold text-gray-700">{t('updatedAt')}:</span>
                                     <span className="ml-2 text-gray-600">{formatDate(notification.updatedAt)}</span>
                                 </div>
                             )}
@@ -259,14 +261,14 @@ export default function NotificationDetail() {
                             onClick={handleBack}
                             className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
                         >
-                            Quay lại
+                            {t('back')}
                         </button>
                         <button
                             type="button"
                             onClick={() => router.push(`/customer-interaction/notiEdit/${id}`)}
                             className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md"
                         >
-                            Chỉnh sửa
+                            {t('edit')}
                         </button>
                     </div>
                 </div>

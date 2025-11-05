@@ -143,34 +143,34 @@ export default function NewsAdd() {
         switch (fieldName) {
             case 'title':
                 if (!value || value.trim() === '') {
-                    newErrors.title = 'Vui lòng nhập tiêu đề tin tức';
+                    newErrors.title = t('titleRequired');
                 } else {
                     delete newErrors.title;
                 }
                 break;
             case 'summary':
                 if (!value || value.trim() === '') {
-                    newErrors.summary = 'Vui lòng nhập tóm tắt tin tức';
+                    newErrors.summary = t('summaryRequired');
                 } else {
                     delete newErrors.summary;
                 }
                 break;
             case 'bodyHtml':
                 if (!value || value.trim() === '') {
-                    newErrors.bodyHtml = 'Vui lòng nhập nội dung tin tức';
+                    newErrors.bodyHtml = t('bodyHtmlRequired');
                 } else {
                     delete newErrors.bodyHtml;
                 }
                 break;
             case 'publishAt':
                 if (!value || value.trim() === '') {
-                    newErrors.publishAt = 'Vui lòng chọn ngày xuất bản';
+                    newErrors.publishAt = t('publishAtRequired');
                 } else {
                     // Validate publishAt < expireAt
                     const expireAt = fieldName === 'publishAt' ? data.expireAt : value;
                     const publishAt = fieldName === 'publishAt' ? value : data.publishAt;
                     if (expireAt && publishAt >= expireAt) {
-                        newErrors.publishAt = 'Ngày xuất bản phải nhỏ hơn ngày hết hạn';
+                        newErrors.publishAt = t('publishAtInvalid');
                     } else {
                         delete newErrors.publishAt;
                     }
@@ -178,13 +178,13 @@ export default function NewsAdd() {
                 break;
             case 'expireAt':
                 if (!value || value.trim() === '') {
-                    newErrors.expireAt = 'Vui lòng chọn ngày hết hạn';
+                    newErrors.expireAt = t('expireAtRequired');
                 } else {
                     // Validate publishAt < expireAt
                     const publishAt = fieldName === 'expireAt' ? data.publishAt : value;
                     const expireAt = fieldName === 'expireAt' ? value : data.expireAt;
                     if (publishAt && publishAt >= expireAt) {
-                        newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày xuất bản';
+                        newErrors.expireAt = t('expireAtInvalid');
                     } else {
                         // For create page: expireAt must be > today
                         const today = new Date();
@@ -192,7 +192,7 @@ export default function NewsAdd() {
                         const expireDate = new Date(value);
                         expireDate.setHours(0, 0, 0, 0);
                         if (expireDate <= today) {
-                            newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày hôm nay';
+                            newErrors.expireAt = t('expireAtInvalid');
                         } else {
                             delete newErrors.expireAt;
                         }
@@ -216,34 +216,34 @@ export default function NewsAdd() {
 
         // Validate title
         if (!formData.title || formData.title.trim() === '') {
-            newErrors.title = 'Vui lòng nhập tiêu đề tin tức';
+            newErrors.title = t('titleRequired');
         }
 
         // Validate summary
         if (!formData.summary || formData.summary.trim() === '') {
-            newErrors.summary = 'Vui lòng nhập tóm tắt tin tức';
+            newErrors.summary = t('summaryRequired');
         }
 
         // Validate bodyHtml
         if (!formData.bodyHtml || formData.bodyHtml.trim() === '') {
-            newErrors.bodyHtml = 'Vui lòng nhập nội dung tin tức';
+            newErrors.bodyHtml = t('bodyHtmlRequired');
         }
 
         // Validate publishAt
         if (!formData.publishAt || formData.publishAt.trim() === '') {
-            newErrors.publishAt = 'Vui lòng chọn ngày xuất bản';
+            newErrors.publishAt = t('publishAtRequired');
         }
 
         // Validate expireAt
         if (!formData.expireAt || formData.expireAt.trim() === '') {
-            newErrors.expireAt = 'Vui lòng chọn ngày hết hạn';
+            newErrors.expireAt = t('expireAtRequired');
         }
 
         // Validate publishAt < expireAt
         if (formData.publishAt && formData.expireAt) {
             if (formData.publishAt >= formData.expireAt) {
-                newErrors.publishAt = 'Ngày xuất bản phải nhỏ hơn ngày hết hạn';
-                newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày xuất bản';
+                newErrors.publishAt = t('publishAtInvalid');
+                newErrors.expireAt = t('expireAtInvalid');
             }
         }
 
@@ -254,7 +254,7 @@ export default function NewsAdd() {
             const expireDate = new Date(formData.expireAt);
             expireDate.setHours(0, 0, 0, 0);
             if (expireDate <= today) {
-                newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày hôm nay';
+                newErrors.expireAt = t('expireAtInvalid');
             }
         }
 
@@ -268,17 +268,17 @@ export default function NewsAdd() {
 
         // Validate all fields
         if (!validateAllFields()) {
-            show('Vui lòng kiểm tra lại các trường bắt buộc', 'error');
+            show(t('checkRequiredFields'), 'error');
             return;
         }
 
         // Additional validations
         if (formData.scope === 'EXTERNAL' && selectedBuildingId === '') {
-            show('Vui lòng chọn tòa nhà hoặc chọn "Tất cả tòa nhà" cho tin tức EXTERNAL', 'error');
+            show(t('selectBuildingForExternalNews'), 'error');
             return;
         }
         if (formData.scope === 'INTERNAL' && !formData.targetRole) {
-            show('Vui lòng nhập target role cho tin tức INTERNAL', 'error');
+            show(t('internalNewsTargetRoleRequired'), 'error');
             return;
         }
 
@@ -341,7 +341,7 @@ export default function NewsAdd() {
                     await updateNews(newsId, updateRequest);
                 } catch (error) {
                     console.error('Error uploading cover image:', error);
-                    show('Lỗi khi upload ảnh bìa', 'error');
+                    show(t('coverImageUploadError'), 'error');
                     setUploadingCoverImage(false);
                     return;
                 } finally {
@@ -390,7 +390,7 @@ export default function NewsAdd() {
                     }
                 } catch (error) {
                     console.error('Error uploading detail images:', error);
-                    show('Lỗi khi upload hình ảnh chi tiết', 'error');
+                    show(t('detailImageUploadError'), 'error');
                     setUploadingDetailImage(false);
                     return;
                 } finally {
@@ -405,7 +405,7 @@ export default function NewsAdd() {
             router.push(`/customer-interaction/new/newList`);
         } catch (error) {
             console.error('Lỗi khi tạo tin tức:', error);
-            show('Có lỗi xảy ra khi tạo tin tức!', 'error');
+            show(t('createNewsError'), 'error');
         }
     };
 
@@ -587,7 +587,7 @@ export default function NewsAdd() {
                 imageInputRef.current.value = '';
             }
         } else {
-            show('Vui lòng chọn ảnh!', 'error');
+            show(t('selectImageError'), 'error');
         }
     };
 
@@ -630,7 +630,7 @@ export default function NewsAdd() {
                 <span
                     className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150 `}
                 >
-                    Quay lại danh sách tin tức
+                    {t('back')}
                 </span>
             </div>
 
@@ -641,7 +641,7 @@ export default function NewsAdd() {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className={`text-2xl font-semibold text-[#02542D] mr-3`}>
-                            Thêm tin tức mới
+                            {t('addNewNews')}
                         </h1>
                     </div>
                 </div>
@@ -652,11 +652,11 @@ export default function NewsAdd() {
                     {/* Title */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Tiêu đề"
+                            label={t('title')}
                             value={formData.title}
                             onChange={handleChange}
                             name="title"
-                            placeholder="Nhập tiêu đề tin tức"
+                            placeholder={t('titlePlaceholder')}
                             readonly={false}
                             required={true}
                             error={errors.title}
@@ -666,12 +666,12 @@ export default function NewsAdd() {
                     {/* Summary */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Tóm tắt"
+                            label={t('summary')}
                             value={formData.summary}
                             onChange={handleChange}
                             name="summary"
                             type="textarea"
-                            placeholder="Nhập tóm tắt ngắn gọn"
+                            placeholder={t('summaryPlaceholder')}
                             readonly={false}
                             required={true}
                             error={errors.summary}
@@ -681,12 +681,12 @@ export default function NewsAdd() {
                     {/* Body HTML */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Nội dung (HTML)"
+                            label={t('bodyHtml')}
                             value={formData.bodyHtml}
                             onChange={handleChange}
                             name="bodyHtml"
                             type="textarea"
-                            placeholder="Nhập nội dung HTML"
+                            placeholder={t('bodyHtmlPlaceholder')}
                             readonly={false}
                             required={true}
                             error={errors.bodyHtml}
@@ -696,7 +696,7 @@ export default function NewsAdd() {
                     {/* Cover Image Upload */}
                     <div className="col-span-full">
                         <label className="text-md font-bold text-[#02542D] mb-2 block">
-                            Ảnh bìa
+                            {t('coverImage')}
                         </label>
                         <div className="flex flex-col gap-3">
                             <input
@@ -736,29 +736,29 @@ export default function NewsAdd() {
                     {/* Status */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Trạng thái
+                            {t('status')}
                         </label>
                         <Select
                             options={[
-                                { name: 'Nháp', value: 'DRAFT' },
-                                { name: 'Đã lên lịch', value: 'SCHEDULED' },
-                                { name: 'Đã xuất bản', value: 'PUBLISHED' },
-                                { name: 'Ẩn', value: 'HIDDEN' },
-                                { name: 'Hết hạn', value: 'EXPIRED' },
-                                { name: 'Đã lưu trữ', value: 'ARCHIVED' },
+                                { name: t('draft'), value: 'DRAFT' },
+                                { name: t('scheduled'), value: 'SCHEDULED' },
+                                { name: t('published'), value: 'PUBLISHED' },
+                                { name: t('hidden'), value: 'HIDDEN' },
+                                { name: t('expired'), value: 'EXPIRED' },
+                                { name: t('archived'), value: 'ARCHIVED' },
                             ]}
                             value={formData.status}
                             onSelect={handleStatusChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder="Chọn trạng thái"
+                            placeholder={t('statusPlaceholder')}
                         />
                     </div>
 
                     {/* Display Order */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Thứ tự hiển thị
+                            {t('displayOrder')}
                         </label>
                         <input
                             type="number"
@@ -773,12 +773,12 @@ export default function NewsAdd() {
                     {/* Publish At */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Ngày xuất bản <span className="text-red-500">*</span>
+                            {t('publishAt')} <span className="text-red-500">*</span>
                         </label>
                         <DateBox
                             value={formatISOToDate(formData.publishAt)}
                             onChange={handlePublishAtChange}
-                            placeholderText="Chọn ngày xuất bản"
+                            placeholderText={t('publishAtPlaceholder')}
                         />
                         {errors.publishAt && (
                             <span className="text-red-500 text-xs mt-1">{errors.publishAt}</span>
@@ -788,12 +788,12 @@ export default function NewsAdd() {
                     {/* Expire At */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Ngày hết hạn <span className="text-red-500">*</span>
+                            {t('expireAt')} <span className="text-red-500">*</span>
                         </label>
                         <DateBox
                             value={formatISOToDate(formData.expireAt)}
                             onChange={handleExpireAtChange}
-                            placeholderText="Chọn ngày hết hạn"
+                            placeholderText={t('expireAtPlaceholder')}
                         />
                         {errors.expireAt && (
                             <span className="text-red-500 text-xs mt-1">{errors.expireAt}</span>
@@ -803,39 +803,39 @@ export default function NewsAdd() {
                     {/* Scope */}
                     <div className={`flex flex-col mb-4 col-span-full`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Phạm vi (Scope)
+                            {t('scope')}
                         </label>
                         <Select
                             options={[
-                                { name: 'Nội bộ (INTERNAL)', value: 'INTERNAL' },
-                                { name: 'Bên ngoài (EXTERNAL)', value: 'EXTERNAL' }
+                                { name: t('internal'), value: 'INTERNAL' },
+                                { name: t('external'), value: 'EXTERNAL' }
                             ]}
                             value={formData.scope}
                             onSelect={handleScopeChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder="Chọn phạm vi"
+                            placeholder={t('scopePlaceholder')}
                         />
 
                         {formData.scope === 'INTERNAL' && (
                             <div className="mt-4">
                                 <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                                    Target Role <span className="text-red-500">*</span>
+                                    {t('targetRole')} <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     options={[
-                                        { name: 'Tất cả', value: 'ALL' },
-                                        { name: 'Quản trị viên', value: 'ADMIN' },
-                                        { name: 'Kỹ sư', value: 'TECHNICIAN' },
-                                        { name: 'Hỗ trợ', value: 'SUPPORTER' },
-                                        { name: 'Tài khoản', value: 'ACCOUNT' },
-                                        { name: 'Cư dân', value: 'RESIDENT' },
+                                        { name: t('all'), value: 'ALL' },
+                                        { name: t('admin'), value: 'ADMIN' },
+                                        { name: t('technician'), value: 'TECHNICIAN' },
+                                        { name: t('supporter'), value: 'SUPPORTER' },
+                                        { name: t('account'), value: 'ACCOUNT' },
+                                        { name: t('resident'), value: 'RESIDENT' },
                                     ]}
                                     value={formData.targetRole}
                                     onSelect={handleTargetRoleChange}
                                     renderItem={(item) => item.name}
                                     getValue={(item) => item.value}
-                                    placeholder="Chọn target role"
+                                    placeholder={t('targetRolePlaceholder')}
                                 />
                             </div>
                         )}
@@ -843,15 +843,15 @@ export default function NewsAdd() {
                         {formData.scope === 'EXTERNAL' && (
                             <div className="mt-4">
                                 <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                                    Chọn tòa nhà
+                                    {t('selectBuilding')}
                                 </label>
                                 {loadingBuildings ? (
-                                    <p className="text-gray-500 text-sm">Đang tải danh sách tòa nhà...</p>
+                                    <p className="text-gray-500 text-sm">{t('loadingBuildings')}</p>
                                 ) : (
                                     <Select
                                         options={[
-                                            { name: 'Tất cả tòa nhà', value: 'all' },
-                                            ...buildings.map(b => ({ 
+                                            { name: t('allBuildings'), value: 'all' },
+                                            ...buildings.map(b => ({
                                                 name: `${b.name} (${b.code})`, 
                                                 value: b.id 
                                             }))
@@ -860,7 +860,7 @@ export default function NewsAdd() {
                                         onSelect={handleBuildingChange}
                                         renderItem={(item) => item.name}
                                         getValue={(item) => item.value}
-                                        placeholder="Chọn tòa nhà"
+                                        placeholder={t('selectBuildingPlaceholder')}
                                     />
                                 )}
                             </div>
@@ -870,7 +870,7 @@ export default function NewsAdd() {
                     {/* Images Section */}
                     <div className="col-span-full mt-6">
                         <h3 className="text-lg font-bold text-[#02542D] mb-4">
-                            Hình ảnh chi tiết
+                            {t('detailedImages')}
                         </h3>
 
                         {/* Add Image Form */}
@@ -878,7 +878,7 @@ export default function NewsAdd() {
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                                        Chọn hình ảnh
+                                        {t('selectImage')}
                                     </label>
                                     <input
                                         ref={imageInputRef}
@@ -901,7 +901,7 @@ export default function NewsAdd() {
                                 
                                 <div>
                                     <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                                        Mô tả hình ảnh
+                                        {t('imageDescription')}
                                     </label>
                                     <input
                                         type="text"
@@ -912,7 +912,7 @@ export default function NewsAdd() {
                                                 caption: e.target.value,
                                             }))
                                         }
-                                        placeholder="Nhập mô tả hình ảnh"
+                                        placeholder={t('imageDescriptionPlaceholder')}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#02542D] focus:border-transparent outline-none"
                                     />
                                 </div>
@@ -923,7 +923,7 @@ export default function NewsAdd() {
                                 disabled={!newImage.file && !newImage.url.trim()}
                                 className="mt-4 px-4 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Thêm hình ảnh
+                                {t('addImage')}
                             </button>
                         </div>
 
@@ -931,7 +931,7 @@ export default function NewsAdd() {
                         {formData.images.length > 0 && (
                             <div className="space-y-3">
                                 <h4 className="text-md font-semibold text-gray-700">
-                                    Danh sách hình ảnh ({formData.images.length})
+                                    {t('imageList')} ({formData.images.length})
                                 </h4>
                                 {formData.images.map((image, index) => (
                                     <div
@@ -949,7 +949,7 @@ export default function NewsAdd() {
                                             <div className="space-y-3">
                                                 <div>
                                                     <label className="text-xs font-semibold text-gray-600 mb-1 block">
-                                                        Mô tả hình ảnh #{index + 1}
+                                                        {t('imageDescriptionLabel', { index: index + 1 })}
                                                     </label>
                                                     <input
                                                         type="text"
@@ -961,7 +961,7 @@ export default function NewsAdd() {
                                                 </div>
                                                 {image.file && (
                                                     <p className="text-xs text-gray-400">
-                                                        File: {image.file.name}
+                                                        {t('fileLabel')}: {image.file.name}
                                                     </p>
                                                 )}
                                                 <button
@@ -969,7 +969,7 @@ export default function NewsAdd() {
                                                     onClick={() => handleRemoveImage(index)}
                                                     className="px-3 py-1.5 text-sm text-red-600 border border-red-600 rounded hover:bg-red-50 transition"
                                                 >
-                                                    Xóa hình ảnh
+                                                    {t('removeImage')}
                                                 </button>
                                             </div>
                                         </div>
@@ -987,7 +987,7 @@ export default function NewsAdd() {
                             className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
                             disabled={isSubmitting}
                         >
-                            Hủy
+                            {t('cancel')}
                         </button>
                         <button
                             type="submit"
