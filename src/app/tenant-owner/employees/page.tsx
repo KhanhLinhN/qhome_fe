@@ -44,20 +44,15 @@ export default function TenantOwnerEmployeesPage() {
   const [unassigning, setUnassigning] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.tenantId) {
-      loadData();
-    }
-  }, [user]);
+    loadData();
+  }, []);
 
   const loadData = async () => {
-    if (!user?.tenantId) return;
-
     try {
       setLoading(true);
       
-      // Load employees in tenant
       const employeesResponse = await axios.get<Employee[]>(
-        `${IAM_URL}/api/employee-roles/tenant/${user.tenantId}`,
+        `${IAM_URL}/api/employees`,
         { withCredentials: true }
       );
       setEmployees(employeesResponse.data);

@@ -141,14 +141,10 @@ export default function NewsEdit() {
                 setLoadingBuildings(true);
                 try {
                     const allBuildings = await getBuildings();
-                    // Filter by tenantId if selectedTenantId exists
-                    const filtered = selectedTenantId 
-                        ? allBuildings.filter((b: Building) => b.tenantId === selectedTenantId)
-                        : allBuildings;
+                    const filtered = allBuildings;
                     setBuildings(filtered);
                 } catch (error) {
-                    console.error('Lỗi khi tải danh sách tòa nhà:', error);
-                    show('Không thể tải danh sách tòa nhà', 'error');
+                    show(t('errorLoading'), 'error');
                 } finally {
                     setLoadingBuildings(false);
                 }
@@ -173,34 +169,34 @@ export default function NewsEdit() {
         switch (fieldName) {
             case 'title':
                 if (!value || value.trim() === '') {
-                    newErrors.title = 'Vui lòng nhập tiêu đề tin tức';
+                    newErrors.title = t('pleaseEnterTitle');
                 } else {
                     delete newErrors.title;
                 }
                 break;
             case 'summary':
                 if (!value || value.trim() === '') {
-                    newErrors.summary = 'Vui lòng nhập tóm tắt tin tức';
+                    newErrors.summary = t('pleaseEnterSummary');
                 } else {
                     delete newErrors.summary;
                 }
                 break;
             case 'bodyHtml':
                 if (!value || value.trim() === '') {
-                    newErrors.bodyHtml = 'Vui lòng nhập nội dung tin tức';
+                    newErrors.bodyHtml = t('pleaseEnterBody');
                 } else {
                     delete newErrors.bodyHtml;
                 }
                 break;
             case 'publishAt':
                 if (!value || value.trim() === '') {
-                    newErrors.publishAt = 'Vui lòng chọn ngày xuất bản';
+                    newErrors.publishAt = t('pleaseSelectPublishDate');
                 } else {
                     // Validate publishAt < expireAt
                     const expireAt = fieldName === 'publishAt' ? data.expireAt : value;
                     const publishAt = fieldName === 'publishAt' ? value : data.publishAt;
                     if (expireAt && publishAt >= expireAt) {
-                        newErrors.publishAt = 'Ngày xuất bản phải nhỏ hơn ngày hết hạn';
+                        newErrors.publishAt = t('publishDateMustBeBeforeExpireDate');
                     } else {
                         delete newErrors.publishAt;
                     }
@@ -208,7 +204,7 @@ export default function NewsEdit() {
                 break;
             case 'expireAt':
                 if (!value || value.trim() === '') {
-                    newErrors.expireAt = 'Vui lòng chọn ngày hết hạn';
+                    newErrors.expireAt = t('pleaseSelectExpireDate');
                 } else {
                     // Validate publishAt < expireAt
                     const publishAt = fieldName === 'expireAt' ? data.publishAt : value;
@@ -237,34 +233,34 @@ export default function NewsEdit() {
 
         // Validate title
         if (!formData.title || formData.title.trim() === '') {
-            newErrors.title = 'Vui lòng nhập tiêu đề tin tức';
+            newErrors.title = t('pleaseEnterTitle');
         }
 
         // Validate summary
         if (!formData.summary || formData.summary.trim() === '') {
-            newErrors.summary = 'Vui lòng nhập tóm tắt tin tức';
+            newErrors.summary = t('pleaseEnterSummary');
         }
 
         // Validate bodyHtml
         if (!formData.bodyHtml || formData.bodyHtml.trim() === '') {
-            newErrors.bodyHtml = 'Vui lòng nhập nội dung tin tức';
+            newErrors.bodyHtml = t('pleaseEnterBody');
         }
 
         // Validate publishAt
         if (!formData.publishAt || formData.publishAt.trim() === '') {
-            newErrors.publishAt = 'Vui lòng chọn ngày xuất bản';
+            newErrors.publishAt = t('pleaseSelectPublishDate');
         }
 
         // Validate expireAt
         if (!formData.expireAt || formData.expireAt.trim() === '') {
-            newErrors.expireAt = 'Vui lòng chọn ngày hết hạn';
+            newErrors.expireAt = t('pleaseSelectExpireDate');
         }
 
         // Validate publishAt < expireAt
         if (formData.publishAt && formData.expireAt) {
             if (formData.publishAt >= formData.expireAt) {
-                newErrors.publishAt = 'Ngày xuất bản phải nhỏ hơn ngày hết hạn';
-                newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày xuất bản';
+                newErrors.publishAt = t('publishDateMustBeBeforeExpireDate');
+                newErrors.expireAt = t('expireDateMustBeAfterPublishDate');
             }
         }
 
@@ -278,22 +274,22 @@ export default function NewsEdit() {
 
         // Validate all fields
         if (!validateAllFields()) {
-            show('Vui lòng kiểm tra lại các trường bắt buộc', 'error');
+            show(t('pleaseCheckRequiredFields'), 'error');
             return;
         }
 
         // Additional validations
         if (formData.scope === 'EXTERNAL' && selectedBuildingId === '') {
-            show('Vui lòng chọn tòa nhà hoặc chọn "Tất cả tòa nhà" cho tin tức EXTERNAL', 'error');
+            show(t('pleaseSelectBuildingForExternalNews'), 'error');
             return;
         }
         if (formData.scope === 'INTERNAL' && !formData.targetRole) {
-            show('Vui lòng nhập target role cho tin tức INTERNAL', 'error');
+            show(t('pleaseEnterTargetRoleForInternalNews'), 'error');
             return;
         }
 
         try {
-            // Step 1: Upload cover image first if there's a new file (before updating news)
+            // Upload cover image
             let coverImageUrl = formData.coverImageUrl && formData.coverImageUrl.trim() ? formData.coverImageUrl : undefined;
             
             if (coverImageFile) {
@@ -301,10 +297,10 @@ export default function NewsEdit() {
                 try {
                     const ownerId = newsId;
                     const coverResponse = await uploadNewsImageFile(coverImageFile, ownerId, user?.userId);
-                    coverImageUrl = coverResponse.fileUrl; // Use fileUrl from response
+                    coverImageUrl = coverResponse.fileUrl; 
                 } catch (error) {
                     console.error('Error uploading cover image:', error);
-                    show('Lỗi khi upload ảnh bìa', 'error');
+                    show(t('errorUploadingCoverImage'), 'error');
                     setUploadingCoverImage(false);
                     return;
                 } finally {
@@ -312,8 +308,7 @@ export default function NewsEdit() {
                 }
             }
 
-            // Step 2: Update news with coverImageUrl (if available)
-            // Build request object, only including fields that should be updated
+            // Update news with coverImageUrl (if available)
             const request: UpdateNewsRequest = {
                 title: formData.title,
                 bodyHtml: formData.bodyHtml,
@@ -341,11 +336,9 @@ export default function NewsEdit() {
             if (formData.scope === 'EXTERNAL') {
                 request.targetBuildingId = selectedBuildingId === 'all' ? null : (selectedBuildingId || null);
             }
-            // Don't include images in update request
-
             await updateNewsItem(request);
 
-            // Step 3: Handle images - separate new images and existing images
+            // Handle images - separate new images and existing images
             const imagesWithFiles = formData.images.filter(img => img.file && !img.id);
             const imagesWithUrls = formData.images.filter(img => !img.file && img.url && !img.id);
             const existingImages = formData.images.filter(img => img.id);
@@ -416,7 +409,7 @@ export default function NewsEdit() {
                     }
                 } catch (error) {
                     console.error('Error uploading detail images:', error);
-                    show('Lỗi khi upload hình ảnh chi tiết', 'error');
+                    show(t('errorUploadingDetailImages'), 'error');
                     setUploadingDetailImage(false);
                     return;
                 } finally {
@@ -437,13 +430,13 @@ export default function NewsEdit() {
             }
             
             // Show success message
-            show('Cập nhật tin tức thành công!', 'success');
-            
+            show(t('newsUpdateSuccess'), 'success');
+
             // Redirect to news detail
             router.push(`/customer-interaction/new/newDetail/${newsId}`);
         } catch (error) {
             console.error('Lỗi khi cập nhật tin tức:', error);
-            show('Có lỗi xảy ra khi cập nhật tin tức!', 'error');
+            show(t('errorUpdatingNews'), 'error');
         }
     };
 
@@ -615,7 +608,7 @@ export default function NewsEdit() {
                 imageInputRef.current.value = '';
             }
         } else {
-            show('Vui lòng chọn ảnh hoặc nhập URL!', 'error');
+            show(t('pleaseSelectImage'), 'error');
         }
     };
 
@@ -642,7 +635,7 @@ export default function NewsEdit() {
                     <div className="flex items-center justify-center py-12">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#02542D] mx-auto mb-4"></div>
-                            <p className="text-gray-600">Đang tải...</p>
+                            <p className="text-gray-600">{t('loading')}</p>
                         </div>
                     </div>
                 </div>
@@ -655,12 +648,12 @@ export default function NewsEdit() {
             <div className="min-h-screen p-4 sm:p-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
-                        <p className="text-red-600 mb-4">Không tìm thấy tin tức</p>
+                        <p className="text-red-600 mb-4">{t('newsNotFound')}</p>
                         <button
                             onClick={handleBack}
                             className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-opacity-80"
                         >
-                            Quay lại
+                            {t('goBack')}
                         </button>
                     </div>
                 </div>
@@ -691,7 +684,7 @@ export default function NewsEdit() {
                 <span
                     className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150 `}
                 >
-                    Quay lại
+                    {t('goBack')}
                 </span>
             </div>
 
@@ -702,7 +695,7 @@ export default function NewsEdit() {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className={`text-2xl font-semibold text-[#02542D] mr-3`}>
-                            Chỉnh sửa tin tức
+                            {t('editNews')}
                         </h1>
                     </div>
                 </div>
@@ -711,11 +704,11 @@ export default function NewsEdit() {
                     {/* Title */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Tiêu đề"
+                            label={t('title')}
                             value={formData.title}
                             onChange={handleChange}
                             name="title"
-                            placeholder="Nhập tiêu đề tin tức"
+                            placeholder={t('enterTitle')}
                             readonly={false}
                             required={true}
                             error={errors.title}
@@ -725,12 +718,12 @@ export default function NewsEdit() {
                     {/* Summary */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Tóm tắt"
+                            label={t('summary')}
                             value={formData.summary}
                             onChange={handleChange}
                             name="summary"
                             type="textarea"
-                            placeholder="Nhập tóm tắt ngắn gọn"
+                            placeholder={t('enterSummary')}
                             readonly={false}
                             required={true}
                             error={errors.summary}
@@ -740,12 +733,12 @@ export default function NewsEdit() {
                     {/* Body HTML */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Nội dung (HTML)"
+                            label={t('bodyHtml')}
                             value={formData.bodyHtml}
                             onChange={handleChange}
                             name="bodyHtml"
                             type="textarea"
-                            placeholder="Nhập nội dung HTML"
+                            placeholder={t('enterBodyHtml')}
                             readonly={false}
                             required={true}
                             error={errors.bodyHtml}
@@ -755,7 +748,7 @@ export default function NewsEdit() {
                     {/* Cover Image */}
                     <div className="col-span-full">
                         <label className="text-md font-bold text-[#02542D] mb-2 block">
-                            Ảnh bìa
+                            {t('coverImage')}
                         </label>
                         <div className="flex flex-col gap-3">
                             <input
@@ -795,29 +788,29 @@ export default function NewsEdit() {
                     {/* Status */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Trạng thái
+                            {t('status')}
                         </label>
                         <Select
                             options={[
-                                { name: 'Nháp', value: 'DRAFT' },
-                                { name: 'Đã lên lịch', value: 'SCHEDULED' },
-                                { name: 'Đã xuất bản', value: 'PUBLISHED' },
-                                { name: 'Ẩn', value: 'HIDDEN' },
-                                { name: 'Hết hạn', value: 'EXPIRED' },
-                                { name: 'Đã lưu trữ', value: 'ARCHIVED' },
+                                { name: t('draft'), value: 'DRAFT' },
+                                { name: t('scheduled'), value: 'SCHEDULED' },
+                                { name: t('published'), value: 'PUBLISHED' },
+                                { name: t('hidden'), value: 'HIDDEN' },
+                                { name: t('expired'), value: 'EXPIRED' },
+                                { name: t('archived'), value: 'ARCHIVED' },
                             ]}
                             value={formData.status}
                             onSelect={handleStatusChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder="Chọn trạng thái"
+                            placeholder={t('selectStatus')}
                         />
                     </div>
 
                     {/* Display Order */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Thứ tự hiển thị
+                            {t('displayOrder')}
                         </label>
                         <input
                             type="number"
@@ -832,12 +825,12 @@ export default function NewsEdit() {
                     {/* Publish At */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Ngày xuất bản <span className="text-red-500">*</span>
+                            {t('publishAt')} <span className="text-red-500">*</span>
                         </label>
                         <DateBox
                             value={formatISOToDate(formData.publishAt)}
                             onChange={handlePublishAtChange}
-                            placeholderText="Chọn ngày xuất bản"
+                            placeholderText={t('selectPublishDate')}
                         />
                         {errors.publishAt && (
                             <span className="text-red-500 text-xs mt-1">{errors.publishAt}</span>
@@ -847,12 +840,12 @@ export default function NewsEdit() {
                     {/* Expire At */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Ngày hết hạn <span className="text-red-500">*</span>
+                            {t('expireAt')} <span className="text-red-500">*</span>
                         </label>
                         <DateBox
                             value={formatISOToDate(formData.expireAt)}
                             onChange={handleExpireAtChange}
-                            placeholderText="Chọn ngày hết hạn"
+                            placeholderText={t('selectExpireDate')}
                         />
                         {errors.expireAt && (
                             <span className="text-red-500 text-xs mt-1">{errors.expireAt}</span>
@@ -862,39 +855,39 @@ export default function NewsEdit() {
                     {/* Scope */}
                     <div className={`flex flex-col mb-4 col-span-full`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Phạm vi (Scope)
+                            {t('scope')}
                         </label>
                         <Select
                             options={[
-                                { name: 'Nội bộ (INTERNAL)', value: 'INTERNAL' },
-                                { name: 'Bên ngoài (EXTERNAL)', value: 'EXTERNAL' }
+                                { name: t('internal'), value: 'INTERNAL' },
+                                { name: t('external'), value: 'EXTERNAL' }
                             ]}
                             value={formData.scope}
                             onSelect={handleScopeChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder="Chọn phạm vi"
+                            placeholder={t('selectScope')}
                         />
 
                         {formData.scope === 'INTERNAL' && (
                             <div className="mt-4">
                                 <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                                    Target Role <span className="text-red-500">*</span>
+                                    {t('targetRole')} <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     options={[
-                                        { name: 'Tất cả', value: 'ALL' },
-                                        { name: 'Quản trị viên', value: 'ADMIN' },
-                                        { name: 'Kỹ sư', value: 'TECHNICIAN' },
-                                        { name: 'Hỗ trợ', value: 'SUPPORTER' },
-                                        { name: 'Tài khoản', value: 'ACCOUNT' },
-                                        { name: 'Cư dân', value: 'RESIDENT' },
+                                        { name: t('all'), value: 'ALL' },
+                                        { name: t('admin'), value: 'ADMIN' },
+                                        { name: t('technician'), value: 'TECHNICIAN' },
+                                        { name: t('supporter'), value: 'SUPPORTER' },
+                                        { name: t('account'), value: 'ACCOUNT' },
+                                        { name: t('resident'), value: 'RESIDENT' },
                                     ]}
                                     value={formData.targetRole}
                                     onSelect={handleTargetRoleChange}
                                     renderItem={(item) => item.name}
                                     getValue={(item) => item.value}
-                                    placeholder="Chọn target role"
+                                    placeholder={t('selectTargetRole')}
                                 />
                             </div>
                         )}
@@ -902,15 +895,15 @@ export default function NewsEdit() {
                         {formData.scope === 'EXTERNAL' && (
                             <div className="mt-4">
                                 <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                                    Chọn tòa nhà
+                                    {t('selectBuilding')}
                                 </label>
                                 {loadingBuildings ? (
-                                    <p className="text-gray-500 text-sm">Đang tải danh sách tòa nhà...</p>
+                                    <p className="text-gray-500 text-sm">{t('loadingBuildings')}</p>
                                 ) : (
                                     <Select
                                         options={[
-                                            { name: 'Tất cả tòa nhà', value: 'all' },
-                                            ...buildings.map(b => ({ 
+                                            { name: t('allBuildings'), value: 'all' },
+                                            ...buildings.map(b => ({
                                                 name: `${b.name} (${b.code})`, 
                                                 value: b.id 
                                             }))
@@ -919,7 +912,7 @@ export default function NewsEdit() {
                                         onSelect={handleBuildingChange}
                                         renderItem={(item) => item.name}
                                         getValue={(item) => item.value}
-                                        placeholder="Chọn tòa nhà"
+                                        placeholder={t('selectBuilding')}
                                     />
                                 )}
                             </div>
@@ -929,7 +922,7 @@ export default function NewsEdit() {
                     {/* Images Section */}
                     <div className="col-span-full mt-6">
                         <h3 className="text-lg font-bold text-[#02542D] mb-4">
-                            Hình ảnh chi tiết ({formData.images.length})
+                            {t('detailedImages')} ({formData.images.length})
                         </h3>
 
                         {/* Add Image Form */}
@@ -937,7 +930,7 @@ export default function NewsEdit() {
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                                        Chọn hình ảnh
+                                        {t('selectImage')}
                                     </label>
                                     <input
                                         ref={imageInputRef}
@@ -960,7 +953,7 @@ export default function NewsEdit() {
                                 
                                 <div>
                                     <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                                        Mô tả hình ảnh
+                                        {t('imageDescription')}
                                     </label>
                                     <input
                                         type="text"
@@ -971,7 +964,7 @@ export default function NewsEdit() {
                                                 caption: e.target.value,
                                             }))
                                         }
-                                        placeholder="Nhập mô tả hình ảnh"
+                                        placeholder={t('enterImageDescription')}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#02542D] focus:border-transparent outline-none"
                                     />
                                 </div>
@@ -982,7 +975,7 @@ export default function NewsEdit() {
                                 disabled={!newImage.file && !newImage.url.trim()}
                                 className="mt-4 px-4 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Thêm hình ảnh
+                                {t('addImage')}
                             </button>
                         </div>
 
@@ -990,7 +983,7 @@ export default function NewsEdit() {
                         {formData.images.length > 0 && (
                             <div className="mt-4 space-y-3">
                                 <h4 className="text-md font-semibold text-gray-700">
-                                    Chỉnh sửa mô tả hình ảnh
+                                    {t('editImageDescription')}
                                 </h4>
                                 {formData.images.map((image, index) => (
                                     <div
@@ -1006,13 +999,13 @@ export default function NewsEdit() {
                                         )}
                                         <div className="flex-1">
                                             <label className="text-xs font-semibold text-gray-600 mb-1 block">
-                                                Mô tả hình ảnh #{index + 1}
+                                                {t('imageDescription')} #{index + 1}
                                             </label>
                                             <input
                                                 type="text"
                                                 value={image.caption}
                                                 onChange={(e) => handleImageCaptionChange(index, e.target.value)}
-                                                placeholder="Nhập mô tả cho hình ảnh này"
+                                                placeholder={t('enterImageDescription')}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#02542D] focus:border-transparent outline-none text-sm"
                                             />
                                         </div>
@@ -1041,16 +1034,16 @@ export default function NewsEdit() {
                             type="button"
                             onClick={handleBack}
                             className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || uploadingCoverImage || uploadingDetailImage}
                         >
-                            Hủy
+                            {t('cancel')}
                         </button>
                         <button
                             type="submit"
                             className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                                    disabled={isSubmitting || uploadingCoverImage || uploadingDetailImage}
-                            >
-                                {(isSubmitting || uploadingCoverImage || uploadingDetailImage) ? 'Đang lưu...' : 'Cập nhật'}
+                            disabled={isSubmitting || uploadingCoverImage || uploadingDetailImage}
+                        >
+                                {(isSubmitting || uploadingCoverImage || uploadingDetailImage) ? t('saving') : t('update')}
                         </button>
                     </div>
                 </div>

@@ -25,10 +25,10 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
   // Load dữ liệu ban đầu
   useEffect(() => {
     const loadData = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+      // if (!user) {
+      //   setLoading(false);
+      //   return;
+      // }
       
       console.log("use");
       setLoading(true);
@@ -37,6 +37,7 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
       try {
         // Lấy danh sách buildings
         const buildingsData = await getBuildings();
+        console.log("buildingsData", buildingsData);
         
         // Lấy danh sách vehicles theo type
         const vehiclesData = type === 'active' 

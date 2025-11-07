@@ -47,9 +47,13 @@ export interface ReadingCycleUpdateReq {
 export interface MeterDto {
   id: string;
   unitId: string;
+  unitCode?: string;
+  floor?: number;
   serviceId: string;
+  serviceCode?: string;
+  serviceName?: string;
   meterCode: string;
-  meterType: string;
+  meterType?: string;
   location?: string;
   active: boolean;
   lastReading?: number;
@@ -69,41 +73,79 @@ export interface MeterCreateReq {
 // Types for Meter Reading
 export interface MeterReadingDto {
   id: string;
-  meterId: string;
-  reading: number;
-  readingDate: string;
-  sessionId?: string;
   assignmentId?: string;
-  createdBy: string;
-  createdAt: string;
+  cycleId?: string;
+  meterId: string;
+  meterCode?: string;
+  unitId?: string;
+  unitCode?: string;
+  floor?: number;
+  prevIndex?: number;
+  currentIndex: number;
+  consumption?: number;
+  readingDate: string;
+  note?: string;
+  readerId?: string;
+  photoFileId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MeterReadingCreateReq {
+  assignmentId: string;
   meterId: string;
-  reading: number;
   readingDate: string;
-  sessionId?: string;
-  assignmentId?: string;
+  currIndex: number;
+  cycleId?: string;
+  note?: string;
+}
+
+export interface MeterReadingUpdateReq {
+  readingDate?: string;
+  prevIndex?: number;
+  currIndex?: number;
+  photoFileId?: string;
+  note?: string;
 }
 
 // Types for Meter Reading Assignment
 export interface MeterReadingAssignmentDto {
   id: string;
   cycleId: string;
+  cycleName: string;
+  buildingId?: string;
+  buildingCode?: string;
+  buildingName?: string;
+  serviceId: string;
+  serviceCode: string;
+  serviceName: string;
   assignedTo: string;
+  assignedToName?: string; // Username of assigned employee
   assignedBy: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  floors: number[];
-  buildingId: string;
-  createdAt: string;
+  assignedAt: string;
+  startDate: string;
+  endDate: string;
   completedAt?: string;
+  note?: string;
+  floor?: number;
+  floorFrom?: number;
+  floorTo?: number;
+  unitIds?: string[];
+  progressPercentage?: number; // Progress percentage for this assignment
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface MeterReadingAssignmentCreateReq {
   cycleId: string;
+  buildingId?: string;
+  serviceId: string;
   assignedTo: string;
-  floors: number[];
-  buildingId: string;
+  startDate?: string;
+  endDate?: string;
+  note?: string;
+  floor?: number;
+  unitIds?: string[];
 }
 
 export interface AssignmentProgressDto {
@@ -111,6 +153,24 @@ export interface AssignmentProgressDto {
   readMeters: number;
   remainingMeters: number;
   progressPercentage: number;
+}
+
+// Types for Service
+export interface ServiceDto {
+  id: string;
+  code: string;
+  name: string;
+  nameEn?: string;
+  type: string;
+  unit?: string;
+  unitLabel?: string;
+  billable: boolean;
+  requiresMeter: boolean;
+  active: boolean;
+  description?: string;
+  displayOrder?: number;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // Water Formula (stored as metadata or separate endpoint - assuming it's part of cycle config)
@@ -348,10 +408,56 @@ export async function deleteMeter(meterId: string): Promise<void> {
 
 // Meter Reading API
 export async function createMeterReading(req: MeterReadingCreateReq): Promise<MeterReadingDto> {
-  const response = await axios.post(
-    `${BASE_URL}/api/meter-readings`,
+  console.log("Creating meter reading with req:", req);
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/api/meter-readings`,
+      req,
+      { withCredentials: true }
+    );
+    console.log("Meter reading created successfully:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to create meter reading:", error);
+    console.error("Request was:", req);
+    console.error("Error response:", error?.response?.data);
+    throw error;
+  }
+}
+
+export async function getReadingsByAssignment(assignmentId: string): Promise<MeterReadingDto[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/meter-readings/assignment/${assignmentId}`,
+    { withCredentials: true }
+  );
+  console.log("Readings by assignment:", response.data);
+  return response.data;
+}
+
+export async function updateMeterReading(
+  readingId: string,
+  req: MeterReadingUpdateReq
+): Promise<MeterReadingDto> {
+  const response = await axios.put(
+    `${BASE_URL}/api/meter-readings/${readingId}`,
     req,
     { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function getMeterReadingsByCycleAndAssignmentAndUnit(
+  cycleId: string,
+  unitId: string,
+  assignmentId?: string
+): Promise<MeterReadingDto[]> {
+  const params: any = { cycleId, unitId };
+  if (assignmentId) {
+    params.assignmentId = assignmentId;
+  }
+  const response = await axios.get(
+    `${BASE_URL}/api/meter-readings`,
+    { params, withCredentials: true }
   );
   return response.data;
 }
@@ -390,6 +496,15 @@ export async function getAssignmentsByStaff(staffId: string): Promise<MeterReadi
     { withCredentials: true }
   );
   return response.data;
+}
+
+export interface AssignmentProgressDto {
+  totalMeters: number;
+  readingsDone: number;
+  readingsRemain: number;
+  percent: number;
+  completed: boolean;
+  completedAt?: string;
 }
 
 export async function getActiveAssignmentsByStaff(staffId: string): Promise<MeterReadingAssignmentDto[]> {
@@ -436,6 +551,23 @@ export async function getMetersByAssignment(assignmentId: string): Promise<Meter
 export async function getAssignmentProgress(assignmentId: string): Promise<AssignmentProgressDto> {
   const response = await axios.get(
     `${BASE_URL}/api/meter-reading-assignments/${assignmentId}/progress`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function getMetersByStaffAndCycle(staffId: string, cycleId: string): Promise<MeterDto[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/meter-reading-assignments/staff/${staffId}/cycle/${cycleId}/meters`,
+    { withCredentials: true }
+  );
+  console.log("Meters by staff and cycle:", response.data);
+  return response.data;
+}
+
+export async function getMyMetersByCycle(cycleId: string): Promise<MeterDto[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/meter-reading-assignments/my-meters/cycle/${cycleId}`,
     { withCredentials: true }
   );
   return response.data;
@@ -629,6 +761,40 @@ export async function updateBillingCycleStatus(
       params: { status },
       withCredentials: true
     }
+  );
+  return response.data;
+}
+
+// Service API
+export async function getAllServices(): Promise<ServiceDto[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/services`,
+    { withCredentials: true }
+  );
+  console.log(response.data);
+  return response.data;
+}
+
+export async function getActiveServices(): Promise<ServiceDto[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/services/active`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function getServiceById(serviceId: string): Promise<ServiceDto> {
+  const response = await axios.get(
+    `${BASE_URL}/api/services/${serviceId}`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function getServiceByCode(code: string): Promise<ServiceDto> {
+  const response = await axios.get(
+    `${BASE_URL}/api/services/code/${code}`,
+    { withCredentials: true }
   );
   return response.data;
 }
