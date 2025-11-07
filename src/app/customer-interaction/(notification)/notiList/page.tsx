@@ -12,7 +12,7 @@ import { NotificationType } from '@/src/types/notification';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 
 export default function NotificationList() {
-    const t = useTranslations('Notification');
+    const t = useTranslations('Noti');
     const router = useRouter();
     const { user } = useAuth();
     const { show } = useNotifications();
@@ -23,7 +23,7 @@ export default function NotificationList() {
     
     const { notificationList, loading, error, refetch } = useNotificationList(selectedType || undefined);
 
-    const headers = ['Tiêu đề', 'Nội dung', 'Loại', 'Ngày tạo', 'Hành động'];
+    const headers = [t('title'), t('content'), t('type'), t('createdAt'), t('action')];
 
     const handleAdd = () => {
         router.push('/customer-interaction/notiAdd');

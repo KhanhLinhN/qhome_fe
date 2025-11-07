@@ -30,7 +30,7 @@ interface NotificationFormData {
 
 export default function NotificationAdd() {
     const router = useRouter();
-    const t = useTranslations('Notification');
+    const t = useTranslations('Noti');
     const { user } = useAuth();
     const { addNotification, loading, error, isSubmitting } = useNotificationAdd();
     const { show } = useNotifications();
@@ -68,7 +68,7 @@ export default function NotificationAdd() {
                     setBuildings(allBuildings);
                 } catch (error) {
                     console.error('Lỗi khi tải danh sách tòa nhà:', error);
-                    show('Không thể tải danh sách tòa nhà', 'error');
+                    show(t('fetchBuildingError'), 'error');
                 } finally {
                     setLoadingBuildings(false);
                 }
@@ -92,14 +92,14 @@ export default function NotificationAdd() {
         switch (fieldName) {
             case 'title':
                 if (!value || value.trim() === '') {
-                    newErrors.title = 'Vui lòng nhập tiêu đề thông báo';
+                    newErrors.title = t('titleRequired');
                 } else {
                     delete newErrors.title;
                 }
                 break;
             case 'message':
                 if (!value || value.trim() === '') {
-                    newErrors.message = 'Vui lòng nhập nội dung thông báo';
+                    newErrors.message = t('contentRequired');
                 } else {
                     delete newErrors.message;
                 }
@@ -118,12 +118,12 @@ export default function NotificationAdd() {
 
         // Validate title
         if (!formData.title || formData.title.trim() === '') {
-            newErrors.title = 'Vui lòng nhập tiêu đề thông báo';
+            newErrors.title = t('titleRequired');
         }
 
         // Validate message
         if (!formData.message || formData.message.trim() === '') {
-            newErrors.message = 'Vui lòng nhập nội dung thông báo';
+            newErrors.message = t('contentRequired');
         }
 
         setErrors(newErrors);
@@ -136,13 +136,13 @@ export default function NotificationAdd() {
 
         // Validate all fields
         if (!validateAllFields()) {
-            show('Vui lòng kiểm tra lại các trường bắt buộc', 'error');
+            show(t('checkRequiredFields'), 'error');
             return;
         }
 
         // Additional validations
         if (formData.scope === 'INTERNAL' && !formData.targetRole) {
-            show('Vui lòng chọn target role cho thông báo INTERNAL', 'error');
+            show(t('selectTargetRole'), 'error');
             return;
         }
 
@@ -179,13 +179,13 @@ export default function NotificationAdd() {
             const createdNotification = await addNotification(request);
             
             // Show success message
-            show('Tạo thông báo thành công!', 'success');
-            
+            show(t('createNotificationSuccess'), 'success');
+
             // Redirect to notification list
             router.push(`/customer-interaction/notiList`);
         } catch (error) {
             console.error('Lỗi khi tạo thông báo:', error);
-            show('Có lỗi xảy ra khi tạo thông báo!', 'error');
+            show(t('createNotificationError'), 'error');
         }
     };
 
@@ -249,7 +249,7 @@ export default function NotificationAdd() {
                 <span
                     className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150 `}
                 >
-                    Quay lại danh sách thông báo
+                    {t('backToNotificationList')}
                 </span>
             </div>
 
@@ -260,7 +260,7 @@ export default function NotificationAdd() {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className={`text-2xl font-semibold text-[#02542D] mr-3`}>
-                            Thêm thông báo mới
+                            {t('createNotification')}
                         </h1>
                     </div>
                 </div>
@@ -269,33 +269,33 @@ export default function NotificationAdd() {
                     {/* Type */}
                     <div className={`col-span-full`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Loại thông báo
+                            {t('notificationType')}
                         </label>
                         <Select
                             options={[
-                                { name: 'Thông tin', value: 'NEWS' },
-                                { name: 'Yêu cầu', value: 'REQUEST' },
-                                { name: 'Hóa đơn', value: 'BILL' },
-                                { name: 'Hợp đồng', value: 'CONTRACT' },
-                                { name: 'Đọc điện nước', value: 'METER_READING' },
-                                { name: 'Hệ thống', value: 'SYSTEM' },
+                                { name: t('info'), value: 'NEWS' },
+                                { name: t('request'), value: 'REQUEST' },
+                                { name: t('bill'), value: 'BILL' },
+                                { name: t('contract'), value: 'CONTRACT' },
+                                { name: t('meterReading'), value: 'METER_READING' },
+                                { name: t('system'), value: 'SYSTEM' },
                             ]}
                             value={formData.type}
                             onSelect={handleTypeChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder="Chọn loại thông báo"
+                            placeholder={t('selectNotificationType')}
                         />
                     </div>
 
                     {/* Title */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Tiêu đề"
+                            label={t('title')}
                             value={formData.title}
                             onChange={handleChange}
                             name="title"
-                            placeholder="Nhập tiêu đề thông báo"
+                            placeholder={t('enterNotificationTitle')}
                             readonly={false}
                             required={true}
                             error={errors.title}
@@ -305,12 +305,12 @@ export default function NotificationAdd() {
                     {/* Message */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Nội dung"
+                            label={t('content')}
                             value={formData.message}
                             onChange={handleChange}
                             name="message"
                             type="textarea"
-                            placeholder="Nhập nội dung thông báo"
+                            placeholder={t('enterNotificationContent')}
                             readonly={false}
                             required={true}
                             error={errors.message}
@@ -320,18 +320,18 @@ export default function NotificationAdd() {
                     {/* Scope */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Phạm vi (Scope)
+                            {t('scope')}
                         </label>
                         <Select
                             options={[
-                                { name: 'Nội bộ (INTERNAL)', value: 'INTERNAL' },
-                                { name: 'Bên ngoài (EXTERNAL)', value: 'EXTERNAL' }
+                                { name: t('internal'), value: 'INTERNAL' },
+                                { name: t('external'), value: 'EXTERNAL' }
                             ]}
                             value={formData.scope}
                             onSelect={handleScopeChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder="Chọn phạm vi"
+                            placeholder={t('selectScope')}
                         />
                     </div>
 
@@ -339,22 +339,22 @@ export default function NotificationAdd() {
                     {formData.scope === 'INTERNAL' && (
                         <div className="flex flex-col mb-4 col-span-1">
                             <label className="text-md font-bold text-[#02542D] mb-1 block">
-                                Target Role <span className="text-red-500">*</span>
+                                {t('targetRole')} <span className="text-red-500">*</span>
                             </label>
                             <Select
                                 options={[
-                                    { name: 'Tất cả', value: 'ALL' },
-                                    { name: 'Quản trị viên', value: 'ADMIN' },
-                                    { name: 'Kỹ sư', value: 'TECHNICIAN' },
-                                    { name: 'Hỗ trợ', value: 'SUPPORTER' },
-                                    { name: 'Tài khoản', value: 'ACCOUNT' },
-                                    { name: 'Cư dân', value: 'RESIDENT' },
+                                    { name: t('all'), value: 'ALL' },
+                                    { name: t('admin'), value: 'ADMIN' },
+                                    { name: t('technician'), value: 'TECHNICIAN' },
+                                    { name: t('supporter'), value: 'SUPPORTER' },
+                                    { name: t('account'), value: 'ACCOUNT' },
+                                    { name: t('resident'), value: 'RESIDENT' },
                                 ]}
                                 value={formData.targetRole}
                                 onSelect={handleTargetRoleChange}
                                 renderItem={(item) => item.name}
                                 getValue={(item) => item.value}
-                                placeholder="Chọn target role"
+                                placeholder={t('selectTargetRole')}
                             />
                         </div>
                     )}
@@ -363,15 +363,15 @@ export default function NotificationAdd() {
                     {formData.scope === 'EXTERNAL' && (
                         <div className="flex flex-col mb-4 col-span-1">
                             <label className="text-md font-bold text-[#02542D] mb-1 block">
-                                Chọn tòa nhà
+                                {t('selectBuilding')}
                             </label>
                             {loadingBuildings ? (
-                                <p className="text-gray-500 text-sm">Đang tải danh sách tòa nhà...</p>
+                                <p className="text-gray-500 text-sm">{t('loadingBuildingList')}</p>
                             ) : (
                                 <Select
                                     options={[
-                                        { name: 'Tất cả tòa nhà', value: 'all' },
-                                        ...buildings.map(b => ({ 
+                                        { name: t('allBuildings'), value: 'all' },
+                                        ...buildings.map(b => ({
                                             name: `${b.name} (${b.code})`, 
                                             value: b.id 
                                         }))
@@ -380,7 +380,7 @@ export default function NotificationAdd() {
                                     onSelect={handleBuildingChange}
                                     renderItem={(item) => item.name}
                                     getValue={(item) => item.value}
-                                    placeholder="Chọn tòa nhà"
+                                    placeholder={t('selectBuilding')}
                                 />
                             )}
                         </div>
@@ -389,17 +389,17 @@ export default function NotificationAdd() {
                     {/* Action URL */}
                     <div className="col-span-1">
                         <DetailField
-                            label="Action URL"
+                            label={t('actionUrl')}
                             value={formData.actionUrl || ''}
                             onChange={handleChange}
                             name="actionUrl"
-                            placeholder="Nhập Action URL (tùy chọn)"
+                            placeholder={t('enterActionUrl')}
                             readonly={false}
                         />
                     </div>
 
                     {/* Icon URL */}
-                    <div className="col-span-1">
+                    {/* <div className="col-span-1">
                         <DetailField
                             label="Icon URL"
                             value={formData.iconUrl || ''}
@@ -408,7 +408,7 @@ export default function NotificationAdd() {
                             placeholder="Nhập Icon URL (tùy chọn)"
                             readonly={false}
                         />
-                    </div>
+                    </div> */}
 
                     {/* Action Buttons */}
                     <div className="col-span-full flex justify-center space-x-3 mt-8">
@@ -418,14 +418,14 @@ export default function NotificationAdd() {
                             className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
                             disabled={isSubmitting}
                         >
-                            Hủy
+                            {t('cancel')}
                         </button>
                         <button
                             type="submit"
                             className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? 'Đang lưu...' : 'Lưu'}
+                            {isSubmitting ? t('saving') : t('save')}
                         </button>
                     </div>
                 </div>

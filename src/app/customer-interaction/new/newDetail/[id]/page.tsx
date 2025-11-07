@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import { useRouter, useParams } from 'next/navigation';
@@ -7,12 +7,14 @@ import { getNewsDetail } from '@/src/services/customer-interaction/newService';
 import { News } from '@/src/types/news';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { getBuilding, Building } from '@/src/services/base/buildingService';
+import { useTranslations } from 'next-intl';
 
 export default function NewsDetail() {
     const router = useRouter();
     const params = useParams();
     const { show } = useNotifications();
     const id = params?.id as string;
+    const t = useTranslations('News');
 
     const [news, setNews] = useState<News | null>(null);
     const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ export default function NewsDetail() {
                 }
             } catch (error) {
                 console.error('Error fetching news detail:', error);
-                show('Không thể tải chi tiết tin tức', 'error');
+                show(t('noLoadDetail'), 'error');
             } finally {
                 setLoading(false);
             }
@@ -74,7 +76,7 @@ export default function NewsDetail() {
                     <div className="flex items-center justify-center py-12">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#02542D] mx-auto mb-4"></div>
-                            <p className="text-gray-600">Đang tải...</p>
+                            <p className="text-gray-600">{t('loading')}</p>
                         </div>
                     </div>
                 </div>
@@ -87,12 +89,12 @@ export default function NewsDetail() {
             <div className="min-h-screen p-4 sm:p-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
-                        <p className="text-red-600 mb-4">Không tìm thấy tin tức</p>
+                        <p className="text-red-600 mb-4">{t('noNewsFound')}</p>
                         <button
                             onClick={handleBack}
                             className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-opacity-80"
                         >
-                            Quay lại
+                            {t('returnNewsList')}
                         </button>
                     </div>
                 </div>
@@ -116,7 +118,7 @@ export default function NewsDetail() {
                         className="w-5 h-5 mr-2"
                     />
                     <span className="text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150">
-                        Quay lại
+                        {t('returnNewsList')}
                     </span>
                 </div>
 
@@ -138,12 +140,12 @@ export default function NewsDetail() {
                                 {news.status === 'PUBLISHED' ? 'Đã xuất bản' : 
                                  news.status === 'DRAFT' ? 'Nháp' : 'Đã lưu trữ'}
                             </span>
-                            <span>Ngày xuất bản: {formatDate(news.publishAt)}</span>
+                            <span>{t('publishDate')}: {formatDate(news.publishAt)}</span>
                             {news.expireAt && (
-                                <span>Ngày hết hạn: {formatDate(news.expireAt)}</span>
+                                <span>{t('expireDate')}: {formatDate(news.expireAt)}</span>
                             )}
                             {news.viewCount !== undefined && (
-                                <span>Lượt xem: {news.viewCount}</span>
+                                <span>{t('viewCount')}: {news.viewCount}</span>
                             )}
                         </div>
                     </div>
@@ -183,7 +185,7 @@ export default function NewsDetail() {
                     {news.images && news.images.length > 0 && (
                         <div className="mb-6">
                             <h2 className="text-xl font-semibold text-[#02542D] mb-4">
-                                Hình ảnh chi tiết ({news.images.length})
+                                {t('images')} ({news.images.length})
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {news.images
@@ -211,29 +213,29 @@ export default function NewsDetail() {
 
                     {/* Metadata */}
                     <div className="border-t pt-6 mt-6">
-                        <h2 className="text-lg font-semibold text-[#02542D] mb-4">Thông tin bổ sung</h2>
+                        <h2 className="text-lg font-semibold text-[#02542D] mb-4">{t('additionalInfo')}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
-                                <span className="font-semibold text-gray-700">Thứ tự hiển thị:</span>
+                                <span className="font-semibold text-gray-700">{t('displayOrder')}:</span>
                                 <span className="ml-2 text-gray-600">{news.displayOrder}</span>
                             </div>
                             {news.scope && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Phạm vi:</span>
+                                    <span className="font-semibold text-gray-700">{t('scope')}:</span>
                                     <span className="ml-2 text-gray-600">
-                                        {news.scope === 'INTERNAL' ? 'Nội bộ' : 'Bên ngoài'}
+                                        {news.scope === 'INTERNAL' ? t('internal') : t('external')}
                                     </span>
                                 </div>
                             )}
                             {news.targetRole && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Target Role:</span>
+                                    <span className="font-semibold text-gray-700">{t('targetRole')}:</span>
                                     <span className="ml-2 text-gray-600">{news.targetRole}</span>
                                 </div>
                             )}
                             {news.scope === 'EXTERNAL' && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Tòa nhà:</span>
+                                    <span className="font-semibold text-gray-700">{t('building')}:</span>
                                     <span className="ml-2 text-gray-600">
                                         {building 
                                             ? `${building.name} (${building.code})`
@@ -245,13 +247,13 @@ export default function NewsDetail() {
                             )}
                             {news.createdAt && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Ngày tạo:</span>
+                                    <span className="font-semibold text-gray-700">{t('createdAt')}:</span>
                                     <span className="ml-2 text-gray-600">{formatDate(news.createdAt)}</span>
                                 </div>
                             )}
                             {news.updatedAt && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">Ngày cập nhật:</span>
+                                    <span className="font-semibold text-gray-700">{t('updatedAt')}:</span>
                                     <span className="ml-2 text-gray-600">{formatDate(news.updatedAt)}</span>
                                 </div>
                             )}
@@ -265,14 +267,14 @@ export default function NewsDetail() {
                             onClick={handleBack}
                             className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
                         >
-                            Quay lại
+                            {t('back')}
                         </button>
                         <button
                             type="button"
                             onClick={() => router.push(`/customer-interaction/new/newEdit/${id}`)}
                             className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md"
                         >
-                            Chỉnh sửa
+                            {t('edit')}
                         </button>
                     </div>
                 </div>

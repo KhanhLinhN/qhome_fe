@@ -31,7 +31,7 @@ interface NotificationFormData {
 export default function NotificationEdit() {
     const router = useRouter();
     const params = useParams();
-    const t = useTranslations('Notification');
+    const t = useTranslations('Noti');
     const { user } = useAuth();
     const notificationId = params?.id as string;
     const { notification, updateNotificationItem, loading: loadingNotification, error, isSubmitting } = useNotificationEdit(notificationId);
@@ -93,7 +93,7 @@ export default function NotificationEdit() {
                     setBuildings(allBuildings);
                 } catch (error) {
                     console.error('Lỗi khi tải danh sách tòa nhà:', error);
-                    show('Không thể tải danh sách tòa nhà', 'error');
+                    show(t('error.loadBuildings'), 'error');
                 } finally {
                     setLoadingBuildings(false);
                 }
@@ -117,14 +117,14 @@ export default function NotificationEdit() {
         switch (fieldName) {
             case 'title':
                 if (!value || value.trim() === '') {
-                    newErrors.title = 'Vui lòng nhập tiêu đề thông báo';
+                    newErrors.title = t('emptyTitle');
                 } else {
                     delete newErrors.title;
                 }
                 break;
             case 'message':
                 if (!value || value.trim() === '') {
-                    newErrors.message = 'Vui lòng nhập nội dung thông báo';
+                    newErrors.message = t('emptyMessage');
                 } else {
                     delete newErrors.message;
                 }
@@ -143,12 +143,12 @@ export default function NotificationEdit() {
 
         // Validate title
         if (!formData.title || formData.title.trim() === '') {
-            newErrors.title = 'Vui lòng nhập tiêu đề thông báo';
+            newErrors.title = t('emptyTitle');
         }
 
         // Validate message
         if (!formData.message || formData.message.trim() === '') {
-            newErrors.message = 'Vui lòng nhập nội dung thông báo';
+            newErrors.message = t('emptyMessage');
         }
 
         setErrors(newErrors);
@@ -161,13 +161,13 @@ export default function NotificationEdit() {
 
         // Validate all fields
         if (!validateAllFields()) {
-            show('Vui lòng kiểm tra lại các trường bắt buộc', 'error');
+            show(t('checkRequiredFields'), 'error');
             return;
         }
 
         // Additional validations
         if (formData.scope === 'INTERNAL' && !formData.targetRole) {
-            show('Vui lòng chọn target role cho thông báo INTERNAL', 'error');
+            show(t('error.selectTargetRole'), 'error');
             return;
         }
 
@@ -196,13 +196,13 @@ export default function NotificationEdit() {
             await updateNotificationItem(request);
 
             // Show success message
-            show('Cập nhật thông báo thành công!', 'success');
-            
+            show(t('messages.updated'), 'success');
+
             // Redirect to notification detail
             router.push(`/customer-interaction/notiDetail/${notificationId}`);
         } catch (error) {
             console.error('Lỗi khi cập nhật thông báo:', error);
-            show('Có lỗi xảy ra khi cập nhật thông báo!', 'error');
+            show(t('error.updateFailed'), 'error');
         }
     };
 
@@ -257,7 +257,7 @@ export default function NotificationEdit() {
                     <div className="flex items-center justify-center py-12">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#02542D] mx-auto mb-4"></div>
-                            <p className="text-gray-600">Đang tải...</p>
+                            <p className="text-gray-600">{t('loading')}</p>
                         </div>
                     </div>
                 </div>
@@ -270,12 +270,12 @@ export default function NotificationEdit() {
             <div className="min-h-screen p-4 sm:p-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
-                        <p className="text-red-600 mb-4">Không tìm thấy thông báo</p>
+                        <p className="text-red-600 mb-4">{t('notFound')}</p>
                         <button
                             onClick={handleBack}
                             className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-opacity-80"
                         >
-                            Quay lại
+                            {t('back')}
                         </button>
                     </div>
                 </div>
@@ -299,7 +299,7 @@ export default function NotificationEdit() {
                 <span
                     className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150 `}
                 >
-                    Quay lại
+                    {t('back')}
                 </span>
             </div>
 
@@ -310,7 +310,7 @@ export default function NotificationEdit() {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className={`text-2xl font-semibold text-[#02542D] mr-3`}>
-                            Chỉnh sửa thông báo
+                            {t('editNotification')}
                         </h1>
                     </div>
                 </div>
@@ -319,7 +319,7 @@ export default function NotificationEdit() {
                     {/* Type (Read-only - can't change type after creation) */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Loại thông báo
+                            {t('notificationType')}
                         </label>
                         <input
                             type="text"
@@ -332,11 +332,11 @@ export default function NotificationEdit() {
                     {/* Title */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Tiêu đề"
+                            label={t('title')}
                             value={formData.title}
                             onChange={handleChange}
                             name="title"
-                            placeholder="Nhập tiêu đề thông báo"
+                            placeholder={t('enterTitle')}
                             readonly={false}
                             required={true}
                             error={errors.title}
@@ -346,12 +346,12 @@ export default function NotificationEdit() {
                     {/* Message */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Nội dung"
+                            label={t('message')}
                             value={formData.message}
                             onChange={handleChange}
                             name="message"
                             type="textarea"
-                            placeholder="Nhập nội dung thông báo"
+                            placeholder={t('enterMessage')}
                             readonly={false}
                             required={true}
                             error={errors.message}
@@ -361,18 +361,18 @@ export default function NotificationEdit() {
                     {/* Scope */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            Phạm vi (Scope)
+                            {t('scope')}
                         </label>
                         <Select
                             options={[
-                                { name: 'Nội bộ (INTERNAL)', value: 'INTERNAL' },
-                                { name: 'Bên ngoài (EXTERNAL)', value: 'EXTERNAL' }
+                                { name: t('internal'), value: 'INTERNAL' },
+                                { name: t('external'), value: 'EXTERNAL' }
                             ]}
                             value={formData.scope}
                             onSelect={handleScopeChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
-                            placeholder="Chọn phạm vi"
+                            placeholder={t('selectScope')}
                             disable={true}
                         />
                     </div>
@@ -381,22 +381,22 @@ export default function NotificationEdit() {
                     {formData.scope === 'INTERNAL' && (
                         <div className="flex flex-col mb-4 col-span-1">
                             <label className="text-md font-bold text-[#02542D] mb-1 block">
-                                Target Role <span className="text-red-500">*</span>
+                                {t('targetRole')} <span className="text-red-500">*</span>
                             </label>
                             <Select
                                 options={[
-                                    { name: 'Tất cả', value: 'ALL' },
-                                    { name: 'Quản trị viên', value: 'ADMIN' },
-                                    { name: 'Kỹ sư', value: 'TECHNICIAN' },
-                                    { name: 'Hỗ trợ', value: 'SUPPORTER' },
-                                    { name: 'Tài khoản', value: 'ACCOUNT' },
-                                    { name: 'Cư dân', value: 'RESIDENT' },
+                                    { name: t('all'), value: 'ALL' },
+                                    { name: t('admin'), value: 'ADMIN' },
+                                    { name: t('technician'), value: 'TECHNICIAN' },
+                                    { name: t('supporter'), value: 'SUPPORTER' },
+                                    { name: t('account'), value: 'ACCOUNT' },
+                                    { name: t('resident'), value: 'RESIDENT' },
                                 ]}
                                 value={formData.targetRole}
                                 onSelect={handleTargetRoleChange}
                                 renderItem={(item) => item.name}
                                 getValue={(item) => item.value}
-                                placeholder="Chọn target role"
+                                placeholder={t('selectTargetRole')}
                                 disable={true}
                             />
                         </div>
@@ -406,15 +406,15 @@ export default function NotificationEdit() {
                     {formData.scope === 'EXTERNAL' && (
                         <div className="flex flex-col mb-4 col-span-1">
                             <label className="text-md font-bold text-[#02542D] mb-1 block">
-                                Chọn tòa nhà
+                                {t('selectBuilding')}
                             </label>
                             {loadingBuildings ? (
-                                <p className="text-gray-500 text-sm">Đang tải danh sách tòa nhà...</p>
+                                <p className="text-gray-500 text-sm">{t('loadingBuildings')}</p>
                             ) : (
                                 <Select
                                     options={[
-                                        { name: 'Tất cả tòa nhà', value: 'all' },
-                                        ...buildings.map(b => ({ 
+                                        { name: t('allBuildings'), value: 'all' },
+                                        ...buildings.map(b => ({
                                             name: `${b.name} (${b.code})`, 
                                             value: b.id 
                                         }))
@@ -423,7 +423,7 @@ export default function NotificationEdit() {
                                     onSelect={handleBuildingChange}
                                     renderItem={(item) => item.name}
                                     getValue={(item) => item.value}
-                                    placeholder="Chọn tòa nhà"
+                                    placeholder={t('selectBuilding')}
                                     disable={true}
                                 />
                             )}
@@ -433,11 +433,11 @@ export default function NotificationEdit() {
                     {/* Action URL */}
                     <div className="col-span-full">
                         <DetailField
-                            label="Action URL"
+                            label={t('actionUrl')}
                             value={formData.actionUrl || ''}
                             onChange={handleChange}
                             name="actionUrl"
-                            placeholder="Nhập Action URL (tùy chọn)"
+                            placeholder={t('enterActionUrl')}
                             readonly={false}
                         />
                     </div>
@@ -450,14 +450,14 @@ export default function NotificationEdit() {
                             className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
                             disabled={isSubmitting}
                         >
-                            Hủy
+                            {t('cancel')}
                         </button>
                         <button
                             type="submit"
                             className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? 'Đang lưu...' : 'Cập nhật'}
+                            {isSubmitting ? t('saving') : t('update')}
                         </button>
                     </div>
                 </div>
