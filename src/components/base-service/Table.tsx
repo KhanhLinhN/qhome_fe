@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
-import Delete from '@/src/assets/DeleteTable.svg';
-import Edit from '@/src/assets/EditTable.svg';
+import Delete from '@/src/assets/Delete.svg';
+import Edit from '@/src/assets/Edit.svg';
 
 interface TableItemProps {
     projectId?: string;
@@ -157,19 +157,18 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                         <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.createBy}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023] text-center">
                                             <div className="flex space-x-2 justify-center">
-                                                <button 
-                                                    className={` hover:bg-opacity-80 transition duration-150`}
-                                                    onClick={() => console.log('Chỉnh sửa dự án')}
+                                                <Link 
+                                                    href={`/base/building/buildingDetail/${item.buildingId}`}
+                                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
+                                                    title="Xem chi tiết"
                                                 >
-                                                    <Link href={`/base/building/buildingDetail/${item.buildingId}`}>
-                                                        <Image 
-                                                            src={Edit} 
-                                                            alt="Edit" 
-                                                            width={34} 
-                                                            height={34}
-                                                        />
-                                                    </Link>
-                                                </button>
+                                                    <Image 
+                                                        src={Edit} 
+                                                        alt="Edit" 
+                                                        width={24} 
+                                                        height={24}
+                                                    />
+                                                </Link>
                                             </div>
                                         </td>
                                     </tr>
@@ -197,29 +196,29 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                             <div className="flex space-x-2 justify-center">
                                                 {onEdit && (
                                                     <button 
-                                                        className="hover:opacity-70 transition"
+                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition disabled:opacity-40"
                                                         onClick={() => item.newsId && onEdit(item.newsId)}
                                                         title="Chỉnh sửa"
                                                     >
                                                         <Image 
                                                             src={Edit} 
                                                             alt="Edit" 
-                                                            width={32} 
-                                                            height={32}
+                                                            width={24} 
+                                                            height={24}
                                                         />
                                                     </button>
                                                 )}
                                                 {onDelete && (
                                                     <button 
-                                                        className="hover:opacity-70 transition"
+                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition disabled:opacity-40"
                                                         onClick={() => item.newsId && onDelete(item.newsId)}
                                                         title="Xóa"
                                                     >
                                                         <Image 
                                                             src={Delete} 
                                                             alt="Delete" 
-                                                            width={32} 
-                                                            height={32}
+                                                            width={24} 
+                                                            height={24}
                                                         />
                                                     </button>
                                                 )}
@@ -249,29 +248,29 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                             <div className="flex space-x-2 justify-center">
                                                 {onEdit && (
                                                     <button 
-                                                        className="hover:opacity-70 transition"
+                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition disabled:opacity-40"
                                                         onClick={() => item.notificationId && onEdit(item.notificationId)}
                                                         title="Chỉnh sửa"
                                                     >
                                                         <Image 
                                                             src={Edit} 
                                                             alt="Edit" 
-                                                            width={32} 
-                                                            height={32}
+                                                            width={24} 
+                                                            height={24}
                                                         />
                                                     </button>
                                                 )}
                                                 {onDelete && (
                                                     <button 
-                                                        className="hover:opacity-70 transition"
+                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition disabled:opacity-40"
                                                         onClick={() => item.notificationId && onDelete(item.notificationId)}
                                                         title="Xóa"
                                                     >
                                                         <Image 
                                                             src={Delete} 
                                                             alt="Delete" 
-                                                            width={32} 
-                                                            height={32}
+                                                            width={24} 
+                                                            height={24}
                                                         />
                                                     </button>
                                                 )}

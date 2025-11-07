@@ -1,10 +1,9 @@
 'use client'
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   getAllReadingCycles,
   ReadingCycleDto,
   getAssignmentsByCycle,
-  MeterReadingAssignmentDto,
   getMeterReadingsByCycleAndAssignmentAndUnit,
   MeterReadingDto,
   exportReadingsByCycle,
@@ -13,6 +12,10 @@ import {
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { getBuildings } from '@/src/services/base/buildingService';
 import { getUnit, Unit } from '@/src/services/base/unitService';
+import {
+  PricingTierDto,
+  getPricingTiersByService,
+} from '@/src/services/finance/pricingTierService';
 
 type Building = {
   id: string;
@@ -37,17 +40,11 @@ interface BillingBuildingData {
   units: BillingUnitData[];
 }
 
-interface PricingFormula {
-  id: string;
-  serviceCode: string;
-  ranges: Array<{
-    from: number;
-    to: number | null;
-    price: number;
-  }>;
+interface WaterBillingTabProps {
+  formulaVersion: number;
 }
 
-export default function WaterBillingTab() {
+export default function WaterBillingTab({ formulaVersion }: WaterBillingTabProps) {
   const { show } = useNotifications();
   
   const [cycles, setCycles] = useState<ReadingCycleDto[]>([]);
@@ -55,15 +52,16 @@ export default function WaterBillingTab() {
   const [expandedCycles, setExpandedCycles] = useState<Set<string>>(new Set());
   const [expandedBuildings, setExpandedBuildings] = useState<Set<string>>(new Set());
   const [billingData, setBillingData] = useState<Record<string, Record<string, BillingBuildingData>>>({});
-  const [pricingFormula, setPricingFormula] = useState<PricingFormula | null>(null);
-  const [showFormulaModal, setShowFormulaModal] = useState(false);
-  const [showEditFormulaModal, setShowEditFormulaModal] = useState(false);
+  const [pricingTiers, setPricingTiers] = useState<PricingTierDto[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
     loadCycles();
-    loadPricingFormula();
   }, []);
+
+  useEffect(() => {
+    loadPricingFormula();
+  }, [formulaVersion]);
 
   const loadCycles = async () => {
     try {
@@ -204,52 +202,84 @@ export default function WaterBillingTab() {
     }
   };
 
-  const calculateAmount = (usage: number): number => {
-    if (!pricingFormula || usage <= 0) return 0;
-    
-    let total = 0;
-    
-    // Sort ranges by 'from' value (ascending)
-    const sortedRanges = [...pricingFormula.ranges].sort((a, b) => a.from - b.from);
-    
-    let remainingUsage = usage;
-    
-    for (const range of sortedRanges) {
-      if (remainingUsage <= 0) break;
-      
-      // Skip if usage hasn't reached this range yet
-      if (usage <= range.from) continue;
-      
-      // Calculate how much usage falls in this range
-      const rangeStart = range.from;
-      const rangeEnd = range.to === null ? usage : Math.min(range.to, usage);
-      const rangeUsage = Math.min(rangeEnd - rangeStart, remainingUsage);
-      
-      if (rangeUsage > 0) {
-        total += rangeUsage * range.price;
-        remainingUsage -= rangeUsage;
-      }
-      
-      // If we've covered all usage, break
-      if (range.to !== null && usage <= range.to) break;
+  const loadPricingFormula = async () => {
+    try {
+      const tiers = await getPricingTiersByService('WATER');
+      setPricingTiers(tiers ?? []);
+    } catch (error: any) {
+      console.error('Failed to load pricing tiers:', error);
+      show(error?.response?.data?.message || error?.message || 'Failed to load pricing tiers', 'error');
+      setPricingTiers([]);
     }
-    
-    return total;
   };
 
-  const loadPricingFormula = async () => {
-    // TODO: Implement API call to get pricing formula
-    // For now, use default formula
-    setPricingFormula({
-      id: 'default',
-      serviceCode: 'WATER',
-      ranges: [
-        { from: 0, to: 10, price: 5000 },
-        { from: 10, to: 20, price: 7000 },
-        { from: 20, to: 50, price: 10000 },
-        { from: 50, to: null, price: 15000 },
-      ],
-    });
+  const today = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now;
+  }, []);
+
+  const applicablePricingTiers = useMemo(() => {
+    return [...pricingTiers]
+      .filter((tier) => tier.active !== false)
+      .filter((tier) => {
+        const from = tier.effectiveFrom ? new Date(tier.effectiveFrom) : null;
+        const until = tier.effectiveUntil ? new Date(tier.effectiveUntil) : null;
+        if (from) from.setHours(0, 0, 0, 0);
+        if (until) until.setHours(0, 0, 0, 0);
+
+        const afterFrom = !from || today >= from;
+        const beforeUntil = !until || today <= until;
+        return afterFrom && beforeUntil;
+      })
+      .sort((a, b) => {
+        const orderDiff = (a.tierOrder ?? 0) - (b.tierOrder ?? 0);
+        if (orderDiff !== 0) return orderDiff;
+        return Number(a.minQuantity ?? 0) - Number(b.minQuantity ?? 0);
+      });
+  }, [pricingTiers, today]);
+
+  const calculateAmount = (usage: number): number => {
+    if (!applicablePricingTiers.length || usage <= 0) return 0;
+
+    let total = 0;
+    let lastCovered = 0;
+
+    for (const tier of applicablePricingTiers) {
+      const unitPrice = Number(tier.unitPrice ?? 0);
+      if (Number.isNaN(unitPrice) || unitPrice <= 0) continue;
+
+      const minQtyRaw = tier.minQuantity !== null && tier.minQuantity !== undefined
+        ? Number(tier.minQuantity)
+        : 0;
+      const maxQtyRaw = tier.maxQuantity !== null && tier.maxQuantity !== undefined
+        ? Number(tier.maxQuantity)
+        : Infinity;
+
+      const upperBound = Math.min(usage, Number.isFinite(maxQtyRaw) ? maxQtyRaw : usage);
+      if (upperBound <= lastCovered) continue;
+
+      let start = minQtyRaw;
+      if (lastCovered > 0) {
+        start = Math.max(minQtyRaw, lastCovered + 1);
+      } else if (minQtyRaw <= 0) {
+        start = 0;
+      }
+
+      if (upperBound < start) continue;
+
+      const inclusiveAdjustment = start === 0 ? 0 : 1;
+      const tierUsage = upperBound - start + inclusiveAdjustment;
+
+      if (tierUsage <= 0) continue;
+
+      total += tierUsage * unitPrice;
+      lastCovered = Math.max(lastCovered, upperBound);
+
+      if (lastCovered >= usage) break;
+    }
+
+    return total;
   };
 
   const toggleCycle = async (cycleId: string) => {
@@ -343,7 +373,7 @@ export default function WaterBillingTab() {
                   ) : (
                     buildingsList.map((building) => {
                       const isBuildingExpanded = expandedBuildings.has(building.buildingId);
-                      const totalAmount = building.units.reduce((sum, unit) => sum + unit.amount, 0);
+                      const totalAmount = building.units.reduce((sum, unit) => sum + calculateAmount(unit.usage), 0);
 
                       return (
                         <div
@@ -391,18 +421,21 @@ export default function WaterBillingTab() {
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                  {building.units.map((unit, index) => (
-                                    <tr key={unit.unitId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                      <td className="px-4 py-2 text-sm text-gray-800">{unit.unitCode}</td>
-                                      <td className="px-4 py-2 text-sm text-gray-800">{unit.meterCode}</td>
-                                      <td className="px-4 py-2 text-sm text-gray-800 text-right">{unit.prevIndex.toFixed(2)}</td>
-                                      <td className="px-4 py-2 text-sm text-gray-800 text-right">{unit.currentIndex.toFixed(2)}</td>
-                                      <td className="px-4 py-2 text-sm text-gray-800 text-right">{unit.usage.toFixed(2)}</td>
-                                      <td className="px-4 py-2 text-sm font-semibold text-[#02542D] text-right">
-                                        {unit.amount.toLocaleString('vi-VN')} VNĐ
-                                      </td>
-                                    </tr>
-                                  ))}
+                                  {building.units.map((unit, index) => {
+                                    const unitAmount = calculateAmount(unit.usage);
+                                    return (
+                                      <tr key={unit.unitId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                        <td className="px-4 py-2 text-sm text-gray-800">{unit.unitCode}</td>
+                                        <td className="px-4 py-2 text-sm text-gray-800">{unit.meterCode}</td>
+                                        <td className="px-4 py-2 text-sm text-gray-800 text-right">{unit.prevIndex.toFixed(2)}</td>
+                                        <td className="px-4 py-2 text-sm text-gray-800 text-right">{unit.currentIndex.toFixed(2)}</td>
+                                        <td className="px-4 py-2 text-sm text-gray-800 text-right">{unit.usage.toFixed(2)}</td>
+                                        <td className="px-4 py-2 text-sm font-semibold text-[#02542D] text-right">
+                                          {unitAmount.toLocaleString('vi-VN')} VNĐ
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
                                 </tbody>
                               </table>
                             </div>
@@ -417,85 +450,6 @@ export default function WaterBillingTab() {
           );
         })}
       </div>
-
-      {/* Formula Modal */}
-      {showFormulaModal && pricingFormula && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-[#02542D]">Công Thức Tính - WATER</h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowEditFormulaModal(true)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm('Are you sure you want to delete this formula?')) {
-                      // TODO: Implement delete formula
-                      show('Formula deleted', 'success');
-                      setShowFormulaModal(false);
-                    }
-                  }}
-                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => setShowFormulaModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {pricingFormula.ranges.map((range, index) => (
-                <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded">
-                  <span className="text-sm font-medium text-gray-700">
-                    {range.from} - {range.to === null ? '∞' : range.to}
-                  </span>
-                  <span className="text-sm text-gray-600">→</span>
-                  <span className="text-sm font-semibold text-[#02542D]">
-                    {range.price.toLocaleString('vi-VN')} VNĐ/unit
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Formula Modal */}
-      {showEditFormulaModal && pricingFormula && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-            <h2 className="text-xl font-semibold text-[#02542D] mb-4">Edit Công Thức Tính - WATER</h2>
-            {/* TODO: Implement edit formula form */}
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => setShowEditFormulaModal(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  // TODO: Implement save formula
-                  show('Formula updated', 'success');
-                  setShowEditFormulaModal(false);
-                  setShowFormulaModal(false);
-                }}
-                className="px-4 py-2 bg-[#739559] text-white rounded-md hover:bg-[#5a7447]"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

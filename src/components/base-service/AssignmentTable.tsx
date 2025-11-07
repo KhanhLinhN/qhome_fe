@@ -104,7 +104,6 @@ const AssignmentTable = ({ assignments, onView, onDelete }: AssignmentTableProps
                           height={24}
                         />
                       </button>
-                    {/* )} */}
                   </div>
                 </td>
               </tr>
