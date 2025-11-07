@@ -31,6 +31,17 @@ export async function getUnitsByBuilding(buildingId: string): Promise<Unit[]> {
 }
 
 /**
+ * GET /api/units/building/:buildingId/floor/:floor
+ */
+export async function getUnitsByFloor(buildingId: string, floor: number): Promise<Unit[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/units/building/${buildingId}/floor/${floor}`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+/**
  * GET /api/units/:id
  */
 export async function getUnit(id: string): Promise<Unit> {

@@ -14,7 +14,10 @@ import {
 import { useNotifications } from '@/src/hooks/useNotifications';
 import Select from '@/src/components/customer-interaction/Select';
 import DateBox from '@/src/components/customer-interaction/DateBox';
-import { getEmployeesByRole, EmployeeRoleDto } from '@/src/services/iam/employeeService';
+import { getEmployeesByRole, EmployeeRoleDto, getEmployeesByRoleNew } from '@/src/services/iam/employeeService';
+import { getUnitsByBuilding, getUnitsByFloor, Unit } from '@/src/services/base/unitService';
+import Checkbox from '@/src/components/customer-interaction/Checkbox';
+import { getAssignmentsByCycle, MeterReadingAssignmentDto } from '@/src/services/base/waterService';
 
 export default function AddAssignmentPage() {
   const router = useRouter();
@@ -37,9 +40,15 @@ export default function AddAssignmentPage() {
   const [assignedTo, setAssignedTo] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [floorFrom, setFloorFrom] = useState<string>('');
-  const [floorTo, setFloorTo] = useState<string>('');
+  const [selectedUnitIds, setSelectedUnitIds] = useState<Set<string>>(new Set()); // All selected units
+  const [expandedFloors, setExpandedFloors] = useState<Set<number>>(new Set()); // Floors with expanded dropdown
+  const [allBuildingUnits, setAllBuildingUnits] = useState<Unit[]>([]); // All units in building
   const [note, setNote] = useState<string>('');
+  const [availableFloors, setAvailableFloors] = useState<number[]>([]);
+  const [unitsByFloor, setUnitsByFloor] = useState<Map<number, Unit[]>>(new Map());
+  const [loadingUnits, setLoadingUnits] = useState<Map<number, boolean>>(new Map());
+  const [assignedFloors, setAssignedFloors] = useState<Set<number>>(new Set());
+  const [assignedUnitIds, setAssignedUnitIds] = useState<Set<string>>(new Set()); // Units already assigned for this cycle/service/building
 
   // Load initial data
   useEffect(() => {
@@ -58,14 +67,12 @@ export default function AddAssignmentPage() {
         setServices(servicesData.filter(s => s.active && s.requiresMeter));
 
         // Load staff with technician role
-        if (user?.tenantId) {
-          try {
-            const staffData = await getEmployeesByRole(user.tenantId, 'technician');
-            setStaffList(staffData);
-          } catch (error) {
-            console.error('Failed to load staff list:', error);
-            // Don't show error, just continue without staff list
-          }
+        try {
+          const staffData = await getEmployeesByRoleNew('technician');
+          setStaffList(staffData);
+        } catch (error) {
+          console.error('Failed to load staff list:', error);
+          // Don't show error, just continue without staff list
         }
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -76,7 +83,7 @@ export default function AddAssignmentPage() {
     };
 
     loadData();
-  }, [show, user?.tenantId]);
+  }, [show]);
 
   // Auto-fill dates when cycle is selected
   useEffect(() => {
@@ -88,6 +95,121 @@ export default function AddAssignmentPage() {
       }
     }
   }, [selectedCycleId, cycles]);
+
+  // Load assigned units for the current cycle/service/building
+  useEffect(() => {
+    const loadAssignedUnits = async () => {
+      if (selectedCycleId && selectedServiceId && selectedBuildingId) {
+        try {
+          const assignments = await getAssignmentsByCycle(selectedCycleId);
+          // Filter assignments with same cycle, service, and building
+          const relevantAssignments = assignments.filter(
+            (assignment: MeterReadingAssignmentDto) =>
+              assignment.serviceId === selectedServiceId &&
+              assignment.buildingId === selectedBuildingId
+          );
+          
+          // Extract assigned unitIds from all relevant assignments
+          const assignedUnitIdsSet = new Set<string>();
+          relevantAssignments.forEach((assignment: MeterReadingAssignmentDto) => {
+            if (assignment.unitIds && assignment.unitIds.length > 0) {
+              assignment.unitIds.forEach(unitId => assignedUnitIdsSet.add(unitId));
+            }
+          });
+          
+          setAssignedUnitIds(assignedUnitIdsSet);
+          
+          // Also extract assigned floors for backward compatibility
+          const assigned = new Set<number>();
+          relevantAssignments.forEach((assignment: MeterReadingAssignmentDto) => {
+            // Check both floor field (new) and floorFrom (old) for compatibility
+            if (assignment.floor !== null && assignment.floor !== undefined) {
+              assigned.add(assignment.floor);
+            } else if (assignment.floorFrom !== null && assignment.floorFrom !== undefined) {
+              // If floorFrom exists, add all floors from floorFrom to floorTo
+              const from = assignment.floorFrom;
+              const to = assignment.floorTo || assignment.floorFrom;
+              for (let f = from; f <= to; f++) {
+                assigned.add(f);
+              }
+            }
+          });
+          
+          setAssignedFloors(assigned);
+        } catch (error) {
+          console.error('Failed to load assigned units:', error);
+          setAssignedUnitIds(new Set());
+          setAssignedFloors(new Set());
+        }
+      } else {
+        setAssignedUnitIds(new Set());
+        setAssignedFloors(new Set());
+      }
+    };
+
+    loadAssignedUnits();
+  }, [selectedCycleId, selectedServiceId, selectedBuildingId]);
+
+  // Load available floors and all units when building is selected
+  // Filter out units that are already assigned for this cycle/service/building
+  useEffect(() => {
+    const loadFloors = async () => {
+      if (selectedBuildingId) {
+        try {
+          const units = await getUnitsByBuilding(selectedBuildingId);
+          
+          // Filter out units that are already assigned
+          const availableUnits = units.filter(unit => !assignedUnitIds.has(unit.id));
+          setAllBuildingUnits(availableUnits); // Store only available units for dropdown selection
+          
+          // Extract unique floors from available units and sort them
+          const uniqueFloors = Array.from(
+            new Set(availableUnits.map(unit => unit.floor).filter(floor => floor != null))
+          ).sort((a, b) => a - b);
+          
+          // Filter out already assigned floors (for backward compatibility)
+          const available = uniqueFloors.filter(floor => !assignedFloors.has(floor));
+          setAvailableFloors(available);
+          
+          // Load units for each available floor (filter out assigned units)
+          const unitsMap = new Map<number, Unit[]>();
+          const loadingMap = new Map<number, boolean>();
+          
+          for (const floor of available) {
+            loadingMap.set(floor, true);
+            try {
+              const floorUnits = await getUnitsByFloor(selectedBuildingId, floor);
+              // Filter out units that are already assigned
+              const availableFloorUnits = floorUnits.filter(unit => !assignedUnitIds.has(unit.id));
+              unitsMap.set(floor, availableFloorUnits);
+            } catch (error) {
+              console.error(`Failed to load units for floor ${floor}:`, error);
+              unitsMap.set(floor, []);
+            } finally {
+              loadingMap.set(floor, false);
+            }
+          }
+          
+          setUnitsByFloor(unitsMap);
+          setLoadingUnits(loadingMap);
+        } catch (error) {
+          console.error('Failed to load floors from units:', error);
+          setAvailableFloors([]);
+          setAllBuildingUnits([]);
+          setUnitsByFloor(new Map());
+        }
+      } else {
+        setAvailableFloors([]);
+        setAllBuildingUnits([]);
+        setSelectedUnitIds(new Set());
+        setExpandedFloors(new Set());
+        setUnitsByFloor(new Map());
+        setLoadingUnits(new Map());
+      }
+    };
+
+    loadFloors();
+  }, [selectedBuildingId, assignedFloors, assignedUnitIds]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,9 +229,25 @@ export default function AddAssignmentPage() {
       return;
     }
 
+    // Validate: must select at least one unit when building is selected
+    if (selectedBuildingId && selectedUnitIds.size === 0) {
+      show('Please select at least one unit', 'error');
+      return;
+    }
+
     try {
       setLoading(true);
 
+      // Calculate included unitIds (units that ARE selected)
+      // If building is selected, send the selected units
+      let includedUnitIds: string[] | undefined = undefined;
+      
+      if (selectedBuildingId && selectedUnitIds.size > 0) {
+        // Send units that ARE selected
+        includedUnitIds = Array.from(selectedUnitIds);
+      }
+
+      // Create one assignment with included unitIds (selected units)
       const req: MeterReadingAssignmentCreateReq = {
         cycleId: selectedCycleId,
         serviceId: selectedServiceId,
@@ -117,14 +255,18 @@ export default function AddAssignmentPage() {
         buildingId: selectedBuildingId || undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
-        floorFrom: floorFrom ? parseInt(floorFrom) : undefined,
-        floorTo: floorTo ? parseInt(floorTo) : undefined,
+        unitIds: includedUnitIds && includedUnitIds.length > 0 ? includedUnitIds : undefined,
         note: note || undefined,
       };
 
-      await createMeterReadingAssignment(req);
-      show('Assignment created successfully', 'success');
-      router.push('/base/(waterelectric)/(water)/waterAssign');
+      const response = await createMeterReadingAssignment(req);
+
+      if (response.id) {
+        show('Successfully created assignment', 'success');
+        router.push('/base/readingAssign');
+      } else {
+        show('Failed to create assignment', 'error');
+      }
     } catch (error: any) {
       console.error('Failed to create assignment:', error);
       show(error?.response?.data?.message || error?.message || 'Failed to create assignment', 'error');
@@ -194,15 +336,6 @@ export default function AddAssignmentPage() {
                 getValue={(building) => building.id}
                 placeholder="Select a building (optional)..."
               />
-              {selectedBuildingId && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedBuildingId('')}
-                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Clear selection
-                </button>
-              )}
             </div>
 
             {/* Service */}
@@ -260,33 +393,158 @@ export default function AddAssignmentPage() {
             </div>
           </div>
 
-          {/* Floor Range */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Floor/Unit Selection */}
+          {selectedBuildingId && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Floor From <span className="text-gray-500 text-xs">(Optional - leave empty for all floors)</span>
+                Select Units <span className="text-red-500">*</span>
+                {assignedFloors.size > 0 && (
+                  <span className="text-gray-500 text-xs ml-2">
+                    ({assignedFloors.size} floor(s) already assigned and hidden)
+                  </span>
+                )}
               </label>
-              <input
-                type="number"
-                value={floorFrom}
-                onChange={(e) => setFloorFrom(e.target.value)}
-                placeholder="e.g. 1"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
-              />
+              
+              {availableFloors.length === 0 ? (
+                <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
+                  <p className="text-sm text-gray-600">
+                    {assignedFloors.size > 0 
+                      ? 'All floors have been assigned for this cycle and service. Please select a different cycle or service.'
+                      : 'No floors available. Please make sure the building has units.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="border border-gray-300 rounded-md p-4 max-h-96 overflow-y-auto">
+                  <div className="space-y-3">
+                    {availableFloors.map((floor) => {
+                      const floorUnits = unitsByFloor.get(floor) || [];
+                      const isLoading = loadingUnits.get(floor);
+                      const isExpanded = expandedFloors.has(floor);
+                      
+                      // Check if all units in floor are selected
+                      const allUnitsSelected = floorUnits.length > 0 && 
+                        floorUnits.every(unit => selectedUnitIds.has(unit.id));
+                      // Check if at least one unit is selected
+                      const someUnitsSelected = floorUnits.some(unit => selectedUnitIds.has(unit.id));
+                      
+                      return (
+                        <div
+                          key={floor}
+                          className="border border-gray-200 rounded-md p-3 hover:border-[#739559] transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="mt-0.5">
+                              <Checkbox
+                                checked={allUnitsSelected}
+                                onClick={() => {
+                                  const newSelectedUnitIds = new Set(selectedUnitIds);
+                                  
+                                  if (allUnitsSelected) {
+                                    // Uncheck floor - remove all units in this floor
+                                    floorUnits.forEach(unit => newSelectedUnitIds.delete(unit.id));
+                                  } else {
+                                    // Check floor - add all units in this floor
+                                    floorUnits.forEach(unit => newSelectedUnitIds.add(unit.id));
+                                  }
+                                  
+                                  setSelectedUnitIds(newSelectedUnitIds);
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm text-gray-700">
+                                  Floor {floor}
+                                </span>
+                                {floorUnits.length > 0 && (
+                                  <span className="text-xs text-gray-500">
+                                    ({floorUnits.length} units)
+                                  </span>
+                                )}
+                                {someUnitsSelected && !allUnitsSelected && (
+                                  <span className="text-xs text-blue-600">
+                                    ({floorUnits.filter(u => selectedUnitIds.has(u.id)).length} selected)
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newExpanded = new Set(expandedFloors);
+                                    if (isExpanded) {
+                                      newExpanded.delete(floor);
+                                    } else {
+                                      newExpanded.add(floor);
+                                    }
+                                    setExpandedFloors(newExpanded);
+                                  }}
+                                  className="ml-auto text-xs text-blue-600 hover:text-blue-800 underline"
+                                >
+                                  {isExpanded ? '▼ Hide' : '▶ Show'} units
+                                </button>
+                              </div>
+                              
+                              {isExpanded && (
+                                <div className="mt-2 ml-6 space-y-1 border-l-2 border-gray-200 pl-3">
+                                  {isLoading ? (
+                                    <div className="text-xs text-gray-500 italic">Loading units...</div>
+                                  ) : floorUnits.length > 0 ? (
+                                    floorUnits.map((unit) => {
+                                      const isUnitSelected = selectedUnitIds.has(unit.id);
+                                      return (
+                                        <div
+                                          key={unit.id}
+                                          className="flex items-center gap-2 py-1"
+                                        >
+                                          <Checkbox
+                                            checked={isUnitSelected}
+                                            onClick={() => {
+                                              const newSelectedUnitIds = new Set(selectedUnitIds);
+                                              
+                                              if (isUnitSelected) {
+                                                // Uncheck unit - remove from selected
+                                                newSelectedUnitIds.delete(unit.id);
+                                              } else {
+                                                // Check unit - add to selected
+                                                newSelectedUnitIds.add(unit.id);
+                                              }
+                                              
+                                              setSelectedUnitIds(newSelectedUnitIds);
+                                            }}
+                                          />
+                                          <span className="text-xs text-gray-700">{unit.code}</span>
+                                        </div>
+                                      );
+                                    })
+                                  ) : (
+                                    <div className="text-xs text-gray-400 italic">No units found</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {selectedUnitIds.size > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-sm text-gray-600">
+                    Selected: {selectedUnitIds.size} unit(s)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUnitIds(new Set())}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Floor To <span className="text-gray-500 text-xs">(Optional)</span>
-              </label>
-              <input
-                type="number"
-                value={floorTo}
-                onChange={(e) => setFloorTo(e.target.value)}
-                placeholder="e.g. 10"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
-              />
-            </div>
-          </div>
+          )}
 
           {/* Note */}
           <div>

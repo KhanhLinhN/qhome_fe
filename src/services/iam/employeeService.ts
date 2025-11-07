@@ -224,3 +224,22 @@ export async function getEmployeesByRole(
   return response.data;
 }
 
+export async function getEmployeesByRoleNew(
+  roleName: string
+): Promise<EmployeeRoleDto[]> {
+  const response = await axios.get(
+    `${IAM_URL}/api/employees/role/${roleName.toUpperCase()}`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function getEmployees(
+): Promise<UserInfoDto[]> {
+  const response = await axios.get(
+    `${IAM_URL}/api/employees`,
+    { withCredentials: true }
+  );
+  console.log('Available staff:', response.data);
+  return response.data;
+}

@@ -35,10 +35,8 @@ export default function TenantOwnerBuildingsPage() {
   const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.tenantId) {
-      loadDeletingBuildings();
-    }
-  }, [user]);
+    loadDeletingBuildings();
+  }, []);
 
   const loadDeletingBuildings = async () => {
     if (!user?.tenantId) return;
