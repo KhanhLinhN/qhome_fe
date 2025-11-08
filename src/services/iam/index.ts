@@ -9,4 +9,5 @@ export * from './roleService';
 export * from './tenantRoleService';
 export * from './employeeService';
 export * from './userPermissionService';
+export * from './userService';
 
