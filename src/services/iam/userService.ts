@@ -16,6 +16,9 @@ export interface UserAccountInfo {
   email: string;
   roles: string[];
   active: boolean;
+  buildingId?: string;
+  buildingCode?: string;
+  buildingName?: string;
 }
 
 export interface UserStatusInfo {
@@ -33,6 +36,34 @@ export interface UpdateUserProfilePayload {
 
 export interface UpdateUserPasswordPayload {
   newPassword: string;
+}
+
+export interface UpdateStaffAccountPayload {
+  username: string;
+  email: string;
+  active?: boolean;
+  roles?: string[];
+  newPassword?: string;
+}
+
+export interface UpdateResidentAccountPayload {
+  username?: string;
+  email?: string;
+  active?: boolean;
+}
+
+export interface CreateStaffAccountPayload {
+  username: string;
+  email: string;
+  password: string;
+  roles: string[];
+  active?: boolean;
+}
+
+export interface CreateResidentAccountPayload {
+  username: string;
+  email: string;
+  residentId: string;
 }
 
 export async function fetchUserProfile(userId: string): Promise<UserProfileInfo> {
@@ -80,6 +111,81 @@ export async function updateUserPassword(
     payload,
     { withCredentials: true }
   );
+}
+
+export async function fetchStaffAccounts(): Promise<UserAccountInfo[]> {
+  const response = await axios.get<UserAccountInfo[]>(
+    `${IAM_URL}/api/users/staff`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function fetchResidentAccounts(): Promise<UserAccountInfo[]> {
+  const response = await axios.get<UserAccountInfo[]>(
+    `${IAM_URL}/api/users/residents`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function fetchStaffAccountDetail(userId: string): Promise<UserAccountInfo> {
+  const response = await axios.get<UserAccountInfo>(
+    `${IAM_URL}/api/users/staff/${userId}`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export async function fetchResidentAccountDetail(userId: string): Promise<UserAccountInfo> {
+  return fetchUserAccount(userId);
+}
+
+export async function updateStaffAccount(
+  userId: string,
+  payload: UpdateStaffAccountPayload,
+): Promise<UserAccountInfo> {
+  const response = await axios.put<UserAccountInfo>(
+    `${IAM_URL}/api/users/staff/${userId}`,
+    payload,
+    { withCredentials: true },
+  );
+  return response.data;
+}
+
+export async function updateResidentAccount(
+  userId: string,
+  payload: UpdateResidentAccountPayload,
+): Promise<UserAccountInfo> {
+  return updateUserProfile(userId, payload);
+}
+
+export async function createStaffAccount(
+  payload: CreateStaffAccountPayload,
+): Promise<UserAccountInfo> {
+  const response = await axios.post<UserAccountInfo>(
+    `${IAM_URL}/api/users/staff`,
+    payload,
+    { withCredentials: true },
+  );
+  return response.data;
+}
+
+export async function createResidentAccount(
+  payload: CreateResidentAccountPayload,
+): Promise<UserAccountInfo> {
+  const response = await axios.post<UserAccountInfo>(
+    `${IAM_URL}/api/users/create-for-resident`,
+    payload,
+    { withCredentials: true },
+  );
+  return response.data;
+}
+
+export async function deleteAccount(userId: string): Promise<void> {
+  const response = await axios.delete(`${IAM_URL}/api/users/staff/${userId}`, 
+    { withCredentials: true });
+  return response.data;
 }
 
 

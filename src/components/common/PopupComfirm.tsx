@@ -24,7 +24,7 @@ const PopupConfirm = ({ isOpen, onClose, onConfirm, popupTitle, popupContext, is
                     onConfirm();
                     onClose();
                     }}
-                    className={`pt-2 pr-4 pb-2 pl-4 ${isDanger ? 'bg-[#EC221F]': 'bg-[#739559]' } text-white text-sm rounded-[8px] font-md hover:bg-[#1A4BBF] transition-colors duration-200`}
+                    className={`pt-2 pr-4 pb-2 pl-4 ${isDanger ? 'bg-[#EC221F] hover:bg-[#b81a18]': 'bg-[#739559] hover:bg-[#1A4BBF]' } text-white text-sm rounded-[8px] font-md  transition-colors duration-200`}
                 >
                     {t('yes')}
                 </button>

@@ -67,3 +67,4 @@ export const useSupplierPage = (loadOnMount: boolean = true) => {
         handleClear,
     };
 };
+

@@ -7,12 +7,15 @@ import Delete from '@/src/assets/Delete.svg';
 import { useTranslations } from 'next-intl';
 import { Project } from '@/src/types/project';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { ServiceCategory } from '@/src/types/service';
 
 export interface filters {
     codeName?: string,
     address?: string,
     status?: string,
     projectId?: string,
+    categoryId?: string,
+    search?: string,
 }
 
 interface FilterFormProps {
@@ -23,9 +26,10 @@ interface FilterFormProps {
     onClear: () => void;
     onDelete: () => void;
     projectList?: Project[];
+    categoryList?: ServiceCategory[];
 }
 
-const FilterForm = ({ filters, page, onFilterChange, onAdd, onClear, onDelete, projectList }: FilterFormProps) => {
+const FilterForm = ({ filters, page, onFilterChange, onAdd, onClear, onDelete, projectList, categoryList }: FilterFormProps) => {
     const t = useTranslations();
     const { user, hasRole } = useAuth();
 
@@ -169,6 +173,80 @@ const FilterForm = ({ filters, page, onFilterChange, onAdd, onClear, onDelete, p
                         {t('Building.addBuilding')}
                     </button>
                     
+                </div>
+            </div>
+        );
+    }
+
+    if(page == "service"){
+
+        const categoryOptions = [
+            { name: t('Service.categoryAll'), value: '' },
+            ...(categoryList ?? []).map((category) => ({
+                name: category.name ?? '',
+                value: category.id ?? '',
+            })),
+        ];
+
+        const statusOptions = [
+            { name: t('Service.statusAll'), value: 'ALL' },
+            { name: t('Service.active'), value: 'ACTIVE' },
+            { name: t('Service.inactive'), value: 'INACTIVE' },
+        ];
+
+        return (
+            <div className="bg-white rounded-xl w-full">
+                <div className="flex flex-col lg:flex-row gap-4">
+                    <span className='whitespace-nowrap py-2.5'>
+                        {t('Service.filterBy')}
+                    </span>
+                    <input
+                        type="text"
+                        name="search"
+                        placeholder={t('Service.searchPlaceholder')}
+                        value={filters.search || ''}
+                        className={inputClass}
+                        onChange={handleInputChange}
+                    />
+                    {categoryOptions.length > 1 && (
+                        <Select
+                            options={categoryOptions}
+                            value={filters.categoryId ?? ''}
+                            onSelect={(item) => onFilterChange('categoryId', item.value)}
+                            renderItem={(item) => item.name}
+                            getValue={(item) => item.value}
+                            placeholder={t('Service.category')}
+                        />
+                    )}
+                    <Select
+                        options={statusOptions}
+                        value={filters.status ?? 'ALL'}
+                        onSelect={(item) => onFilterChange('status', item.value)}
+                        renderItem={(item) => item.name}
+                        getValue={(item) => item.value}
+                        placeholder={t('Service.status')}
+                    />
+                    <button
+                        type="button"
+                        onClick={onClear}
+                        className="flex items-center justify-center px-6 py-2.5 bg-white text-[#02542D] font-semibold border border-gray-300 rounded-lg shadow-sm hover:bg-[#d9dadb]"
+                    >
+                        {t('Service.clear')}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={onAdd}
+                        className="flex items-center justify-center px-6 py-2.5 bg-[#14AE5C] text-white font-semibold border border-gray-300 rounded-lg shadow-sm hover:bg-[#0c793f] whitespace-nowrap gap-2"
+                    >
+                        <Image
+                            src={AddIcon}
+                            alt="AddIcon"
+                            width={16}
+                            height={16}
+                        />
+                        {t('Service.addService')}
+                    </button>
                 </div>
             </div>
         );
