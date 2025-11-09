@@ -39,6 +39,7 @@ export interface ServiceOptionGroup {
 
 export interface ServiceOption {
   id: string;
+  code?: string;
   name?: string;
   description?: string;
   price?: number | null;
@@ -145,6 +146,14 @@ export interface CreateServiceCategoryPayload {
 
 export type UpdateServiceCategoryPayload = Partial<CreateServiceCategoryPayload>;
 
+export interface ServiceComboItemPayload {
+  includedServiceId?: string;
+  optionId?: string;
+  quantity: number;
+  note?: string;
+  sortOrder?: number | null;
+}
+
 export interface CreateServiceComboPayload {
   code: string;
   name: string;
@@ -154,6 +163,7 @@ export interface CreateServiceComboPayload {
   price: number;
   isActive?: boolean;
   sortOrder?: number | null;
+  items?: ServiceComboItemPayload[];
 }
 
 export interface CreateServiceOptionPayload {
