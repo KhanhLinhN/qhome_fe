@@ -476,7 +476,11 @@
       "ticket": "Theo vé",
       "option": "Theo tùy chọn",
       "standard": "Tiêu chuẩn",
-      "unknown": "Không xác định"
+      "unknown": "Không xác định",
+      "combo_based": "Theo gói",
+      "ticket_based": "Theo vé",
+      "option_based": "Theo tùy chọn",
+      "standard_based": "Tiêu chuẩn"
     },
     "cancel": "Hủy",
     "save": "Lưu",

@@ -414,7 +414,11 @@
         "ticket": "Follow ticket",
         "option": "Follow option",
         "standard": "Standard",
-        "unknown": "Unknown"
+        "unknown": "Unknown",
+        "combo_based": "Follow combo",
+        "ticket_based": "Follow ticket",
+        "option_based": "Follow option",
+        "standard_based": "Standard"
       },
       "cancel": "Cancel",
       "save": "Save",
