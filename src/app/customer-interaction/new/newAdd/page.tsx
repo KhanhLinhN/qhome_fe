@@ -21,7 +21,6 @@ import {
 } from '@/src/services/customer-interaction/newService';
 import { NotificationScope, NewsStatus } from '@/src/types/news';
 import { useNotifications } from '@/src/hooks/useNotifications';
-import { getAllTenants, Tenant } from '@/src/services/base/tenantService';
 
 interface NewsImage {
     url: string;
@@ -59,9 +58,6 @@ export default function NewsAdd() {
     const { addNews, loading, error, isSubmitting } = useNewAdd();
     const { show } = useNotifications();
 
-    const [tenants, setTenants] = useState<Tenant[]>([]);
-    const [selectedTenantId, setSelectedTenantId] = useState<string>('');
-    const [loadingTenants, setLoadingTenants] = useState(false);
     const [buildings, setBuildings] = useState<Building[]>([]);
     const [selectedBuildingId, setSelectedBuildingId] = useState<string>('all'); // 'all' means all buildings, otherwise building.id
     const [loadingBuildings, setLoadingBuildings] = useState(false);
@@ -104,18 +100,13 @@ export default function NewsAdd() {
         expireAt?: string;
     }>({});
 
-    // Fetch buildings when scope is EXTERNAL (or when tenant is selected for filtering)
     useEffect(() => {
         const fetchBuildings = async () => {
             if (formData.scope === 'EXTERNAL') {
                 setLoadingBuildings(true);
                 try {
                     const allBuildings = await getBuildings();
-                    // Filter by tenantId if selectedTenantId exists
-                    const filtered = selectedTenantId 
-                        ? allBuildings.filter((b: Building) => b.tenantId === selectedTenantId)
-                        : allBuildings;
-                    setBuildings(filtered);
+                    setBuildings(allBuildings);
                 } catch (error) {
                     console.error('Lỗi khi tải danh sách tòa nhà:', error);
                     show('Không thể tải danh sách tòa nhà', 'error');
@@ -129,7 +120,7 @@ export default function NewsAdd() {
         };
 
         fetchBuildings();
-    }, [formData.scope, selectedTenantId, show]);
+    }, [formData.scope, show]);
 
     const handleBack = () => {
         router.push('/customer-interaction/new/newList');
@@ -501,16 +492,6 @@ export default function NewsAdd() {
         }));
     };
 
-    const handleTenantChange = (item: { name: string; value: string }) => {
-        setSelectedTenantId(item.value);
-        // Reset building selection khi đổi tenant
-        setSelectedBuildingId('all');
-        setFormData((prevData) => ({
-            ...prevData,
-            targetBuildingId: undefined,
-        }));
-    };
-
     const handleScopeChange = (item: { name: string; value: string }) => {
         setSelectedBuildingId('all');
         setFormData((prevData) => ({
@@ -647,7 +628,6 @@ export default function NewsAdd() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                    {/* Project/Tenant Selection */}
 
                     {/* Title */}
                     <div className="col-span-full">

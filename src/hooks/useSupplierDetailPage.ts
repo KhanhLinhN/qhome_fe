@@ -55,3 +55,4 @@ export const useSupplierDetailPage = (supplierId: string | string[] | undefined)
         isSubmitting,
     };
 };
+

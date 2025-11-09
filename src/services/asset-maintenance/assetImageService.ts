@@ -61,3 +61,4 @@ export async function setPrimaryImage(
 export function getAssetImageUrl(imagePath: string): string {
   return `${BASE_URL}/api/asset-maintenance/assets/images/${imagePath}`;
 }
+

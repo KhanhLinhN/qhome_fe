@@ -6,6 +6,7 @@ interface DetailFieldProps {
   label: string;
   value: string;
   name?: string;
+  inputType?: string;
   placeholder?: string;
   isFullWidth?: boolean;
   type?: 'input' | 'textarea' | 'date';
@@ -15,7 +16,7 @@ interface DetailFieldProps {
   error?: string;
 }
 
-const DetailField: React.FC<DetailFieldProps> = ({ label, name, value, placeholder, isFullWidth = false, type = 'input', readonly, onChange, required = false, error }) => {
+const DetailField: React.FC<DetailFieldProps> = ({ label, name, value, placeholder, isFullWidth = false, type = 'input', readonly, onChange, required = false, error, inputType }) => {
     const activeClass = !readonly 
         ? `${error ? 'border-red-500' : 'border-[#739559]'} focus:ring-1 ${error ? 'focus:ring-red-500' : 'focus:ring-[#739559]'} bg-white cursor-text` 
         : 'bg-[#E3E3E3] border-[#739559] cursor-default';
@@ -28,7 +29,7 @@ const DetailField: React.FC<DetailFieldProps> = ({ label, name, value, placehold
             {type === 'input' && (
                 <>
                     <input
-                        type="text"
+                        type={inputType == "number"? "number" : "text"}
                         name={name} 
                         value={value}
                         readOnly={readonly}

@@ -10,11 +10,11 @@ export const useBuildingAdd = () => {
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
 
-    const addBuilding = async(data: Partial<Building>, tenantId: string) =>{
+    const addBuilding = async(data: Partial<Building>) =>{
         setIsSubmitting(true);
         setError(null);
         try {
-            await createBuilding(tenantId, data);
+            await createBuilding(data);
         } catch (err) {
             setError(err as Error);
             throw err;
