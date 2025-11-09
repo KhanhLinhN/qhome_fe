@@ -9,7 +9,6 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { Building } from '@/src/types/building';
 import { useBuildingAdd } from '@/src/hooks/useBuildingAdd';
-import { getAllTenants } from '@/src/services/base/tenantService';
 import { Project } from '@/src/types/project';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { checkBuildingCodeExists } from '@/src/services/base/buildingService';
@@ -21,8 +20,6 @@ export default function BuildingAdd () {
     const tProject = useTranslations('Project');
     const router = useRouter();
     const [isSubmit, setIsSubmit] = useState(false);
-    const [tenantId, setTenantId] = useState<string>('');
-    const [projects, setProjects] = useState<Project[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(true);
     const { show } = useNotifications();
     const [codeError, setCodeError] = useState<string>('');
@@ -31,55 +28,29 @@ export default function BuildingAdd () {
         address?: string;
         floors?: string;
     }>({});
-    
-    useEffect(() => {
-        const fetchProjects = async () => {
-            try {
-                const projectList = await getAllTenants();
-                setProjects(projectList as unknown as Project[]);
-            } catch (error) {
-                console.error('Error fetching projects:', error);
-            } finally {
-                setLoadingProjects(false);
-            }
-        };
-        fetchProjects();
-    }, []);
-
-    useEffect(() => {
-        if (user?.tenantId && projects.length > 0) {
-            setTenantId(user.tenantId);
-            setFormData(prev => ({
-                ...prev,
-                tenantId: user.tenantId
-            }));
-        }
-    }, [user, projects]);
 
     const { addBuilding, loading, error, isSubmitting } = useBuildingAdd();
 
     const [formData, setFormData] = useState<Partial<Building> & { floorsMaxStr: string; totalApartmentsAllStr: string; status: string }>({
         code: '',
         name: '',
-        tenantId: '',
         address: '',
         floorsMax: 0,
         totalApartmentsAll: 0,
         totalApartmentsActive: 0,
-        floorsMaxStr: '0',
+        floorsMaxStr: '',
         totalApartmentsAllStr: '0',
         status: 'ACTIVE',
     });
 
-    // Check code khi code hoặc tenantId thay đổi
     useEffect(() => {
         const checkCode = async () => {
-            if (!formData.code || !tenantId) {
+            if (!formData.code ) {
                 setCodeError('');
                 return;
             }
             
-            const exists = await checkBuildingCodeExists(formData.code, tenantId);
+            const exists = await checkBuildingCodeExists(formData.code);
             if (exists) {
                 setCodeError(t('codeError'));
             } else {
@@ -89,7 +60,7 @@ export default function BuildingAdd () {
 
         const timeoutId = setTimeout(checkCode, 500); // Debounce 500ms
         return () => clearTimeout(timeoutId);
-    }, [formData.code, tenantId]);
+    }, [formData.code]);
     
     const handleBack = () => {
         router.back(); 
@@ -111,11 +82,6 @@ export default function BuildingAdd () {
             return;
         }
         
-        if (!tenantId) {
-            show(t('projectError'), 'error');
-            return;
-        }
-        
         if (codeError) {
             show(codeError, 'error');
             return;
@@ -125,7 +91,7 @@ export default function BuildingAdd () {
         try {
             const { floorsMaxStr, totalApartmentsAllStr, ...buildingData } = formData;
             console.log('Dữ liệu gửi đi:', buildingData);
-            await addBuilding(buildingData, tenantId);
+            await addBuilding(buildingData);
             show(t('success'), 'success');
             router.push(`/base/building/buildingList`);
         } catch (error) {
@@ -217,14 +183,14 @@ export default function BuildingAdd () {
                 code: newCode,
             }));
             validateField('name', value);
-        // } else if (name === 'floorsMax') {
-        //     const floorsValue = parseInt(value) || 0;
-        //     setFormData(prev => ({
-        //         ...prev,
-        //         floorsMaxStr: value,
-        //         floorsMax: floorsValue,
-        //     }));
-        //     validateField('floorsMax', floorsValue);
+        } else if (name === 'floorsMax') {
+            const floorsValue = parseInt(value) || 0;
+            setFormData(prev => ({
+                ...prev,
+                floorsMaxStr: value,
+                floorsMax: floorsValue,
+            }));
+            validateField('floorsMax', floorsValue);
         } else if (name === 'totalApartmentsAll') {
             setFormData(prev => ({
                 ...prev,
@@ -249,14 +215,6 @@ export default function BuildingAdd () {
         setFormData((prevData) => ({
             ...prevData,
             status: item.value,
-        }));
-    };
-
-    const handleProjectChange = (item: { name: string; value: string }) => {
-        setTenantId(item.value);
-        setFormData((prevData) => ({
-            ...prevData,
-            tenantId: item.value,
         }));
     };
 
@@ -337,25 +295,9 @@ export default function BuildingAdd () {
                         readonly={false}
                         error={errors.address}
                     />
-
-                    <div className={`flex flex-col mb-4 col-span-1`}>
-                        <label className="text-md font-bold text-[#02542D] mb-1">
-                            {tProject('projectName')}
-                        </label>
-                        <Select
-                            options={projects.filter(p => p.name && p.id).map(p => ({ name: p.name!, value: p.id! }))}
-                            value={tenantId}
-                            onSelect={handleProjectChange}
-                            renderItem={(item) => item.name}
-                            getValue={(item) => item.value}
-                            placeholder={loadingProjects ? 'Loading...' : tProject('projectName')}
-                            disable={!!user?.tenantId || loadingProjects}
-                        />
-                    </div>
-
                     
 
-                    {/* <DetailField 
+                    <DetailField 
                         label={t('floors')}
                         value={formData.floorsMaxStr ?? "0"}
                         onChange={handleChange}
@@ -363,7 +305,7 @@ export default function BuildingAdd () {
                         placeholder={t('floors')}
                         readonly={false}
                         error={errors.floors}
-                    /> */}
+                    />
 
                     <div className="col-span-full flex justify-center space-x-3 mt-8">
                         <button 

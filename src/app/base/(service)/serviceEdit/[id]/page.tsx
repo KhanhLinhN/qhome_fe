@@ -65,10 +65,20 @@ export default function ServiceEditPage() {
       description: serviceData.description ?? '',
       location: serviceData.location ?? '',
       mapUrl: serviceData.mapUrl ?? '',
-      pricingType: serviceData.pricingType ?? '',
-      bookingType: serviceData.bookingType ?? '',
-      pricePerHour: serviceData.pricePerHour != null ? String(serviceData.pricePerHour) : '',
-      pricePerSession: serviceData.pricePerSession != null ? String(serviceData.pricePerSession) : '',
+      pricingType: (serviceData.pricingType as ServicePricingType | '') ?? '',
+      bookingType: (serviceData.bookingType as ServiceBookingType | '') ?? '',
+      pricePerHour:
+        serviceData.pricePerHour != null
+          ? String(serviceData.pricePerHour)
+          : serviceData.pricingType === ServicePricingType.FREE
+          ? '0'
+          : '',
+      pricePerSession:
+        serviceData.pricePerSession != null
+          ? String(serviceData.pricePerSession)
+          : serviceData.pricingType === ServicePricingType.FREE
+          ? '0'
+          : '',
       maxCapacity: serviceData.maxCapacity != null ? String(serviceData.maxCapacity) : '',
       minDurationHours: serviceData.minDurationHours != null ? String(serviceData.minDurationHours) : '',
       maxDurationHours: serviceData.maxDurationHours != null ? String(serviceData.maxDurationHours) : '',
@@ -99,6 +109,43 @@ export default function ServiceEditPage() {
       errors.bookingType = t('Service.validation.bookingType');
     }
 
+    const parseNonNegative = (value: string, fieldKey: keyof FormState, errorKey: string) => {
+      const trimmed = value.trim();
+      const parsed = parseNumber(trimmed);
+      if (trimmed === '' || parsed === undefined || parsed < 0) {
+        errors[fieldKey as string] = t(errorKey);
+      }
+      return parsed;
+    };
+
+    const priceHour = parseNumber(formData.pricePerHour);
+    const priceSession = parseNumber(formData.pricePerSession);
+
+    if (formData.pricingType === ServicePricingType.HOURLY) {
+      if (formData.pricePerHour.trim() === '' || priceHour === undefined || priceHour < 0) {
+        errors.pricePerHour = t('Service.validation.pricePerHour');
+      }
+    }
+
+    if (formData.pricingType === ServicePricingType.SESSION) {
+      if (formData.pricePerSession.trim() === '' || priceSession === undefined || priceSession < 0) {
+        errors.pricePerSession = t('Service.validation.pricePerSession');
+      }
+    }
+
+    parseNonNegative(formData.maxCapacity, 'maxCapacity', 'Service.validation.maxCapacity');
+    const minDuration = parseNonNegative(formData.minDurationHours, 'minDurationHours', 'Service.validation.minDuration');
+    const maxDuration = parseNonNegative(formData.maxDurationHours, 'maxDurationHours', 'Service.validation.maxDuration');
+    parseNonNegative(formData.advanceBookingDays, 'advanceBookingDays', 'Service.validation.advanceBooking');
+
+    if (
+      minDuration !== undefined &&
+      maxDuration !== undefined &&
+      maxDuration < minDuration
+    ) {
+      errors.maxDurationHours = t('Service.validation.durationRange');
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -118,19 +165,31 @@ export default function ServiceEditPage() {
       return;
     }
 
+    const pricingTypeValue = formData.pricingType;
+
     const payload: UpdateServicePayload = {
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
       location: formData.location.trim() || undefined,
       mapUrl: formData.mapUrl.trim() || undefined,
-      pricingType: formData.pricingType || undefined,
+      pricingType: pricingTypeValue || undefined,
       bookingType: formData.bookingType || undefined,
-      pricePerHour: parseNumber(formData.pricePerHour),
-      pricePerSession: parseNumber(formData.pricePerSession),
-      maxCapacity: parseNumber(formData.maxCapacity),
-      minDurationHours: parseNumber(formData.minDurationHours),
-      maxDurationHours: parseNumber(formData.maxDurationHours),
-      advanceBookingDays: parseNumber(formData.advanceBookingDays),
+      pricePerHour:
+        pricingTypeValue === ServicePricingType.HOURLY
+          ? parseNumber(formData.pricePerHour) ?? 0
+          : pricingTypeValue === ServicePricingType.FREE
+          ? 0
+          : null,
+      pricePerSession:
+        pricingTypeValue === ServicePricingType.SESSION
+          ? parseNumber(formData.pricePerSession) ?? 0
+          : pricingTypeValue === ServicePricingType.FREE
+          ? 0
+          : null,
+      maxCapacity: parseNumber(formData.maxCapacity) ?? 0,
+      minDurationHours: parseNumber(formData.minDurationHours) ?? 0,
+      maxDurationHours: parseNumber(formData.maxDurationHours) ?? 0,
+      advanceBookingDays: parseNumber(formData.advanceBookingDays) ?? 0,
       rules: formData.rules.trim() || undefined,
       isActive: formData.isActive,
     };
@@ -151,6 +210,13 @@ export default function ServiceEditPage() {
       ...prev,
       [name]: value,
     }));
+    if (name) {
+      setFormErrors((prev) => {
+        if (!(name in prev)) return prev;
+        const { [name]: _removed, ...rest } = prev;
+        return rest;
+      });
+    }
   };
 
   const pricingOptions = [
@@ -170,6 +236,9 @@ export default function ServiceEditPage() {
     { name: t('Service.active'), value: 'true' },
     { name: t('Service.inactive'), value: 'false' },
   ];
+
+  const shouldShowPricePerHour = formData.pricingType === ServicePricingType.HOURLY;
+  const shouldShowPricePerSession = formData.pricingType === ServicePricingType.SESSION;
 
   if (loading) {
     return (
@@ -235,29 +304,13 @@ export default function ServiceEditPage() {
             <h1 className="text-2xl font-semibold text-[#02542D]">
               {t('Service.editTitle')}
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {t('Service.editSubtitle')}
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 min-w-[180px]">
-            <label className="text-md font-bold text-[#02542D] mb-1">
-              {t('Service.status')}
-            </label>
-            <Select
-              options={statusOptions}
-              value={String(formData.isActive)}
-              onSelect={(item) => setFormData((prev) => ({ ...prev, isActive: item.value === 'true' }))}
-              renderItem={(item) => item.name}
-              getValue={(item) => item.value}
-              placeholder={t('Service.status')}
-            />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
           <DetailField
             label={t('Service.code')}
-            value={serviceData.code}
+            value={serviceData.code ?? ''}
             readonly={true}
           />
           <DetailField
@@ -273,29 +326,19 @@ export default function ServiceEditPage() {
             readonly={false}
             error={formErrors.name}
           />
-          <DetailField
-            label={t('Service.description')}
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            readonly={false}
-            type="textarea"
-            isFullWidth
-          />
-          <DetailField
-            label={t('Service.location')}
-            name="location"
-            value={formData.location}
-            onChange={handleInputChange}
-            readonly={false}
-          />
-          <DetailField
-            label={t('Service.mapUrl')}
-            name="mapUrl"
-            value={formData.mapUrl}
-            onChange={handleInputChange}
-            readonly={false}
-          />
+          <div className="flex flex-col gap-2 min-w-[180px]">
+            <label className="text-md font-bold text-[#02542D] mb-1">
+              {t('Service.status')}
+            </label>
+            <Select
+              options={statusOptions}
+              value={String(formData.isActive)}
+              onSelect={(item) => setFormData((prev) => ({ ...prev, isActive: item.value === 'true' }))}
+              renderItem={(item) => item.name}
+              getValue={(item) => item.value}
+              placeholder={t('Service.status')}
+            />
+          </div>
 
           <div className="flex flex-col mb-4">
             <label className="text-md font-bold text-[#02542D] mb-1">
@@ -304,7 +347,35 @@ export default function ServiceEditPage() {
             <Select
               options={pricingOptions}
               value={formData.pricingType}
-              onSelect={(item) => setFormData((prev) => ({ ...prev, pricingType: item.value }))}
+              onSelect={(item) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  pricingType: item.value as ServicePricingType | '',
+                  pricePerHour:
+                    item.value === ServicePricingType.HOURLY
+                      ? prev.pricePerHour
+                      : item.value === ServicePricingType.FREE
+                      ? '0'
+                      : '',
+                  pricePerSession:
+                    item.value === ServicePricingType.SESSION
+                      ? prev.pricePerSession
+                      : item.value === ServicePricingType.FREE
+                      ? '0'
+                      : '',
+                }));
+                setFormErrors((prev) => {
+                  const updated = { ...prev };
+                  delete updated.pricingType;
+                  if (item.value !== ServicePricingType.HOURLY) {
+                    delete updated.pricePerHour;
+                  }
+                  if (item.value !== ServicePricingType.SESSION) {
+                    delete updated.pricePerSession;
+                  }
+                  return updated;
+                });
+              }}
               renderItem={(item) => item.name}
               getValue={(item) => item.value}
               placeholder={t('Service.pricingType')}
@@ -321,7 +392,14 @@ export default function ServiceEditPage() {
             <Select
               options={bookingOptions}
               value={formData.bookingType}
-              onSelect={(item) => setFormData((prev) => ({ ...prev, bookingType: item.value }))}
+              onSelect={(item) => {
+                setFormData((prev) => ({ ...prev, bookingType: item.value as ServiceBookingType | '' }));
+                setFormErrors((prev) => {
+                  const updated = { ...prev };
+                  delete updated.bookingType;
+                  return updated;
+                });
+              }}
               renderItem={(item) => item.name}
               getValue={(item) => item.value}
               placeholder={t('Service.bookingType')}
@@ -330,27 +408,39 @@ export default function ServiceEditPage() {
               <span className="text-red-500 text-xs mt-1">{formErrors.bookingType}</span>
             )}
           </div>
-
-          <DetailField
-            label={t('Service.pricePerHour')}
-            name="pricePerHour"
-            value={formData.pricePerHour}
-            onChange={handleInputChange}
-            readonly={false}
-          />
-          <DetailField
-            label={t('Service.pricePerSession')}
-            name="pricePerSession"
-            value={formData.pricePerSession}
-            onChange={handleInputChange}
-            readonly={false}
-          />
+          {shouldShowPricePerHour && (
+            <DetailField
+              label={t('Service.pricePerHour')}
+              name="pricePerHour"
+              value={formData.pricePerHour}
+              onChange={handleInputChange}
+              readonly={false}
+              error={formErrors.pricePerHour}
+              placeholder={t('Service.pricePerHour')}
+              inputType="number"
+            />
+          )}
+          {shouldShowPricePerSession && (
+            <DetailField
+              label={t('Service.pricePerSession')}
+              name="pricePerSession"
+              value={formData.pricePerSession}
+              onChange={handleInputChange}
+              readonly={false}
+              error={formErrors.pricePerSession}
+              placeholder={t('Service.pricePerSession')}
+              inputType="number"
+            />
+          )}
           <DetailField
             label={t('Service.maxCapacity')}
             name="maxCapacity"
             value={formData.maxCapacity}
             onChange={handleInputChange}
             readonly={false}
+            error={formErrors.maxCapacity}
+            placeholder={t('Service.maxCapacity')}
+            inputType="number"
           />
           <DetailField
             label={t('Service.minDuration')}
@@ -358,6 +448,9 @@ export default function ServiceEditPage() {
             value={formData.minDurationHours}
             onChange={handleInputChange}
             readonly={false}
+            error={formErrors.minDurationHours}
+            placeholder={t('Service.minDuration')}
+            inputType="number"
           />
           <DetailField
             label={t('Service.maxDuration')}
@@ -365,6 +458,9 @@ export default function ServiceEditPage() {
             value={formData.maxDurationHours}
             onChange={handleInputChange}
             readonly={false}
+            error={formErrors.maxDurationHours}
+            placeholder={t('Service.maxDuration')}
+            inputType="number"
           />
           <DetailField
             label={t('Service.advanceBookingDays')}
@@ -372,6 +468,32 @@ export default function ServiceEditPage() {
             value={formData.advanceBookingDays}
             onChange={handleInputChange}
             readonly={false}
+            error={formErrors.advanceBookingDays}
+            placeholder={t('Service.advanceBookingDays')}
+            inputType="number"
+          />
+          <DetailField
+            label={t('Service.location')}
+            name="location"
+            value={formData.location}
+            onChange={handleInputChange}
+            readonly={false}
+          />
+          <DetailField
+            label={t('Service.mapUrl')}
+            name="mapUrl"
+            value={formData.mapUrl}
+            onChange={handleInputChange}
+            readonly={false}
+          />
+          <DetailField
+            label={t('Service.description')}
+            name="description"
+            value={formData.description}
+            onChange={handleInputChange}
+            readonly={false}
+            type="textarea"
+            isFullWidth
           />
           <DetailField
             label={t('Service.rules')}

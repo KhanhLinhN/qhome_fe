@@ -15,6 +15,7 @@ import {
   fetchUserProfile,
   fetchUserStatus,
 } from '@/src/services/iam/userService';
+import { useResidentUnits } from '@/src/hooks/useResidentUnits';
 
 type FetchState = 'idle' | 'loading' | 'error' | 'success';
 
@@ -30,6 +31,12 @@ export default function AccountDetailResidentPage() {
   const [status, setStatus] = useState<UserStatusInfo | null>(null);
   const [state, setState] = useState<FetchState>('idle');
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    assignments: residentUnits,
+    loading: residentUnitsLoading,
+    error: residentUnitsError,
+  } = useResidentUnits(userId || undefined);
 
   useEffect(() => {
     if (!userId) {
@@ -109,6 +116,15 @@ export default function AccountDetailResidentPage() {
     return date.toLocaleString('vi-VN');
   };
 
+  const formatDateLabel = (value?: string | null) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleDateString('vi-VN');
+  };
+
   const buildingSection = () => {
     if (!account?.buildingName && !account?.buildingId) {
       return <p className="text-sm text-gray-500">Chưa có thông tin tòa nhà liên kết.</p>;
@@ -124,6 +140,67 @@ export default function AccountDetailResidentPage() {
       );
     }
     return <p className="text-sm font-medium text-[#02542D]">{account.buildingName}</p>;
+  };
+
+  const renderResidentUnits = () => {
+    if (residentUnitsLoading) {
+      return (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+          Đang tải danh sách căn hộ...
+        </div>
+      );
+    }
+
+    if (residentUnitsError) {
+      return (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-600">
+          {residentUnitsError}
+        </div>
+      );
+    }
+
+    if (!residentUnits.length) {
+      return <p className="text-sm text-slate-500">Chưa có căn hộ nào được gắn cho cư dân.</p>;
+    }
+
+    return (
+      <div className="space-y-3">
+        {residentUnits.map((assignment) => {
+          const buildingLabel = assignment.buildingName ?? assignment.buildingCode ?? 'Không rõ tòa nhà';
+          const joinedAt = formatDateLabel(assignment.joinedAt);
+          return (
+            <div
+              key={assignment.householdId}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {assignment.unitCode ?? assignment.unitId ?? 'Không rõ mã căn hộ'}
+                  </p>
+                  <p className="text-xs text-slate-500">{buildingLabel}</p>
+                </div>
+                <div className="flex flex-col items-start gap-1 sm:items-end">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {assignment.isPrimary && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                        Chủ hộ
+                      </span>
+                    )}
+                    {assignment.relation && (
+                      <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                        {assignment.relation}
+                      </span>
+                    )}
+                  </div>
+                  {joinedAt && <span className="text-xs text-slate-500">Từ {joinedAt}</span>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   const renderRoles = () => {
@@ -232,6 +309,11 @@ export default function AccountDetailResidentPage() {
         <div className="mt-6">
           <h2 className="text-md font-semibold text-[#02542D]">Tòa nhà</h2>
           <div className="mt-2">{buildingSection()}</div>
+        </div>
+
+        <div className="mt-6">
+          <h2 className="text-md font-semibold text-[#02542D]">Căn hộ đang liên kết</h2>
+          <div className="mt-2">{renderResidentUnits()}</div>
         </div>
       </div>
     );

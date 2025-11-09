@@ -12,7 +12,7 @@ import {
   AssignmentProgressDto,
   MeterDto,
 } from '@/src/services/base/waterService';
-import { getEmployeesInTenant, getEmployees } from '@/src/services/iam/employeeService';
+import { getEmployees } from '@/src/services/iam/employeeService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import CycleCard from '@/src/components/base-service/CycleCard';
 import AssignmentDetailsModal from '@/src/components/base-service/AssignmentDetailsModal';

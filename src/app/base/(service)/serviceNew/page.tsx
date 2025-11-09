@@ -9,11 +9,13 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { useServiceAdd } from '@/src/hooks/useServiceAdd';
-import { getServiceCategories } from '@/src/services/asset-maintenance/serviceService';
+import { getServiceCategories, getServices } from '@/src/services/asset-maintenance/serviceService';
 import {
   CreateServicePayload,
+  Page,
   ServiceBookingType,
   ServiceCategory,
+  Service,
   ServicePricingType,
 } from '@/src/types/service';
 
@@ -65,6 +67,8 @@ export default function ServiceCreatePage() {
   const [formData, setFormData] = useState<FormState>(initialState);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [loadingCategories, setLoadingCategories] = useState<boolean>(false);
+  const [loadingServiceCodes, setLoadingServiceCodes] = useState<boolean>(false);
+  const [existingServiceCodes, setExistingServiceCodes] = useState<string[]>([]);
 
   const categoryOptions = useMemo(
     () =>
@@ -122,7 +126,37 @@ export default function ServiceCreatePage() {
       }
     };
 
+    const loadServices = async () => {
+      setLoadingServiceCodes(true);
+      try {
+        const response = await getServices();
+        const raw = response as unknown;
+        let codes: string[] = [];
+
+        if (Array.isArray(raw)) {
+          codes = raw
+            .map((service) => (service?.code ?? '').toString().trim().toLowerCase())
+            .filter(Boolean);
+        } else if (
+          raw &&
+          typeof raw === 'object' &&
+          Array.isArray((raw as Page<Service>).content)
+        ) {
+          codes = (raw as Page<Service>).content
+            .map((service) => (service?.code ?? '').toString().trim().toLowerCase())
+            .filter(Boolean);
+        }
+
+        setExistingServiceCodes(codes);
+      } catch (err) {
+        console.error('Failed to fetch service list', err);
+      } finally {
+        setLoadingServiceCodes(false);
+      }
+    };
+
     loadCategories();
+    loadServices();
   }, [show, t]);
 
   const handleBack = () => {
@@ -137,6 +171,13 @@ export default function ServiceCreatePage() {
 
   const validate = () => {
     const errors: Record<string, string> = {};
+
+    const trimmedCode = formData.code.trim();
+    if (!trimmedCode) {
+      errors.code = t('Service.validation.code');
+    } else if (!loadingServiceCodes && existingServiceCodes.includes(trimmedCode.toLowerCase())) {
+      errors.code = t('Service.validation.codeDuplicate');
+    }
 
     if (!formData.categoryId) {
       errors.categoryId = t('Service.validation.category');
@@ -154,33 +195,35 @@ export default function ServiceCreatePage() {
     const priceHour = parseNumber(formData.pricePerHour);
     const priceSession = parseNumber(formData.pricePerSession);
 
-    if (
-      formData.pricingType === ServicePricingType.HOURLY &&
-      (!priceHour || priceHour <= 0)
-    ) {
-      errors.pricePerHour = t('Service.validation.pricePerHour');
+    if (formData.pricingType === ServicePricingType.HOURLY) {
+      if (!formData.pricePerHour.trim()) {
+        errors.pricePerHour = t('Service.validation.pricePerHour');
+      } else if (priceHour === undefined || priceHour < 0) {
+        errors.pricePerHour = t('Service.validation.pricePerHour');
+      }
     }
 
-    if (
-      formData.pricingType === ServicePricingType.SESSION &&
-      (!priceSession || priceSession <= 0)
-    ) {
-      errors.pricePerSession = t('Service.validation.pricePerSession');
+    if (formData.pricingType === ServicePricingType.SESSION) {
+      if (!formData.pricePerSession.trim()) {
+        errors.pricePerSession = t('Service.validation.pricePerSession');
+      } else if (priceSession === undefined || priceSession < 0) {
+        errors.pricePerSession = t('Service.validation.pricePerSession');
+      }
     }
 
     const maxCapacity = parseNumber(formData.maxCapacity);
-    if (maxCapacity !== undefined && maxCapacity <= 0) {
+    if (formData.maxCapacity.trim() === '' || maxCapacity === undefined || maxCapacity < 0) {
       errors.maxCapacity = t('Service.validation.maxCapacity');
     }
 
     const minDuration = parseNumber(formData.minDurationHours);
     const maxDuration = parseNumber(formData.maxDurationHours);
 
-    if (minDuration !== undefined && minDuration <= 0) {
+    if (formData.minDurationHours.trim() === '' || minDuration === undefined || minDuration < 0) {
       errors.minDurationHours = t('Service.validation.minDuration');
     }
 
-    if (maxDuration !== undefined && maxDuration <= 0) {
+    if (formData.maxDurationHours.trim() === '' || maxDuration === undefined || maxDuration < 0) {
       errors.maxDurationHours = t('Service.validation.maxDuration');
     }
 
@@ -193,7 +236,11 @@ export default function ServiceCreatePage() {
     }
 
     const advanceBooking = parseNumber(formData.advanceBookingDays);
-    if (advanceBooking !== undefined && advanceBooking < 0) {
+    if (
+      formData.advanceBookingDays.trim() === '' ||
+      advanceBooking === undefined ||
+      advanceBooking < 0
+    ) {
       errors.advanceBookingDays = t('Service.validation.advanceBooking');
     }
 
@@ -216,16 +263,20 @@ export default function ServiceCreatePage() {
       bookingType: bookingTypeValue,
       pricePerHour:
         pricingTypeValue === ServicePricingType.HOURLY
-          ? parseNumber(formData.pricePerHour) ?? null
+          ? parseNumber(formData.pricePerHour) ?? 0
+          : pricingTypeValue === ServicePricingType.FREE
+          ? 0
           : null,
       pricePerSession:
         pricingTypeValue === ServicePricingType.SESSION
-          ? parseNumber(formData.pricePerSession) ?? null
+          ? parseNumber(formData.pricePerSession) ?? 0
+          : pricingTypeValue === ServicePricingType.FREE
+          ? 0
           : null,
-      maxCapacity: parseNumber(formData.maxCapacity) ?? null,
-      minDurationHours: parseNumber(formData.minDurationHours) ?? null,
-      maxDurationHours: parseNumber(formData.maxDurationHours) ?? null,
-      advanceBookingDays: parseNumber(formData.advanceBookingDays) ?? null,
+      maxCapacity: parseNumber(formData.maxCapacity) ?? 0,
+      minDurationHours: parseNumber(formData.minDurationHours) ?? 0,
+      maxDurationHours: parseNumber(formData.maxDurationHours) ?? 0,
+      advanceBookingDays: parseNumber(formData.advanceBookingDays) ?? 0,
       rules: formData.rules.trim() || undefined,
       isActive: formData.isActive,
     };
@@ -263,19 +314,12 @@ export default function ServiceCreatePage() {
       ...prev,
       [name]: value,
     }));
-
-    if (name === 'name') {
-      const generatedCode = value
-        .trim()
-        .split(' ')
-        .filter(Boolean)
-        .map((word) => word.charAt(0))
-        .join('')
-        .toUpperCase();
-      setFormData((prev) => ({
-        ...prev,
-        code: prev.code || generatedCode,
-      }));
+    if (name) {
+      setFormErrors((prev) => {
+        if (!(name in prev)) return prev;
+        const { [name]: _removed, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
@@ -310,18 +354,18 @@ export default function ServiceCreatePage() {
             <h1 className="text-2xl font-semibold text-[#02542D]">
               {t('Service.newTitle')}
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {t('Service.newSubtitle')}
-            </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
           <DetailField
             label={t('Service.code')}
+            name="code"
             value={formData.code}
-            readonly={true}
+            onChange={handleInputChange}
+            readonly={false}
             placeholder={t('Service.code')}
+            error={formErrors.code}
           />
 
           <DetailField
@@ -331,7 +375,7 @@ export default function ServiceCreatePage() {
             onChange={handleInputChange}
             readonly={false}
             error={formErrors.name}
-            isFullWidth
+            placeholder={t('Service.name')}
           />
 
           <div className="flex flex-col mb-4">
@@ -386,18 +430,35 @@ export default function ServiceCreatePage() {
             <Select
               options={pricingOptions}
               value={formData.pricingType}
-              onSelect={(item) =>
+              onSelect={(item) => {
                 setFormData((prev) => ({
                   ...prev,
                   pricingType: item.value as ServicePricingType,
                   pricePerHour:
-                    item.value === ServicePricingType.HOURLY ? prev.pricePerHour : '',
+                    item.value === ServicePricingType.HOURLY
+                      ? prev.pricePerHour
+                      : item.value === ServicePricingType.FREE
+                      ? '0'
+                      : '',
                   pricePerSession:
                     item.value === ServicePricingType.SESSION
                       ? prev.pricePerSession
+                      : item.value === ServicePricingType.FREE
+                      ? '0'
                       : '',
-                }))
-              }
+                }));
+                setFormErrors((prev) => {
+                  const updated = { ...prev };
+                  delete updated.pricingType;
+                  if (item.value !== ServicePricingType.HOURLY) {
+                    delete updated.pricePerHour;
+                  }
+                  if (item.value !== ServicePricingType.SESSION) {
+                    delete updated.pricePerSession;
+                  }
+                  return updated;
+                });
+              }}
               renderItem={(item) => item.name}
               getValue={(item) => item.value}
               placeholder={t('Service.pricingType')}
@@ -409,7 +470,7 @@ export default function ServiceCreatePage() {
             )}
           </div>
 
-  <div className="flex flex-col mb-4">
+          <div className="flex flex-col mb-4">
             <label className="text-md font-bold text-[#02542D] mb-1">
               {t('Service.bookingType')}
             </label>
@@ -441,6 +502,8 @@ export default function ServiceCreatePage() {
               onChange={handleInputChange}
               readonly={false}
               error={formErrors.pricePerHour}
+              placeholder={t('Service.pricePerHour')}
+              inputType="number"
             />
           )}
 
@@ -452,6 +515,8 @@ export default function ServiceCreatePage() {
               onChange={handleInputChange}
               readonly={false}
               error={formErrors.pricePerSession}
+              placeholder={t('Service.pricePerSession')}
+              inputType="number"
             />
           )}
 
@@ -462,6 +527,8 @@ export default function ServiceCreatePage() {
             onChange={handleInputChange}
             readonly={false}
             error={formErrors.maxCapacity}
+            placeholder={t('Service.maxCapacity')}
+            inputType="number"
           />
 
           <DetailField
@@ -471,6 +538,8 @@ export default function ServiceCreatePage() {
             onChange={handleInputChange}
             readonly={false}
             error={formErrors.minDurationHours}
+            placeholder={t('Service.minDuration')}
+            inputType="number"
           />
 
           <DetailField
@@ -480,6 +549,8 @@ export default function ServiceCreatePage() {
             onChange={handleInputChange}
             readonly={false}
             error={formErrors.maxDurationHours}
+            placeholder={t('Service.maxDuration')}
+            inputType="number"
           />
 
           <DetailField
@@ -489,6 +560,8 @@ export default function ServiceCreatePage() {
             onChange={handleInputChange}
             readonly={false}
             error={formErrors.advanceBookingDays}
+            placeholder={t('Service.advanceBookingDays')}
+            inputType="number"
           />
 
           <DetailField
@@ -497,6 +570,7 @@ export default function ServiceCreatePage() {
             value={formData.location}
             onChange={handleInputChange}
             readonly={false}
+            placeholder={t('Service.location')}
           />
 
           <DetailField
@@ -505,6 +579,7 @@ export default function ServiceCreatePage() {
             value={formData.mapUrl}
             onChange={handleInputChange}
             readonly={false}
+            placeholder={t('Service.mapUrl')}
           />
 
           <DetailField
@@ -515,6 +590,7 @@ export default function ServiceCreatePage() {
             readonly={false}
             type="textarea"
             isFullWidth
+            placeholder={t('Service.description')}
           />
 
           <DetailField
@@ -525,6 +601,7 @@ export default function ServiceCreatePage() {
             readonly={false}
             type="textarea"
             isFullWidth
+            placeholder={t('Service.rules')}
           />
         </div>
 

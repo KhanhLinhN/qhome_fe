@@ -246,7 +246,7 @@ export default function ServiceCategoryListPage() {
                   {t('editTitle')}
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  {t('editSubtitle', { code: selectedCategory.code })}
+                  {t('editSubtitle', { code: selectedCategory.code ?? '' })}
                 </p>
               </div>
               <button
@@ -262,7 +262,7 @@ export default function ServiceCategoryListPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                 <DetailField
                   label={t('code')}
-                  value={selectedCategory.code}
+                  value={selectedCategory.code ?? ''}
                   readonly={true}
                 />
                 <DetailField

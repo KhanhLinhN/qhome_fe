@@ -2,7 +2,6 @@ import axios from "@/src/lib/axios";
 
 export type Building = {
   id: string;
-  tenantId: string;
   code: string;
   name: string;
   address: string;

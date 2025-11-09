@@ -7,14 +7,100 @@ export interface ServiceCategory {
   sortOrder?: number | null;
 }
 
+export enum ServicePricingType {
+  HOURLY = 'HOURLY',
+  SESSION = 'SESSION',
+  FREE = 'FREE',
+}
+
+export enum ServiceBookingType {
+  COMBO_BASED = 'COMBO_BASED',
+  TICKET_BASED = 'TICKET_BASED',
+  OPTION_BASED = 'OPTION_BASED',
+  STANDARD = 'STANDARD',
+}
+
+export interface ServiceOptionGroupItem {
+  id: string;
+  optionId?: string;
+}
+
+export interface ServiceOptionGroup {
+  id: string;
+  name?: string;
+  description?: string;
+  isActive?: boolean;
+  minSelect?: number | null;
+  maxSelect?: number | null;
+  sortOrder?: number | null;
+  isRequired?: boolean;
+  items?: ServiceOptionGroupItem[];
+}
+
+export interface ServiceOption {
+  id: string;
+  name?: string;
+  description?: string;
+  price?: number | null;
+  unit?: string | null;
+  isActive?: boolean;
+  sortOrder?: number | null;
+  isRequired?: boolean;
+}
+
+export enum ServiceTicketType {
+  DAY = 'DAY',
+  NIGHT = 'NIGHT',
+  HOURLY = 'HOURLY',
+  DAILY = 'DAILY',
+  FAMILY = 'FAMILY',
+}
+
+export interface ServiceTicket {
+  id: string;
+  serviceId?: string;
+  code?: string;
+  name?: string;
+  ticketType?: ServiceTicketType | string;
+  durationHours?: number | null;
+  price?: number | null;
+  maxPeople?: number | null;
+  description?: string;
+  isActive?: boolean;
+  sortOrder?: number | null;
+}
+
+export interface ServiceCombo {
+  id: string;
+  code?: string;
+  name?: string;
+  price?: number | null;
+  isActive?: boolean;
+  sortOrder?: number | null;
+}
+
 export interface Service {
   id: string;
   code?: string;
   name?: string;
   categoryId?: string;
   category?: ServiceCategory | null;
-  pricingType?: string;
-  bookingType?: string;
+  description?: string;
+  location?: string;
+  mapUrl?: string;
+  pricingType?: ServicePricingType | string;
+  bookingType?: ServiceBookingType | string;
+  pricePerHour?: number | null;
+  pricePerSession?: number | null;
+  maxCapacity?: number | null;
+  minDurationHours?: number | null;
+  maxDurationHours?: number | null;
+  advanceBookingDays?: number | null;
+  rules?: string;
+  options?: ServiceOption[];
+  optionGroups?: ServiceOptionGroup[];
+  combos?: ServiceCombo[];
+  tickets?: ServiceTicket[];
   isActive?: boolean;
   createdAt?: string;
 }
@@ -59,23 +145,47 @@ export interface CreateServiceCategoryPayload {
 
 export type UpdateServiceCategoryPayload = Partial<CreateServiceCategoryPayload>;
 
-export interface ServiceCombo {
-  id: string;
-  name?: string;
+export interface CreateServiceComboPayload {
+  code: string;
+  name: string;
+  description?: string;
+  servicesIncluded?: string;
+  durationMinutes?: number | null;
+  price: number;
   isActive?: boolean;
-  price?: number | null;
+  sortOrder?: number | null;
 }
 
-export interface ServiceOption {
-  id: string;
-  name?: string;
-  price?: number | null;
+export interface CreateServiceOptionPayload {
+  code: string;
+  name: string;
+  description?: string;
+  price: number;
+  unit?: string;
+  isRequired?: boolean;
   isActive?: boolean;
+  sortOrder?: number | null;
 }
 
-export interface ServiceOptionGroup {
-  id: string;
-  name?: string;
+export interface CreateServiceOptionGroupPayload {
+  code: string;
+  name: string;
+  description?: string;
+  minSelect?: number | null;
+  maxSelect?: number | null;
+  isRequired?: boolean;
+  sortOrder?: number | null;
+}
+
+export interface CreateServiceTicketPayload {
+  code: string;
+  name: string;
+  ticketType: ServiceTicketType;
+  durationHours?: number | null;
+  price: number;
+  maxPeople?: number | null;
+  description?: string;
   isActive?: boolean;
+  sortOrder?: number | null;
 }
 

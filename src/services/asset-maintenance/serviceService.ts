@@ -1,12 +1,17 @@
 import axios from '@/src/lib/axios';
 import {
   CreateServiceCategoryPayload,
+  CreateServiceComboPayload,
+  CreateServiceOptionGroupPayload,
+  CreateServiceOptionPayload,
   CreateServicePayload,
+  CreateServiceTicketPayload,
   Service,
   ServiceCategory,
   ServiceCombo,
   ServiceOption,
   ServiceOptionGroup,
+  ServiceTicket,
   UpdateServiceCategoryPayload,
   UpdateServicePayload,
 } from '@/src/types/service';
@@ -140,4 +145,52 @@ export async function getServiceOptionGroups(serviceId: string): Promise<Service
     withCredentials,
   );
   return response.data as ServiceOptionGroup[];
+}
+
+export async function createServiceCombo(
+  serviceId: string,
+  data: CreateServiceComboPayload,
+): Promise<ServiceCombo> {
+  const response = await axios.post(
+    `${BASE_URL}/api/asset-maintenance/services/${serviceId}/combos`,
+    data,
+    withCredentials,
+  );
+  return response.data as ServiceCombo;
+}
+
+export async function createServiceOption(
+  serviceId: string,
+  data: CreateServiceOptionPayload,
+): Promise<ServiceOption> {
+  const response = await axios.post(
+    `${BASE_URL}/api/asset-maintenance/services/${serviceId}/options`,
+    data,
+    withCredentials,
+  );
+  return response.data as ServiceOption;
+}
+
+export async function createServiceOptionGroup(
+  serviceId: string,
+  data: CreateServiceOptionGroupPayload,
+): Promise<ServiceOptionGroup> {
+  const response = await axios.post(
+    `${BASE_URL}/api/asset-maintenance/services/${serviceId}/option-groups`,
+    data,
+    withCredentials,
+  );
+  return response.data as ServiceOptionGroup;
+}
+
+export async function createServiceTicket(
+  serviceId: string,
+  data: CreateServiceTicketPayload,
+): Promise<ServiceTicket> {
+  const response = await axios.post(
+    `${BASE_URL}/api/asset-maintenance/services/${serviceId}/tickets`,
+    data,
+    withCredentials,
+  );
+  return response.data as ServiceTicket;
 }

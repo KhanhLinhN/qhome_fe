@@ -7,6 +7,8 @@ import Arrow from '@/src/assets/Arrow.svg';
 import {
   CreateResidentAccountPayload,
   createResidentAccount,
+  fetchResidentAccounts,
+  fetchStaffAccounts,
 } from '@/src/services/iam/userService';
 import {
   AccountCreationRequest,
@@ -20,7 +22,43 @@ type ManualFormState = {
   residentId: string;
 };
 
+type ManualFieldErrors = Partial<Record<keyof ManualFormState, string>>;
+
 type RequestActionState = Record<string, boolean>;
+
+const DEFAULT_ACCOUNT_REJECTION_REASON = 'Thông tin không đầy đủ';
+
+const approveIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" height="16" width="16" aria-hidden="true">
+    <g fill="none" fillRule="evenodd">
+      <path
+        d="M16 0v16H0V0h16ZM8.396 15.505l-.008.002-.047.023a.02.02 0 0 1-.022 0l-.047-.024a.01.01 0 0 0-.016.004l-.003.007-.011.285.003.014.007.009.07.049a.02.02 0 0 0 .017 0l.07-.049a.02.02 0 0 0 .01-.022l-.011-.285c0-.007-.004-.012-.01-.012Zm.176-.075a.02.02 0 0 0-.018 0l-.123.062a.016.016 0 0 0-.009.013l.012.287c0 .006.002.01.009.013l.134.061a.02.02 0 0 0 .02-.013l-.023-.41a.02.02 0 0 0-.013-.015Zm-.477.001a.02.02 0 0 0-.018.004l-.004.01-.023.409c0 .008.005.013.012.016l.01-.002.134-.062a.02.02 0 0 0 .01-.02l.012-.287a.02.02 0 0 0-.01-.014l-.123-.061Z"
+        strokeWidth=".6667"
+      ></path>
+      <path
+        fill="currentColor"
+        d="M13 2.089a.667.667 0 0 1 .901.206l.66 1.007a.667.667 0 0 1-.104.852l-.002.003-.009.009-.038.035-.15.143a55.9 55.9 0 0 0-2.414 2.49c-1.465 1.61-3.204 3.719-4.375 5.765-.327.57-1.125.693-1.598.2l-4.323-4.492a.667.667 0 0 1 .034-.957l1.307-1.179a.667.667 0 0 1 .877-.043l2.206 1.654c3.446-3.398 5.4-4.702 7.057-5.699Z"
+        strokeWidth=".6667"
+      ></path>
+    </g>
+  </svg>
+);
+
+const rejectIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" height="16" width="16" aria-hidden="true">
+    <g fill="none" fillRule="evenodd">
+      <path
+        d="M16 0v16H0V0h16ZM8.395 15.505l-.007.002-.047.023a.02.02 0 0 1-.022 0l-.047-.023a.01.01 0 0 0-.016.004l-.003.007-.011.285.003.014.007.009.07.049a.02.02 0 0 0 .017 0l.07-.049a.02.02 0 0 0 .01-.022l-.011-.285c0-.007-.004-.012-.01-.012Zm.177-.075a.02.02 0 0 0-.018 0l-.123.062a.016.016 0 0 0-.009.013l.012.287c0 .006.002.01.009.013l.134.061a.02.02 0 0 0 .02-.013l-.023-.41a.02.02 0 0 0-.013-.015Zm-.477.001a.02.02 0 0 0-.018.004l-.004.01-.023.409c0 .008.005.013.012.016l.01-.002.134-.062a.02.02 0 0 0 .01-.02l.012-.287a.02.02 0 0 0-.01-.014l-.123-.061Z"
+        strokeWidth=".6667"
+      ></path>
+      <path
+        fill="currentColor"
+        d="m8 9.415 3.535 3.535a1 1 0 0 0 1.415-1.415L9.414 8l3.536-3.535A1 1 0 1 0 11.536 3L8 6.586 4.465 3.05A1 1 0 1 0 3.05 4.465L6.586 8l-3.535 3.536A1 1 0 1 0 4.465 12.95L8 9.415Z"
+        strokeWidth=".6667"
+      ></path>
+    </g>
+  </svg>
+);
 
 export default function AccountNewResidentPage() {
   const router = useRouter();
@@ -36,14 +74,16 @@ export default function AccountNewResidentPage() {
   const [manualSubmitting, setManualSubmitting] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
   const [manualSuccess, setManualSuccess] = useState<string | null>(null);
+  const [manualFieldErrors, setManualFieldErrors] = useState<ManualFieldErrors>({});
 
   const [pendingRequests, setPendingRequests] = useState<AccountCreationRequest[]>([]);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [requestActionState, setRequestActionState] = useState<RequestActionState>({});
 
   const handleBack = () => {
-    router.push('/account/accountList');
+    router.back();
   };
 
   const handleTabChange = (tab: 'manual' | 'requests') => {
@@ -55,34 +95,64 @@ export default function AccountNewResidentPage() {
     (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
       setManualForm((prev) => ({ ...prev, [field]: value }));
+      setManualFieldErrors((prev) => {
+        if (!prev[field]) return prev;
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
     };
 
   const resetManualMessages = () => {
     setManualError(null);
     setManualSuccess(null);
+    setManualFieldErrors({});
   };
 
-  const validateManualForm = () => {
+  const validateManualForm = async () => {
+    const errors: ManualFieldErrors = {};
     if (!manualForm.username.trim()) {
-      setManualError('Tên đăng nhập không được để trống.');
-      return false;
+      errors.username = 'Tên đăng nhập không được để trống.';
     }
     if (!manualForm.email.trim()) {
-      setManualError('Email không được để trống.');
+      errors.email = 'Email không được để trống.';
+    } else if (!manualForm.email.includes('@')) {
+      errors.email = 'Email không hợp lệ.';
+    }
+    setManualFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
       return false;
     }
-    if (!manualForm.email.includes('@')) {
-      setManualError('Email không hợp lệ.');
-      return false;
+
+    try {
+      const [staffRes, residentRes] = await Promise.all([
+        fetchStaffAccounts(),
+        fetchResidentAccounts(),
+      ]);
+      const normalizedEmail = manualForm.email.trim().toLowerCase();
+      const duplicate =
+        pendingRequests.some(
+          (request) => request.email && request.email.toLowerCase() === normalizedEmail,
+        ) ||
+        staffRes.some((staff) => staff.email?.toLowerCase() === normalizedEmail) ||
+        residentRes.some((resident) => resident.email?.toLowerCase() === normalizedEmail);
+
+      if (duplicate) {
+        setManualFieldErrors({ email: 'Email đã tồn tại.' });
+        return false;
+      }
+    } catch (err) {
+      console.error('Failed to validate email uniqueness', err);
     }
+
     return true;
   };
 
   const handleManualSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     resetManualMessages();
-
-    if (!validateManualForm()) {
+    const isValid = await validateManualForm();
+    if (!isValid) {
       return;
     }
 
@@ -90,6 +160,7 @@ export default function AccountNewResidentPage() {
       username: manualForm.username.trim(),
       email: manualForm.email.trim(),
       residentId: manualForm.residentId.trim(),
+    autoGenerate: true,
     };
 
     try {
@@ -101,13 +172,18 @@ export default function AccountNewResidentPage() {
         email: '',
         residentId: '',
       });
+      setManualFieldErrors({});
       await refreshPendingRequests();
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
         err?.message ||
         'Không thể tạo tài khoản cư dân. Vui lòng thử lại.';
-      setManualError(message);
+      if (message.includes('Email')) {
+        setManualFieldErrors((prev) => ({ ...prev, email: message }));
+      } else {
+        setManualError(message);
+      }
     } finally {
       setManualSubmitting(false);
     }
@@ -131,11 +207,16 @@ export default function AccountNewResidentPage() {
   };
 
   useEffect(() => {
+    if (initialLoad) {
+      void refreshPendingRequests().finally(() => setInitialLoad(false));
+      return;
+    }
+
     if (activeTab === 'requests' && pendingRequests.length === 0) {
       void refreshPendingRequests();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, initialLoad]);
 
   const formatDateTime = (value: string | null) => {
     if (!value) return 'Chưa cập nhật';
@@ -156,11 +237,14 @@ export default function AccountNewResidentPage() {
 
     if (!approve) {
       // eslint-disable-next-line no-alert
-      const reason = window.prompt('Nhập lý do từ chối (bắt buộc):', '');
-      if (!reason || !reason.trim()) {
+      const reason =
+        window.prompt('Nhập lý do từ chối (bắt buộc):', DEFAULT_ACCOUNT_REJECTION_REASON) ??
+        DEFAULT_ACCOUNT_REJECTION_REASON;
+      const trimmed = reason.trim();
+      if (!trimmed) {
         return;
       }
-      rejectionReason = reason.trim();
+      rejectionReason = trimmed;
     }
 
     try {
@@ -201,7 +285,8 @@ export default function AccountNewResidentPage() {
               Tạo mới tài khoản hoặc duyệt yêu cầu tạo tài khoản do cư dân gửi lên.
             </p>
           </div>
-          <div className="flex rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1 text-xs font-medium text-emerald-700">
+          <div className="flex items-center gap-2 rounded-full border border-amber-400 bg-amber-100 px-4 py-1 text-xs font-semibold text-amber-700 shadow-sm">
+            <span className="inline-flex h-2 w-2 rounded-full bg-amber-500" />
             Đang có {pendingRequests.length} yêu cầu chờ duyệt
           </div>
         </div>
@@ -234,17 +319,9 @@ export default function AccountNewResidentPage() {
         {activeTab === 'manual' && (
           <div className="mt-6 rounded-xl border border-slate-100 p-6">
             <h2 className="text-lg font-semibold text-slate-800">Tạo tài khoản cư dân</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Điền thông tin cư dân và tài khoản để tạo mới.
-            </p>
 
-            {(manualError || manualSuccess) && (
+            {(manualSuccess) && (
               <div className="mt-4 space-y-3">
-                {manualError && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {manualError}
-                  </div>
-                )}
                 {manualSuccess && (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                     {manualSuccess}
@@ -264,6 +341,9 @@ export default function AccountNewResidentPage() {
                     placeholder="Nhập tên đăng nhập"
                     className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
+                  {manualFieldErrors.username && (
+                    <span className="text-xs text-red-500">{manualFieldErrors.username}</span>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-slate-700">Email</label>
@@ -274,6 +354,9 @@ export default function AccountNewResidentPage() {
                     placeholder="example@domain.com"
                     className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
+                  {manualFieldErrors.email && (
+                    <span className="text-xs text-red-500">{manualFieldErrors.email}</span>
+                  )}
                 </div>
               </div>
 
@@ -323,89 +406,113 @@ export default function AccountNewResidentPage() {
               </div>
             )}
 
-            {loadingRequests ? (
-              <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                Đang tải danh sách yêu cầu...
-              </div>
-            ) : pendingRequests.length === 0 ? (
-              <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                Hiện không có yêu cầu đang chờ duyệt.
-              </div>
-            ) : (
-              <div className="mt-6 space-y-4">
-                {pendingRequests.map((request) => {
-                  const isProcessing = processingRequests.has(request.id);
-                  return (
-                    <div
-                      key={request.id}
-                      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-                    >
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-base font-semibold text-slate-800">
-                              {request.residentName || 'Cư dân chưa cập nhật tên'}
-                            </span>
-                            <span
-                              className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
-                            >
-                              {request.status}
-                            </span>
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            Đã gửi lúc {formatDateTime(request.createdAt)} • Mã yêu cầu: {request.id}
-                          </div>
-                          <div className="grid gap-1 text-sm text-slate-700 sm:grid-cols-2">
-                            <span>
-                              <strong>Email cư dân:</strong>{' '}
-                              {request.residentEmail || 'Chưa cung cấp'}
-                            </span>
-                            <span>
-                              <strong>Số điện thoại:</strong>{' '}
-                              {request.residentPhone || 'Chưa cung cấp'}
-                            </span>
-                            <span>
-                              <strong>Tên đăng nhập đề xuất:</strong>{' '}
-                              {request.username || 'Không có'}
-                            </span>
-                            <span>
-                              <strong>Email đăng nhập:</strong>{' '}
-                              {request.email || 'Không có'}
-                            </span>
-                            <span>
-                              <strong>Tự tạo mật khẩu:</strong>{' '}
-                              {request.autoGenerate ? 'Có' : 'Không'}
-                            </span>
-                            <span>
-                              <strong>Quan hệ:</strong> {request.relation || 'Không rõ'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2 sm:items-end">
-                          <button
-                            type="button"
-                            onClick={() => handleRequestAction(request.id, true)}
-                            disabled={isProcessing}
-                            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isProcessing ? 'Đang xử lý...' : 'Phê duyệt'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRequestAction(request.id, false)}
-                            disabled={isProcessing}
-                            className="inline-flex items-center justify-center rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isProcessing ? 'Đang xử lý...' : 'Từ chối'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                      Cư dân
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                      Liên hệ
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                      Tài khoản đề xuất
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                      Tùy chọn
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                      Thời gian
+                    </th>
+                    <th className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-slate-600">
+                      Hành động
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loadingRequests ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">
+                        Đang tải danh sách yêu cầu...
+                      </td>
+                    </tr>
+                  ) : pendingRequests.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">
+                        Hiện không có yêu cầu đang chờ duyệt.
+                      </td>
+                    </tr>
+                  ) : (
+                    pendingRequests.map((request) => {
+                      const isProcessing = processingRequests.has(request.id);
+                      return (
+                        <tr key={request.id} className="hover:bg-emerald-50/40">
+                          <td className="px-4 py-3 font-medium text-slate-800">
+                            <div className="flex flex-col">
+                              <span>{request.residentName || 'Cư dân chưa cập nhật tên'}</span>
+                              <span className="text-xs text-slate-500">
+                                Mã yêu cầu: {request.id}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">
+                            <div className="flex flex-col">
+                              <span>{request.residentPhone || 'Chưa cung cấp'}</span>
+                              <span className="text-xs text-slate-500">
+                                {request.residentEmail || 'Chưa cung cấp'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">
+                            <div className="flex flex-col">
+                              <span>
+                                <strong>Tên đăng nhập:</strong> {request.username || 'Không có'}
+                              </span>
+                              <span>
+                                <strong>Email:</strong> {request.email || 'Không có'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">
+                            <div className="flex flex-col gap-1">
+                              <span>
+                                <strong>Quan hệ:</strong> {request.relation || 'Không rõ'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">
+                            {formatDateTime(request.createdAt)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => handleRequestAction(request.id, true)}
+                                disabled={isProcessing}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-emerald-200 text-emerald-600 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                title="Phê duyệt"
+                              >
+                                {approveIcon}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRequestAction(request.id, false)}
+                                disabled={isProcessing}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                title="Từ chối"
+                              >
+                                {rejectIcon}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

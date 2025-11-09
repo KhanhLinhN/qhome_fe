@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
@@ -7,7 +7,15 @@ import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import DetailField from '@/src/components/base-service/DetailField';
 import { useServiceDetailPage } from '@/src/hooks/useServiceDetailPage';
-import { ServiceBookingType, ServicePricingType } from '@/src/types/service';
+import {
+  ServiceBookingType,
+  ServicePricingType,
+  ServiceCombo,
+  ServiceOption,
+  ServiceOptionGroup,
+  ServiceTicket,
+  ServiceTicketType,
+} from '@/src/types/service';
 
 const formatCurrency = (value?: number | null) => {
   if (value === undefined || value === null) {
@@ -20,7 +28,7 @@ const formatCurrency = (value?: number | null) => {
   }).format(value);
 };
 
-const mapPricingType = (type?: ServicePricingType) => {
+const mapPricingType = (type?: ServicePricingType | string) => {
   switch (type) {
     case ServicePricingType.HOURLY:
       return 'Service.pricing.hourly';
@@ -33,7 +41,7 @@ const mapPricingType = (type?: ServicePricingType) => {
   }
 };
 
-const mapBookingType = (type?: ServiceBookingType) => {
+const mapBookingType = (type?: ServiceBookingType | string) => {
   switch (type) {
     case ServiceBookingType.COMBO_BASED:
       return 'Service.booking.combo';
@@ -45,6 +53,23 @@ const mapBookingType = (type?: ServiceBookingType) => {
       return 'Service.booking.standard';
     default:
       return 'Service.booking.unknown';
+  }
+};
+
+const mapTicketType = (type?: ServiceTicketType | string) => {
+  switch (type) {
+    case ServiceTicketType.DAY:
+      return 'Service.ticketType.day';
+    case ServiceTicketType.NIGHT:
+      return 'Service.ticketType.night';
+    case ServiceTicketType.HOURLY:
+      return 'Service.ticketType.hourly';
+    case ServiceTicketType.DAILY:
+      return 'Service.ticketType.daily';
+    case ServiceTicketType.FAMILY:
+      return 'Service.ticketType.family';
+    default:
+      return 'Service.ticketType.unknown';
   }
 };
 
@@ -104,9 +129,21 @@ export default function ServiceDetailPage() {
     );
   }
 
-  const statusBadgeClass = serviceData.isActive
-    ? 'bg-[#739559] text-white'
-    : 'bg-[#EEEEEE] text-[#02542D]';
+  const serviceIdValue = Array.isArray(serviceId) ? serviceId[0] : (serviceId as string) ?? '';
+  const bookingType = serviceData.bookingType;
+  const isComboBooking = bookingType === ServiceBookingType.COMBO_BASED;
+  const isOptionBooking = bookingType === ServiceBookingType.OPTION_BASED;
+  const isTicketBooking = bookingType === ServiceBookingType.TICKET_BASED;
+
+  const handleNavigateToCreate = (type: string) => {
+    if (!serviceIdValue) return;
+    router.push(`/base/serviceType?serviceId=${serviceIdValue}&type=${type}`);
+  };
+
+  const handleAddCombo = () => handleNavigateToCreate('combo');
+  const handleAddOption = () => handleNavigateToCreate('option');
+  const handleAddOptionGroup = () => handleNavigateToCreate('option-group');
+  const handleAddTicket = () => handleNavigateToCreate('ticket');
 
   return (
     <div className="min-h-screen p-4 sm:p-8 font-sans">
@@ -132,15 +169,10 @@ export default function ServiceDetailPage() {
             <h1 className="text-2xl font-semibold text-[#02542D]">
               {t('Service.detailTitle')}
             </h1>
-            <span
-              className={`text-sm font-semibold px-3 py-1 rounded-full ${statusBadgeClass}`}
-            >
-              {serviceData.isActive ? t('Service.active') : t('Service.inactive')}
-            </span>
           </div>
           <div className="flex space-x-2">
             <button
-              className="p-2 rounded-lg bg-[#739559] hover:bg-opacity-80 transition duration-150"
+              className="p-2 rounded-lg bg-[#739559] hover:bg-opacity-80 transition duration-150 flex items-center gap-2"
               onClick={handleEdit}
             >
               <Image
@@ -150,21 +182,14 @@ export default function ServiceDetailPage() {
                 height={24}
                 className="w-6 h-6"
               />
+              <span className="text-white">Chỉnh sửa</span>
             </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-          <DetailField
-            label={t('Service.code')}
-            value={serviceData.code}
-            readonly={true}
-          />
-          <DetailField
-            label={t('Service.name')}
-            value={serviceData.name}
-            readonly={true}
-          />
+          <DetailField label={t('Service.code')} value={serviceData.code ?? '-'} readonly={true} />
+          <DetailField label={t('Service.name')} value={serviceData.name ?? '-'} readonly={true} />
           <DetailField
             label={t('Service.category')}
             value={serviceData.category?.name ?? '-'}
@@ -209,22 +234,34 @@ export default function ServiceDetailPage() {
           />
           <DetailField
             label={t('Service.maxCapacity')}
-            value={serviceData.maxCapacity?.toString() ?? '-'}
+            value={serviceData.maxCapacity !== undefined && serviceData.maxCapacity !== null ? serviceData.maxCapacity.toString() : '-'}
             readonly={true}
           />
           <DetailField
             label={t('Service.minDuration')}
-            value={serviceData.minDurationHours?.toString() ?? '-'}
+            value={
+              serviceData.minDurationHours !== undefined && serviceData.minDurationHours !== null
+                ? serviceData.minDurationHours.toString()
+                : '-'
+            }
             readonly={true}
           />
           <DetailField
             label={t('Service.maxDuration')}
-            value={serviceData.maxDurationHours?.toString() ?? '-'}
+            value={
+              serviceData.maxDurationHours !== undefined && serviceData.maxDurationHours !== null
+                ? serviceData.maxDurationHours.toString()
+                : '-'
+            }
             readonly={true}
           />
           <DetailField
             label={t('Service.advanceBookingDays')}
-            value={serviceData.advanceBookingDays?.toString() ?? '-'}
+            value={
+              serviceData.advanceBookingDays !== undefined && serviceData.advanceBookingDays !== null
+                ? serviceData.advanceBookingDays.toString()
+                : '-'
+            }
             readonly={true}
           />
           <DetailField
@@ -238,117 +275,213 @@ export default function ServiceDetailPage() {
       </div>
 
       <div className="max-w-5xl mx-auto mt-6 grid grid-cols-1 gap-6">
-        <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
-          <h2 className="text-xl font-semibold text-[#02542D] mb-4">
-            {t('Service.combos')}
-          </h2>
-          {serviceData.combos && serviceData.combos.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-100 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboName')}</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboCode')}</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboPrice')}</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.status')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {serviceData.combos.map((combo) => (
-                    <tr key={combo.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{combo.name}</td>
-                      <td className="px-4 py-3 text-gray-600">{combo.code}</td>
-                      <td className="px-4 py-3 text-gray-600">{formatCurrency(combo.price)}</td>
-                      <td className="px-4 py-3">
+        {isComboBooking && (
+          <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-[#02542D]">
+                {t('Service.combos')}
+              </h2>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-80 transition"
+                onClick={handleAddCombo}
+              >
+                {t('Service.addCombo')}
+              </button>
+            </div>
+            {serviceData.combos && serviceData.combos.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-100 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboName')}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboCode')}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboPrice')}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.status')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {serviceData.combos.map((combo: ServiceCombo) => (
+                      <tr key={combo.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium text-gray-900">{combo.name ?? '-'}</td>
+                        <td className="px-4 py-3 text-gray-600">{combo.code ?? '-'}</td>
+                        <td className="px-4 py-3 text-gray-600">{formatCurrency(combo.price ?? null)}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                              combo.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
+                            }`}
+                          >
+                            {combo.isActive ? t('Service.active') : t('Service.inactive')}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-gray-500">
+                {t('Service.noCombos')}
+              </div>
+            )}
+          </section>
+        )}
+
+        {isOptionBooking && (
+          <>
+            <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-[#02542D]">
+                  {t('Service.options')}
+                </h2>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-80 transition"
+                  onClick={handleAddOption}
+                >
+                  {t('Service.addOption')}
+                </button>
+              </div>
+              {serviceData.options && serviceData.options.length > 0 ? (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {serviceData.options.map((option: ServiceOption) => (
+                    <div key={option.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-[#02542D]">{option.name ?? '-'}</h3>
                         <span
                           className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                            combo.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
+                            option.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
                           }`}
                         >
-                          {combo.isActive ? t('Service.active') : t('Service.inactive')}
+                          {option.isActive ? t('Service.active') : t('Service.inactive')}
                         </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-gray-500">
-              {t('Service.noCombos')}
-            </div>
-          )}
-        </section>
-
-        <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
-          <h2 className="text-xl font-semibold text-[#02542D] mb-4">
-            {t('Service.options')}
-          </h2>
-          {serviceData.options && serviceData.options.length > 0 ? (
-            <div className="grid md:grid-cols-2 gap-4">
-              {serviceData.options.map((option) => (
-                <div key={option.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-[#02542D]">{option.name}</h3>
-                    <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                        option.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
-                      }`}
-                    >
-                      {option.isActive ? t('Service.active') : t('Service.inactive')}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">{option.description || t('Service.noDescription')}</p>
-                  <p className="text-sm text-gray-700">
-                    <strong>{t('Service.optionPrice')}:</strong> {formatCurrency(option.price)}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <strong>{t('Service.optionUnit')}:</strong> {option.unit || '-'}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-gray-500">
-              {t('Service.noOptions')}
-            </div>
-          )}
-        </section>
-
-        <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
-          <h2 className="text-xl font-semibold text-[#02542D] mb-4">
-            {t('Service.optionGroups')}
-          </h2>
-          {serviceData.optionGroups && serviceData.optionGroups.length > 0 ? (
-            <div className="space-y-4">
-              {serviceData.optionGroups.map((group) => (
-                <div key={group.id} className="border border-gray-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-[#02542D] mb-1">{group.name}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{group.description || t('Service.noDescription')}</p>
-                  <p className="text-sm text-gray-700 mb-2">
-                    <strong>{t('Service.selectionRange')}:</strong>{' '}
-                    {`${group.minSelect ?? 0} - ${group.maxSelect ?? 0}`}
-                  </p>
-                  {group.items && group.items.length > 0 ? (
-                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                      {group.items.map((item) => (
-                        <li key={item.id}>{item.optionId}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="text-sm text-gray-500">
-                      {t('Service.noGroupItems')}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">{option.description || t('Service.noDescription')}</p>
+                      <p className="text-sm text-gray-700">
+                        <strong>{t('Service.optionPrice')}:</strong> {formatCurrency(option.price ?? null)}
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        <strong>{t('Service.optionUnit')}:</strong> {option.unit || '-'}
+                      </p>
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="text-gray-500">
+                  {t('Service.noOptions')}
+                </div>
+              )}
+            </section>
+
+            <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-[#02542D]">
+                  {t('Service.optionGroups')}
+                </h2>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-80 transition"
+                  onClick={handleAddOptionGroup}
+                >
+                  {t('Service.addOptionGroup')}
+                </button>
+              </div>
+              {serviceData.optionGroups && serviceData.optionGroups.length > 0 ? (
+                <div className="space-y-4">
+                  {serviceData.optionGroups.map((group: ServiceOptionGroup) => (
+                    <div key={group.id} className="border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-[#02542D] mb-1">{group.name ?? '-'}</h3>
+                      <p className="text-sm text-gray-600 mb-2">{group.description || t('Service.noDescription')}</p>
+                      <p className="text-sm text-gray-700 mb-2">
+                        <strong>{t('Service.selectionRange')}:</strong>{' '}
+                        {`${group.minSelect ?? 0} - ${group.maxSelect ?? 0}`}
+                      </p>
+                      {group.items && group.items.length > 0 ? (
+                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                          {group.items.map((item) => (
+                            <li key={item.id}>{item.optionId ?? '-'}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="text-sm text-gray-500">
+                          {t('Service.noGroupItems')}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-gray-500">
+                  {t('Service.noOptionGroups')}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+
+        {isTicketBooking && (
+          <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-[#02542D]">
+                {t('Service.tickets')}
+              </h2>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-80 transition"
+                onClick={handleAddTicket}
+              >
+                {t('Service.addTicket')}
+              </button>
             </div>
-          ) : (
-            <div className="text-gray-500">
-              {t('Service.noOptionGroups')}
-            </div>
-          )}
-        </section>
+            {serviceData.tickets && serviceData.tickets.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-100 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketName')}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketCode')}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketType')}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketDuration')}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketPrice')}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketMaxPeople')}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.status')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {serviceData.tickets.map((ticket: ServiceTicket) => (
+                      <tr key={ticket.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium text-gray-900">{ticket.name ?? '-'}</td>
+                        <td className="px-4 py-3 text-gray-600">{ticket.code ?? '-'}</td>
+                        <td className="px-4 py-3 text-gray-600">{t(mapTicketType(ticket.ticketType))}</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {ticket.durationHours != null ? ticket.durationHours.toString() : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{formatCurrency(ticket.price ?? null)}</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {ticket.maxPeople != null ? ticket.maxPeople.toString() : '-'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                              ticket.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
+                            }`}
+                          >
+                            {ticket.isActive ? t('Service.active') : t('Service.inactive')}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-gray-500">
+                {t('Service.noTickets')}
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );

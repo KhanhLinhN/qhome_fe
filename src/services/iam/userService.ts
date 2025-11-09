@@ -19,6 +19,7 @@ export interface UserAccountInfo {
   buildingId?: string;
   buildingCode?: string;
   buildingName?: string;
+  residentId?: string;
 }
 
 export interface UserStatusInfo {
@@ -64,6 +65,8 @@ export interface CreateResidentAccountPayload {
   username: string;
   email: string;
   residentId: string;
+  autoGenerate?: boolean;
+  password?: string;
 }
 
 export async function fetchUserProfile(userId: string): Promise<UserProfileInfo> {
@@ -174,6 +177,20 @@ export async function createStaffAccount(
 export async function createResidentAccount(
   payload: CreateResidentAccountPayload,
 ): Promise<UserAccountInfo> {
+  if (payload.email) {
+    try {
+      await axios.get(`${IAM_URL}/api/users/by-email/${encodeURIComponent(payload.email)}`, {
+        withCredentials: true,
+      });
+      throw new Error('Email đã tồn tại.');
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status && status !== 404) {
+        throw err;
+      }
+    }
+  }
+
   const response = await axios.post<UserAccountInfo>(
     `${IAM_URL}/api/users/create-for-resident`,
     payload,

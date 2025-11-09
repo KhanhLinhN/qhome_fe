@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 // 1. Import các service và type cần thiết
 import { PagedResponse } from '@/src/services/base/project/projectService';
-import { getAllTenants } from '@/src/services/base/tenantService';
 import { getBuildings } from '@/src/services/base/buildingService';
 import { filters } from '@/src/components/base-service/FilterForm'; 
 import { Project } from '../types/project';
@@ -92,12 +91,7 @@ export const useBuildingPage = (loadOnMount: boolean = true) => {
     };
 
     const handleClear = () => {
-        const projectId = user?.tenantId;
-        if(projectId) {
-            setFilters(prev => ({ ...prev, projectId: projectId }));
-        }else{
-            setFilters(initialFilters);
-        }
+        setFilters(initialFilters);
         setPageNo(0);
     };
 

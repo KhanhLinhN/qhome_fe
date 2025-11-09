@@ -9,7 +9,6 @@ import Select from '@/src/components/customer-interaction/Select';
 import { useBuildingDetailPage } from '@/src/hooks/useBuildingDetailPage';
 import { Building } from '@/src/types/building';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { getTenant } from '@/src/services/base/tenantService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 
 export default function BuildingEdit() {
@@ -33,8 +32,6 @@ export default function BuildingEdit() {
         status: '',
     });
 
-    const [tenantName, setTenantName] = useState<string>('');
-    const [loadingTenant, setLoadingTenant] = useState(false);
     const [errors, setErrors] = useState<{
         address?: string;
         floors?: string;

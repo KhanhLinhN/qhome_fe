@@ -25,7 +25,6 @@ export default function UnitAdd () {
     // Get buildingId from URL params
     const buildingId = searchParams.get('buildingId') || '';
     const [buildingCode, setBuildingCode] = useState<string>('');
-    const [tenantId, setTenantId] = useState<string>('');
     const [codeError, setCodeError] = useState<string>('');
     const [errors, setErrors] = useState<{
         name?: string;
@@ -63,7 +62,6 @@ export default function UnitAdd () {
                 const building = await getBuilding(buildingId);
                 console.log("building", building);
                 setBuildingCode(building.code);
-                setTenantId(building.tenantId);
             } catch (err) {
                 console.error('Failed to fetch building:', err);
             }
@@ -102,13 +100,12 @@ export default function UnitAdd () {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const building = await getBuilding(buildingId);
-        setTenantId(building.tenantId);
         if (isSubmitting) return;
 
         // Validate all fields at once
         const isValid = validateAllFields();
 
-        if (!buildingId || !tenantId) {
+        if (!buildingId) {
             show(t('missingBuildingId'), 'error');
             return;
         }
@@ -129,7 +126,6 @@ export default function UnitAdd () {
             const completeData = {
                 ...unitData,
                 buildingId,
-                tenantId
             };
             console.log('Dữ liệu gửi đi:', completeData);
             await addUnit(completeData);
@@ -303,14 +299,14 @@ export default function UnitAdd () {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                     
-                    <DetailField 
+                    {/* <DetailField 
                         label="Mã căn hộ"
                         value={formData.code || ""}
                         name="code"
                         placeholder="Mã căn hộ"
                         readonly={true}
                         error={codeError}
-                    />
+                    /> */}
 
                     {/* <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
@@ -347,6 +343,7 @@ export default function UnitAdd () {
                         placeholder={t('floor')}
                         readonly={false}
                         error={errors.floor}
+                        inputType="number"
                     />
 
                     <DetailField 
@@ -357,6 +354,7 @@ export default function UnitAdd () {
                         placeholder={t('bedrooms')}
                         readonly={false}
                         error={errors.bedrooms}
+                        inputType="number"
                     />
 
                     <DetailField 
@@ -367,6 +365,7 @@ export default function UnitAdd () {
                         placeholder={t('areaM2')}
                         readonly={false}
                         error={errors.area}
+                        inputType="number"
                     />
 
                     <div className="col-span-full flex justify-center space-x-3 mt-8">

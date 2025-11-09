@@ -90,7 +90,7 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
     };
 
     loadData();
-  }, [user?.tenantId, type]);
+  }, [type]);
 
   // Toggle building expansion
   const toggleBuilding = useCallback((buildingId: string) => {
@@ -123,7 +123,6 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
 
   // Refresh data
   const refresh = useCallback(async () => {
-    if (!user?.tenantId) return;
 
     setLoading(true);
     setError(null);
@@ -133,7 +132,6 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
       const vehiclesData = type === 'active' 
           ? await getActiveVehicles()
           : await getAllVehiclesRequest();
-        // : await getPendingVehicles(user.tenantId);
 
       const vehiclesByUnit = vehiclesData.reduce((acc, vehicle) => {
         if (!acc[vehicle.unitId]) {
@@ -172,7 +170,7 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
     } finally {
       setLoading(false);
     }
-  }, [user?.tenantId, type]);
+  }, [type]);
 
   return {
     buildings,

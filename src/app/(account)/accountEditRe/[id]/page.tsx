@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -19,6 +19,10 @@ import {
   updateResidentAccount,
   updateUserPassword,
 } from '@/src/services/iam/userService';
+import { useResidentUnits } from '@/src/hooks/useResidentUnits';
+import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
+import { createHousehold } from '@/src/services/base/householdService';
 
 type FetchState = 'idle' | 'loading' | 'error' | 'success';
 
@@ -51,6 +55,24 @@ export default function AccountEditResidentPage() {
   const [profile, setProfile] = useState<UserProfileInfo | null>(null);
   const [status, setStatus] = useState<UserStatusInfo | null>(null);
 
+  const {
+    assignments: residentUnits,
+    loading: residentUnitsLoading,
+    error: residentUnitsError,
+    refresh: refreshResidentUnits,
+  } = useResidentUnits(userId || undefined);
+
+  const [unitPanelOpen, setUnitPanelOpen] = useState(false);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [loadingBuildings, setLoadingBuildings] = useState(false);
+  const [selectedBuildingId, setSelectedBuildingId] = useState('');
+  const [availableUnits, setAvailableUnits] = useState<Unit[]>([]);
+  const [loadingAvailableUnits, setLoadingAvailableUnits] = useState(false);
+  const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>([]);
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
+  const [assignmentSuccess, setAssignmentSuccess] = useState<string | null>(null);
+  const [assigningUnits, setAssigningUnits] = useState(false);
+
   const [form, setForm] = useState<FormState>({
     username: '',
     email: '',
@@ -82,7 +104,7 @@ export default function AccountEditResidentPage() {
           return;
         }
 
-        setAccount(accountRes);
+        setAccount({ ...accountRes, residentId: accountRes.userId });
         setProfile(profileRes);
         setStatus(statusRes);
         setForm({
@@ -185,7 +207,7 @@ export default function AccountEditResidentPage() {
       };
 
       const updatedAccount = await updateResidentAccount(userId, profilePayload);
-      setAccount(updatedAccount);
+      setAccount({ ...updatedAccount, residentId: updatedAccount.userId });
       setProfile((prev) =>
         prev
           ? {
@@ -219,21 +241,233 @@ export default function AccountEditResidentPage() {
     }
   };
 
-  const renderBuilding = () => {
-    if (!account?.buildingId && !account?.buildingName) {
-      return <p className="text-sm text-gray-500">Chưa có thông tin tòa nhà liên kết.</p>;
+  const assignedUnitIds = useMemo(() => {
+    const ids = new Set<string>();
+    residentUnits.forEach((item) => {
+      if (item.unitId) {
+        ids.add(item.unitId);
+      }
+    });
+    return ids;
+  }, [residentUnits]);
+
+  const loadBuildings = useCallback(async () => {
+    if (loadingBuildings || buildings.length) {
+      return;
     }
-    if (account?.buildingId) {
+
+    try {
+      setLoadingBuildings(true);
+      const data = await getBuildings();
+      setBuildings(data);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+      setAssignmentError(message);
+    } finally {
+      setLoadingBuildings(false);
+    }
+  }, [buildings.length, loadingBuildings]);
+
+  const loadUnits = useCallback(
+    async (buildingId: string) => {
+      if (!buildingId) {
+        setAvailableUnits([]);
+        return;
+      }
+
+      try {
+        setLoadingAvailableUnits(true);
+        const data = await getUnitsByBuilding(buildingId);
+        setAvailableUnits(data);
+      } catch (err: any) {
+        const message =
+          err?.response?.data?.message || err?.message || 'Không thể tải danh sách căn hộ.';
+        setAssignmentError(message);
+      } finally {
+        setLoadingAvailableUnits(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!unitPanelOpen) {
+      return;
+    }
+    if (!selectedBuildingId) {
+      setAvailableUnits([]);
+      setSelectedUnitIds([]);
+      return;
+    }
+
+    setSelectedUnitIds([]);
+    void loadUnits(selectedBuildingId);
+  }, [loadUnits, selectedBuildingId, unitPanelOpen]);
+
+  const handleOpenUnitPanel = async () => {
+    setAssignmentError(null);
+    setAssignmentSuccess(null);
+    setSelectedUnitIds([]);
+    setUnitPanelOpen(true);
+    await loadBuildings();
+  };
+
+  const handleCloseUnitPanel = () => {
+    setUnitPanelOpen(false);
+    setSelectedBuildingId('');
+    setAvailableUnits([]);
+    setSelectedUnitIds([]);
+    setAssignmentError(null);
+    setAssignmentSuccess(null);
+  };
+
+  const handleToggleUnitSelection = (unitId: string) => {
+    if (assignedUnitIds.has(unitId)) {
+      return;
+    }
+    setSelectedUnitIds((prev) =>
+      prev.includes(unitId) ? prev.filter((id) => id !== unitId) : [...prev, unitId],
+    );
+  };
+
+  const formatDateLabel = (value?: string | null) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  const handleAddUnits = async () => {
+    if (!userId) {
+      setAssignmentError('Không xác định được cư dân.');
+      return;
+    }
+
+    const pendingUnitIds = selectedUnitIds.filter((id) => !assignedUnitIds.has(id));
+    if (!pendingUnitIds.length) {
+      setAssignmentError('Vui lòng chọn ít nhất một căn hộ chưa được gắn cho cư dân.');
+      return;
+    }
+
+    setAssigningUnits(true);
+    setAssignmentError(null);
+    setAssignmentSuccess(null);
+
+    const today = new Date().toISOString().split('T')[0];
+    const results = await Promise.allSettled(
+      pendingUnitIds.map((unitId) =>
+        createHousehold({
+          unitId,
+          kind: 'OWNER',
+          primaryResidentId: userId,
+          startDate: today,
+        }),
+      ),
+    );
+
+    const rejected = results.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
+
+    if (rejected.length && rejected.length === results.length) {
+      const firstError = rejected[0].reason;
+      const message =
+        firstError?.response?.data?.message ||
+        firstError?.message ||
+        'Không thể gắn căn hộ cho cư dân. Vui lòng thử lại.';
+      setAssignmentError(message);
+    } else {
+      const successCount = results.length - rejected.length;
+      setAssignmentSuccess(`Đã gắn thành công ${successCount} căn hộ cho cư dân.`);
+      setSelectedUnitIds([]);
+      await refreshResidentUnits();
+    }
+
+    if (rejected.length) {
+      console.error('Failed to assign some units', rejected);
+    }
+
+    setAssigningUnits(false);
+  };
+
+  const renderAssignedUnits = () => {
+    if (residentUnitsLoading) {
       return (
-        <Link
-          href={`/base/building/buildingDetail/${account.buildingId}`}
-          className="text-sm font-medium text-blue-600 hover:underline"
-        >
-          {account.buildingName ?? account.buildingId}
-        </Link>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+          Đang tải danh sách căn hộ...
+        </div>
       );
     }
-    return <p className="text-sm font-medium text-[#02542D]">{account.buildingName}</p>;
+
+    if (residentUnitsError) {
+      return (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-600">
+          {residentUnitsError}
+        </div>
+      );
+    }
+
+    if (!residentUnits.length) {
+      return (
+        <p className="text-sm text-slate-500">Chưa có căn hộ nào được gắn cho tài khoản cư dân này.</p>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {residentUnits.map((assignment) => {
+          const joinedAt = formatDateLabel(assignment.joinedAt);
+          const buildingLabel = assignment.buildingName ?? assignment.buildingCode ?? 'Không rõ tòa nhà';
+
+          return (
+            <div
+              key={assignment.householdId}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {assignment.unitCode ?? assignment.unitId ?? 'Không rõ mã căn hộ'}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {assignment.buildingId ? (
+                      <Link
+                        href={`/base/building/buildingDetail/${assignment.buildingId}`}
+                        className="text-emerald-600 hover:underline"
+                      >
+                        {buildingLabel}
+                      </Link>
+                    ) : (
+                      buildingLabel
+                    )}
+                  </p>
+                </div>
+                <div className="flex flex-col items-start gap-1 sm:items-end">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {assignment.isPrimary && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                        Chủ hộ
+                      </span>
+                    )}
+                    {assignment.relation && (
+                      <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                        {assignment.relation}
+                      </span>
+                    )}
+                  </div>
+                  {joinedAt && (
+                    <span className="text-xs text-slate-500">Từ {joinedAt}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   const renderContent = () => {
@@ -315,8 +549,141 @@ export default function AccountEditResidentPage() {
         </div>
 
         <div>
-          <h2 className="text-md font-semibold text-[#02542D]">Tòa nhà</h2>
-          <div className="mt-2">{renderBuilding()}</div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-md font-semibold text-[#02542D]">Danh sách căn hộ đã gắn</h2>
+            {!unitPanelOpen && (
+              <button
+                type="button"
+                onClick={handleOpenUnitPanel}
+                className="inline-flex items-center justify-center rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+              >
+                Thêm căn hộ
+              </button>
+            )}
+          </div>
+          <div className="mt-3">{renderAssignedUnits()}</div>
+
+          {(assignmentSuccess || assignmentError) && (
+            <div className="mt-3 space-y-2">
+              {assignmentSuccess && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {assignmentSuccess}
+                </div>
+              )}
+              {assignmentError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {assignmentError}
+                </div>
+              )}
+            </div>
+          )}
+
+          {unitPanelOpen && (
+            <div className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-slate-700">Tòa nhà</label>
+                <select
+                  value={selectedBuildingId}
+                  onChange={(event) => setSelectedBuildingId(event.target.value)}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                >
+                  <option value="">Chọn tòa nhà</option>
+                  {buildings.map((building) => (
+                    <option key={building.id} value={building.id}>
+                      {building.name || building.code || building.id}
+                    </option>
+                  ))}
+                </select>
+                {loadingBuildings && (
+                  <span className="text-xs text-slate-500">Đang tải danh sách tòa nhà...</span>
+                )}
+              </div>
+
+              {selectedBuildingId && (
+                <div className="space-y-3">
+                  <span className="text-sm font-medium text-slate-700">Chọn căn hộ</span>
+                  {loadingAvailableUnits ? (
+                    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+                      Đang tải danh sách căn hộ...
+                    </div>
+                  ) : availableUnits.length ? (
+                    <div className="space-y-2">
+                      {availableUnits.map((unit) => {
+                        const { primaryResidentId } = unit as unknown as {
+                          primaryResidentId?: string | null;
+                        };
+                        const disabled =
+                          assignedUnitIds.has(unit.id) || Boolean(primaryResidentId);
+                        const checked = disabled || selectedUnitIds.includes(unit.id);
+                        const label = unit.code ?? unit.name ?? unit.id;
+                        const floor =
+                          typeof unit.floor === 'number' && !Number.isNaN(unit.floor)
+                            ? unit.floor
+                            : undefined;
+                        return (
+                          <label
+                            key={unit.id}
+                            className={`flex cursor-pointer items-start justify-between gap-4 rounded-lg border px-3 py-2 text-sm transition ${
+                              disabled
+                                ? 'border-slate-200 bg-slate-100 text-slate-400'
+                                : 'border-slate-200 bg-white hover:border-emerald-300'
+                            }`}
+                          >
+                            <span className="flex items-start gap-3">
+                              <input
+                                type="checkbox"
+                                className="mt-1 h-4 w-4"
+                                checked={checked}
+                                disabled={disabled}
+                                onChange={() => handleToggleUnitSelection(unit.id)}
+                              />
+                              <span>
+                                <span className="font-semibold text-slate-800">
+                                  {label}
+                                </span>
+                                {floor !== undefined && (
+                                  <span className="block text-xs text-slate-500">
+                                    Tầng {floor}
+                                  </span>
+                                )}
+                              </span>
+                            </span>
+                            {disabled && (
+                              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-600">
+                                Đã gắn
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+                      Không tìm thấy căn hộ nào trong tòa nhà đã chọn.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={handleCloseUnitPanel}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-white"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddUnits}
+                  disabled={assigningUnits || !selectedUnitIds.length}
+                  className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {assigningUnits ? 'Đang gắn...' : 'Gắn căn hộ'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <PasswordChangeSection

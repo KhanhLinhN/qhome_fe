@@ -226,7 +226,7 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold">
                                             {item.serviceCode}
                                         </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold text-left truncate">
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold text-center truncate">
                                             {item.serviceName}
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold">
@@ -266,18 +266,17 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                         height={24}
                                                     />
                                                 </Link>
-                                                <Link
-                                                    href={`/base/serviceEdit/${item.serviceId}`}
-                                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-[#739559] hover:bg-opacity-80 transition"
-                                                    title={t('Service.editService')}
+                                                <button
+                                                    onClick={() => item.serviceId && onDelete && onDelete(item.serviceId)}
+                                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
                                                 >
                                                     <Image
-                                                        src={EditTable}
-                                                        alt="Edit"
+                                                        src={Delete}
+                                                        alt="Delete"
                                                         width={24}
                                                         height={24}
                                                     />
-                                                </Link>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
