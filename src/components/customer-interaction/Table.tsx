@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-import PriorityHighIcon from '@/src/assets/PriorityHigh.svg';
-import PriorityMediumIcon from '@/src/assets/PriorityMedium.svg';
-import PriorityLowIcon from '@/src/assets/PriorityLow.svg';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import Link from 'next/link';
 
 interface TableItemProps {
@@ -12,7 +8,6 @@ interface TableItemProps {
     residentName?: string;
     title?: string;
     status?: string;
-    priority?: string;
     createdAt?: string;
 }
 
@@ -42,7 +37,7 @@ const Table = ({ data, headers }: TableProps) => {
                             <th
                                 key={index}
                                 className={`px-4 py-3 text-[14px] font-bold text-[#024023] uppercase tracking-wider ${header === t('requestTitle') || header === t('residentName') || header === t('assignee') ? 'text-left' : 'text-center'} whitespace-nowrap`}
-                                style={{ width: header === t('requestNumber') || header === t('priority') || header === t('status') ? '5%' : 'auto' }}
+                                style={{ width: header === t('requestNumber') || header === t('status') ? '5%' : 'auto' }}
                             >
                                 {header}
                             </th>
@@ -68,6 +63,11 @@ const Table = ({ data, headers }: TableProps) => {
                             // onRowClick(item.id);
                         };
                         
+                        const isDone = item.status?.toLowerCase() === 'done';
+                        const actionClass = isDone
+                            ? 'px-3 py-1 bg-gray-800 text-white rounded-md text-sm cursor-pointer'
+                            : 'px-3 py-1 bg-green-500 text-white rounded-md text-sm hover:bg-green-600 transition';
+
                         return (
                             <tr 
                                 key={item.id} 
@@ -88,16 +88,15 @@ const Table = ({ data, headers }: TableProps) => {
                                 <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold truncate">{item.title}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023]">{item.residentName}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>
-
-                                <td className="px-4 py-3 whitespace-nowrap flex justify-center items-center h-full">
-                                    <Image
-                                        src={item.priority === 'High' ? PriorityHighIcon : (item.priority === 'Medium' ? PriorityMediumIcon : PriorityLowIcon)}
-                                        alt="Priority"
-                                        width={20}
-                                        height={20}
-                                    />
-                                </td>
                                 <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.status}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-center">
+                                    <Link
+                                        href={`/customer-interaction/requestDetail/${item.id}`}
+                                        className={actionClass}
+                                    >
+                                        View
+                                    </Link>
+                                </td>
                             </tr>
                         );
                     })}

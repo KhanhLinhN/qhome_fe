@@ -6,20 +6,16 @@ export interface BulkUpdateResponse {
 }
 
 export interface GetRequestsParams {
-  requestId?: string;
-  title?: string;
-  residentName?: string;
-  tenantId?: string; 
   status?: string;
-  priority?: string;
   pageNo?: number;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface StatusCounts {
-    New?: number;
+    Pending?: number;
     Processing?: number;
-    Responded?: number; 
-    Closed?: number;
+    Done?: number; 
     total?: number;
     [key: string]: number | undefined;
 }

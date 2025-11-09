@@ -29,7 +29,7 @@ const ProcessLogItem = ({ status, createdDate, content, isNewest }: ProcessLogIt
             </div>
 
             <div className="flex-grow pl-4">
-                <p className={`font-semibold text-[#14AE5C]`}>{t(status.trim().toLowerCase())}</p>
+                <p className={`font-semibold text-[#14AE5C]`}>{status}</p>
                 <p className="text-sm text-[#024023]">{createdDate}: {content}</p>
             </div>
         </div>

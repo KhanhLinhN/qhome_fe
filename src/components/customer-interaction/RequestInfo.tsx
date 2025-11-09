@@ -43,11 +43,6 @@ const RequestInfoAndContext = ({ value, contextTitle, contextContextTitle, conte
                             value={value.createdAt}
                             isHighlighted={false}
                         />
-                        <RequestInfoItem
-                            title={t('priority')}
-                            value={value.priority}
-                            isHighlighted={false}
-                        />
                     </div>
                 )}
                 <h3 className="text-lg font-semibold mb-2">{contextTitle}</h3>

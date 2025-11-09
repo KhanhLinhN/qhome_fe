@@ -17,7 +17,7 @@ export default function RequestDetailPage() {
 
     const requestId = params.id
     const { requestData, logData, loading, error, addLog, isSubmitting } = useRequestDetails(requestId);
-    const isUnactive = requestData?.status == "Closed" || requestData?.status == "Completed"
+    const isUnactive = requestData?.status === 'Done'
 
     const handleBack = () => {
         router.back(); // Navigate to the previous page
@@ -70,12 +70,14 @@ export default function RequestDetailPage() {
                 logData={logData}
                 title={t('requestLog')}
               ></ProcessLog>
-              <RequestLogUpdate
-                initialStatusValue={"Processing"}
-                onSave={handleSaveLog} 
-                unactive={isUnactive}
-                isSubmitting={isSubmitting} 
-              ></RequestLogUpdate>
+              {!isUnactive && (
+                <RequestLogUpdate
+                  initialStatusValue={requestData.status ?? 'Processing'}
+                  onSave={handleSaveLog}
+                  unactive={false}
+                  isSubmitting={isSubmitting}
+                />
+              )}
             </div>
           </div>
         </div>
