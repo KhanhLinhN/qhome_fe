@@ -3,10 +3,12 @@
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import Edit from '@/src/assets/Edit.svg';
+import Delete from '@/src/assets/Delete.svg';
 import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import DetailField from '@/src/components/base-service/DetailField';
 import { useServiceDetailPage } from '@/src/hooks/useServiceDetailPage';
+import { useNotifications } from '@/src/hooks/useNotifications';
 import {
   ServiceBookingType,
   ServicePricingType,
@@ -78,6 +80,7 @@ export default function ServiceDetailPage() {
   const router = useRouter();
   const params = useParams();
   const serviceId = params?.id;
+  const { show } = useNotifications();
 
   const { serviceData, loading, error } = useServiceDetailPage(serviceId);
 
@@ -145,6 +148,49 @@ export default function ServiceDetailPage() {
   const handleAddOptionGroup = () => handleNavigateToCreate('option-group');
   const handleAddTicket = () => handleNavigateToCreate('ticket');
 
+  const handleEditCombo = (comboId?: string) => {
+    if (!comboId) return;
+    show('Chức năng chỉnh sửa gói dịch vụ đang được phát triển.', 'info');
+  };
+
+  const handleDeleteCombo = (comboId?: string) => {
+    if (!comboId) return;
+    show('Chức năng xóa gói dịch vụ đang được phát triển.', 'info');
+  };
+
+  const handleEditOption = (optionId?: string) => {
+    if (!optionId) return;
+    show('Chức năng chỉnh sửa tùy chọn đang được phát triển.', 'info');
+  };
+
+  const handleDeleteOption = (optionId?: string) => {
+    if (!optionId) return;
+    show('Chức năng xóa tùy chọn đang được phát triển.', 'info');
+  };
+
+  const handleEditOptionGroup = (groupId?: string) => {
+    if (!groupId) return;
+    show('Chức năng chỉnh sửa nhóm tùy chọn đang được phát triển.', 'info');
+  };
+
+  const handleDeleteOptionGroup = (groupId?: string) => {
+    if (!groupId) return;
+    show('Chức năng xóa nhóm tùy chọn đang được phát triển.', 'info');
+  };
+  const handleEditTicket = (ticketId?: string) => {
+    if (!ticketId) {
+      return;
+    }
+    show('Chức năng chỉnh sửa vé đang được phát triển.', 'info');
+  };
+
+  const handleDeleteTicket = (ticketId?: string) => {
+    if (!ticketId) {
+      return;
+    }
+    show('Chức năng xóa vé đang được phát triển.', 'info');
+  };
+
   return (
     <div className="min-h-screen p-4 sm:p-8 font-sans">
       <div
@@ -196,23 +242,6 @@ export default function ServiceDetailPage() {
             readonly={true}
           />
           <DetailField
-            label={t('Service.description')}
-            value={serviceData.description ?? '-'}
-            readonly={true}
-            type="textarea"
-            isFullWidth
-          />
-          <DetailField
-            label={t('Service.location')}
-            value={serviceData.location ?? '-'}
-            readonly={true}
-          />
-          <DetailField
-            label={t('Service.mapUrl')}
-            value={serviceData.mapUrl ?? '-'}
-            readonly={true}
-          />
-          <DetailField
             label={t('Service.pricingType')}
             value={t(mapPricingType(serviceData.pricingType))}
             readonly={true}
@@ -222,16 +251,20 @@ export default function ServiceDetailPage() {
             value={t(mapBookingType(serviceData.bookingType))}
             readonly={true}
           />
-          <DetailField
-            label={t('Service.pricePerHour')}
-            value={formatCurrency(serviceData.pricePerHour)}
-            readonly={true}
-          />
-          <DetailField
-            label={t('Service.pricePerSession')}
-            value={formatCurrency(serviceData.pricePerSession)}
-            readonly={true}
-          />
+          {serviceData.pricingType === ServicePricingType.HOURLY && (
+            <DetailField
+              label={t('Service.pricePerHour')}
+              value={formatCurrency(serviceData.pricePerHour)}
+              readonly={true}
+            />
+          )}
+          {serviceData.pricingType === ServicePricingType.SESSION && (
+            <DetailField
+              label={t('Service.pricePerSession')}
+              value={formatCurrency(serviceData.pricePerSession)}
+              readonly={true}
+            />
+          )}
           <DetailField
             label={t('Service.maxCapacity')}
             value={serviceData.maxCapacity !== undefined && serviceData.maxCapacity !== null ? serviceData.maxCapacity.toString() : '-'}
@@ -263,6 +296,23 @@ export default function ServiceDetailPage() {
                 : '-'
             }
             readonly={true}
+          />
+          <DetailField
+            label={t('Service.location')}
+            value={serviceData.location ?? '-'}
+            readonly={true}
+          />
+          <DetailField
+            label={t('Service.mapUrl')}
+            value={serviceData.mapUrl ?? '-'}
+            readonly={true}
+          />
+          <DetailField
+            label={t('Service.description')}
+            value={serviceData.description ?? '-'}
+            readonly={true}
+            type="textarea"
+            isFullWidth
           />
           <DetailField
             label={t('Service.rules')}
@@ -298,6 +348,7 @@ export default function ServiceDetailPage() {
                       <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboCode')}</th>
                       <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboPrice')}</th>
                       <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.status')}</th>
+                      <th className="px-4 py-3 text-center font-medium text-gray-600">{t('Service.action')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -314,6 +365,24 @@ export default function ServiceDetailPage() {
                           >
                             {combo.isActive ? t('Service.active') : t('Service.inactive')}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <div className="flex space-x-2 justify-center">
+                            <button
+                              type="button"
+                              onClick={() => handleEditCombo(combo.id)}
+                              className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
+                            >
+                              <Image src={Edit} alt="Edit combo" width={24} height={24} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCombo(combo.id)}
+                              className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
+                            >
+                              <Image src={Delete} alt="Delete combo" width={24} height={24} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -347,15 +416,33 @@ export default function ServiceDetailPage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   {serviceData.options.map((option: ServiceOption) => (
                     <div key={option.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-lg font-semibold text-[#02542D]">{option.name ?? '-'}</h3>
-                        <span
-                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                            option.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
-                          }`}
-                        >
-                          {option.isActive ? t('Service.active') : t('Service.inactive')}
-                        </span>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="text-lg font-semibold text-[#02542D]">{option.name ?? '-'}</h3>
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold mt-1 ${
+                              option.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
+                            }`}
+                          >
+                            {option.isActive ? t('Service.active') : t('Service.inactive')}
+                          </span>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEditOption(option.id)}
+                            className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
+                          >
+                            <Image src={Edit} alt="Edit option" width={24} height={24} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteOption(option.id)}
+                            className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
+                          >
+                            <Image src={Delete} alt="Delete option" width={24} height={24} />
+                          </button>
+                        </div>
                       </div>
                       <p className="text-sm text-gray-600 mb-2">{option.description || t('Service.noDescription')}</p>
                       <p className="text-sm text-gray-700">
@@ -370,50 +457,6 @@ export default function ServiceDetailPage() {
               ) : (
                 <div className="text-gray-500">
                   {t('Service.noOptions')}
-                </div>
-              )}
-            </section>
-
-            <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-[#02542D]">
-                  {t('Service.optionGroups')}
-                </h2>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-80 transition"
-                  onClick={handleAddOptionGroup}
-                >
-                  {t('Service.addOptionGroup')}
-                </button>
-              </div>
-              {serviceData.optionGroups && serviceData.optionGroups.length > 0 ? (
-                <div className="space-y-4">
-                  {serviceData.optionGroups.map((group: ServiceOptionGroup) => (
-                    <div key={group.id} className="border border-gray-200 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-[#02542D] mb-1">{group.name ?? '-'}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{group.description || t('Service.noDescription')}</p>
-                      <p className="text-sm text-gray-700 mb-2">
-                        <strong>{t('Service.selectionRange')}:</strong>{' '}
-                        {`${group.minSelect ?? 0} - ${group.maxSelect ?? 0}`}
-                      </p>
-                      {group.items && group.items.length > 0 ? (
-                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                          {group.items.map((item) => (
-                            <li key={item.id}>{item.optionId ?? '-'}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div className="text-sm text-gray-500">
-                          {t('Service.noGroupItems')}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-gray-500">
-                  {t('Service.noOptionGroups')}
                 </div>
               )}
             </section>
@@ -441,11 +484,12 @@ export default function ServiceDetailPage() {
                     <tr>
                       <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketName')}</th>
                       <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketCode')}</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketType')}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketTypeLabel')}</th>
                       <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketDuration')}</th>
                       <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketPrice')}</th>
                       <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketMaxPeople')}</th>
                       <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.status')}</th>
+                      <th className="px-4 py-3 text-center font-medium text-gray-600">{t('Service.action')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -469,6 +513,24 @@ export default function ServiceDetailPage() {
                           >
                             {ticket.isActive ? t('Service.active') : t('Service.inactive')}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <div className="flex space-x-2 justify-center">
+                            <button
+                              type="button"
+                              onClick={() => handleEditTicket(ticket.id)}
+                              className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
+                            >
+                              <Image src={Edit} alt="Edit ticket" width={24} height={24} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTicket(ticket.id)}
+                              className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
+                            >
+                              <Image src={Delete} alt="Delete ticket" width={24} height={24} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

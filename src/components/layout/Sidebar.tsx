@@ -2,8 +2,9 @@
 import React from "react";
 import Link from "next/link";
 import {usePathname} from "next/navigation";
+import {useAuth} from "@/src/contexts/AuthContext";
 
-type SidebarVariant = "admin" | "tenant-owner";
+type SidebarVariant = "admin" | "tenant-owner" | "technician";
 
 type NavItem = {
   href: string;
@@ -54,22 +55,22 @@ const adminSections: NavSection[] = [
   {
     title: "Dịch vụ",
     items: [
+      {href: "/base/serviceCateList", label: "Nhóm dịch vụ", icon: "🗂️"},
       {href: "/base/serviceList", label: "Danh sách dịch vụ", icon: "🧾"},
       {href: "/base/serviceNew", label: "Tạo dịch vụ", icon: "➕"},
       // {href: "/base/serviceType", label: "Loại dịch vụ", icon: "📂"},
-      {href: "/base/serviceCateList", label: "Nhóm dịch vụ", icon: "🗂️"},
       // {href: "/base/serviceRequest", label: "Yêu cầu dịch vụ", icon: "📬"},
     ],
   },
   {
     title: "Điện nước",
     items: [
-      {href: "/base/billingCycles", label: "Chu kỳ thanh toán", icon: "💡"},
       {href: "/base/readingCycles", label: "Chu kỳ chỉ số", icon: "📈"},
       // {href: "/base/readingSessions", label: "Phiên đọc chỉ số", icon: "🧮"},
-      {href: "/base/addAssignment", label: "Phân công đọc", icon: "📝"},
+      {href: "/base/readingAssign", label: "Phân công đọc", icon: "📝"},
       {href: "/base/showAssign", label: "Danh sách phân công", icon: "📋"},
       // {href: "/base/waterShow", label: "Theo dõi nước", icon: "💧"},
+      {href: "/base/billingCycles", label: "Chu kỳ thanh toán", icon: "💡"},
     ],
   },
   {
@@ -77,8 +78,35 @@ const adminSections: NavSection[] = [
     items: [
       {href: "/customer-interaction/new/newList", label: "Tin tức", icon: "📰"},
       {href: "/customer-interaction/notiList", label: "Thông báo", icon: "🔔"},
-      {href: "/customer-interaction/request", label: "Yêu cầu hỗ trợ", icon: "📨"},
+      // {href: "/customer-interaction/request", label: "Yêu cầu hỗ trợ", icon: "📨"},
       {href: "/customer-interaction/requestTicket", label: "Ticket", icon: "🎫"},
+    ],
+  },
+];
+
+const technicianSections: NavSection[] = [
+  {
+    title: "Tổng quan",
+    items: [
+      {href: "/dashboard", label: "Dashboard", icon: "📊"},
+    ],
+  },
+  {
+    title: "Dịch vụ",
+    items: [
+      // {href: "base/showAssign", label: "Danh sách nhiệm vụ", icon: "🧾"},
+    ],
+  },
+  {
+    title: "Điện nước",
+    items: [
+      {href: "base/showAssign", label: "Danh sách nhiệm vụ", icon: "🧾"},
+    ],
+  },
+  {
+    title: "Tương tác cư dân",
+    items: [
+      // {href: "/customer-interaction/request", label: "Yêu cầu hỗ trợ", icon: "📨"},
     ],
   },
 ];
@@ -101,6 +129,7 @@ const tenantOwnerSections: NavSection[] = [
 
 const menuConfig: Record<SidebarVariant, NavSection[]> = {
   admin: adminSections,
+  technician: technicianSections,
   "tenant-owner": tenantOwnerSections,
 };
 
@@ -110,10 +139,23 @@ interface SidebarProps {
 
 export default function Sidebar({variant = "admin"}: SidebarProps) {
   const pathname = usePathname();
-  const sections = menuConfig[variant];
+  const {user} = useAuth();
+
+  const normalizedRoles = user?.roles?.map(role => role.toLowerCase()) ?? [];
+
+  const resolvedVariant: SidebarVariant =
+    variant === "admin"
+      ? normalizedRoles.includes("admin")
+        ? "admin"
+        : normalizedRoles.includes("technician")
+          ? "technician"
+          : "admin"
+      : variant;
+
+  const sections = menuConfig[resolvedVariant];
 
   return (
-    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-full">
+    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen">
       <nav className="p-3 space-y-6 overflow-y-auto">
         {sections.map(section => (
           <div key={section.title} className="space-y-2">

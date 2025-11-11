@@ -215,10 +215,6 @@ export default function NewsDetail() {
                     <div className="border-t pt-6 mt-6">
                         <h2 className="text-lg font-semibold text-[#02542D] mb-4">{t('additionalInfo')}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <span className="font-semibold text-gray-700">{t('displayOrder')}:</span>
-                                <span className="ml-2 text-gray-600">{news.displayOrder}</span>
-                            </div>
                             {news.scope && (
                                 <div>
                                     <span className="font-semibold text-gray-700">{t('scope')}:</span>
