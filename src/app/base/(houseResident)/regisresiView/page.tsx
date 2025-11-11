@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
-  HouseholdMemberRequest,
-  decideHouseholdMemberRequest,
-  fetchPendingHouseholdMemberRequests,
-} from '@/src/services/base/householdMemberRequestService';
+  AccountCreationRequest,
+  approveAccountRequest,
+  fetchPendingAccountRequests,
+} from '@/src/services/base/residentAccountService';
 
-const DEFAULT_REJECTION_REASON = 'Không đủ giấy tờ chứng minh';
+const DEFAULT_REJECTION_REASON = 'Thông tin chưa đầy đủ';
 
 function formatDateTime(value?: string | null) {
   if (!value) return 'Chưa cập nhật';
@@ -38,8 +38,8 @@ const rejectIcon = (
   </svg>
 );
 
-export default function ResidentRegistrationRequestsPage() {
-  const [requests, setRequests] = useState<HouseholdMemberRequest[]>([]);
+export default function ResidentAccountApprovalPage() {
+  const [requests, setRequests] = useState<AccountCreationRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -49,11 +49,11 @@ export default function ResidentRegistrationRequestsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchPendingHouseholdMemberRequests();
+      const data = await fetchPendingAccountRequests();
       setRequests(data);
     } catch (err: any) {
       const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải danh sách đơn đăng ký cư dân.';
+        err?.response?.data?.message || err?.message || 'Không thể tải danh sách yêu cầu tạo tài khoản.';
       setError(message);
     } finally {
       setLoading(false);
@@ -81,7 +81,7 @@ export default function ResidentRegistrationRequestsPage() {
   }, []);
 
   const handleDecision = useCallback(
-    async (request: HouseholdMemberRequest, approve: boolean) => {
+    async (request: AccountCreationRequest, approve: boolean) => {
       updateProcessing(request.id, true);
       setSuccessMessage(null);
       setError(null);
@@ -102,16 +102,16 @@ export default function ResidentRegistrationRequestsPage() {
           payload = { approve: false, rejectionReason: trimmedReason };
         }
 
-        await decideHouseholdMemberRequest(request.id, payload);
+        await approveAccountRequest(request.id, payload);
         removeRequest(request.id);
         setSuccessMessage(
           approve
-            ? `Đã phê duyệt yêu cầu cho cư dân ${request.requestedResidentFullName ?? request.residentName ?? ''}.`
-            : `Đã từ chối yêu cầu cho cư dân ${request.requestedResidentFullName ?? request.residentName ?? ''}.`,
+            ? `Đã phê duyệt tài khoản cho cư dân ${request.residentName ?? ''}.`
+            : `Đã từ chối yêu cầu tạo tài khoản cho cư dân ${request.residentName ?? ''}.`,
         );
       } catch (err: any) {
         const message =
-          err?.response?.data?.message || err?.message || 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
+        err?.response?.data?.message || err?.message || 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
         setError(message);
       } finally {
         updateProcessing(request.id, false);
@@ -125,7 +125,7 @@ export default function ResidentRegistrationRequestsPage() {
       return 'Đang tải dữ liệu...';
     }
     if (requests.length === 0) {
-      return 'Không có đơn đăng ký nào đang chờ duyệt.';
+      return 'Không có yêu cầu tạo tài khoản nào đang chờ duyệt.';
     }
     return null;
   }, [loading, requests.length]);
@@ -134,9 +134,9 @@ export default function ResidentRegistrationRequestsPage() {
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <header className="space-y-2">
-          <h1 className="text-2xl font-bold text-[#02542D]">Đơn đăng ký cư dân</h1>
+          <h1 className="text-2xl font-bold text-[#02542D]">Duyệt tài khoản cư dân</h1>
           <p className="text-sm text-slate-600">
-            Kiểm tra và xử lý các yêu cầu thêm cư dân vào căn hộ. Phê duyệt khi thông tin hợp lệ hoặc từ chối
+            Kiểm tra và xử lý các yêu cầu tạo tài khoản cư dân. Phê duyệt khi thông tin hợp lệ hoặc từ chối
             cùng lý do cụ thể.
           </p>
         </header>
@@ -158,7 +158,7 @@ export default function ResidentRegistrationRequestsPage() {
 
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-            <h2 className="text-lg font-semibold text-slate-800">Danh sách đơn đang chờ duyệt</h2>
+            <h2 className="text-lg font-semibold text-slate-800">Danh sách yêu cầu đang chờ duyệt</h2>
             <button
               type="button"
               onClick={() => void loadRequests()}
@@ -173,12 +173,12 @@ export default function ResidentRegistrationRequestsPage() {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Cư dân đề nghị</th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Cư dân</th>
                   <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Liên hệ</th>
                   <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Căn hộ</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Quan hệ</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Ghi chú</th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Tài khoản đề xuất</th>
                   <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Người gửi</th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Quan hệ</th>
                   <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Thời gian</th>
                   <th className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-slate-600">Hành động</th>
                 </tr>
@@ -196,29 +196,47 @@ export default function ResidentRegistrationRequestsPage() {
                     return (
                       <tr key={request.id} className="hover:bg-emerald-50/40">
                         <td className="px-4 py-3 font-medium text-slate-800">
-                          {request.requestedResidentFullName || request.residentName || 'Chưa cập nhật'}
+                          {request.residentName || 'Chưa cập nhật'}
                         </td>
                         <td className="px-4 py-3 text-slate-600">
                           <div className="flex flex-col">
-                            <span>{request.requestedResidentPhone || request.residentPhone || '—'}</span>
+                            <span>{request.residentPhone || '—'}</span>
                             <span className="text-xs text-slate-500">
-                              {request.requestedResidentEmail || request.residentEmail || '—'}
+                              {request.residentEmail || '—'}
                             </span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-slate-600">
                           <div className="flex flex-col">
                             <span>{request.unitCode || 'Không rõ mã căn hộ'}</span>
-                            <span className="text-xs text-slate-500">{request.householdCode || 'Không có mã hộ'}</span>
+                            <span className="text-xs text-slate-500">{request.householdId || 'Không có mã hộ'}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{request.relation || '—'}</td>
-                        <td className="px-4 py-3 text-slate-600">{request.note || '—'}</td>
+                        <td className="px-4 py-3 text-slate-600">
+                          <div className="flex flex-col">
+                            <span>Tên đăng nhập: {request.username || '—'}</span>
+                            <span className="text-xs text-slate-500">Email: {request.email || '—'}</span>
+                            <span className="text-xs text-slate-500">
+                              Tạo tự động: {request.autoGenerate ? 'Có' : 'Không'}
+                            </span>
+                          </div>
+                          {request.proofOfRelationImageUrl && (
+                            <a
+                              href={request.proofOfRelationImageUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 inline-flex text-xs text-emerald-600 hover:text-emerald-700"
+                            >
+                              Xem minh chứng kèm theo
+                            </a>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-slate-600">
                           <div className="flex flex-col">
                             <span>{request.requestedByName || 'Không rõ'}</span>
                           </div>
                         </td>
+                        <td className="px-4 py-3 text-slate-600">{request.relation || '—'}</td>
                         <td className="px-4 py-3 text-slate-600">{formatDateTime(request.createdAt)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-3">

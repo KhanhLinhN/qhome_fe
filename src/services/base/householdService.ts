@@ -10,8 +10,14 @@ export interface HouseholdDto {
   unitCode: string | null;
   kind: HouseholdKind;
   primaryResidentId: string | null;
+  primaryResidentName?: string | null;
   startDate: string;
   endDate: string | null;
+  contractId?: string | null;
+  contractNumber?: string | null;
+  contractStartDate?: string | null;
+  contractEndDate?: string | null;
+  contractStatus?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,8 +41,18 @@ export interface HouseholdMemberDto {
 export interface CreateHouseholdPayload {
   unitId: string;
   kind: HouseholdKind;
-  primaryResidentId: string;
+  contractId?: string | null;
+  primaryResidentId?: string | null;
   startDate: string;
+  endDate?: string | null;
+}
+
+export interface UpdateHouseholdPayload {
+  unitId?: string;
+  kind?: HouseholdKind;
+  contractId?: string | null;
+  primaryResidentId?: string | null;
+  startDate?: string;
   endDate?: string | null;
 }
 
@@ -64,18 +80,48 @@ export async function fetchHouseholdById(householdId: string): Promise<Household
   return response.data;
 }
 
-export async function fetchCurrentHouseholdByUnit(unitId: string): Promise<HouseholdDto> {
-  const response = await axios.get<HouseholdDto>(
-    `${BASE_URL}/api/households/units/${unitId}/current`,
-    { withCredentials: true },
-  );
-  return response.data;
+export async function fetchCurrentHouseholdByUnit(unitId: string): Promise<HouseholdDto | null> {
+  try {
+    const response = await axios.get<HouseholdDto>(
+      `${BASE_URL}/api/households/units/${unitId}/current`,
+      { withCredentials: true },
+    );
+    return response.data;
+  } catch (error: any) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function createHousehold(payload: CreateHouseholdPayload): Promise<HouseholdDto> {
   const response = await axios.post<HouseholdDto>(
     `${BASE_URL}/api/households`,
     payload,
+    { withCredentials: true },
+  );
+  return response.data;
+}
+
+export async function updateHousehold(id: string, payload: UpdateHouseholdPayload): Promise<HouseholdDto> {
+  const response = await axios.put<HouseholdDto>(
+    `${BASE_URL}/api/households/${id}`,
+    payload,
+    { withCredentials: true },
+  );
+  return response.data;
+}
+
+export async function deleteHousehold(id: string): Promise<void> {
+  await axios.delete(`${BASE_URL}/api/households/${id}`, {
+    withCredentials: true,
+  });
+}
+
+export async function fetchHouseholdsByUnit(unitId: string): Promise<HouseholdDto[]> {
+  const response = await axios.get<HouseholdDto[]>(
+    `${BASE_URL}/api/households/units/${unitId}`,
     { withCredentials: true },
   );
   return response.data;

@@ -5,21 +5,36 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import {
-  CreateResidentAccountPayload,
-  createResidentAccount,
-  fetchResidentAccounts,
-  fetchStaffAccounts,
-} from '@/src/services/iam/userService';
-import {
   AccountCreationRequest,
   approveAccountRequest,
   fetchPendingAccountRequests,
+  provisionPrimaryResident,
+  PrimaryResidentProvisionRequest,
+  PrimaryResidentProvisionResponse,
 } from '@/src/services/base/residentAccountService';
+import {
+  createHousehold,
+  fetchCurrentHouseholdByUnit,
+  HouseholdDto,
+} from '@/src/services/base/householdService';
+import {
+  ContractSummary,
+  fetchActiveContractsByUnit,
+  ContractDetail,
+  fetchContractDetail,
+} from '@/src/services/base/contractService';
+import { getUnit, getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
+import { getBuildings, type Building } from '@/src/services/base/buildingService';
 
 type ManualFormState = {
-  username: string;
+  householdId: string;
+  fullName: string;
   email: string;
-  residentId: string;
+  phone: string;
+  nationalId: string;
+  dob: string;
+  username: string;
+  relation: string;
 };
 
 type ManualFieldErrors = Partial<Record<keyof ManualFormState, string>>;
@@ -66,15 +81,48 @@ export default function AccountNewResidentPage() {
   const [activeTab, setActiveTab] = useState<'manual' | 'requests'>('manual');
 
   const [manualForm, setManualForm] = useState<ManualFormState>({
-    username: '',
+    householdId: '',
+    fullName: '',
     email: '',
-    residentId: '',
+    phone: '',
+    nationalId: '',
+    dob: '',
+    username: '',
+    relation: 'Chủ hộ',
   });
 
   const [manualSubmitting, setManualSubmitting] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
   const [manualSuccess, setManualSuccess] = useState<string | null>(null);
+  const [provisionResponse, setProvisionResponse] = useState<PrimaryResidentProvisionResponse | null>(null);
+  const [lastSubmittedEmail, setLastSubmittedEmail] = useState<string>('');
   const [manualFieldErrors, setManualFieldErrors] = useState<ManualFieldErrors>({});
+  const [householdInfo, setHouseholdInfo] = useState<HouseholdDto | null>(null);
+  const [unitInfo, setUnitInfo] = useState<Unit | null>(null);
+  const [householdLoading, setHouseholdLoading] = useState(false);
+  const [householdError, setHouseholdError] = useState<string | null>(null);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [buildingsLoading, setBuildingsLoading] = useState(false);
+  const [buildingsError, setBuildingsError] = useState<string | null>(null);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [unitsLoading, setUnitsLoading] = useState(false);
+  const [unitsError, setUnitsError] = useState<string | null>(null);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
+  const [selectedUnitId, setSelectedUnitId] = useState<string>('');
+  const [buildingSelectionError, setBuildingSelectionError] = useState<string | null>(null);
+  const [unitSelectionError, setUnitSelectionError] = useState<string | null>(null);
+  const [contractInfo, setContractInfo] = useState<ContractSummary | null>(null);
+  const [contractError, setContractError] = useState<string | null>(null);
+  const [isContractModalOpen, setContractModalOpen] = useState(false);
+  const [contractDetailState, setContractDetailState] = useState<{
+    data: ContractDetail | null;
+    loading: boolean;
+    error: string | null;
+  }>({
+    data: null,
+    loading: false,
+    error: null,
+  });
 
   const [pendingRequests, setPendingRequests] = useState<AccountCreationRequest[]>([]);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -88,6 +136,73 @@ export default function AccountNewResidentPage() {
 
   const handleTabChange = (tab: 'manual' | 'requests') => {
     setActiveTab(tab);
+  };
+
+  useEffect(() => {
+    const loadBuildings = async () => {
+      setBuildingsLoading(true);
+      setBuildingsError(null);
+      try {
+        const data = await getBuildings();
+        setBuildings(data);
+      } catch (err: any) {
+        const message =
+          err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+        setBuildingsError(message);
+      } finally {
+        setBuildingsLoading(false);
+      }
+    };
+
+    void loadBuildings();
+  }, []);
+
+  const handleBuildingChange = async (buildingId: string) => {
+    setSelectedBuildingId(buildingId);
+    setSelectedUnitId('');
+    setUnits([]);
+    setUnitsError(null);
+    setUnitInfo(null);
+    setHouseholdInfo(null);
+    setHouseholdError(null);
+    setContractInfo(null);
+    setContractError(null);
+    setManualForm((prev) => ({ ...prev, householdId: '' }));
+    setBuildingSelectionError(null);
+    setUnitSelectionError(null);
+
+    if (!buildingId) {
+      return;
+    }
+
+    setUnitsLoading(true);
+    try {
+      const data = await getUnitsByBuilding(buildingId);
+      setUnits(data);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err?.message || 'Không thể tải danh sách căn hộ.';
+      setUnitsError(message);
+    } finally {
+      setUnitsLoading(false);
+    }
+  };
+
+  const handleUnitChange = async (unitId: string) => {
+    setSelectedUnitId(unitId);
+    setUnitSelectionError(null);
+    setManualForm((prev) => ({ ...prev, householdId: '' }));
+    setHouseholdInfo(null);
+    setUnitInfo(null);
+    setHouseholdError(null);
+    setContractInfo(null);
+    setContractError(null);
+
+    if (!unitId) {
+      return;
+    }
+
+    await loadHouseholdForUnit(unitId);
   };
 
   const handleManualChange =
@@ -106,84 +221,270 @@ export default function AccountNewResidentPage() {
   const resetManualMessages = () => {
     setManualError(null);
     setManualSuccess(null);
+    setProvisionResponse(null);
     setManualFieldErrors({});
+    setBuildingSelectionError(null);
+    setUnitSelectionError(null);
   };
 
-  const validateManualForm = async () => {
-    const errors: ManualFieldErrors = {};
-    if (!manualForm.username.trim()) {
-      errors.username = 'Tên đăng nhập không được để trống.';
+  const handleOpenContractDetail = async () => {
+    if (!contractInfo) {
+      return;
     }
+    setContractModalOpen(true);
+    setContractDetailState({ data: null, loading: true, error: null });
+    try {
+      const detail = await fetchContractDetail(contractInfo.id);
+      if (!detail) {
+        setContractDetailState({
+          data: null,
+          loading: false,
+          error: 'Không tìm thấy thông tin hợp đồng.',
+        });
+        return;
+      }
+      setContractDetailState({ data: detail, loading: false, error: null });
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || error?.message || 'Không thể tải chi tiết hợp đồng.';
+      setContractDetailState({ data: null, loading: false, error: message });
+    }
+  };
+
+  const handleCloseContractDetail = () => {
+    setContractModalOpen(false);
+  };
+
+  const validateManualForm = () => {
+    const errors: ManualFieldErrors = {};
+    let isValid = true;
+
+    if (!selectedBuildingId) {
+      setBuildingSelectionError('Vui lòng chọn tòa nhà.');
+      isValid = false;
+    } else {
+      setBuildingSelectionError(null);
+    }
+
+    if (!selectedUnitId) {
+      setUnitSelectionError('Vui lòng chọn căn hộ.');
+      isValid = false;
+    } else if (!manualForm.householdId.trim()) {
+      setUnitSelectionError('Căn hộ này chưa có hộ gia đình. Vui lòng tạo trước.');
+      isValid = false;
+    } else if (!householdInfo || householdInfo.id !== manualForm.householdId.trim()) {
+      setUnitSelectionError('Vui lòng kiểm tra lại thông tin hộ gia đình.');
+      isValid = false;
+    } else if (householdInfo.primaryResidentId) {
+      setUnitSelectionError('Hộ gia đình đã có chủ hộ.');
+      isValid = false;
+    } else {
+      setUnitSelectionError(null);
+    }
+
+    if (!contractInfo) {
+      setUnitSelectionError('Căn hộ này chưa có hợp đồng hợp lệ. Vui lòng tạo hợp đồng trước.');
+      isValid = false;
+    }
+
+    if (!manualForm.fullName.trim()) {
+      errors.fullName = 'Tên cư dân không được để trống.';
+      isValid = false;
+    }
+
     if (!manualForm.email.trim()) {
       errors.email = 'Email không được để trống.';
+      isValid = false;
     } else if (!manualForm.email.includes('@')) {
       errors.email = 'Email không hợp lệ.';
+      isValid = false;
     }
+
     setManualFieldErrors(errors);
-    if (Object.keys(errors).length > 0) {
-      return false;
+    return isValid;
+  };
+
+  const loadHouseholdForUnit = async (unitId: string) => {
+    setManualForm((prev) => ({ ...prev, householdId: '' }));
+    setHouseholdError(null);
+    setHouseholdInfo(null);
+    setUnitInfo(null);
+    setManualFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.householdId;
+      return next;
+    });
+    setUnitSelectionError(null);
+    setContractInfo(null);
+    setContractError(null);
+
+    if (!unitId) {
+      return;
     }
+
+    setHouseholdLoading(true);
 
     try {
-      const [staffRes, residentRes] = await Promise.all([
-        fetchStaffAccounts(),
-        fetchResidentAccounts(),
-      ]);
-      const normalizedEmail = manualForm.email.trim().toLowerCase();
-      const duplicate =
-        pendingRequests.some(
-          (request) => request.email && request.email.toLowerCase() === normalizedEmail,
-        ) ||
-        staffRes.some((staff) => staff.email?.toLowerCase() === normalizedEmail) ||
-        residentRes.some((resident) => resident.email?.toLowerCase() === normalizedEmail);
-
-      if (duplicate) {
-        setManualFieldErrors({ email: 'Email đã tồn tại.' });
-        return false;
+      try {
+        const unit = await getUnit(unitId);
+        setUnitInfo(unit);
+      } catch (unitErr: any) {
+        console.error('Không thể tải thông tin căn hộ', unitErr);
       }
-    } catch (err) {
-      console.error('Failed to validate email uniqueness', err);
+
+      let activeContract: ContractSummary | null = null;
+      try {
+        const contracts = await fetchActiveContractsByUnit(unitId);
+        activeContract = selectPrimaryContract(contracts);
+        if (!activeContract) {
+          setContractInfo(null);
+          setUnitSelectionError('Căn hộ này chưa có hợp đồng hợp lệ. Vui lòng tạo hợp đồng trước.');
+          return;
+        }
+        setContractInfo(activeContract);
+      } catch (contractErr: any) {
+        console.error('Không thể tải hợp đồng của căn hộ:', contractErr);
+        const message =
+          contractErr?.response?.data?.message ||
+          contractErr?.message ||
+          'Không thể tải hợp đồng của căn hộ.';
+        setContractError(message);
+        setUnitSelectionError('Không thể tải thông tin hợp đồng. Vui lòng thử lại.');
+        return;
+      }
+
+      const household = await fetchCurrentHouseholdByUnit(unitId);
+      if (household) {
+        applyHouseholdInfo(household, activeContract);
+        return;
+      }
+
+      if (activeContract) {
+        await attemptCreateHousehold(unitId, activeContract);
+      }
+    } catch (err: any) {
+      console.error('Không thể tải thông tin hộ gia đình theo căn hộ:', err);
+      setHouseholdError(
+        err?.response?.data?.message || err?.message || 'Không thể tải thông tin hộ gia đình.',
+      );
+    } finally {
+      setHouseholdLoading(false);
+    }
+  };
+
+  const applyHouseholdInfo = (household: HouseholdDto | null, fallbackContract?: ContractSummary | null) => {
+    if (!household || !household.id) {
+      setHouseholdInfo(null);
+      setManualForm((prev) => ({ ...prev, householdId: '' }));
+      return;
+    }
+    setHouseholdInfo(household);
+    setManualForm((prev) => ({ ...prev, householdId: household.id }));
+    if (household.primaryResidentId) {
+      setUnitSelectionError('Hộ gia đình đã có chủ hộ.');
+    } else {
+      setUnitSelectionError(null);
     }
 
-    return true;
+    if (household.contractId) {
+      setContractInfo({
+        id: household.contractId,
+        unitId: household.unitId ?? fallbackContract?.unitId ?? '',
+        contractNumber: household.contractNumber ?? fallbackContract?.contractNumber ?? null,
+        contractType: fallbackContract?.contractType ?? null,
+        startDate: household.contractStartDate ?? fallbackContract?.startDate ?? null,
+        endDate: household.contractEndDate ?? fallbackContract?.endDate ?? null,
+        status: household.contractStatus ?? fallbackContract?.status ?? null,
+      });
+    } else if (fallbackContract) {
+      setContractInfo(fallbackContract);
+    }
+  };
+
+  const attemptCreateHousehold = async (unitId: string, contract: ContractSummary) => {
+    try {
+      const startDate =
+        contract.startDate ??
+        (() => {
+          const today = new Date();
+          return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
+            today.getDate(),
+          ).padStart(2, '0')}`;
+        })();
+
+      const created = await createHousehold({
+        unitId,
+        kind: 'OWNER',
+        contractId: contract.id,
+        startDate,
+        endDate: contract.endDate ?? undefined,
+      });
+      applyHouseholdInfo(created, contract);
+      setManualSuccess('Đã tạo hộ gia đình mới cho căn hộ.');
+    } catch (createErr: any) {
+      console.error('Không thể tự động tạo hộ gia đình:', createErr);
+      const message =
+        createErr?.response?.data?.message ||
+        createErr?.message ||
+        'Không thể tạo hộ gia đình cho căn hộ này.';
+      setUnitSelectionError(message);
+    }
   };
 
   const handleManualSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     resetManualMessages();
-    const isValid = await validateManualForm();
+    if (!manualForm.householdId.trim() && selectedUnitId) {
+      await loadHouseholdForUnit(selectedUnitId);
+    }
+    const isValid = validateManualForm();
     if (!isValid) {
       return;
     }
 
-    const payload: CreateResidentAccountPayload = {
-      username: manualForm.username.trim(),
-      email: manualForm.email.trim(),
-      residentId: manualForm.residentId.trim(),
-    autoGenerate: true,
+    const targetUnitId = selectedUnitId.trim();
+    const payload: PrimaryResidentProvisionRequest = {
+      resident: {
+        fullName: manualForm.fullName.trim(),
+        phone: manualForm.phone.trim() || undefined,
+        email: manualForm.email.trim(),
+        nationalId: manualForm.nationalId.trim() || undefined,
+        dob: manualForm.dob || undefined,
+      },
+      account: {
+        username: manualForm.username.trim() || undefined,
+        autoGenerate: true,
+      },
+      relation: manualForm.relation.trim() || undefined,
     };
 
     try {
       setManualSubmitting(true);
-      await createResidentAccount(payload);
-      setManualSuccess('Tạo tài khoản cư dân thủ công thành công.');
+      const fallbackEmail = manualForm.email.trim();
+      const response = await provisionPrimaryResident(targetUnitId, payload);
+      setProvisionResponse(response);
+      setLastSubmittedEmail(fallbackEmail);
+      setManualSuccess('Tạo chủ hộ và tài khoản cư dân thành công.');
       setManualForm({
-        username: '',
+        householdId: '',
+        fullName: '',
         email: '',
-        residentId: '',
+        phone: '',
+        nationalId: '',
+        dob: '',
+        username: '',
+        relation: 'Chủ hộ',
       });
       setManualFieldErrors({});
-      await refreshPendingRequests();
+      setHouseholdInfo(null);
+      setUnitInfo(null);
+      setHouseholdError(null);
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
         err?.message ||
         'Không thể tạo tài khoản cư dân. Vui lòng thử lại.';
-      if (message.includes('Email')) {
-        setManualFieldErrors((prev) => ({ ...prev, email: message }));
-      } else {
-        setManualError(message);
-      }
+      setManualError(message);
     } finally {
       setManualSubmitting(false);
     }
@@ -217,6 +518,26 @@ export default function AccountNewResidentPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, initialLoad]);
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return 'Chưa cập nhật';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleDateString('vi-VN');
+  };
+
+const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | null => {
+  if (!contracts || contracts.length === 0) {
+    return null;
+  }
+  return [...contracts].sort((a, b) => {
+    const aTime = a.startDate ? new Date(a.startDate).getTime() : 0;
+    const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
+    return bTime - aTime;
+  })[0];
+};
 
   const formatDateTime = (value: string | null) => {
     if (!value) return 'Chưa cập nhật';
@@ -280,9 +601,9 @@ export default function AccountNewResidentPage() {
       <div className="mx-auto max-w-5xl rounded-2xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Tạo mới tài khoản cư dân</h1>
+            <h1 className="text-2xl font-bold text-slate-800">Tạo tài khoản chủ hộ</h1>
             <p className="text-sm text-slate-500">
-              Tạo mới tài khoản hoặc duyệt yêu cầu tạo tài khoản do cư dân gửi lên.
+              Tạo tài khoản cho chủ hộ hoặc duyệt các yêu cầu tạo tài khoản được cư dân gửi lên.
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-amber-400 bg-amber-100 px-4 py-1 text-xs font-semibold text-amber-700 shadow-sm">
@@ -318,13 +639,34 @@ export default function AccountNewResidentPage() {
 
         {activeTab === 'manual' && (
           <div className="mt-6 rounded-xl border border-slate-100 p-6">
-            <h2 className="text-lg font-semibold text-slate-800">Tạo tài khoản cư dân</h2>
+            <h2 className="text-lg font-semibold text-slate-800">Thông tin chủ hộ</h2>
 
-            {(manualSuccess) && (
+            {(manualSuccess || manualError) && (
               <div className="mt-4 space-y-3">
                 {manualSuccess && (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                    {manualSuccess}
+                    <p>{manualSuccess}</p>
+                    {provisionResponse?.account && (
+                      <div className="mt-2 space-y-1 text-xs text-emerald-800">
+                        <p>
+                          Tên đăng nhập:{' '}
+                          <span className="font-semibold">
+                            {provisionResponse.account.username || 'Được tạo tự động'}
+                          </span>
+                        </p>
+                        <p>
+                          Email đăng nhập:{' '}
+                          <span className="font-semibold">
+                            {provisionResponse.account.email || lastSubmittedEmail}
+                          </span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {manualError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {manualError}
                   </div>
                 )}
               </div>
@@ -333,16 +675,167 @@ export default function AccountNewResidentPage() {
             <form onSubmit={handleManualSubmit} className="mt-6 space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-slate-700">Tên đăng nhập</label>
+                  <label className="text-sm font-medium text-slate-700">Tòa nhà</label>
+                  <select
+                    value={selectedBuildingId}
+                    onChange={(event) => handleBuildingChange(event.target.value)}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  >
+                    <option value="">-- Chọn tòa nhà --</option>
+                    {buildings.map((building) => (
+                      <option key={building.id} value={building.id}>
+                        {(building.code ? `${building.code} - ` : '') + (building.name ?? '')}
+                      </option>
+                    ))}
+                  </select>
+                  {buildingsLoading && (
+                    <span className="text-xs text-slate-500">Đang tải danh sách tòa nhà...</span>
+                  )}
+                  {buildingsError && (
+                    <span className="text-xs text-red-500">{buildingsError}</span>
+                  )}
+                  {buildingSelectionError && (
+                    <span className="text-xs text-red-500">{buildingSelectionError}</span>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-slate-700">Căn hộ</label>
+                  <select
+                    value={selectedUnitId}
+                    onChange={(event) => handleUnitChange(event.target.value)}
+                    disabled={!selectedBuildingId || unitsLoading}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  >
+                    <option value="">
+                      {selectedBuildingId ? '-- Chọn căn hộ --' : 'Chọn tòa nhà trước'}
+                    </option>
+                    {units.map((unit) => (
+                      <option key={unit.id} value={unit.id}>
+                        {(unit.code ?? '') + (unit.floor !== undefined ? ` (Tầng ${unit.floor})` : '')}
+                      </option>
+                    ))}
+                  </select>
+                  {unitsLoading && (
+                    <span className="text-xs text-slate-500">Đang tải danh sách căn hộ...</span>
+                  )}
+                  {unitsError && <span className="text-xs text-red-500">{unitsError}</span>}
+                  {unitSelectionError && (
+                    <span className="text-xs text-red-500">{unitSelectionError}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+                <h3 className="text-sm font-semibold text-blue-800">Thông tin hợp đồng</h3>
+                {contractInfo ? (
+                  <div className="mt-2 grid gap-2 text-sm text-blue-900 sm:grid-cols-2">
+                    <p>
+                      <span className="font-medium">Số hợp đồng:</span>{' '}
+                      {contractInfo.contractNumber ?? 'Chưa cập nhật'}
+                    </p>
+                    <p>
+                      <span className="font-medium">Trạng thái:</span>{' '}
+                      {contractInfo.status ?? 'Không xác định'}
+                    </p>
+                    <p>
+                      <span className="font-medium">Hiệu lực từ:</span>{' '}
+                      {formatDate(contractInfo.startDate)}
+                    </p>
+                    <p>
+                      <span className="font-medium">Hiệu lực đến:</span>{' '}
+                      {contractInfo.endDate ? formatDate(contractInfo.endDate) : 'Không giới hạn'}
+                    </p>
+                  </div>
+                ) : selectedUnitId ? (
+                  <p className="mt-2 text-sm text-blue-700">
+                    Chưa có hợp đồng hợp lệ cho căn hộ này. Vui lòng tạo hợp đồng trước khi cấp tài khoản chủ hộ.
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm text-blue-700">
+                    Chọn tòa nhà và căn hộ để xem thông tin hợp đồng.
+                  </p>
+                )}
+                {contractInfo && (
+                  <button
+                    type="button"
+                    onClick={handleOpenContractDetail}
+                    className="mt-4 inline-flex items-center justify-center rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                  >
+                    Xem chi tiết hợp đồng
+                  </button>
+                )}
+                {contractError && (
+                  <p className="mt-2 text-xs text-red-500">
+                    {contractError}
+                  </p>
+                )}
+              </div>
+
+              {householdError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600">
+                  {householdError}
+                </div>
+              )}
+
+              {householdLoading && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                  Đang tải thông tin hộ gia đình...
+                </div>
+              )}
+
+              {householdInfo && !householdLoading && !unitSelectionError && (
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-900 shadow-inner">
+                  <h3 className="mb-2 text-base font-semibold text-emerald-800">Thông tin hộ gia đình</h3>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <p>
+                      <span className="font-medium">Hộ:</span> {householdInfo.id}
+                    </p>
+                    <p>
+                      <span className="font-medium">Loại:</span> {householdInfo.kind ?? '---'}
+                    </p>
+                    <p>
+                      <span className="font-medium">Ngày bắt đầu:</span>{' '}
+                      {new Date(householdInfo.startDate).toLocaleDateString('vi-VN')}
+                    </p>
+                    <p>
+                      <span className="font-medium">Ngày kết thúc:</span>{' '}
+                      {householdInfo.endDate
+                        ? new Date(householdInfo.endDate).toLocaleDateString('vi-VN')
+                        : 'Chưa thiết lập'}
+                    </p>
+                    {unitInfo && (
+                      <>
+                        <p>
+                          <span className="font-medium">Căn hộ:</span> {unitInfo.code}
+                        </p>
+                        <p>
+                          <span className="font-medium">Tòa:</span> {unitInfo.buildingId ?? '—'}
+                        </p>
+                        <p>
+                          <span className="font-medium">Tầng:</span> {unitInfo.floor ?? '---'}
+                        </p>
+                        <p>
+                          <span className="font-medium">Diện tích:</span>{' '}
+                          {unitInfo.areaM2 ? `${unitInfo.areaM2} m²` : '---'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-slate-700">Họ và tên cư dân</label>
                   <input
                     type="text"
-                    value={manualForm.username}
-                    onChange={handleManualChange('username')}
-                    placeholder="Nhập tên đăng nhập"
+                    value={manualForm.fullName}
+                    onChange={handleManualChange('fullName')}
+                    placeholder="Nhập họ tên đầy đủ"
                     className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
-                  {manualFieldErrors.username && (
-                    <span className="text-xs text-red-500">{manualFieldErrors.username}</span>
+                  {manualFieldErrors.fullName && (
+                    <span className="text-xs text-red-500">{manualFieldErrors.fullName}</span>
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
@@ -360,10 +853,68 @@ export default function AccountNewResidentPage() {
                 </div>
               </div>
 
-            <p className="text-sm text-slate-500">
-              Mật khẩu tạm thời sẽ được hệ thống tạo tự động và gửi tới email cư dân ngay sau khi
-              tài khoản được tạo.
-            </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-slate-700">Số điện thoại</label>
+                  <input
+                    type="tel"
+                    value={manualForm.phone}
+                    onChange={handleManualChange('phone')}
+                    placeholder="Nhập số điện thoại"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-slate-700">Ngày sinh</label>
+                  <input
+                    type="date"
+                    value={manualForm.dob}
+                    onChange={handleManualChange('dob')}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-slate-700">CMND / CCCD</label>
+                  <input
+                    type="text"
+                    value={manualForm.nationalId}
+                    onChange={handleManualChange('nationalId')}
+                    placeholder="Nhập số CMND/CCCD"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Tên đăng nhập (tùy chọn)
+                  </label>
+                  <input
+                    type="text"
+                    value={manualForm.username}
+                    onChange={handleManualChange('username')}
+                    placeholder="Để trống để hệ thống tự tạo"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">Quan hệ</label>
+                <input
+                  type="text"
+                  value={manualForm.relation}
+                  readOnly
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-800"
+                />
+                <span className="text-xs text-slate-500">Mặc định là Chủ hộ cho quy trình này.</span>
+              </div>
+
+              <p className="text-sm text-slate-500">
+                Mật khẩu tạm thời sẽ được hệ thống tạo tự động và gửi tới email cư dân ngay sau khi
+                tài khoản được tạo.
+              </p>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                 <button
@@ -375,13 +926,151 @@ export default function AccountNewResidentPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={manualSubmitting}
+                  disabled={manualSubmitting || !contractInfo}
                   className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {manualSubmitting ? 'Đang tạo...' : 'Tạo tài khoản'}
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {isContractModalOpen && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/50 px-4 py-8">
+            <div className="relative max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800">Chi tiết hợp đồng</h3>
+                  {contractInfo?.contractNumber && (
+                    <p className="text-sm text-slate-500">Số hợp đồng: {contractInfo.contractNumber}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseContractDetail}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                  aria-label="Đóng chi tiết hợp đồng"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
+                {contractDetailState.loading && (
+                  <p className="text-sm text-slate-500">Đang tải chi tiết hợp đồng...</p>
+                )}
+                {contractDetailState.error && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {contractDetailState.error}
+                  </div>
+                )}
+                {!contractDetailState.loading &&
+                  !contractDetailState.error &&
+                  contractDetailState.data && (
+                    <div className="space-y-5 text-sm text-slate-700">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <p>
+                          <span className="font-medium text-slate-900">Loại hợp đồng:</span>{' '}
+                          {contractDetailState.data.contractType ?? 'Không xác định'}
+                        </p>
+                        <p>
+                          <span className="font-medium text-slate-900">Trạng thái:</span>{' '}
+                          {contractDetailState.data.status ?? 'Không xác định'}
+                        </p>
+                        <p>
+                          <span className="font-medium text-slate-900">Ngày bắt đầu:</span>{' '}
+                          {formatDate(contractDetailState.data.startDate)}
+                        </p>
+                        <p>
+                          <span className="font-medium text-slate-900">Ngày kết thúc:</span>{' '}
+                          {contractDetailState.data.endDate
+                            ? formatDate(contractDetailState.data.endDate)
+                            : 'Không giới hạn'}
+                        </p>
+                        {contractDetailState.data.monthlyRent != null && (
+                          <p>
+                            <span className="font-medium text-slate-900">Giá thuê / tháng:</span>{' '}
+                            {contractDetailState.data.monthlyRent.toLocaleString('vi-VN')} đ
+                          </p>
+                        )}
+                        {contractDetailState.data.purchasePrice != null && (
+                          <p>
+                            <span className="font-medium text-slate-900">Giá mua:</span>{' '}
+                            {contractDetailState.data.purchasePrice.toLocaleString('vi-VN')} đ
+                          </p>
+                        )}
+                        {contractDetailState.data.purchaseDate && (
+                          <p>
+                            <span className="font-medium text-slate-900">Ngày mua:</span>{' '}
+                            {formatDate(contractDetailState.data.purchaseDate)}
+                          </p>
+                        )}
+                        {contractDetailState.data.paymentMethod && (
+                          <p>
+                            <span className="font-medium text-slate-900">Phương thức thanh toán:</span>{' '}
+                            {contractDetailState.data.paymentMethod}
+                          </p>
+                        )}
+                      </div>
+                      {contractDetailState.data.notes && (
+                        <div>
+                          <p className="font-medium text-slate-900">Ghi chú</p>
+                          <p className="mt-1 whitespace-pre-line text-slate-600">
+                            {contractDetailState.data.notes}
+                          </p>
+                        </div>
+                      )}
+                      {contractDetailState.data.files && contractDetailState.data.files.length > 0 && (
+                        <div>
+                          <p className="font-medium text-slate-900">Tệp đính kèm</p>
+                          <ul className="mt-2 space-y-2 text-sm">
+                            {contractDetailState.data.files.map((file) => (
+                              <li
+                                key={file.id}
+                                className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+                              >
+                                <div>
+                                  <p className="font-medium text-slate-800">
+                                    {file.originalFileName ?? file.fileName ?? 'Tệp không tên'}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {file.contentType ?? 'Không rõ định dạng'} •{' '}
+                                    {file.fileSize ? `${(file.fileSize / 1024).toFixed(1)} KB` : 'Kích thước không rõ'}
+                                  </p>
+                                  {file.isPrimary && (
+                                    <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                      Tệp chính
+                                    </span>
+                                  )}
+                                </div>
+                                {file.fileUrl && (
+                                  <a
+                                    href={file.fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center rounded-md border border-blue-300 px-3 py-1 text-sm text-blue-600 transition hover:bg-blue-50"
+                                  >
+                                    Xem / tải
+                                  </a>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+              </div>
+              <div className="flex items-center justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
+                <button
+                  type="button"
+                  onClick={handleCloseContractDetail}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-white"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

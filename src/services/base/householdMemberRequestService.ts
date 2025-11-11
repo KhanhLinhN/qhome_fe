@@ -17,13 +17,17 @@ export interface HouseholdMemberRequest {
   requestedResidentFullName: string | null;
   requestedResidentPhone: string | null;
   requestedResidentEmail: string | null;
-  relation: string | null;
-  note: string | null;
-  status: HouseholdMemberRequestStatus;
+  requestedResidentNationalId?: string | null;
+  requestedResidentDob?: string | null;
   requestedBy: string | null;
   requestedByName: string | null;
+  relation: string | null;
+  proofOfRelationImageUrl?: string | null;
+  note: string | null;
+  status: HouseholdMemberRequestStatus;
   rejectionReason: string | null;
   createdAt: string | null;
+  updatedAt?: string | null;
 }
 
 export interface HouseholdMemberRequestDecisionPayload {
