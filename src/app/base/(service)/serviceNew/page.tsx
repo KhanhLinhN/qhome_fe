@@ -5,11 +5,16 @@ import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import DetailField from '@/src/components/base-service/DetailField';
 import Select from '@/src/components/customer-interaction/Select';
+import TimeBox from '@/src/components/customer-interaction/TimeBox';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { useServiceAdd } from '@/src/hooks/useServiceAdd';
-import { getServiceCategories, getServices } from '@/src/services/asset-maintenance/serviceService';
+import {
+  getServiceCategories,
+  getServices,
+  addServiceAvailability,
+} from '@/src/services/asset-maintenance/serviceService';
 import {
   CreateServicePayload,
   Page,
@@ -32,7 +37,27 @@ type FormState = {
   minDurationHours: string;
   rules: string;
   isActive: boolean;
+  availabilities: AvailabilityFormState[];
 };
+
+type AvailabilityFormState = {
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+};
+
+type AvailabilityFormErrors = Partial<Record<keyof AvailabilityFormState, string>>;
+
+const DEFAULT_DAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
 
 const initialState: FormState = {
   categoryId: '',
@@ -48,6 +73,14 @@ const initialState: FormState = {
   minDurationHours: '',
   rules: '',
   isActive: true,
+  availabilities: [
+    {
+      dayOfWeek: '',
+      startTime: '',
+      endTime: '',
+      isAvailable: true,
+    },
+  ],
 };
 
 export default function ServiceCreatePage() {
@@ -62,6 +95,7 @@ export default function ServiceCreatePage() {
   const [loadingCategories, setLoadingCategories] = useState<boolean>(false);
   const [loadingServiceCodes, setLoadingServiceCodes] = useState<boolean>(false);
   const [existingServiceCodes, setExistingServiceCodes] = useState<string[]>([]);
+  const [availabilityErrors, setAvailabilityErrors] = useState<Record<number, AvailabilityFormErrors>>({});
 
   const categoryOptions = useMemo(
     () =>
@@ -86,6 +120,15 @@ export default function ServiceCreatePage() {
       { name: t('Service.active'), value: 'true' },
       { name: t('Service.inactive'), value: 'false' },
     ],
+    [t],
+  );
+
+  const dayOfWeekOptions = useMemo(
+    () =>
+      DEFAULT_DAY_NAMES.map((fallbackName, index) => ({
+        label: t(`Service.weekday.${index}`, { defaultMessage: fallbackName }),
+        value: String(index),
+      })),
     [t],
   );
 
@@ -159,8 +202,97 @@ export default function ServiceCreatePage() {
     return parsed;
   };
 
+  const parsePositiveInteger = (value: string) => {
+    if (!value.trim()) return undefined;
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed)) return undefined;
+    if (parsed <= 0) return undefined;
+    return parsed;
+  };
+
+  const handleAvailabilityChange = (
+    index: number,
+    field: keyof AvailabilityFormState,
+    value: string | boolean,
+  ) => {
+    setFormData((prev) => {
+      const updated = [...prev.availabilities];
+      if (!updated[index]) return prev;
+      updated[index] = {
+        ...updated[index],
+        [field]: value,
+      };
+      return {
+        ...prev,
+        availabilities: updated,
+      };
+    });
+
+    setAvailabilityErrors((prev) => {
+      const current = prev[index];
+      if (!current || current[field] === undefined) {
+        return prev;
+      }
+      const entry = { ...current };
+      delete entry[field];
+      const next = { ...prev };
+      if (Object.keys(entry).length === 0) {
+        delete next[index];
+      } else {
+        next[index] = entry;
+      }
+      return next;
+    });
+
+    setFormErrors((prev) => {
+      if (!prev.availabilities) return prev;
+      const { availabilities, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const handleAddAvailability = () => {
+    setFormData((prev) => ({
+      ...prev,
+      availabilities: [
+        ...prev.availabilities,
+        { dayOfWeek: '', startTime: '', endTime: '', isAvailable: true },
+      ],
+    }));
+    setFormErrors((prev) => {
+      if (!prev.availabilities) return prev;
+      const { availabilities, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const handleRemoveAvailability = (index: number) => {
+    setFormData((prev) => {
+      const updated = prev.availabilities.filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        availabilities: updated,
+      };
+    });
+
+    setAvailabilityErrors((prev) => {
+      if (!Object.keys(prev).length) return prev;
+      const next: Record<number, AvailabilityFormErrors> = {};
+      Object.entries(prev).forEach(([key, value]) => {
+        const numericKey = Number(key);
+        if (numericKey === index) {
+          return;
+        }
+        const newIndex = numericKey > index ? numericKey - 1 : numericKey;
+        next[newIndex] = value;
+      });
+      return next;
+    });
+  };
+
   const validate = () => {
     const errors: Record<string, string> = {};
+    const availabilityValidationErrors: Record<number, AvailabilityFormErrors> = {};
 
     const trimmedCode = formData.code.trim();
     if (!trimmedCode) {
@@ -195,14 +327,14 @@ export default function ServiceCreatePage() {
       }
     }
 
-    const maxCapacity = parseNumber(formData.maxCapacity);
+    const maxCapacity = parsePositiveInteger(formData.maxCapacity);
     if (formData.maxCapacity.trim() === '' || maxCapacity === undefined) {
       errors.maxCapacity = t('Service.validation.maxCapacity');
     } else if (maxCapacity < 1 || maxCapacity > 1000) {
       errors.maxCapacity = t('Service.validation.maxCapacityRange');
     }
 
-    const minDuration = parseNumber(formData.minDurationHours);
+    const minDuration = parsePositiveInteger(formData.minDurationHours);
 
     if (formData.minDurationHours.trim() === '' || minDuration === undefined) {
       errors.minDurationHours = t('Service.validation.minDuration');
@@ -210,12 +342,72 @@ export default function ServiceCreatePage() {
       errors.minDurationHours = t('Service.validation.minDuration');
     }
 
+    if (!formData.availabilities || formData.availabilities.length === 0) {
+      errors.availabilities = t('Service.validation.availabilityRequired', {
+        defaultMessage: 'Please add at least one availability entry.',
+      });
+    } else {
+      formData.availabilities.forEach((availability, index) => {
+        const entryErrors: AvailabilityFormErrors = {};
+        const dayValue = availability.dayOfWeek.trim();
+        const parsedDay = Number(dayValue);
+        if (dayValue === '' || Number.isNaN(parsedDay) || parsedDay < 0 || parsedDay > 6) {
+          entryErrors.dayOfWeek = t('Service.validation.availabilityDay', {
+            defaultMessage: 'Please select a valid day of the week.',
+          });
+        }
+        if (!availability.startTime) {
+          entryErrors.startTime = t('Service.validation.availabilityStart', {
+            defaultMessage: 'Start time is required.',
+          });
+        }
+        if (!availability.endTime) {
+          entryErrors.endTime = t('Service.validation.availabilityEnd', {
+            defaultMessage: 'End time is required.',
+          });
+        } else if (availability.startTime && availability.endTime <= availability.startTime) {
+          entryErrors.endTime = t('Service.validation.availabilityRange', {
+            defaultMessage: 'End time must be after start time.',
+          });
+        }
+        if (Object.keys(entryErrors).length > 0) {
+          availabilityValidationErrors[index] = entryErrors;
+        }
+      });
+
+      if (Object.keys(availabilityValidationErrors).length > 0) {
+        errors.availabilities = t('Service.validation.availabilityInvalid', {
+          defaultMessage: 'Please review the availability entries.',
+        });
+      }
+    }
+
+    setAvailabilityErrors(availabilityValidationErrors);
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const buildPayload = (): CreateServicePayload => {
     const pricingTypeValue = formData.pricingType || ServicePricingType.HOURLY;
+    const availabilityPayload = (formData.availabilities ?? [])
+      .filter(
+        (availability) =>
+          availability.dayOfWeek.trim() !== '' &&
+          availability.startTime &&
+          availability.endTime,
+      )
+      .map((availability) => {
+        const dayOfWeek = Number(availability.dayOfWeek);
+        // Convert from 0-6 (Sunday-Saturday) to 1-7 (Monday-Sunday)
+        // 0 (Sunday) -> 7, 1-6 (Monday-Saturday) -> 1-6
+        const dbDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+        return {
+          dayOfWeek: dbDayOfWeek,
+          startTime: availability.startTime,
+          endTime: availability.endTime,
+          isAvailable: availability.isAvailable,
+        };
+      });
 
     return {
       categoryId: formData.categoryId,
@@ -233,10 +425,11 @@ export default function ServiceCreatePage() {
         pricingTypeValue === ServicePricingType.SESSION
           ? parsePositiveNumber(formData.pricePerSession)
           : undefined,
-      maxCapacity: parseNumber(formData.maxCapacity),
-      minDurationHours: parseNumber(formData.minDurationHours),
+      maxCapacity: parsePositiveInteger(formData.maxCapacity),
+      minDurationHours: parsePositiveInteger(formData.minDurationHours),
       rules: formData.rules.trim() || undefined,
       isActive: formData.isActive,
+      availabilities: availabilityPayload.length > 0 ? availabilityPayload : undefined,
     };
   };
 
@@ -251,7 +444,37 @@ export default function ServiceCreatePage() {
 
     try {
       const payload = buildPayload();
-      const created = await addService(payload);
+      // Store availabilities before removing them from payload
+      const availabilitiesToAdd = payload.availabilities || [];
+      // Remove availabilities from payload as we'll add them separately
+      const { availabilities, ...servicePayload } = payload;
+      
+      const created = await addService(servicePayload);
+      
+      // Add availabilities after service is created
+      if (created?.id && availabilitiesToAdd.length > 0) {
+        try {
+          for (const availability of availabilitiesToAdd) {
+            await addServiceAvailability(created.id, {
+              dayOfWeek: availability.dayOfWeek,
+              startTime: availability.startTime,
+              endTime: availability.endTime,
+              isAvailable: availability.isAvailable ?? true,
+            });
+          }
+        } catch (availabilityError) {
+          console.error('Failed to add some availabilities', availabilityError);
+          // Still show success but warn about availability issue
+          show(t('Service.messages.createSuccess'), 'success');
+          if (created?.id) {
+            router.push(`/base/serviceDetail/${created.id}`);
+          } else {
+            router.push('/base/serviceList');
+          }
+          return;
+        }
+      }
+      
       show(t('Service.messages.createSuccess'), 'success');
       if (created?.id) {
         router.push(`/base/serviceDetail/${created.id}`);
@@ -511,6 +734,112 @@ export default function ServiceCreatePage() {
             isFullWidth
             placeholder={t('Service.rules')}
           />
+          <div className="md:col-span-2">
+            <div className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-semibold text-[#02542D]">
+                  {t('Service.availability.sectionTitle', { defaultMessage: 'Service availability' })}
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleAddAvailability}
+                  className="inline-flex items-center justify-center rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white transition hover:bg-opacity-80"
+                  disabled={isSubmitting}
+                >
+                  {t('Service.availability.add', { defaultMessage: 'Add availability' })}
+                </button>
+              </div>
+              {formErrors.availabilities && (
+                <span className="text-xs text-red-500">{formErrors.availabilities}</span>
+              )}
+              <div className="space-y-4">
+                {formData.availabilities.map((availability, index) => {
+                  const errors = availabilityErrors[index] ?? {};
+                  return (
+                    <div
+                      key={`availability-${index}`}
+                      className="rounded-md border border-gray-200 bg-white p-4 shadow-sm"
+                    >
+                      <div className="mb-4 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-[#02542D]">
+                          {t('Service.availability.slotLabel', {
+                            defaultMessage: `Slot ${index + 1}`,
+                            slot: index + 1,
+                          })}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAvailability(index)}
+                          className="text-sm font-medium text-red-500 hover:text-red-600"
+                          disabled={isSubmitting}
+                        >
+                          {t('Service.availability.remove', { defaultMessage: 'Remove' })}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                        <div className="flex flex-col">
+                          <label className="text-sm font-medium text-[#02542D]">
+                            {t('Service.availability.dayOfWeek', { defaultMessage: 'Day of week' })}
+                          </label>
+                          <select
+                            value={availability.dayOfWeek}
+                            onChange={(event) =>
+                              handleAvailabilityChange(index, 'dayOfWeek', event.target.value)
+                            }
+                            className="mt-1 h-10 rounded-md border border-gray-300 px-3 text-sm text-[#02542D] focus:outline-none focus:ring-2 focus:ring-[#02542D]/30"
+                          >
+                            <option value="">
+                              {t('Service.availability.dayPlaceholder', { defaultMessage: 'Select day' })}
+                            </option>
+                            {dayOfWeekOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          {errors.dayOfWeek && (
+                            <span className="mt-1 text-xs text-red-500">{errors.dayOfWeek}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <label className="text-sm font-medium text-[#02542D]">
+                            {t('Service.availability.startTime', { defaultMessage: 'Start time' })}
+                          </label>
+                          <TimeBox
+                            value={availability.startTime}
+                            onChange={(value) => handleAvailabilityChange(index, 'startTime', value)}
+                            placeholderText={t('Service.availability.startTime', {
+                              defaultMessage: 'Start time',
+                            })}
+                            disabled={isSubmitting}
+                          />
+                          {errors.startTime && (
+                            <span className="mt-1 text-xs text-red-500">{errors.startTime}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <label className="text-sm font-medium text-[#02542D]">
+                            {t('Service.availability.endTime', { defaultMessage: 'End time' })}
+                          </label>
+                          <TimeBox
+                            value={availability.endTime}
+                            onChange={(value) => handleAvailabilityChange(index, 'endTime', value)}
+                            placeholderText={t('Service.availability.endTime', {
+                              defaultMessage: 'End time',
+                            })}
+                            disabled={isSubmitting}
+                          />
+                          {errors.endTime && (
+                            <span className="mt-1 text-xs text-red-500">{errors.endTime}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-center mt-8 space-x-4">

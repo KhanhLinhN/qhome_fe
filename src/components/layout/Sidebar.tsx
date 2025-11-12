@@ -1,128 +1,131 @@
 "use client";
-import React from "react";
+import React, {useState} from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {usePathname} from "next/navigation";
 import {useAuth} from "@/src/contexts/AuthContext";
+import {useTranslations} from "next-intl";
+import DropdownArrow from "@/src/assets/DropdownArrow.svg";
 
 type SidebarVariant = "admin" | "tenant-owner" | "technician";
 
 type NavItem = {
   href: string;
-  label: string;
+  labelKey: string;
   icon: string;
 };
 
 type NavSection = {
-  title: string;
+  titleKey: string;
   items: NavItem[];
 };
 
 const adminSections: NavSection[] = [
   {
-    title: "Tổng quan",
+    titleKey: "overview",
     items: [
-      {href: "/dashboard", label: "Dashboard", icon: "📊"},
+      {href: "/dashboard", labelKey: "dashboard", icon: "📊"},
     ],
   },
   // {
-  //   title: "Quản trị hệ thống",
+  //   titleKey: "systemAdmin",
   //   items: [
-  //     {href: "/roles", label: "Phân quyền", icon: "🛡️"},
-  //     {href: "/tenants", label: "Tenant", icon: "🏢"},
-  //     {href: "/tenant-deletions", label: "Yêu cầu xóa Tenant", icon: "🗑️"},
-  //     {href: "/users/permissions", label: "Phân quyền user", icon: "⚙️"},
+  //     {href: "/roles", labelKey: "permissions", icon: "🛡️"},
+  //     {href: "/tenants", labelKey: "tenant", icon: "🏢"},
+  //     {href: "/tenant-deletions", labelKey: "tenantDeletionRequests", icon: "🗑️"},
+  //     {href: "/users/permissions", labelKey: "userPermissions", icon: "⚙️"},
   //   ],
   // },
   {
-    title: "Tài khoản",
+    titleKey: "accounts",
     items: [
-      {href: "/accountList", label: "Danh sách tài khoản", icon: "👥"},
-      {href: "/accountNewStaff", label: "Tạo tài khoản nhân viên", icon: "🧑‍💼"},
-      {href: "/accountNewRe", label: "Tạo tài khoản cư dân", icon: "🏘️"},
+      {href: "/accountList", labelKey: "accountList", icon: "👥"},
+      {href: "/accountNewStaff", labelKey: "createStaffAccount", icon: "🧑‍💼"},
+      {href: "/accountNewRe", labelKey: "createResidentAccount", icon: "🏘️"},
     ],
   },
   {
-    title: "Tòa nhà & cư dân",
+    titleKey: "buildingsAndResidents",
     items: [
-      {href: "/base/building/buildingList", label: "Quản lý Building", icon: "🏢"},
-      {href: "/base/residentView", label: "Danh sách cư dân", icon: "👨‍👩‍👧‍👦"},
-      {href: "/base/regisresiView", label: "Duyệt tài khoản cư dân", icon: "📝"},
-      {href: "/base/household/householdMemberRequests", label: "Duyệt thành viên gia đình", icon: "👪"},
-      {href: "/base/contract/contracts", label: "Hợp đồng căn hộ", icon: "📄"},
-      {href: "/base/vehicles/vehicleAll", label: "Quản lý phương tiện", icon: "🚗"},
+      {href: "/base/building/buildingList", labelKey: "buildingManagement", icon: "🏢"},
+      {href: "/base/residentView", labelKey: "residentList", icon: "👨‍👩‍👧‍👦"},
+      {href: "/base/regisresiView", labelKey: "approveResidentAccount", icon: "📝"},
+      {href: "/base/household/householdMemberRequests", labelKey: "approveFamilyMember", icon: "👪"},
+      {href: "/base/contract/contracts", labelKey: "unitContracts", icon: "📄"},
+      {href: "/base/vehicles/vehicleAll", labelKey: "vehicleManagement", icon: "🚗"},
     ],
   },
   {
-    title: "Dịch vụ",
+    titleKey: "services",
     items: [
-      {href: "/base/serviceCateList", label: "Nhóm dịch vụ", icon: "🗂️"},
-      {href: "/base/serviceList", label: "Danh sách dịch vụ", icon: "🧾"},
-      {href: "/base/serviceNew", label: "Tạo dịch vụ", icon: "➕"},
-      // {href: "/base/serviceType", label: "Loại dịch vụ", icon: "📂"},
-      // {href: "/base/serviceRequest", label: "Yêu cầu dịch vụ", icon: "📬"},
+      {href: "/base/serviceCateList", labelKey: "serviceCategories", icon: "🗂️"},
+      {href: "/base/serviceList", labelKey: "serviceList", icon: "🧾"},
+      {href: "/base/serviceNew", labelKey: "createService", icon: "➕"},
+      // {href: "/base/serviceType", labelKey: "serviceType", icon: "📂"},
+      // {href: "/base/serviceRequest", labelKey: "serviceRequests", icon: "📬"},
     ],
   },
   {
-    title: "Điện nước",
+    titleKey: "waterElectric",
     items: [
-      {href: "/base/readingCycles", label: "Chu kỳ chỉ số", icon: "📈"},
-      // {href: "/base/readingSessions", label: "Phiên đọc chỉ số", icon: "🧮"},
-      {href: "/base/readingAssign", label: "Phân công đọc", icon: "📝"},
-      // {href: "/base/showAssign", label: "Danh sách phân công", icon: "📋"},
-      // {href: "/base/waterShow", label: "Theo dõi nước", icon: "💧"},
-      {href: "/base/billingCycles", label: "Chu kỳ thanh toán", icon: "💡"},
+      {href: "/base/readingCycles", labelKey: "readingCycles", icon: "📈"},
+      // {href: "/base/readingSessions", labelKey: "readingSessions", icon: "🧮"},
+      {href: "/base/readingAssign", labelKey: "assignReading", icon: "📝"},
+      // {href: "/base/showAssign", labelKey: "assignmentList", icon: "📋"},
+      // {href: "/base/waterShow", labelKey: "waterMonitoring", icon: "💧"},
+      {href: "/base/billingCycles", labelKey: "billingCycles", icon: "💡"},
     ],
   },
   {
-    title: "Tương tác cư dân",
+    titleKey: "residentInteraction",
     items: [
-      {href: "/customer-interaction/new/newList", label: "Tin tức", icon: "📰"},
-      {href: "/customer-interaction/notiList", label: "Thông báo", icon: "🔔"},
-      // {href: "/customer-interaction/request", label: "Yêu cầu hỗ trợ", icon: "📨"},
-      {href: "/customer-interaction/requestTicket", label: "Ticket", icon: "🎫"},
+      {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
+      {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
+      {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
+      {href: "/customer-interaction/requestTicket", labelKey: "tickets", icon: "🎫"},
     ],
   },
 ];
 
 const technicianSections: NavSection[] = [
   {
-    title: "Tổng quan",
+    titleKey: "overview",
     items: [
-      {href: "/dashboard", label: "Dashboard", icon: "📊"},
+      {href: "/dashboard", labelKey: "dashboard", icon: "📊"},
     ],
   },
   {
-    title: "Dịch vụ",
+    titleKey: "services",
     items: [
-      // {href: "base/showAssign", label: "Danh sách nhiệm vụ", icon: "🧾"},
+      // {href: "base/showAssign", labelKey: "taskList", icon: "🧾"},
     ],
   },
   {
-    title: "Điện nước",
+    titleKey: "waterElectric",
     items: [
-      {href: "base/showAssign", label: "Danh sách nhiệm vụ", icon: "🧾"},
+      {href: "/base/showAssign", labelKey: "taskList", icon: "🧾"},
     ],
   },
   {
-    title: "Tương tác cư dân",
+    titleKey: "residentInteraction",
     items: [
-      // {href: "/customer-interaction/request", label: "Yêu cầu hỗ trợ", icon: "📨"},
+      {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
     ],
   },
 ];
 
 const tenantOwnerSections: NavSection[] = [
   {
-    title: "Tổng quan",
+    titleKey: "overview",
     items: [
-      {href: "/tenant-owner", label: "Trang chủ", icon: "🏠"},
+      {href: "/tenant-owner", labelKey: "home", icon: "🏠"},
     ],
   },
   {
-    title: "Quản lý",
+    titleKey: "management",
     items: [
-      {href: "/tenant-owner/buildings", label: "Tòa nhà", icon: "🏢"},
-      {href: "/tenant-owner/employees", label: "Nhân viên", icon: "👥"},
+      {href: "/tenant-owner/buildings", labelKey: "buildings", icon: "🏢"},
+      {href: "/tenant-owner/employees", labelKey: "employees", icon: "👥"},
     ],
   },
 ];
@@ -140,6 +143,8 @@ interface SidebarProps {
 export default function Sidebar({variant = "admin"}: SidebarProps) {
   const pathname = usePathname();
   const {user} = useAuth();
+  const t = useTranslations('Sidebar');
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const normalizedRoles = user?.roles?.map(role => role.toLowerCase()) ?? [];
 
@@ -154,35 +159,62 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
 
   const sections = menuConfig[resolvedVariant];
 
+  const toggleSection = (sectionKey: string) => {
+    setCollapsedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionKey)) {
+        newSet.delete(sectionKey);
+      } else {
+        newSet.add(sectionKey);
+      }
+      return newSet;
+    });
+  };
+
   return (
-    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed max-h-screen pb-4">
-      <nav className="p-3 space-y-6 overflow-y-auto max-h-screen">
-        {sections.map(section => (
-          <div key={section.title} className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 px-2">
-              {section.title}
-            </p>
-            <div className="space-y-1">
-              {section.items.map(item => {
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      active ? "bg-[#6B9B6E] text-white" : "text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    <span aria-hidden className="w-5 text-center flex items-center justify-center">
-                      {item.icon}
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                );
-              })}
+    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen">
+      <nav className="p-3 space-y-6 overflow-y-auto flex-1">
+        {sections.map(section => {
+          const isCollapsed = collapsedSections.has(section.titleKey);
+          return (
+            <div key={section.titleKey} className="space-y-2">
+              <button
+                onClick={() => toggleSection(section.titleKey)}
+                className="w-full flex items-center justify-between px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <span>{t(section.titleKey)}</span>
+                <Image
+                  src={DropdownArrow}
+                  alt="Toggle"
+                  width={12}
+                  height={12}
+                  className={`transition-transform ${isCollapsed ? "rotate-180" : ""}`}
+                />
+              </button>
+              {!isCollapsed && (
+                <div className="space-y-1">
+                  {section.items.map(item => {
+                    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          active ? "bg-[#6B9B6E] text-white" : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span aria-hidden className="w-5 text-center flex items-center justify-center">
+                          {item.icon}
+                        </span>
+                        <span className="truncate">{t(item.labelKey)}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
     </aside>
   );

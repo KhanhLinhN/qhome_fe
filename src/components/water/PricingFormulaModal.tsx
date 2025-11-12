@@ -81,6 +81,30 @@ export default function PricingFormulaModal({
     });
   }, [tiers]);
 
+  const isTierCurrentlyActive = (tier: PricingTierDto) => {
+    if (!tier.effectiveFrom) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const from = new Date(tier.effectiveFrom);
+    if (Number.isNaN(from.getTime())) return false;
+    from.setHours(0, 0, 0, 0);
+
+    if (from > today) return false;
+
+    const until = tier.effectiveUntil ? new Date(tier.effectiveUntil) : null;
+    if (until) {
+      if (Number.isNaN(until.getTime())) return false;
+      until.setHours(0, 0, 0, 0);
+      if (until < today) return false;
+    }
+
+    if (tier.active === false) return false;
+
+    return true;
+  };
+
   const loadTiers = async () => {
     try {
       setLoading(true);
@@ -318,47 +342,65 @@ export default function PricingFormulaModal({
             </tr>
           </thead>
           <tbody>
-            {sortedTiers.map((tier, index) => (
-              <tr
-                key={tier.id}
-                className={`${index < sortedTiers.length - 1 ? 'border-b border-[#CDCDCD]' : ''} hover:bg-gray-50 transition`}
-              >
-                <td className="px-4 py-3 text-sm text-[#024023] font-semibold text-center">
-                  {Number(tier.unitPrice ?? 0).toLocaleString("vi-VN")} VNĐ
-                </td>
-                <td className="px-4 py-3 text-sm text-[#024023] font-semibold text-center">{Number(tier.minQuantity ?? 0).toLocaleString()}</td>
-                <td className="px-4 py-3 text-sm text-[#024023] font-semibold text-center">
-                  {tier.maxQuantity !== null && tier.maxQuantity !== undefined
-                    ? Number(tier.maxQuantity).toLocaleString()
-                    : "∞"}
-                </td>
-                <td className="px-4 py-3 text-sm text-[#024023] font-semibold text-center">{tier.effectiveFrom ?? ""}</td>
-                <td className="px-4 py-3 text-sm text-[#024023] font-semibold text-center">
-                  {tier.effectiveUntil ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-sm text-[#024023] font-semibold text-center">{tier.description ?? ""}</td>
-                <td className="px-4 py-3 text-sm font-semibold text-center">
-                  <div className="flex items-center justify-center gap-3">
-                    <button
-                      onClick={() => startEdit(tier)}
-                      className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition disabled:opacity-80"
-                      title="Edit tier"
-                      disabled={saving}
-                    >
-                      <Image src={Edit} alt="Edit" width={24} height={24} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(tier)}
-                      className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition disabled:opacity-80"
-                      title="Delete tier"
-                      disabled={saving}
-                    >
-                      <Image src={Delete} alt="Delete" width={24} height={24} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {sortedTiers.map((tier, index) => {
+              const isActiveTier = isTierCurrentlyActive(tier);
+              const baseBorderClass = index < sortedTiers.length - 1 ? "border-b border-[#CDCDCD]" : "";
+              const rowClass = `${baseBorderClass} transition ${
+                isActiveTier ? "bg-green-50 hover:bg-green-100" : "bg-gray-100 hover:bg-gray-200"
+              }`;
+              const textColorClass = isActiveTier ? "text-[#024023]" : "text-gray-500";
+              const editButtonClass = isActiveTier
+                ? "w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition disabled:opacity-80"
+                : "w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-300 hover:bg-blue-500 text-blue-600 transition disabled:opacity-60";
+              const deleteButtonClass = isActiveTier
+                ? "w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition disabled:opacity-80"
+                : "w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-300 hover:bg-red-500 text-red-600 transition disabled:opacity-60";
+
+              return (
+                <tr key={tier.id} className={rowClass}>
+                  <td className={`px-4 py-3 text-sm font-semibold text-center ${textColorClass}`}>
+                    {Number(tier.unitPrice ?? 0).toLocaleString("vi-VN")} VNĐ
+                  </td>
+                  <td className={`px-4 py-3 text-sm font-semibold text-center ${textColorClass}`}>
+                    {Number(tier.minQuantity ?? 0).toLocaleString()}
+                  </td>
+                  <td className={`px-4 py-3 text-sm font-semibold text-center ${textColorClass}`}>
+                    {tier.maxQuantity !== null && tier.maxQuantity !== undefined
+                      ? Number(tier.maxQuantity).toLocaleString()
+                      : "∞"}
+                  </td>
+                  <td className={`px-4 py-3 text-sm font-semibold text-center ${textColorClass}`}>
+                    {tier.effectiveFrom ?? ""}
+                  </td>
+                  <td className={`px-4 py-3 text-sm font-semibold text-center ${textColorClass}`}>
+                    {tier.effectiveUntil ?? "—"}
+                  </td>
+                  <td className={`px-4 py-3 text-sm font-semibold text-center ${textColorClass}`}>
+                    {tier.description ?? ""}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-semibold text-center">
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        onClick={() => startEdit(tier)}
+                        className={editButtonClass}
+                        title="Edit tier"
+                        disabled={saving}
+                      >
+                        <Image src={Edit} alt="Edit" width={24} height={24} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(tier)}
+                        className={deleteButtonClass}
+                        title="Delete tier"
+                        disabled={saving}
+                      >
+                        <Image src={Delete} alt="Delete" width={24} height={24} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -26,19 +26,16 @@ export default function BuildingAdd () {
     const [errors, setErrors] = useState<{
         name?: string;
         address?: string;
-        floors?: string;
     }>({});
 
     const { addBuilding, loading, error, isSubmitting } = useBuildingAdd();
 
-    const [formData, setFormData] = useState<Partial<Building> & { floorsMaxStr: string; totalApartmentsAllStr: string; status: string }>({
+    const [formData, setFormData] = useState<Partial<Building> & { totalApartmentsAllStr: string; status: string }>({
         code: '',
         name: '',
         address: '',
-        floorsMax: 0,
         totalApartmentsAll: 0,
         totalApartmentsActive: 0,
-        floorsMaxStr: '',
         totalApartmentsAllStr: '0',
         status: 'ACTIVE',
     });
@@ -89,7 +86,7 @@ export default function BuildingAdd () {
 
         setIsSubmit(true);
         try {
-            const { floorsMaxStr, totalApartmentsAllStr, ...buildingData } = formData;
+            const { totalApartmentsAllStr, ...buildingData } = formData;
             console.log('Dữ liệu gửi đi:', buildingData);
             await addBuilding(buildingData);
             show(t('success'), 'success');
@@ -135,14 +132,6 @@ export default function BuildingAdd () {
                     delete newErrors.address;
                 }
                 break;
-            case 'floorsMax':
-                const floors = typeof value === 'number' ? value : parseInt(String(value));
-                if (!floors || floors <= 0) {
-                    newErrors.floors = t('floorsError');
-                } else {
-                    delete newErrors.floors;
-                }
-                break;
         }
         setErrors(newErrors);
     };
@@ -151,7 +140,6 @@ export default function BuildingAdd () {
         const newErrors: {
             name?: string;
             address?: string;
-            floors?: string;
         } = {};
         
         // Validate name
@@ -162,11 +150,6 @@ export default function BuildingAdd () {
         // Validate address
         if (!formData.address || formData.address.trim() === '') {
             newErrors.address = t('addressError');
-        }
-        
-        // Validate floors
-        if (!formData.floorsMax || formData.floorsMax <= 0) {
-            newErrors.floors = t('floorsError');
         }
         
         setErrors(newErrors);
@@ -183,14 +166,6 @@ export default function BuildingAdd () {
                 code: newCode,
             }));
             validateField('name', value);
-        } else if (name === 'floorsMax') {
-            const floorsValue = parseInt(value) || 0;
-            setFormData(prev => ({
-                ...prev,
-                floorsMaxStr: value,
-                floorsMax: floorsValue,
-            }));
-            validateField('floorsMax', floorsValue);
         } else if (name === 'totalApartmentsAll') {
             setFormData(prev => ({
                 ...prev,
@@ -296,16 +271,6 @@ export default function BuildingAdd () {
                         error={errors.address}
                     />
                     
-
-                    <DetailField 
-                        label={t('floors')}
-                        value={formData.floorsMaxStr ?? "0"}
-                        onChange={handleChange}
-                        name="floorsMax"
-                        placeholder={t('floors')}
-                        readonly={false}
-                        error={errors.floors}
-                    />
 
                     <div className="col-span-full flex justify-center space-x-3 mt-8">
                         <button 

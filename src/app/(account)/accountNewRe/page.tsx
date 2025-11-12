@@ -980,7 +980,6 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   type="button"
                   onClick={handleCloseContractDetail}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100"
-                  aria-label="Đóng chi tiết hợp đồng"
                 >
                   ×
                 </button>

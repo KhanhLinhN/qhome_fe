@@ -41,7 +41,7 @@ const Pagination = ({
   const lastPage = paginationRange[paginationRange.length - 1];
 
   return (
-    <nav aria-label="Page navigation" className="flex justify-center items-center py-4">
+    <nav className="flex justify-center items-center py-4">
       <ul className="inline-flex items-center -space-x-px">
         {/* Previous */}
         <li>
