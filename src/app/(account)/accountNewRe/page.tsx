@@ -25,6 +25,8 @@ import {
 } from '@/src/services/base/contractService';
 import { getUnit, getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import Select from '@/src/components/customer-interaction/Select';
+import DateBox from '@/src/components/customer-interaction/DateBox';
 
 type ManualFormState = {
   householdId: string;
@@ -129,6 +131,10 @@ export default function AccountNewResidentPage() {
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [requestActionState, setRequestActionState] = useState<RequestActionState>({});
+
+  const buildingSelectOptions = useMemo<(Building | null)[]>(() => [null, ...buildings], [buildings]);
+  const unitSelectOptions = useMemo<(Unit | null)[]>(() => [null, ...units], [units]);
+  const unitPlaceholder = selectedBuildingId ? '-- Chọn căn hộ --' : 'Chọn tòa nhà trước';
 
   const handleBack = () => {
     router.back();
@@ -297,6 +303,21 @@ export default function AccountNewResidentPage() {
       isValid = false;
     } else if (!manualForm.email.includes('@')) {
       errors.email = 'Email không hợp lệ.';
+      isValid = false;
+    }
+
+    if (!manualForm.phone.trim()) {
+      errors.phone = 'Số điện thoại không được để trống.';
+      isValid = false;
+    }
+
+    if (!manualForm.dob) {
+      errors.dob = 'Ngày sinh không được để trống.';
+      isValid = false;
+    }
+
+    if (!manualForm.nationalId.trim()) {
+      errors.nationalId = 'CMND/CCCD không được để trống.';
       isValid = false;
     }
 
@@ -676,18 +697,19 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-slate-700">Tòa nhà</label>
-                  <select
+                  <Select<Building | null>
+                    options={buildingSelectOptions}
                     value={selectedBuildingId}
-                    onChange={(event) => handleBuildingChange(event.target.value)}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                  >
-                    <option value="">-- Chọn tòa nhà --</option>
-                    {buildings.map((building) => (
-                      <option key={building.id} value={building.id}>
-                        {(building.code ? `${building.code} - ` : '') + (building.name ?? '')}
-                      </option>
-                    ))}
-                  </select>
+                    onSelect={(item) => handleBuildingChange(item?.id ?? '')}
+                    renderItem={(item) =>
+                      item
+                        ? `${item.code ? `${item.code} - ` : ''}${item.name ?? ''}`
+                        : '-- Chọn tòa nhà --'
+                    }
+                    getValue={(item) => item?.id ?? ''}
+                    placeholder="-- Chọn tòa nhà --"
+                    disable={buildingsLoading}
+                  />
                   {buildingsLoading && (
                     <span className="text-xs text-slate-500">Đang tải danh sách tòa nhà...</span>
                   )}
@@ -700,21 +722,21 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-slate-700">Căn hộ</label>
-                  <select
+                  <Select<Unit | null>
+                    options={unitSelectOptions}
                     value={selectedUnitId}
-                    onChange={(event) => handleUnitChange(event.target.value)}
-                    disabled={!selectedBuildingId || unitsLoading}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-                  >
-                    <option value="">
-                      {selectedBuildingId ? '-- Chọn căn hộ --' : 'Chọn tòa nhà trước'}
-                    </option>
-                    {units.map((unit) => (
-                      <option key={unit.id} value={unit.id}>
-                        {(unit.code ?? '') + (unit.floor !== undefined ? ` (Tầng ${unit.floor})` : '')}
-                      </option>
-                    ))}
-                  </select>
+                    onSelect={(item) => handleUnitChange(item?.id ?? '')}
+                    renderItem={(item) =>
+                      item
+                        ? `${item.code ?? ''}${
+                            item.floor !== undefined ? ` (Tầng ${item.floor})` : ''
+                          }`
+                        : unitPlaceholder
+                    }
+                    getValue={(item) => item?.id ?? ''}
+                    placeholder={unitPlaceholder}
+                    disable={!selectedBuildingId || unitsLoading}
+                  />
                   {unitsLoading && (
                     <span className="text-xs text-slate-500">Đang tải danh sách căn hộ...</span>
                   )}
@@ -863,15 +885,20 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     placeholder="Nhập số điện thoại"
                     className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
+                  {manualFieldErrors.phone && (
+                    <span className="text-xs text-red-500">{manualFieldErrors.phone}</span>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-slate-700">Ngày sinh</label>
-                  <input
-                    type="date"
+                  <DateBox
                     value={manualForm.dob}
                     onChange={handleManualChange('dob')}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    placeholderText="Chọn ngày sinh"
                   />
+                  {manualFieldErrors.dob && (
+                    <span className="text-xs text-red-500">{manualFieldErrors.dob}</span>
+                  )}
                 </div>
               </div>
 
@@ -885,6 +912,9 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     placeholder="Nhập số CMND/CCCD"
                     className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
+                  {manualFieldErrors.nationalId && (
+                    <span className="text-xs text-red-500">{manualFieldErrors.nationalId}</span>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-slate-700">

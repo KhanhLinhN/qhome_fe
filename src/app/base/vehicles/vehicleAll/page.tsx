@@ -1,42 +1,252 @@
-'use client'
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useVehiclePage } from '@/src/hooks/useVehiclePage';
-import Image from 'next/image';
+
 import DropdownArrow from '@/src/assets/DropdownArrow.svg';
-import { VehicleKind } from '@/src/types/vehicle';
-import Link from 'next/link';
 import EditTable from '@/src/assets/EditTable.svg';
+import { useVehiclePage } from '@/src/hooks/useVehiclePage';
+import { Vehicle, VehicleKind } from '@/src/types/vehicle';
+import { fetchResidentById, ResidentSummary } from '@/src/services/base/residentService';
+
+type VehicleWithContext = Vehicle & {
+  buildingId: string;
+  buildingName?: string | null;
+  buildingCode?: string | null;
+  unitName?: string | null;
+  unitCode?: string | null;
+};
+
+const normalizeText = (value?: string | null) => value?.toLowerCase().trim() ?? '';
 
 export default function VehicleAllPage() {
   const t = useTranslations('Vehicle');
   const router = useRouter();
   const { buildings, loading, error, toggleBuilding, toggleUnit, refresh } = useVehiclePage('active');
 
-  const getVehicleKindLabel = (kind: VehicleKind) => {
-    switch (kind) {
-      case VehicleKind.CAR:
-        return t('car');
-      case VehicleKind.MOTORCYCLE:
-        return t('motorcycle');
-      case VehicleKind.BICYCLE:
-        return t('bicycle');
-      case VehicleKind.OTHER:
-        return t('other');
-      default:
-        return kind;
+  const [selectedBuildingId, setSelectedBuildingId] = useState<'all' | string>('all');
+  const [selectedUnitId, setSelectedUnitId] = useState<'all' | string>('all');
+  const [buildingSearch, setBuildingSearch] = useState('');
+  const [vehicleSearch, setVehicleSearch] = useState('');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [residentLookup, setResidentLookup] = useState<Record<string, ResidentSummary>>({});
+
+  const vehicleKindLabels = useMemo(
+    () => ({
+      [VehicleKind.CAR]: t('car'),
+      [VehicleKind.MOTORCYCLE]: t('motorcycle'),
+      [VehicleKind.BICYCLE]: t('bicycle'),
+      [VehicleKind.OTHER]: t('other'),
+    }),
+    [t],
+  );
+
+  const getVehicleKindLabel = (kind: VehicleKind) => vehicleKindLabels[kind] ?? kind;
+
+  const vehiclesWithContext = useMemo<VehicleWithContext[]>(() => {
+    const result: VehicleWithContext[] = [];
+
+    buildings.forEach((building) => {
+      building.units?.forEach((unit) => {
+        unit.vehicles?.forEach((vehicle) => {
+          result.push({
+            ...vehicle,
+            buildingId: building.id,
+            buildingName: building.name,
+            buildingCode: building.code,
+            unitName: unit.name,
+            unitCode: unit.code,
+          });
+        });
+      });
+    });
+
+    return result;
+  }, [buildings]);
+
+  useEffect(() => {
+    if (selectedBuildingId === 'all') {
+      return;
     }
-  };
+
+    const buildingExists = buildings.some((building) => building.id === selectedBuildingId);
+
+    if (!buildingExists) {
+      setSelectedBuildingId('all');
+      setSelectedUnitId('all');
+      return;
+    }
+
+    if (selectedUnitId !== 'all') {
+      const unitExists = buildings.some((building) =>
+        building.units?.some((unit) => unit.id === selectedUnitId),
+      );
+
+      if (!unitExists) {
+        setSelectedUnitId('all');
+      }
+    }
+  }, [buildings, selectedBuildingId, selectedUnitId]);
+
+  const filteredBuildings = useMemo(() => {
+    const query = normalizeText(buildingSearch);
+    if (!query) {
+      return buildings;
+    }
+
+    return buildings
+      .map((building) => {
+        const buildingMatch = normalizeText(`${building.name ?? ''} ${building.code ?? ''}`).includes(query);
+
+        const filteredUnits = building.units
+          ?.filter((unit) =>
+            normalizeText(`${unit.name ?? ''} ${unit.code ?? ''}`).includes(query),
+          )
+          .map((unit) => ({ ...unit }));
+
+        if (buildingMatch) {
+          return {
+            ...building,
+            units: filteredUnits?.length ? filteredUnits : building.units,
+          };
+        }
+
+        if (filteredUnits && filteredUnits.length > 0) {
+          return {
+            ...building,
+            units: filteredUnits,
+          };
+        }
+
+        return null;
+      })
+      .filter((building): building is NonNullable<typeof building> => Boolean(building));
+  }, [buildingSearch, buildings]);
+
+  const residentLookupKey = useMemo(
+    () => Object.keys(residentLookup).sort().join('|'),
+    [residentLookup],
+  );
+
+  useEffect(() => {
+    const uniqueResidentIds = Array.from(
+      new Set(
+        vehiclesWithContext
+          .map((vehicle) => vehicle.residentId)
+          .filter((residentId): residentId is string => Boolean(residentId)),
+      ),
+    );
+
+    const missingResidentIds = uniqueResidentIds.filter((residentId) => !residentLookup[residentId]);
+
+    if (missingResidentIds.length === 0) {
+      return;
+    }
+
+    let active = true;
+
+    const loadResidents = async () => {
+      const results = await Promise.allSettled(
+        missingResidentIds.map(async (residentId) => {
+          const resident = await fetchResidentById(residentId);
+          return { residentId, resident };
+        }),
+      );
+
+      if (!active) return;
+
+      setResidentLookup((previous) => {
+        const next = { ...previous };
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            const { residentId, resident } = result.value;
+            next[residentId] = resident;
+          } else {
+            console.error('Failed to fetch resident information', result.reason);
+          }
+        });
+        return next;
+      });
+    };
+
+    void loadResidents();
+
+    return () => {
+      active = false;
+    };
+  }, [residentLookupKey, vehiclesWithContext]);
+
+  const vehiclesToDisplay = useMemo(() => {
+    const vehicleQuery = normalizeText(vehicleSearch);
+
+    let scopedVehicles = vehiclesWithContext;
+
+    if (selectedUnitId !== 'all') {
+      scopedVehicles = scopedVehicles.filter((vehicle) => vehicle.unitId === selectedUnitId);
+    } else if (selectedBuildingId !== 'all') {
+      scopedVehicles = scopedVehicles.filter((vehicle) => vehicle.buildingId === selectedBuildingId);
+    }
+
+    if (!vehicleQuery) {
+      return scopedVehicles;
+    }
+
+    return scopedVehicles.filter((vehicle) => {
+      const resolvedResidentName =
+        (vehicle.residentId ? residentLookup[vehicle.residentId]?.fullName : undefined) ??
+        vehicle.residentName;
+
+      const combined = [
+        vehicle.plateNo,
+        resolvedResidentName,
+        vehicleKindLabels[vehicle.kind] ?? vehicle.kind,
+        vehicle.color,
+        vehicle.unitName,
+        vehicle.unitCode,
+        vehicle.buildingName,
+        vehicle.buildingCode,
+      ]
+        .map(normalizeText)
+        .join(' ');
+
+      return combined.includes(vehicleQuery);
+    });
+  }, [
+    selectedBuildingId,
+    selectedUnitId,
+    vehicleKindLabels,
+    vehicleSearch,
+    vehiclesWithContext,
+    residentLookupKey,
+  ]);
 
   const handleNavigateToPending = () => {
     router.push('/base/vehicles/vehicleRegis');
   };
 
+  const handleSelectAll = () => {
+    setSelectedBuildingId('all');
+    setSelectedUnitId('all');
+  };
+
+  const handleSelectBuilding = (buildingId: string) => {
+    setSelectedBuildingId(buildingId);
+    setSelectedUnitId('all');
+  };
+
+  const handleSelectUnit = (buildingId: string, unitId: string) => {
+    setSelectedBuildingId(buildingId);
+    setSelectedUnitId(unitId);
+  };
+
   if (loading) {
     return (
-      <div className="px-[41px] py-12 flex items-center justify-center">
+      <div className="flex items-center justify-center px-[41px] py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary-2"></div>
           <p className="text-gray-600">{t('loading')}</p>
         </div>
       </div>
@@ -45,12 +255,12 @@ export default function VehicleAllPage() {
 
   if (error) {
     return (
-      <div className="px-[41px] py-12 flex items-center justify-center">
+      <div className="flex items-center justify-center px-[41px] py-12">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{t('error')}</p>
+          <p className="mb-4 text-red-600">{t('error')}</p>
           <button
             onClick={refresh}
-            className="px-4 py-2 bg-primary-2 text-white rounded-md hover:bg-primary-3"
+            className="rounded-md bg-primary-2 px-4 py-2 text-white transition-colors hover:bg-primary-3"
           >
             {t('retry')}
           </button>
@@ -60,171 +270,270 @@ export default function VehicleAllPage() {
   }
 
   return (
-    <div className="lg:col-span-1 space-y-6">
-      <div className="max-w-screen overflow-x-hidden ">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-semibold text-[#02542D]">{t('vehicleList')}</h1>
-          <button
-            onClick={handleNavigateToPending}
-            className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024428] transition-colors"
-          >
-            {t('showPendingRegistrations')}
-          </button>
-        </div>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-semibold text-[#02542D]">{t('vehicleList')}</h1>
+        <button
+          onClick={handleNavigateToPending}
+          className="rounded-md bg-[#02542D] px-4 py-2 text-white transition-colors hover:bg-[#024428]"
+        >
+          {t('showPendingRegistrations')}
+        </button>
+      </div>
 
-        <div className="bg-white p-6 rounded-xl w-full min-h-[200px]">
-          {buildings.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              {t('noData')}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {buildings.map((building) => (
-                <div key={building.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                  {/* Building Header */}
-                  <div
-                    className="flex items-center justify-between p-4  cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => toggleBuilding(building.id)}
+      <div
+        className={`relative grid gap-6 ${
+          isSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[320px_1fr]'
+        }`}
+      >
+        {!isSidebarCollapsed && (
+          <aside className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800">{t('buildingUnitList')}</h2>
+                  <p className="text-sm text-slate-500">{t('buildingUnitListDescription')}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarCollapsed(true)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
+                  aria-label={t('collapseBuildingUnitSection')}
+                >
+                  <span className="text-base leading-none">{'«'}</span>
+                </button>
+              </div>
+              <div className="px-5 py-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={buildingSearch}
+                    onChange={(event) => setBuildingSearch(event.target.value)}
+                    placeholder={t('searchBuildingUnit')}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  />
+                </div>
+                <div className="mt-4 space-y-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={handleSelectAll}
+                    className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition ${
+                      selectedBuildingId === 'all'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-transparent hover:bg-slate-50'
+                    }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <Image
-                        src={DropdownArrow}
-                        alt="dropdown"
-                        width={16}
-                        height={16}
-                        className={`transition-transform duration-200 ${
-                          building.isExpanded ? 'rotate-180' : ''
-                        }`}
-                      />
-                      <div>
-                        <span className="font-semibold text-[#02542D]">
-                          {t('building')}: {building.name}
-                        </span>
-                        <span className="ml-3 text-gray-600">({building.code})</span>
-                      </div>
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      {building.units?.length || 0} {t('unit')}
-                    </span>
-                  </div>
+                    <span>{t('all')}</span>
+                    <span className="text-xs text-slate-500">{vehiclesWithContext.length}</span>
+                  </button>
 
-                  {/* Units List */}
-                  {building.isExpanded && building.units && (
-                    <div className="bg-white overflow-auto">
-                      {building.units.map((unit) => (
-                        <div key={unit.id} className="border-t border-gray-200">
-                          {/* Unit Header */}
-                          <div
-                            className="flex items-center justify-between p-4 pl-12 bg-white cursor-pointer hover:bg-gray-50 transition-colors"
-                            onClick={() => toggleUnit(building.id, unit.id)}
-                          >
-                            <div className="flex items-center gap-3">
+                  <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                    {filteredBuildings.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-slate-500">
+                        {t('noData')}
+                      </div>
+                    ) : (
+                      filteredBuildings.map((building) => (
+                        <div key={building.id} className="rounded-lg border border-slate-200">
+                          <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleBuilding(building.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
+                              aria-label={t('toggleBuilding')}
+                            >
                               <Image
                                 src={DropdownArrow}
-                                alt="dropdown"
-                                width={14}
-                                height={14}
+                                alt="toggle"
+                                width={16}
+                                height={16}
                                 className={`transition-transform duration-200 ${
-                                  unit.isExpanded ? 'rotate-180' : ''
+                                  building.isExpanded ? 'rotate-180' : ''
                                 }`}
                               />
-                              <div>
-                                <span className="font-medium text-[#02542D]">
-                                  {t('unit')}: {unit.name}
-                                </span>
-                                <span className="ml-3 text-gray-600 text-sm">({unit.code})</span>
-                              </div>
-                            </div>
-                            <span className="text-sm text-gray-500">
-                              {unit.vehicles?.length || 0} {t('vehicleList')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSelectBuilding(building.id)}
+                              className={`flex flex-1 flex-col rounded-lg px-3 py-2 text-left transition ${
+                                selectedBuildingId === building.id && selectedUnitId === 'all'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'hover:bg-white'
+                              }`}
+                            >
+                              <span className="font-semibold text-[#02542D]">{building.name}</span>
+                              <span className="text-xs text-slate-500">{building.code}</span>
+                            </button>
+                            <span className="text-xs font-medium text-slate-500">
+                              {building.units?.length ?? 0} {t('unit')}
                             </span>
                           </div>
 
-                          {/* Vehicles List */}
-                          {unit.isExpanded && unit.vehicles && (
-                            <div className="bg-gray-50 px-4 pb-4">
-                              <table className="w-full ml-12">
-                                <thead>
-                                  <tr className="border-b border-gray-300">
-                                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                                      {t('plateNo')}
-                                    </th>
-                                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                                      {t('residentName')}
-                                    </th>
-                                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                                      {t('vehicleKind')}
-                                    </th>
-                                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                                      {t('color')}
-                                    </th>
-                                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                                      {t('approvedDate')}
-                                    </th>
-                                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                                      {t('status')}
-                                    </th>
-                                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                                      {t('action')}
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {unit.vehicles.map((vehicle) => (
-                                    <tr key={vehicle.id} className="border-b border-gray-200 hover:bg-white">
-                                      <td className="py-3 px-4 text-gray-800 font-medium">
-                                        {vehicle.plateNo}
-                                      </td>
-                                      <td className="py-3 px-4 text-gray-800">
-                                        {vehicle.residentName}
-                                      </td>
-                                      <td className="py-3 px-4 text-gray-800">
-                                        {getVehicleKindLabel(vehicle.kind)}
-                                      </td>
-                                      <td className="py-3 px-4 text-gray-800">
-                                        {vehicle.color}
-                                      </td>
-                                      <td className="py-3 px-4 text-gray-800">
-                                        {vehicle.registrationApprovedAt?.slice(0, 10).replace(/-/g, '/') || '-'}
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        <span
-                                          className={`px-2 py-1 rounded text-xs font-medium ${
-                                            vehicle.active
-                                              ? 'bg-green-100 text-green-700'
-                                              : 'bg-gray-100 text-gray-700'
-                                          }`}
-                                        >
-                                          {vehicle.active ? t('active') : t('inactive')}
-                                        </span>
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        <Link href={`/base/vehicles/vehicleDetail/${vehicle.id}`} className="inline-flex items-center">
-                                          <Image 
-                                            src={EditTable} 
-                                            alt="View Detail" 
-                                            width={24} 
-                                            height={24}
-                                          />
-                                        </Link>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                          {building.isExpanded && building.units && building.units.length > 0 && (
+                            <div className="space-y-1 px-3 py-2">
+                              {building.units.map((unit) => (
+                                <button
+                                  key={unit.id}
+                                  type="button"
+                                  onClick={() => handleSelectUnit(building.id, unit.id)}
+                                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                                    selectedUnitId === unit.id
+                                      ? 'bg-emerald-50 text-emerald-700'
+                                      : 'hover:bg-slate-100'
+                                  }`}
+                                >
+                                  <div>
+                                    <span className="font-medium text-[#02542D]">{unit.name}</span>
+                                    <span className="ml-2 text-xs text-slate-500">{unit.code}</span>
+                                  </div>
+                                  <span className="text-xs text-slate-500">
+                                    {unit.vehicles?.length ?? 0}
+                                  </span>
+                                </button>
+                              ))}
                             </div>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
+          </aside>
+        )}
+
+        <section className="relative rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {isSidebarCollapsed && (
+            <button
+              type="button"
+              onClick={() => setIsSidebarCollapsed(false)}
+              className="absolute left-0 top-5 z-10 inline-flex -translate-x-1/2 items-center justify-center rounded-full border border-slate-300 bg-white p-2 text-slate-500 shadow transition hover:border-emerald-300 hover:text-emerald-700"
+              aria-label={t('expandBuildingUnitSection')}
+            >
+              <span className="text-sm leading-none">{'»'}</span>
+            </button>
           )}
-        </div>
+          <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800">{t('vehiclePanelTitle')}</h2>
+              <p className="text-sm text-slate-500">
+                {selectedUnitId === 'all' && selectedBuildingId === 'all'
+                  ? t('vehiclePanelDescriptionAll', { total: vehiclesToDisplay.length })
+                  : selectedUnitId === 'all'
+                  ? t('vehiclePanelDescriptionBuilding', { total: vehiclesToDisplay.length })
+                  : t('vehiclePanelDescriptionUnit', { total: vehiclesToDisplay.length })}
+              </p>
+            </div>
+            <div className="w-full max-w-xs">
+              <input
+                type="text"
+                value={vehicleSearch}
+                onChange={(event) => setVehicleSearch(event.target.value)}
+                placeholder={t('searchVehicle')}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('plateNo')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('residentName')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('vehicleKind')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('building')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('unit')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('color')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('approvedDate')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('status')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('action')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {vehiclesToDisplay.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="px-4 py-6 text-center text-sm text-slate-500"
+                    >
+                      {t('noData')}
+                    </td>
+                  </tr>
+                ) : (
+                  vehiclesToDisplay.map((vehicle) => (
+                    <tr key={vehicle.id} className="hover:bg-emerald-50/40">
+                      <td className="px-4 py-3 font-medium text-slate-800">{vehicle.plateNo}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {(vehicle.residentId
+                          ? residentLookup[vehicle.residentId]?.fullName
+                          : undefined) ??
+                          vehicle.residentName ??
+                          '-'}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{getVehicleKindLabel(vehicle.kind)}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        <div className="flex flex-col">
+                          <span>{vehicle.buildingName ?? '-'}</span>
+                          <span className="text-xs text-slate-500">{vehicle.buildingCode ?? '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        <div className="flex flex-col">
+                          <span>{vehicle.unitName ?? '-'}</span>
+                          <span className="text-xs text-slate-500">{vehicle.unitCode ?? '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{vehicle.color}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {vehicle.registrationApprovedAt?.slice(0, 10).replace(/-/g, '/') || '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2 py-1 text-xs font-medium ${
+                            vehicle.active
+                              ? 'rounded bg-emerald-100 text-emerald-700'
+                              : 'rounded bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {vehicle.active ? t('active') : t('inactive')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/base/vehicles/vehicleDetail/${vehicle.id}`}
+                          className="inline-flex items-center"
+                        >
+                          <Image src={EditTable} alt="View Detail" width={24} height={24} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   );
 }
-

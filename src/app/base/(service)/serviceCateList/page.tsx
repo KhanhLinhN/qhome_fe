@@ -25,18 +25,18 @@ type EditFormState = {
   code: string;
   name: string;
   description: string;
-  icon: string;
   sortOrder: string;
   isActive: boolean;
+  createdAt: string;
 };
 
 const initialEditState: EditFormState = {
   code: '',
   name: '',
   description: '',
-  icon: '',
   sortOrder: '',
   isActive: true,
+  createdAt: '',
 };
 
 export default function ServiceCategoryListPage() {
@@ -94,12 +94,12 @@ export default function ServiceCategoryListPage() {
       name: selectedCategory.name ?? '',
       code: selectedCategory.code ?? '',
       description: selectedCategory.description ?? '',
-      icon: selectedCategory.icon ?? '',
       sortOrder:
         selectedCategory.sortOrder !== undefined && selectedCategory.sortOrder !== null
           ? String(selectedCategory.sortOrder)
           : '',
       isActive: selectedCategory.isActive ?? true,
+      createdAt: formatDate(selectedCategory.createdAt),
     });
     setFormErrors({});
   }, [selectedCategory]);

@@ -215,7 +215,7 @@ export default function ShowAssignPage() {
                                   : 'bg-[#739559] text-white hover:bg-[#5a7447]'
                               }`}
                             >
-                              {assignment.completedAt ? 'View Detail' : 'Làm'}
+                              {assignment.completedAt ? 'Xem chi tiết' : 'Làm'}
                             </button>
                             {!assignment.completedAt && (() => {
                               const progressPercent = assignmentProgress[assignment.id] || 0;

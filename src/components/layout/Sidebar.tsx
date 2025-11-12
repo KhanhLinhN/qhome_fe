@@ -68,7 +68,7 @@ const adminSections: NavSection[] = [
       {href: "/base/readingCycles", label: "Chu kỳ chỉ số", icon: "📈"},
       // {href: "/base/readingSessions", label: "Phiên đọc chỉ số", icon: "🧮"},
       {href: "/base/readingAssign", label: "Phân công đọc", icon: "📝"},
-      {href: "/base/showAssign", label: "Danh sách phân công", icon: "📋"},
+      // {href: "/base/showAssign", label: "Danh sách phân công", icon: "📋"},
       // {href: "/base/waterShow", label: "Theo dõi nước", icon: "💧"},
       {href: "/base/billingCycles", label: "Chu kỳ thanh toán", icon: "💡"},
     ],
@@ -155,8 +155,8 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
   const sections = menuConfig[resolvedVariant];
 
   return (
-    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen">
-      <nav className="p-3 space-y-6 overflow-y-auto">
+    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed max-h-screen pb-4">
+      <nav className="p-3 space-y-6 overflow-y-auto max-h-screen">
         {sections.map(section => (
           <div key={section.title} className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 px-2">

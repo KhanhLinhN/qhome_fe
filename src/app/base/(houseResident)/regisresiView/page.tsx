@@ -1,21 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 
 import {
   AccountCreationRequest,
   approveAccountRequest,
   fetchPendingAccountRequests,
 } from '@/src/services/base/residentAccountService';
-
-const DEFAULT_REJECTION_REASON = 'Thông tin chưa đầy đủ';
-
-function formatDateTime(value?: string | null) {
-  if (!value) return 'Chưa cập nhật';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('vi-VN');
-}
 
 const approveIcon = (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Check-2-Fill--Streamline-Mingcute-Fill" height="16" width="16">
@@ -39,11 +32,23 @@ const rejectIcon = (
 );
 
 export default function ResidentAccountApprovalPage() {
+  const t = useTranslations('ResidentAccountApproval');
+  const router = useRouter();
   const [requests, setRequests] = useState<AccountCreationRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+
+  const formatDateTime = useCallback(
+    (value?: string | null) => {
+      if (!value) return t('fallbacks.notUpdated');
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value ?? '';
+      return date.toLocaleString();
+    },
+    [t],
+  );
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
@@ -53,12 +58,12 @@ export default function ResidentAccountApprovalPage() {
       setRequests(data);
     } catch (err: any) {
       const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải danh sách yêu cầu tạo tài khoản.';
+        err?.response?.data?.message || err?.message || t('messages.loadError');
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadRequests();
@@ -92,8 +97,9 @@ export default function ResidentAccountApprovalPage() {
         if (approve) {
           payload = { approve: true };
         } else {
+          const defaultReason = t('prompt.defaultRejectionReason');
           const reason =
-            window.prompt('Nhập lý do từ chối:', DEFAULT_REJECTION_REASON) ?? DEFAULT_REJECTION_REASON;
+            window.prompt(t('prompt.message'), defaultReason) ?? defaultReason;
           const trimmedReason = reason.trim();
           if (!trimmedReason) {
             updateProcessing(request.id, false);
@@ -106,39 +112,51 @@ export default function ResidentAccountApprovalPage() {
         removeRequest(request.id);
         setSuccessMessage(
           approve
-            ? `Đã phê duyệt tài khoản cho cư dân ${request.residentName ?? ''}.`
-            : `Đã từ chối yêu cầu tạo tài khoản cho cư dân ${request.residentName ?? ''}.`,
+            ? t('messages.approveSuccess', {
+                name: request.residentName ?? t('fallbacks.unknownResidentName'),
+              })
+            : t('messages.rejectSuccess', {
+                name: request.residentName ?? t('fallbacks.unknownResidentName'),
+              }),
         );
       } catch (err: any) {
         const message =
-        err?.response?.data?.message || err?.message || 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
+          err?.response?.data?.message || err?.message || t('messages.actionError');
         setError(message);
       } finally {
         updateProcessing(request.id, false);
       }
     },
-    [removeRequest, updateProcessing],
+    [removeRequest, t, updateProcessing],
   );
 
   const pendingMessage = useMemo(() => {
     if (loading) {
-      return 'Đang tải dữ liệu...';
+      return t('states.loading');
     }
     if (requests.length === 0) {
-      return 'Không có yêu cầu tạo tài khoản nào đang chờ duyệt.';
+      return t('states.empty');
     }
     return null;
-  }, [loading, requests.length]);
+  }, [loading, requests.length, t]);
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <header className="space-y-2">
-          <h1 className="text-2xl font-bold text-[#02542D]">Duyệt tài khoản cư dân</h1>
-          <p className="text-sm text-slate-600">
-            Kiểm tra và xử lý các yêu cầu tạo tài khoản cư dân. Phê duyệt khi thông tin hợp lệ hoặc từ chối
-            cùng lý do cụ thể.
-          </p>
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-[#02542D]">{t('title')}</h1>
+            <p className="text-sm text-slate-600">{t('description')}</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => router.push('/accountList')}
+              className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700"
+            >
+              {t('buttons.back')}
+            </button>
+          </div>
         </header>
 
         {(successMessage || error) && (
@@ -158,14 +176,14 @@ export default function ResidentAccountApprovalPage() {
 
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-            <h2 className="text-lg font-semibold text-slate-800">Danh sách yêu cầu đang chờ duyệt</h2>
+            <h2 className="text-lg font-semibold text-slate-800">{t('pendingList.title')}</h2>
             <button
               type="button"
               onClick={() => void loadRequests()}
               className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700"
               disabled={loading}
             >
-              Làm mới
+              {t('buttons.refresh')}
             </button>
           </div>
 
@@ -173,14 +191,30 @@ export default function ResidentAccountApprovalPage() {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Cư dân</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Liên hệ</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Căn hộ</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Tài khoản đề xuất</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Người gửi</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Quan hệ</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Thời gian</th>
-                  <th className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-slate-600">Hành động</th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('table.columns.resident')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('table.columns.contact')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('table.columns.unit')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('table.columns.proposedAccount')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('table.columns.submittedBy')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('table.columns.relation')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('table.columns.time')}
+                  </th>
+                  <th className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-slate-600">
+                    {t('table.columns.actions')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
@@ -196,7 +230,7 @@ export default function ResidentAccountApprovalPage() {
                     return (
                       <tr key={request.id} className="hover:bg-emerald-50/40">
                         <td className="px-4 py-3 font-medium text-slate-800">
-                          {request.residentName || 'Chưa cập nhật'}
+                          {request.residentName || t('fallbacks.unknownResidentName')}
                         </td>
                         <td className="px-4 py-3 text-slate-600">
                           <div className="flex flex-col">
@@ -208,16 +242,22 @@ export default function ResidentAccountApprovalPage() {
                         </td>
                         <td className="px-4 py-3 text-slate-600">
                           <div className="flex flex-col">
-                            <span>{request.unitCode || 'Không rõ mã căn hộ'}</span>
-                            <span className="text-xs text-slate-500">{request.householdId || 'Không có mã hộ'}</span>
+                            <span>{request.unitCode || t('fallbacks.unknownUnitCode')}</span>
+                            <span className="text-xs text-slate-500">
+                              {request.householdId || t('fallbacks.missingHouseholdId')}
+                            </span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-slate-600">
                           <div className="flex flex-col">
-                            <span>Tên đăng nhập: {request.username || '—'}</span>
-                            <span className="text-xs text-slate-500">Email: {request.email || '—'}</span>
+                            <span>
+                              {t('table.labels.username')}: {request.username || '—'}
+                            </span>
                             <span className="text-xs text-slate-500">
-                              Tạo tự động: {request.autoGenerate ? 'Có' : 'Không'}
+                              {t('table.labels.email')}: {request.email || '—'}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {t('table.labels.autoGenerated')}: {request.autoGenerate ? t('table.values.yes') : t('table.values.no')}
                             </span>
                           </div>
                           {request.proofOfRelationImageUrl && (
@@ -227,13 +267,13 @@ export default function ResidentAccountApprovalPage() {
                               rel="noopener noreferrer"
                               className="mt-2 inline-flex text-xs text-emerald-600 hover:text-emerald-700"
                             >
-                              Xem minh chứng kèm theo
+                              {t('table.labels.viewProof')}
                             </a>
                           )}
                         </td>
                         <td className="px-4 py-3 text-slate-600">
                           <div className="flex flex-col">
-                            <span>{request.requestedByName || 'Không rõ'}</span>
+                            <span>{request.requestedByName || t('fallbacks.unknownRequester')}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-slate-600">{request.relation || '—'}</td>
@@ -244,7 +284,7 @@ export default function ResidentAccountApprovalPage() {
                               type="button"
                               onClick={() => handleDecision(request, true)}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-emerald-200 text-emerald-600 transition hover:bg-emerald-50"
-                              title="Phê duyệt"
+                              title={t('actions.approve')}
                               disabled={isProcessing}
                             >
                               {approveIcon}
@@ -253,7 +293,7 @@ export default function ResidentAccountApprovalPage() {
                               type="button"
                               onClick={() => handleDecision(request, false)}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-600 transition hover:bg-red-50"
-                              title="Từ chối"
+                              title={t('actions.reject')}
                               disabled={isProcessing}
                             >
                               {rejectIcon}
