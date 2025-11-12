@@ -50,6 +50,8 @@ const adminSections: NavSection[] = [
       {href: "/base/household/householdMemberRequests", label: "Duyệt thành viên gia đình", icon: "👪"},
       {href: "/base/contract/contracts", label: "Hợp đồng căn hộ", icon: "📄"},
       {href: "/base/vehicles/vehicleAll", label: "Quản lý phương tiện", icon: "🚗"},
+      {href: "/base/cards/elevator", label: "Thẻ thang máy", icon: "🛗"},
+      {href: "/base/cards/resident", label: "Thẻ cư dân", icon: "🔑"},
     ],
   },
   {
