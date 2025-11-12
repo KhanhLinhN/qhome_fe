@@ -20,6 +20,7 @@ import {
 } from '@/src/services/customer-interaction/newService';
 import { NotificationScope, NewsStatus } from '@/src/types/news';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { useTranslations } from 'next-intl';
 
 interface NewsImage {
     url: string;
@@ -50,86 +51,9 @@ interface NewsFormData {
     targetBuildingId?: string | null;
 }
 
-const TEXT: Record<string, string> = {
-    back: 'Quay lại',
-    addNewNews: 'Thêm tin tức mới',
-    title: 'Tiêu đề',
-    titlePlaceholder: 'Nhập tiêu đề bài viết',
-    titleRequired: 'Vui lòng nhập tiêu đề.',
-    summary: 'Tóm tắt',
-    summaryPlaceholder: 'Nhập tóm tắt ngắn gọn',
-    summaryRequired: 'Vui lòng nhập tóm tắt.',
-    bodyHtml: 'Nội dung chi tiết',
-    bodyHtmlPlaceholder: 'Nhập nội dung bài viết',
-    bodyHtmlRequired: 'Vui lòng nhập nội dung chi tiết.',
-    coverImage: 'Ảnh bìa',
-    selectImageError: 'Vui lòng chọn một ảnh trước.',
-    coverImageUploadError: 'Tải ảnh bìa thất bại. Vui lòng thử lại.',
-    detailImageUploadError: 'Tải ảnh chi tiết thất bại. Vui lòng thử lại.',
-    createNewsError: 'Không thể tạo tin tức. Vui lòng thử lại.',
-    checkRequiredFields: 'Vui lòng kiểm tra các thông tin bắt buộc.',
-    selectBuildingForExternalNews: 'Vui lòng chọn tòa nhà áp dụng cho tin tức bên ngoài.',
-    internalNewsTargetRoleRequired: 'Tin nội bộ cần chọn đối tượng nhận.',
-    publishAt: 'Ngày xuất bản',
-    publishAtPlaceholder: 'Chọn ngày xuất bản',
-    publishAtRequired: 'Vui lòng chọn ngày xuất bản.',
-    publishAtInvalid: 'Ngày xuất bản phải trước ngày hết hạn.',
-    expireAt: 'Ngày hết hạn',
-    expireAtPlaceholder: 'Chọn ngày hết hạn',
-    expireAtRequired: 'Vui lòng chọn ngày hết hạn.',
-    expireAtInvalid: 'Ngày hết hạn phải sau hoặc bằng ngày xuất bản.',
-    status: 'Trạng thái',
-    statusPlaceholder: 'Chọn trạng thái',
-    draft: 'Nháp',
-    scheduled: 'Đã lên lịch',
-    published: 'Đã xuất bản',
-    hidden: 'Ẩn',
-    expired: 'Hết hạn',
-    archived: 'Lưu trữ',
-    displayOrder: 'Thứ tự hiển thị',
-    scope: 'Phạm vi hiển thị',
-    scopePlaceholder: 'Chọn phạm vi hiển thị',
-    internal: 'Nội bộ',
-    external: 'Cư dân',
-    targetRole: 'Đối tượng nhận',
-    targetRolePlaceholder: 'Chọn nhóm đối tượng',
-    all: 'Tất cả',
-    admin: 'Quản trị',
-    technician: 'Kỹ thuật',
-    supporter: 'Hỗ trợ',
-    account: 'Tài khoản',
-    resident: 'Cư dân',
-    selectBuilding: 'Chọn tòa nhà',
-    loadingBuildings: 'Đang tải danh sách tòa nhà...',
-    allBuildings: 'Tất cả tòa nhà',
-    selectBuildingPlaceholder: 'Chọn tòa nhà áp dụng',
-    detailedImages: 'Ảnh chi tiết',
-    selectImage: 'Chọn ảnh',
-    imageDescription: 'Mô tả ảnh',
-    imageDescriptionPlaceholder: 'Nhập mô tả cho ảnh',
-    addImage: 'Thêm ảnh',
-    imageList: 'Danh sách ảnh',
-    imageDescriptionLabel: 'Mô tả ảnh {{index}}',
-    fileLabel: 'Tệp',
-    removeImage: 'Xóa ảnh',
-    cancel: 'Hủy',
-    statusOptionsLabel: 'Chọn trạng thái',
-};
-
-const translate = (key: string, params?: Record<string, string | number>) => {
-    let template = TEXT[key] ?? key;
-    if (params) {
-        Object.entries(params).forEach(([paramKey, value]) => {
-            const pattern = new RegExp(`{{\\s*${paramKey}\\s*}}`, 'g');
-            template = template.replace(pattern, String(value));
-        });
-    }
-    return template;
-};
-
 export default function NewsAdd() {
     const router = useRouter();
-    const t = translate;
+    const t = useTranslations('News');
     const { user } = useAuth();
     const { addNews, loading, error, isSubmitting } = useNewAdd();
     const { show } = useNotifications();
@@ -193,7 +117,7 @@ export default function NewsAdd() {
                     setBuildings(allBuildings);
                 } catch (error) {
                     console.error('Lỗi khi tải danh sách tòa nhà:', error);
-                    show('Không thể tải danh sách tòa nhà', 'error');
+                    show(t('fetchBuildingError'), 'error');
                 } finally {
                     setLoadingBuildings(false);
                 }
@@ -474,7 +398,7 @@ export default function NewsAdd() {
             }
             
             // Show success message
-            show('Tạo tin tức thành công!', 'success');
+            show(t('successCreate'), 'success');
             
             // Redirect to news list
             router.push(`/customer-interaction/new/newList`);
@@ -894,12 +818,12 @@ export default function NewsAdd() {
                                 </label>
                                 <Select
                                     options={[
-                                        { name: t('all'), value: 'ALL' },
-                                        { name: t('admin'), value: 'ADMIN' },
-                                        { name: t('technician'), value: 'TECHNICIAN' },
-                                        { name: t('supporter'), value: 'SUPPORTER' },
-                                        { name: t('account'), value: 'ACCOUNT' },
-                                        { name: t('resident'), value: 'RESIDENT' },
+                                        { name: t('targetRoleAll'), value: 'ALL' },
+                                        { name: t('targetRoleAdmin'), value: 'ADMIN' },
+                                        { name: t('targetRoleTechnician'), value: 'TECHNICIAN' },
+                                        { name: t('targetRoleSupporter'), value: 'SUPPORTER' },
+                                        { name: t('targetRoleAccount'), value: 'ACCOUNT' },
+                                        { name: t('targetRoleResident'), value: 'RESIDENT' },
                                     ]}
                                     value={formData.targetRole}
                                     onSelect={handleTargetRoleChange}
@@ -1025,7 +949,7 @@ export default function NewsAdd() {
                                                         type="text"
                                                         value={image.caption}
                                                         onChange={(e) => handleImageCaptionChange(index, e.target.value)}
-                                                        placeholder="Nhập mô tả cho hình ảnh này"
+                                        placeholder={t('imageDescriptionPlaceholder')}
                                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#02542D] focus:border-transparent outline-none text-sm"
                                                     />
                                                 </div>
@@ -1064,7 +988,7 @@ export default function NewsAdd() {
                             className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={isSubmitting || uploadingCoverImage || uploadingDetailImage}
                         >
-                            {(isSubmitting || uploadingCoverImage || uploadingDetailImage) ? 'Đang lưu...' : 'Lưu'}
+                            {(isSubmitting || uploadingCoverImage || uploadingDetailImage) ? t('saving') : t('save')}
                         </button>
                     </div>
                 </div>

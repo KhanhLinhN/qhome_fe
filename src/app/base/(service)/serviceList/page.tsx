@@ -27,7 +27,6 @@ export default function ServiceListPage() {
       t('name'),
       t('category'),
       t('pricingType'),
-      t('bookingType'),
       t('status'),
       t('createdAt'),
       t('action'),

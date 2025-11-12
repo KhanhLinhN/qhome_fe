@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import Edit from '@/src/assets/Edit.svg';
 import Delete from '@/src/assets/Delete.svg';
+import DropdownArrow from '@/src/assets/DropdownArrow.svg';
 import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import DetailField from '@/src/components/base-service/DetailField';
@@ -17,15 +18,32 @@ import {
   getServiceCombos,
   getServiceOptions,
   getServiceTickets,
+  getServiceAvailabilities,
 } from '@/src/services/asset-maintenance/serviceService';
 import {
-  ServiceBookingType,
   ServicePricingType,
   ServiceCombo,
   ServiceOption,
   ServiceTicket,
   ServiceTicketType,
+  ServiceAvailability,
 } from '@/src/types/service';
+
+type ServiceComboItemDto = {
+  id?: string;
+  comboId?: string;
+  itemName?: string | null;
+  itemDescription?: string | null;
+  itemPrice?: number | null;
+  itemDurationMinutes?: number | null;
+  quantity?: number | null;
+  note?: string | null;
+  sortOrder?: number | null;
+};
+
+type ComboWithItems = ServiceCombo & {
+  items?: ServiceComboItemDto[];
+};
 
 const formatCurrency = (value?: number | null) => {
   if (value === undefined || value === null) {
@@ -51,21 +69,6 @@ const mapPricingType = (type?: ServicePricingType | string) => {
   }
 };
 
-const mapBookingType = (type?: ServiceBookingType | string) => {
-  switch (type) {
-    case ServiceBookingType.COMBO_BASED:
-      return 'Service.booking.combo';
-    case ServiceBookingType.TICKET_BASED:
-      return 'Service.booking.ticket';
-    case ServiceBookingType.OPTION_BASED:
-      return 'Service.booking.option';
-    case ServiceBookingType.STANDARD:
-      return 'Service.booking.standard';
-    default:
-      return 'Service.booking.unknown';
-  }
-};
-
 const mapTicketType = (type?: ServiceTicketType | string) => {
   switch (type) {
     case ServiceTicketType.DAY:
@@ -83,6 +86,26 @@ const mapTicketType = (type?: ServiceTicketType | string) => {
   }
 };
 
+const DEFAULT_DAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+const formatTime = (value?: string | null) => {
+  if (!value) {
+    return '-';
+  }
+  if (value.length >= 5) {
+    return value.slice(0, 5);
+  }
+  return value;
+};
+
 export default function ServiceDetailPage() {
   const t = useTranslations();
   const router = useRouter();
@@ -92,24 +115,48 @@ export default function ServiceDetailPage() {
 
   const { serviceData, loading, error } = useServiceDetailPage(serviceId);
 
-  const [combos, setCombos] = useState<ServiceCombo[]>([]);
+  const [combos, setCombos] = useState<ComboWithItems[]>([]);
   const [options, setOptions] = useState<ServiceOption[]>([]);
   const [tickets, setTickets] = useState<ServiceTicket[]>([]);
+  const [availabilities, setAvailabilities] = useState<ServiceAvailability[]>([]);
   const [comboLoading, setComboLoading] = useState<boolean>(false);
   const [optionLoading, setOptionLoading] = useState<boolean>(false);
   const [ticketLoading, setTicketLoading] = useState<boolean>(false);
+  const [availabilityLoading, setAvailabilityLoading] = useState<boolean>(false);
   const [isComboExpanded, setIsComboExpanded] = useState<boolean>(true);
   const [isOptionExpanded, setIsOptionExpanded] = useState<boolean>(true);
   const [isTicketExpanded, setIsTicketExpanded] = useState<boolean>(true);
+  const [expandedCombos, setExpandedCombos] = useState<Record<string, boolean>>({});
 
   const serviceIdValue = Array.isArray(serviceId) ? serviceId[0] : (serviceId as string) ?? '';
+
+  const getDayLabel = (day?: number | null) => {
+    if (day === undefined || day === null) {
+      return '-';
+    }
+    // Convert from 1-7 (Monday-Sunday in database) to 0-6 (Sunday-Saturday in frontend)
+    // 1-6 (Monday-Saturday) -> 1-6, 7 (Sunday) -> 0
+    const frontendDay = day === 7 ? 0 : day - 1;
+    return t(`Service.weekday.${frontendDay}`, {
+      defaultMessage: DEFAULT_DAY_NAMES[frontendDay] ?? '-',
+    });
+  };
 
   const fetchCombos = useCallback(async () => {
     if (!serviceIdValue) return;
     setComboLoading(true);
     try {
       const comboData = await getServiceCombos(serviceIdValue);
-      setCombos(comboData);
+      const typedCombos = (comboData ?? []) as ComboWithItems[];
+      setCombos(typedCombos);
+      setExpandedCombos((prev) => {
+        const next: Record<string, boolean> = {};
+        typedCombos.forEach((combo) => {
+          if (!combo.id) return;
+          next[combo.id] = prev[combo.id] ?? false;
+        });
+        return next;
+      });
     } catch (err) {
       console.error('Failed to load service combos', err);
     } finally {
@@ -143,12 +190,33 @@ export default function ServiceDetailPage() {
     }
   }, [serviceIdValue]);
 
+  const fetchAvailabilities = useCallback(async () => {
+    if (!serviceIdValue) return;
+    setAvailabilityLoading(true);
+    try {
+      const availabilityData = await getServiceAvailabilities(serviceIdValue);
+      setAvailabilities(availabilityData);
+    } catch (err) {
+      console.error('Failed to load service availabilities', err);
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  }, [serviceIdValue]);
+
   useEffect(() => {
     if (!serviceIdValue) return;
     fetchCombos();
     fetchOptions();
     fetchTickets();
-  }, [serviceIdValue, fetchCombos, fetchOptions, fetchTickets]);
+    fetchAvailabilities();
+  }, [serviceIdValue, fetchCombos, fetchOptions, fetchTickets, fetchAvailabilities]);
+
+  const toggleComboDetail = (comboId: string) => {
+    setExpandedCombos((prev) => ({
+      ...prev,
+      [comboId]: !prev[comboId],
+    }));
+  };
 
   const handleBack = () => {
     router.push('/base/serviceList');
@@ -262,6 +330,8 @@ export default function ServiceDetailPage() {
     }
   };
 
+  const hasAvailabilities = availabilities.length > 0;
+
   return (
     <div className="min-h-screen p-4 sm:p-8 font-sans">
       <div
@@ -318,8 +388,8 @@ export default function ServiceDetailPage() {
             readonly={true}
           />
           <DetailField
-            label={t('Service.bookingType')}
-            value={t(mapBookingType(serviceData.bookingType))}
+            label={t('Service.status')}
+            value={serviceData.isActive ? t('Service.active') : t('Service.inactive')}
             readonly={true}
           />
           {serviceData.pricingType === ServicePricingType.HOURLY && (
@@ -346,24 +416,6 @@ export default function ServiceDetailPage() {
             value={
               serviceData.minDurationHours !== undefined && serviceData.minDurationHours !== null
                 ? serviceData.minDurationHours.toString()
-                : '-'
-            }
-            readonly={true}
-          />
-          <DetailField
-            label={t('Service.maxDuration')}
-            value={
-              serviceData.maxDurationHours !== undefined && serviceData.maxDurationHours !== null
-                ? serviceData.maxDurationHours.toString()
-                : '-'
-            }
-            readonly={true}
-          />
-          <DetailField
-            label={t('Service.advanceBookingDays')}
-            value={
-              serviceData.advanceBookingDays !== undefined && serviceData.advanceBookingDays !== null
-                ? serviceData.advanceBookingDays.toString()
                 : '-'
             }
             readonly={true}
@@ -397,15 +449,80 @@ export default function ServiceDetailPage() {
 
       <div className="max-w-5xl mx-auto mt-6 grid grid-cols-1 gap-6">
         <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-[#02542D]">
+              {t('Service.availability.sectionTitle', { defaultMessage: 'Service availability' })}
+            </h2>
+          </div>
+          {availabilityLoading ? (
+            <div className="text-gray-500">{t('Service.loading')}</div>
+          ) : hasAvailabilities ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-100 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">
+                      {t('Service.availability.dayOfWeek', { defaultMessage: 'Day' })}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">
+                      {t('Service.availability.startTime', { defaultMessage: 'Start time' })}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">
+                      {t('Service.availability.endTime', { defaultMessage: 'End time' })}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">
+                      {t('Service.status', { defaultMessage: 'Status' })}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {availabilities.map((availability, index) => (
+                    <tr key={availability.id ?? `availability-${index}`} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-gray-700">
+                        {getDayLabel(availability.dayOfWeek ?? undefined)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">{formatTime(availability.startTime)}</td>
+                      <td className="px-4 py-3 text-gray-700">{formatTime(availability.endTime)}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                            availability.isAvailable
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-gray-200 text-gray-600'
+                          }`}
+                        >
+                          {availability.isAvailable ? t('Service.active') : t('Service.inactive')}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">
+              {t('Service.availability.empty', { defaultMessage: 'No availability slots configured.' })}
+            </div>
+          )}
+        </section>
+        <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <button
-              type="button"
-              className="flex items-center gap-3 text-left text-xl font-semibold text-[#02542D]"
-              onClick={() => setIsComboExpanded((prev) => !prev)}
-            >
-              <span className="text-2xl leading-none">{isComboExpanded ? '-' : '+'}</span>
-              <span>{t('Service.combos')}</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
+                onClick={() => setIsComboExpanded((prev) => !prev)}
+              >
+                <Image
+                  src={DropdownArrow}
+                  alt="Toggle"
+                  width={16}
+                  height={16}
+                  className={`transition-transform ${isComboExpanded ? "rotate-180" : ""}`}
+                />
+              </button>
+              <h2 className="text-xl font-semibold text-[#02542D]">{t('Service.combos')}</h2>
+            </div>
             {isComboExpanded && (
               <button
                 type="button"
@@ -425,6 +542,7 @@ export default function ServiceDetailPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-100 border-b border-gray-200">
                       <tr>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600"></th>
                         <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboName')}</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboCode')}</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboPrice')}</th>
@@ -433,40 +551,118 @@ export default function ServiceDetailPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {combos.map((combo: ServiceCombo) => (
-                        <tr key={combo.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-900">{combo.name ?? '-'}</td>
-                          <td className="px-4 py-3 text-gray-600">{combo.code ?? '-'}</td>
-                          <td className="px-4 py-3 text-gray-600">{formatCurrency(combo.price ?? null)}</td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                combo.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
-                              }`}
-                            >
-                              {combo.isActive ? t('Service.active') : t('Service.inactive')}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-center">
-                            <div className="flex space-x-2 justify-center">
-                              <button
-                                type="button"
-                                onClick={() => handleEditCombo(combo.id)}
-                                className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
-                              >
-                                <Image src={Edit} alt="Edit combo" width={24} height={24} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteCombo(combo.id)}
-                                className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
-                              >
-                                <Image src={Delete} alt="Delete combo" width={24} height={24} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {combos.map((combo, index) => {
+                        const comboId = combo.id ?? `combo-${index}`;
+                        const isRowExpanded = !!expandedCombos[comboId];
+                        const comboItems = combo.items ?? [];
+                        return (
+                          <Fragment key={combo.id ?? comboId}>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-3 align-top">
+                                {combo.id ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleComboDetail(comboId)}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
+                                  >
+                                    <Image
+                                      src={DropdownArrow}
+                                      alt="Toggle"
+                                      width={14}
+                                      height={14}
+                                      className={`transition-transform ${isRowExpanded ? "rotate-180" : ""}`}
+                                    />
+                                  </button>
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 font-medium text-gray-900">{combo.name ?? '-'}</td>
+                              <td className="px-4 py-3 text-gray-600">{combo.code ?? '-'}</td>
+                              <td className="px-4 py-3 text-gray-600">{formatCurrency(combo.price ?? null)}</td>
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                    combo.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
+                                  }`}
+                                >
+                                  {combo.isActive ? t('Service.active') : t('Service.inactive')}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-center">
+                                <div className="flex space-x-2 justify-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditCombo(combo.id)}
+                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
+                                  >
+                                    <Image src={Edit} alt="Edit combo" width={24} height={24} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteCombo(combo.id)}
+                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
+                                  >
+                                    <Image src={Delete} alt="Delete combo" width={24} height={24} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            {combo.id && isRowExpanded && (
+                              <tr>
+                                <td colSpan={6} className="px-4 pb-6">
+                                  <div className="mt-2 rounded-lg">
+                                    {comboItems.length > 0 ? (
+                                      <div className="mt-4 overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                          <thead className="bg-white border border-gray-200">
+                                            <tr>
+                                              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                                                {t('Service.comboName')}
+                                              </th>
+                                              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                                                {t('Service.comboItemPrice')}
+                                              </th>
+                                              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                                                {t('Service.comboItemQuantity')}
+                                              </th>
+                                              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                                                {t('Service.comboItemNote')}
+                                              </th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-gray-200 bg-white">
+                                            {comboItems.map((item, itemIndex) => (
+                                              <tr key={item.id ?? `${comboId}-item-${itemIndex}`}>
+                                                <td className="px-4 py-3 text-gray-700">
+                                                  {item.itemName ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-700">
+                                                  {item.itemPrice ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-700">
+                                                  {item.quantity != null ? item.quantity : '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-700">
+                                                  {item.note ?? '-'}
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    ) : (
+                                      <div className="mt-4 text-sm text-gray-500">
+                                        {t('Service.comboItemNoItems')}
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -481,14 +677,22 @@ export default function ServiceDetailPage() {
 
         <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <button
-              type="button"
-              className="flex items-center gap-3 text-left text-xl font-semibold text-[#02542D]"
-              onClick={() => setIsOptionExpanded((prev) => !prev)}
-            >
-              <span className="text-2xl leading-none">{isOptionExpanded ? '-' : '+'}</span>
-              <span>{t('Service.options')}</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
+                onClick={() => setIsOptionExpanded((prev) => !prev)}
+              >
+                <Image
+                  src={DropdownArrow}
+                  alt="Toggle"
+                  width={16}
+                  height={16}
+                  className={`transition-transform ${isOptionExpanded ? "rotate-180" : ""}`}
+                />
+              </button>
+              <h2 className="text-xl font-semibold text-[#02542D]">{t('Service.options')}</h2>
+            </div>
             {isOptionExpanded && (
               <button
                 type="button"
@@ -556,14 +760,22 @@ export default function ServiceDetailPage() {
 
         <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <button
-              type="button"
-              className="flex items-center gap-3 text-left text-xl font-semibold text-[#02542D]"
-              onClick={() => setIsTicketExpanded((prev) => !prev)}
-            >
-              <span className="text-2xl leading-none">{isTicketExpanded ? '-' : '+'}</span>
-              <span>{t('Service.tickets')}</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
+                onClick={() => setIsTicketExpanded((prev) => !prev)}
+              >
+                <Image
+                  src={DropdownArrow}
+                  alt="Toggle"
+                  width={16}
+                  height={16}
+                  className={`transition-transform ${isTicketExpanded ? "rotate-180" : ""}`}
+                />
+              </button>
+              <h2 className="text-xl font-semibold text-[#02542D]">{t('Service.tickets')}</h2>
+            </div>
             {isTicketExpanded && (
               <button
                 type="button"

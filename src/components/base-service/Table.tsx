@@ -24,6 +24,7 @@ interface TableItemProps {
     categoryId?: string;
     categoryCode?: string;
     sortOrder?: number | null;
+    disableDelete?: boolean;
     serviceId?: string;
     serviceCode?: string;
     serviceName?: string;
@@ -235,9 +236,6 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold">
                                             {item.pricingType || '-'}
                                         </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold">
-                                            {item.bookingType || '-'}
-                                        </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-center">
                                             <span
                                                 className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -283,6 +281,7 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                 );
                             }
                             if(type === "service-category"){
+                                const isDeleteDisabled = item.disableDelete ?? false;
                                 return (
                                     <tr
                                         key={item.categoryId}
@@ -324,8 +323,20 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => item.categoryId && onDelete && onDelete(item.categoryId)}
-                                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
+                                                    onClick={() => {
+                                                        if (isDeleteDisabled) {
+                                                            return;
+                                                        }
+                                                        if (item.categoryId && onDelete) {
+                                                            onDelete(item.categoryId);
+                                                        }
+                                                    }}
+                                                    disabled={isDeleteDisabled}
+                                                    className={`w-[47px] h-[34px] flex items-center justify-center rounded-md transition ${
+                                                        isDeleteDisabled
+                                                            ? 'bg-gray-300 cursor-not-allowed opacity-70'
+                                                            : 'bg-red-500 hover:bg-red-600'
+                                                    }`}
                                                 >
                                                     <Image
                                                         src={Delete}
