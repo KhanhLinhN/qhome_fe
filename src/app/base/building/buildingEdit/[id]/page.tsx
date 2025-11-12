@@ -23,28 +23,23 @@ export default function BuildingEdit() {
     const { buildingData, loading, error, isSubmitting, editBuilding } =
         useBuildingDetailPage(buildingId);
 
-    const [formData, setFormData] = useState<Partial<Building> & { floorsMaxStr: string; status: string }>({
+    const [formData, setFormData] = useState<Partial<Building> & { status: string }>({
         address: '',
-        floorsMax: 0,
         totalApartmentsAll: 0,
         totalApartmentsActive: 0,
-        floorsMaxStr: '0',
         status: '',
     });
 
     const [errors, setErrors] = useState<{
         address?: string;
-        floors?: string;
     }>({});
 
     useEffect(() => {
         if (buildingData) {
             setFormData({
                 address: buildingData.address ?? '',
-                floorsMax: buildingData.floorsMax ?? 0,
                 totalApartmentsAll: buildingData.totalApartmentsAll ?? 0,
                 totalApartmentsActive: buildingData.totalApartmentsActive ?? 0,
-                floorsMaxStr: buildingData.floorsMax?.toString() ?? '0',
                 status: buildingData.status ?? 'ACTIVE',
             });
         }
@@ -65,14 +60,6 @@ export default function BuildingEdit() {
                     delete newErrors.address;
                 }
                 break;
-            case 'floorsMax':
-                const floors = typeof value === 'number' ? value : parseInt(String(value));
-                if (!floors || floors <= 0) {
-                    newErrors.floors = t('floorsError');
-                } else {
-                    delete newErrors.floors;
-                }
-                break;
         }
         
         setErrors(newErrors);
@@ -81,17 +68,11 @@ export default function BuildingEdit() {
     const validateAllFields = () => {
         const newErrors: {
             address?: string;
-            floors?: string;
         } = {};
         
         // Validate address
         if (!formData.address || formData.address.trim() === '') {
             newErrors.address = t('addressError');
-        }
-        
-        // Validate floors
-        if (!formData.floorsMax || formData.floorsMax <= 0) {
-            newErrors.floors = t('floorsError');
         }
         
         setErrors(newErrors);
@@ -102,15 +83,7 @@ export default function BuildingEdit() {
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         const { name, value } = e.target;
-        if (name === 'floorsMax') {
-            const floorsValue = parseInt(value) || 0;
-            setFormData(prev => ({
-                ...prev,
-                floorsMaxStr: value,
-                floorsMax: floorsValue,
-            }));
-            validateField('floorsMax', floorsValue);
-        } else if (name === 'totalApartmentsAll') {
+        if (name === 'totalApartmentsAll') {
             setFormData(prev => ({
                 ...prev,
                 totalApartmentsAll: parseInt(value) || 0,
@@ -149,9 +122,8 @@ export default function BuildingEdit() {
         }
 
         try {
-            const { floorsMaxStr, ...buildingUpdateData } = formData;
-            console.log('Đang gửi dữ liệu:', buildingUpdateData);
-            await editBuilding(buildingId, buildingUpdateData);
+            console.log('Đang gửi dữ liệu:', formData);
+            await editBuilding(buildingId, formData);
             show('Cập nhật tòa nhà thành công!', 'success');
             router.push(`/base/building/buildingDetail/${buildingId}`);
         } catch (submitError) {
@@ -251,15 +223,6 @@ export default function BuildingEdit() {
                         error={errors.address}
                     />
 
-                    <DetailField
-                        label={t('floors')}
-                        value={formData.floorsMaxStr || "0"}
-                        readonly={false}
-                        placeholder={t('floors')}
-                        name="floorsMax"
-                        onChange={handleChange}
-                        error={errors.floors}
-                    />
                 </div>
 
                 <div className="flex justify-center mt-8 space-x-4">

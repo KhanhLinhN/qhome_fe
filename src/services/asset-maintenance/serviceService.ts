@@ -12,6 +12,7 @@ import {
   ServiceOption,
   ServiceOptionGroup,
   ServiceTicket,
+  ServiceAvailability,
   UpdateServiceCategoryPayload,
   UpdateServicePayload,
 } from '@/src/types/service';
@@ -210,7 +211,6 @@ export async function createServiceTicket(
   );
   return response.data as ServiceTicket;
 }
-
 export async function deleteServiceCombo(comboId: string): Promise<void> {
   await axios.delete(
     `${BASE_URL}/api/asset-maintenance/service-combos/${comboId}`,
@@ -231,3 +231,42 @@ export async function deleteServiceTicket(ticketId: string): Promise<void> {
     withCredentials,
   );
 }
+
+export interface ServiceAvailabilityRequest {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isAvailable?: boolean;
+}
+
+export async function getServiceAvailabilities(serviceId: string): Promise<ServiceAvailability[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/asset-maintenance/services/${serviceId}/availabilities`,
+    withCredentials,
+  );
+  return response.data as ServiceAvailability[];
+}
+
+export async function addServiceAvailability(
+  serviceId: string,
+  data: ServiceAvailabilityRequest,
+): Promise<ServiceAvailability[]> {
+  const response = await axios.post(
+    `${BASE_URL}/api/asset-maintenance/services/${serviceId}/availabilities`,
+    data,
+    withCredentials,
+  );
+  return response.data as ServiceAvailability[];
+}
+
+export async function deleteServiceAvailability(
+  serviceId: string,
+  availabilityId: string,
+): Promise<ServiceAvailability[]> {
+  const response = await axios.delete(
+    `${BASE_URL}/api/asset-maintenance/services/${serviceId}/availabilities/${availabilityId}`,
+    withCredentials,
+  );
+  return response.data as ServiceAvailability[];
+}
+

@@ -623,7 +623,6 @@ export default function ContractManagementPage() {
                     resetCreateForm();
                   }}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-100"
-                  aria-label="Đóng tạo hợp đồng"
                 >
                   ×
                 </button>
@@ -894,7 +893,6 @@ export default function ContractManagementPage() {
                   type="button"
                   onClick={handleCloseContractDetail}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-100"
-                  aria-label="Đóng chi tiết hợp đồng"
                 >
                   ×
                 </button>

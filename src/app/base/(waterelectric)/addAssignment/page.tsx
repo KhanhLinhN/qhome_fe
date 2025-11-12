@@ -49,6 +49,8 @@ export default function AddAssignmentPage() {
   const [loadingUnits, setLoadingUnits] = useState<Map<number, boolean>>(new Map());
   const [assignedFloors, setAssignedFloors] = useState<Set<number>>(new Set());
   const [assignedUnitIds, setAssignedUnitIds] = useState<Set<string>>(new Set()); // Units already assigned for this cycle/service/building
+  const [startDateError, setStartDateError] = useState<string>('');
+  const [endDateError, setEndDateError] = useState<string>('');
 
   // Load initial data
   useEffect(() => {
@@ -229,6 +231,38 @@ export default function AddAssignmentPage() {
       return;
     }
 
+    setStartDateError('');
+    setEndDateError('');
+
+    const parseDateOnly = (value: string) => {
+      const [datePart] = value.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
+    const selectedCycle = cycles.find(cycle => cycle.id === selectedCycleId);
+
+    if (selectedCycle) {
+      const cycleStartDate = parseDateOnly(selectedCycle.periodFrom);
+      const cycleEndDate = parseDateOnly(selectedCycle.periodTo);
+
+      if (startDate) {
+        const startDateValue = parseDateOnly(startDate);
+        if (startDateValue < cycleStartDate) {
+          setStartDateError('Start date cannot be before the cycle start date');
+          return;
+        }
+      }
+
+      if (endDate) {
+        const endDateValue = parseDateOnly(endDate);
+        if (endDateValue > cycleEndDate) {
+          setEndDateError('End date cannot be after the cycle end date');
+          return;
+        }
+      }
+    }
+
     // Validate: must select at least one unit when building is selected
     if (selectedBuildingId && selectedUnitIds.size === 0) {
       show('Please select at least one unit', 'error');
@@ -377,9 +411,17 @@ export default function AddAssignmentPage() {
               </label>
               <DateBox
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  if (startDateError) {
+                    setStartDateError('');
+                  }
+                }}
                 placeholderText="Select start date"
               />
+              {startDateError && (
+                <span className="text-red-500 text-xs mt-1">{startDateError}</span>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -387,9 +429,17 @@ export default function AddAssignmentPage() {
               </label>
               <DateBox
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  if (endDateError) {
+                    setEndDateError('');
+                  }
+                }}
                 placeholderText="Select end date"
               />
+              {endDateError && (
+                <span className="text-red-500 text-xs mt-1">{endDateError}</span>
+              )}
             </div>
           </div>
 

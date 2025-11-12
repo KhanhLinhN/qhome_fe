@@ -23,3 +23,24 @@ export interface Vehicle {
     updatedAt: string;
 }
 
+export type VehicleRegistrationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELED';
+
+export interface VehicleRegistration {
+    id: string;
+    vehicleId: string | null;
+    vehiclePlateNo: string | null;
+    vehicleKind: string | null;
+    vehicleColor: string | null;
+    reason: string | null;
+    status: VehicleRegistrationStatus;
+    requestedBy: string | null;
+    requestedByName: string | null;
+    approvedBy: string | null;
+    approvedByName: string | null;
+    note: string | null;
+    requestedAt: string | null;
+    approvedAt: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+}
+

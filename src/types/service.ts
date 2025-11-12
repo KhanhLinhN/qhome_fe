@@ -5,6 +5,8 @@ export interface ServiceCategory {
   description?: string;
   isActive?: boolean;
   sortOrder?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export enum ServicePricingType {
@@ -71,6 +73,16 @@ export interface ServiceTicket {
   sortOrder?: number | null;
 }
 
+export interface ServiceAvailability {
+  id: string;
+  serviceId?: string;
+  dayOfWeek?: number | null;
+  startTime?: string;
+  endTime?: string;
+  isAvailable?: boolean;
+  createdAt?: string;
+}
+
 export interface ServiceCombo {
   id: string;
   code?: string;
@@ -104,6 +116,7 @@ export interface Service {
   tickets?: ServiceTicket[];
   isActive?: boolean;
   createdAt?: string;
+  availabilities?: ServiceAvailability[];
 }
 
 export interface Page<T> {
@@ -131,6 +144,7 @@ export interface CreateServicePayload {
   advanceBookingDays?: number | null;
   rules?: string;
   isActive?: boolean;
+  availabilities?: ServiceAvailabilityInput[];
 }
 
 export type UpdateServicePayload = Partial<CreateServicePayload>;
@@ -147,8 +161,10 @@ export interface CreateServiceCategoryPayload {
 export type UpdateServiceCategoryPayload = Partial<CreateServiceCategoryPayload>;
 
 export interface ServiceComboItemPayload {
-  includedServiceId?: string;
-  optionId?: string;
+  itemName: string;
+  itemDescription?: string;
+  itemPrice?: number | null;
+  itemDurationMinutes?: number | null;
   quantity: number;
   note?: string;
   sortOrder?: number | null;
@@ -197,5 +213,12 @@ export interface CreateServiceTicketPayload {
   description?: string;
   isActive?: boolean;
   sortOrder?: number | null;
+}
+
+export interface ServiceAvailabilityInput {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isAvailable?: boolean;
 }
 

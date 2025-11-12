@@ -160,7 +160,7 @@ export default function WaterAssignPage() {
   return (
     <div className="px-[41px] py-12">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-[#02542D]">Water Assignment Management</h1>
+        <h1 className="text-2xl font-semibold text-[#02542D]">Assignment Management</h1>
       </div>
 
       {loading && cyclesWithAssignments.length === 0 ? (

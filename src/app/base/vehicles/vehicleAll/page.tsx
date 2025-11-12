@@ -298,7 +298,6 @@ export default function VehicleAllPage() {
                   type="button"
                   onClick={() => setIsSidebarCollapsed(true)}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
-                  aria-label={t('collapseBuildingUnitSection')}
                 >
                   <span className="text-base leading-none">{'«'}</span>
                 </button>
@@ -340,7 +339,6 @@ export default function VehicleAllPage() {
                               type="button"
                               onClick={() => toggleBuilding(building.id)}
                               className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
-                              aria-label={t('toggleBuilding')}
                             >
                               <Image
                                 src={DropdownArrow}
@@ -409,7 +407,6 @@ export default function VehicleAllPage() {
               type="button"
               onClick={() => setIsSidebarCollapsed(false)}
               className="absolute left-0 top-5 z-10 inline-flex -translate-x-1/2 items-center justify-center rounded-full border border-slate-300 bg-white p-2 text-slate-500 shadow transition hover:border-emerald-300 hover:text-emerald-700"
-              aria-label={t('expandBuildingUnitSection')}
             >
               <span className="text-sm leading-none">{'»'}</span>
             </button>

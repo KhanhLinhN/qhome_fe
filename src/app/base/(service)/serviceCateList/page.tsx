@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Table from '@/src/components/base-service/Table';
@@ -8,8 +8,11 @@ import DetailField from '@/src/components/base-service/DetailField';
 import Select from '@/src/components/customer-interaction/Select';
 import { useServiceCategoryList } from '@/src/hooks/useServiceCategoryList';
 import { useNotifications } from '@/src/hooks/useNotifications';
-import { ServiceCategory } from '@/src/types/service';
-import { deleteServiceCategory } from '@/src/services/asset-maintenance/serviceService';
+import { Page, Service, ServiceCategory } from '@/src/types/service';
+import {
+  deleteServiceCategory,
+  getServices,
+} from '@/src/services/asset-maintenance/serviceService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 
 const formatDate = (value?: string) => {
@@ -63,30 +66,50 @@ export default function ServiceCategoryListPage() {
     [t],
   );
 
-  const tableData = useMemo(
-    () =>
-      categories.map((category) => ({
-        categoryId: category.id,
-        categoryCode: category.code,
-        categoryName: category.name,
-        isActive: category.isActive ?? true,
-        sortOrder: category.sortOrder ?? null,
-        createdAt: formatDate(category.createdAt),
-      })),
-    [categories],
-  );
-
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [formState, setFormState] = useState<EditFormState>(initialEditState);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [serviceLoading, setServiceLoading] = useState<boolean>(true);
+  const [serviceError, setServiceError] = useState<string | null>(null);
+
+  const fetchServices = useCallback(async () => {
+    setServiceLoading(true);
+    setServiceError(null);
+    try {
+      const result = await getServices();
+      let servicesArray: Service[] = [];
+      const raw = result as unknown;
+      if (Array.isArray(raw)) {
+        servicesArray = raw as Service[];
+      } else if (
+        raw &&
+        typeof raw === 'object' &&
+        Array.isArray((raw as Page<Service>).content)
+      ) {
+        servicesArray = (raw as Page<Service>).content;
+      }
+      setServices(servicesArray);
+    } catch (fetchError) {
+      console.error('Failed to fetch services', fetchError);
+      setServiceError('Failed to fetch services.');
+      setServices([]);
+    } finally {
+      setServiceLoading(false);
+    }
+  }, []);
 
   const handleClosePopup = () => {
     setIsPopupOpen(false);
     setDeleteTargetId(null);
   };
+
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
 
   useEffect(() => {
     if (!selectedCategory) return;
@@ -135,6 +158,30 @@ export default function ServiceCategoryListPage() {
     }));
   };
 
+  const categoryServiceCounts = useMemo(() => {
+    return services.reduce<Record<string, number>>((acc, serviceItem) => {
+      const categoryId = serviceItem.categoryId ?? serviceItem.category?.id;
+      if (categoryId) {
+        acc[categoryId] = (acc[categoryId] ?? 0) + 1;
+      }
+      return acc;
+    }, {});
+  }, [services]);
+
+  const tableData = useMemo(
+    () =>
+      categories.map((category) => ({
+        categoryId: category.id,
+        categoryCode: category.code,
+        categoryName: category.name,
+        isActive: category.isActive ?? true,
+        sortOrder: category.sortOrder ?? null,
+        createdAt: formatDate(category.createdAt),
+        disableDelete: (categoryServiceCounts[category.id] ?? 0) > 0,
+      })),
+    [categories, categoryServiceCounts],
+  );
+
   const validate = () => {
     const errors: Record<string, string> = {};
     if (!formState.name.trim()) {
@@ -154,7 +201,6 @@ export default function ServiceCategoryListPage() {
         code: formState.code.trim(),
         name: formState.name.trim(),
         description: formState.description.trim() || undefined,
-        icon: formState.icon.trim() || undefined,
         sortOrder: formState.sortOrder
           ? Number(formState.sortOrder)
           : undefined,
@@ -169,12 +215,17 @@ export default function ServiceCategoryListPage() {
   };
 
   const handleDeleteCategory = (id: string) => {
+    if ((categoryServiceCounts[id] ?? 0) > 0) {
+      show(t('messages.deleteError'), 'info');
+      return;
+    }
     setDeleteTargetId(id);
     setIsPopupOpen(true);
   };
 
   const handleRefresh = () => {
     refetch();
+    fetchServices();
   };
 
   const statusOptions = [
@@ -182,7 +233,10 @@ export default function ServiceCategoryListPage() {
     { name: t('inactive'), value: 'false' },
   ];
 
-  if (loading) {
+  const isLoading = loading || serviceLoading;
+  const hasError = Boolean(error) || Boolean(serviceError);
+
+  if (isLoading) {
     return (
       <div className="px-[41px] py-12 flex items-center justify-center">
         <div className="text-center">
@@ -193,7 +247,7 @@ export default function ServiceCategoryListPage() {
     );
   }
 
-  if (error) {
+  if (hasError) {
     return (
       <div className="px-[41px] py-12 flex items-center justify-center">
         <div className="text-center">
@@ -252,7 +306,6 @@ export default function ServiceCategoryListPage() {
               <button
                 onClick={handleCloseModal}
                 className="text-gray-500 hover:text-gray-700 text-xl leading-none"
-                aria-label={t('close')}
               >
                 ×
               </button>
@@ -329,7 +382,8 @@ export default function ServiceCategoryListPage() {
           try {
             await deleteServiceCategory(deleteTargetId);
             show(t('messages.deleteSuccess'), 'success');
-            refetch();
+            await refetch();
+            await fetchServices();
           } catch (err) {
             console.error('Failed to delete service category', err);
             show(t('messages.deleteError'), 'error');
