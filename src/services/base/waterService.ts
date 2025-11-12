@@ -434,6 +434,15 @@ export async function getReadingsByAssignment(assignmentId: string): Promise<Met
   return response.data;
 }
 
+export async function exportMeterReadingsByCycle(cycleId: string): Promise<MeterReadingImportResponse> {
+  const response = await axios.post(
+    `${BASE_URL}/api/meter-readings/export/cycle/${cycleId}`,
+    null,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
 export async function updateMeterReading(
   readingId: string,
   req: MeterReadingUpdateReq
