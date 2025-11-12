@@ -11,8 +11,9 @@ type SidebarVariant = "admin" | "tenant-owner" | "technician";
 
 type NavItem = {
   href: string;
-  labelKey: string;
   icon: string;
+  labelKey?: string;
+  label?: string;
 };
 
 type NavSection = {
@@ -53,6 +54,8 @@ const adminSections: NavSection[] = [
       {href: "/base/household/householdMemberRequests", label: "Duyệt thành viên gia đình", icon: "👪"},
       {href: "/base/contract/contracts", label: "Hợp đồng căn hộ", icon: "📄"},
       {href: "/base/vehicles/vehicleAll", label: "Quản lý phương tiện", icon: "🚗"},
+      {href: "/base/cards/elevator", label: "Thẻ thang máy", icon: "🛗"},
+      {href: "/base/cards/resident", label: "Thẻ cư dân", icon: "🔑"},
     ],
   },
   {
@@ -206,7 +209,9 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
                         <span aria-hidden className="w-5 text-center flex items-center justify-center">
                           {item.icon}
                         </span>
-                        <span className="truncate">{t(item.labelKey)}</span>
+                        <span className="truncate">
+                          {item.labelKey ? t(item.labelKey) : item.label ?? item.href}
+                        </span>
                       </Link>
                     );
                   })}

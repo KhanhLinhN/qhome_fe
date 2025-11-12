@@ -7,8 +7,7 @@ import {
 
 const CARD_SERVICE_BASE_URL =
   process.env.NEXT_PUBLIC_CARD_SERVICE_URL ||
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  "http://localhost:8081";
+  "http://localhost:8083";
 
 export async function fetchVehicleRegistrationRequests(
   filter?: VehicleRegistrationFilter
