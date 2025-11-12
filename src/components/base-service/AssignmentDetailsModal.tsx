@@ -11,6 +11,10 @@ interface AssignmentDetailsModalProps {
   progress: AssignmentProgressDto | null;
   meters: MeterDto[];
   onClose: () => void;
+  onExport?: (assignment: MeterReadingAssignmentDto) => void;
+  isExporting?: boolean;
+  onComplete?: (assignment: MeterReadingAssignmentDto) => void;
+  isCompleting?: boolean;
 }
 
 const AssignmentDetailsModal = ({
@@ -19,6 +23,10 @@ const AssignmentDetailsModal = ({
   progress,
   meters,
   onClose,
+  onExport,
+  isExporting = false,
+  onComplete,
+  isCompleting = false,
 }: AssignmentDetailsModalProps) => {
   if (!isOpen || !assignment) return null;
 
@@ -115,6 +123,9 @@ const AssignmentDetailsModal = ({
               ? Math.round((filledCount / totalUnits) * 100) 
               : 0;
             const remaining = totalUnits - filledCount;
+            const allDone = totalUnits > 0 && remaining === 0;
+            const canExport = allDone && !!assignment.cycleId;
+            const canComplete = allDone && !assignment.completedAt;
             
             return (
               <div>
@@ -154,6 +165,41 @@ const AssignmentDetailsModal = ({
                   </div>
                   <div className="mt-2 text-sm text-gray-600">
                     Progress: {filledCount} / {totalUnits} readings entered
+                  </div>
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-gray-600">
+                      {allDone
+                        ? 'All units have been read. You can mark the assignment completed and export invoices for this cycle.'
+                        : 'Complete all meter readings before completing the assignment or exporting invoices.'}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                      <button
+                        onClick={() => canComplete && onComplete?.(assignment)}
+                        disabled={!canComplete || isCompleting}
+                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                          canComplete
+                            ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8]'
+                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        } ${isCompleting ? 'opacity-70 cursor-wait' : ''}`}
+                      >
+                        {assignment.completedAt
+                          ? 'Completed'
+                          : isCompleting
+                            ? 'Completing...'
+                            : 'Mark Completed'}
+                      </button>
+                      <button
+                        onClick={() => canExport && onExport?.(assignment)}
+                        disabled={!canExport || isExporting}
+                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                          canExport
+                            ? 'bg-[#02542D] text-white hover:bg-[#024428]'
+                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        } ${isExporting ? 'opacity-70 cursor-wait' : ''}`}
+                      >
+                        {isExporting ? 'Exporting...' : 'Export Invoices'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -10,6 +10,9 @@ interface CycleCardProps {
   onToggle: () => void;
   onViewAssignment: (assignment: MeterReadingAssignmentDto) => void;
   onDeleteAssignment: (assignmentId: string) => void;
+  canCompleteCycle?: boolean;
+  onCompleteCycle?: (cycle: ReadingCycleDto) => void;
+  isCompleting?: boolean;
 }
 
 const CycleCard = ({
@@ -19,6 +22,9 @@ const CycleCard = ({
   onToggle,
   onViewAssignment,
   onDeleteAssignment,
+  canCompleteCycle = false,
+  onCompleteCycle,
+  isCompleting = false,
 }: CycleCardProps) => {
   const router = useRouter();
 
@@ -62,17 +68,35 @@ const CycleCard = ({
           </div>
         </div>
 
-        {/* Add Assignment Button */}
+        {/* Actions */}
         {cycle.status === 'IN_PROGRESS' && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/base/addAssignment?cycleId=${cycle.id}`);
-            }}
-            className="ml-4 px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024428] transition-colors"
-          >
-            Add Assignment
-          </button>
+          <div className="flex items-center gap-2 ml-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/base/addAssignment?cycleId=${cycle.id}`);
+              }}
+              className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024428] transition-colors"
+            >
+              Add Assignment
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canCompleteCycle) {
+                  onCompleteCycle?.(cycle);
+                }
+              }}
+              disabled={!canCompleteCycle || isCompleting}
+              className={`px-4 py-2 rounded-md text-white transition-colors ${
+                canCompleteCycle
+                  ? 'bg-blue-600 hover:bg-blue-500'
+                  : 'bg-gray-300 cursor-not-allowed'
+              } ${isCompleting ? 'opacity-70 cursor-wait' : ''}`}
+            >
+              {isCompleting ? 'Completing...' : 'Mark Cycle Completed'}
+            </button>
+          </div>
         )}
 
         {/* Expand Icon */}
