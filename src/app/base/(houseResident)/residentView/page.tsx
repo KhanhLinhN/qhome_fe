@@ -1,578 +1,546 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-import { getBuildings, type Building } from '@/src/services/base/buildingService';
-import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import DropdownArrow from '@/src/assets/DropdownArrow.svg';
+import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import {
   fetchCurrentHouseholdByUnit,
   fetchHouseholdMembersByHousehold,
   type HouseholdMemberDto,
 } from '@/src/services/base/householdService';
+import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
+import { useTranslations } from 'next-intl';
 
-type BuildingExpansionState = Record<string, boolean>;
-
-type BuildingUnitState = {
-  units: Unit[];
-  loading: boolean;
-  error: string | null;
-  page: number;
-  pageSize: number;
-};
-
-const DEFAULT_PAGE_SIZE = 10;
-
-const DEFAULT_UNIT_STATE: BuildingUnitState = {
-  units: [],
-  loading: false,
-  error: null,
-  page: 0,
-  pageSize: DEFAULT_PAGE_SIZE,
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: 'Đang hoạt động',
-  INACTIVE: 'Ngưng hoạt động',
-  MAINTENANCE: 'Bảo trì',
-};
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
-type UnitResidentsState = {
+type UnitWithResidents = Unit & {
   residents: HouseholdMemberDto[];
-  loading: boolean;
-  error: string | null;
-  message: string | null;
+  isExpanded?: boolean;
 };
 
-const DEFAULT_UNIT_RESIDENT_STATE: UnitResidentsState = {
-  residents: [],
-  loading: false,
-  error: null,
-  message: null,
+type BuildingWithUnits = Building & {
+  units: UnitWithResidents[];
+  isExpanded?: boolean;
 };
 
-function formatStatus(status?: string | null) {
-  if (!status) return 'Không rõ';
-  return STATUS_LABELS[status] ?? status.replaceAll('_', ' ');
-}
+type ResidentWithContext = HouseholdMemberDto & {
+  buildingId: string;
+  buildingName?: string | null;
+  buildingCode?: string | null;
+  unitId: string;
+  unitCode?: string | null;
+  unitName?: string | null;
+};
 
-function formatArea(value?: number) {
-  if (typeof value !== 'number') return '—';
-  return `${value.toLocaleString('vi-VN')} m²`;
-}
+const normalize = (value?: string | null) => value?.toLowerCase().trim() ?? '';
 
-function formatFloor(value?: number) {
-  if (typeof value !== 'number' || Number.isNaN(value)) return '—';
-  return value.toString();
-}
-
-export default function ResidentHouseholdApprovalPage() {
+export default function ResidentDirectoryPage() {
   const router = useRouter();
-  const [buildings, setBuildings] = useState<Building[]>([]);
-  const [loadingBuildings, setLoadingBuildings] = useState<boolean>(false);
-  const [buildingsError, setBuildingsError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const t = useTranslations('ResidentDirectory');
 
-  const [expandedBuildings, setExpandedBuildings] = useState<BuildingExpansionState>({});
-  const [unitStates, setUnitStates] = useState<Record<string, BuildingUnitState>>({});
-  const [expandedUnits, setExpandedUnits] = useState<Record<string, boolean>>({});
-  const [unitResidentsState, setUnitResidentsState] = useState<Record<string, UnitResidentsState>>({});
+  const [buildings, setBuildings] = useState<BuildingWithUnits[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchBuildings = useCallback(async () => {
-    setLoadingBuildings(true);
-    setBuildingsError(null);
-    try {
-      const data = await getBuildings();
-      setBuildings(data);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà. Vui lòng thử lại.';
-      setBuildingsError(message);
-    } finally {
-      setLoadingBuildings(false);
-    }
-  }, []);
+  const [buildingSearch, setBuildingSearch] = useState('');
+  const [residentSearch, setResidentSearch] = useState('');
+
+  const [selectedBuildingId, setSelectedBuildingId] = useState<'all' | string>('all');
+  const [selectedUnitId, setSelectedUnitId] = useState<'all' | string>('all');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    void fetchBuildings();
-  }, [fetchBuildings]);
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const buildingList = await getBuildings();
 
-  const fetchUnitsForBuilding = useCallback(async (buildingId: string) => {
-    setUnitStates((prev) => ({
-      ...prev,
-      [buildingId]: {
-        ...(prev[buildingId] ?? DEFAULT_UNIT_STATE),
-        loading: true,
-        error: null,
-      },
-    }));
+        const buildingsWithUnits = await Promise.all(
+          buildingList.map(async (building) => {
+            try {
+              const units = await getUnitsByBuilding(building.id);
 
-    try {
-      const units = await getUnitsByBuilding(buildingId);
-      setUnitStates((prev) => ({
-        ...prev,
-        [buildingId]: {
-          ...(prev[buildingId] ?? DEFAULT_UNIT_STATE),
-          units,
-          loading: false,
-          error: null,
-          page: 0,
-        },
-      }));
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể tải danh sách căn hộ của tòa nhà này. Vui lòng thử lại.';
-      setUnitStates((prev) => ({
-        ...prev,
-        [buildingId]: {
-          ...(prev[buildingId] ?? DEFAULT_UNIT_STATE),
-          loading: false,
-          error: message,
-        },
-      }));
-    }
-  }, []);
+              const unitsWithResidents = await Promise.all(
+                units.map(async (unit) => {
+                  try {
+                    const household = await fetchCurrentHouseholdByUnit(unit.id);
+                    if (!household?.id) {
+                      return { ...unit, residents: [] };
+                    }
+                    const residents = await fetchHouseholdMembersByHousehold(household.id);
+                    return { ...unit, residents };
+                  } catch (err) {
+                    console.error('Failed to fetch residents for unit', unit.id, err);
+                    return { ...unit, residents: [] };
+                  }
+                }),
+              );
 
-  const fetchUnitResidents = useCallback(async (unitId: string) => {
-    setUnitResidentsState((prev) => ({
-      ...prev,
-      [unitId]: {
-        ...(prev[unitId] ?? DEFAULT_UNIT_RESIDENT_STATE),
-        loading: true,
-        error: null,
-        message: null,
-      },
-    }));
+              return {
+                ...building,
+                units: unitsWithResidents,
+                isExpanded: false,
+              };
+            } catch (err) {
+              console.error('Failed to fetch units for building', building.id, err);
+              return {
+                ...building,
+                units: [],
+                isExpanded: false,
+              };
+            }
+          }),
+        );
 
-    try {
-      const household = await fetchCurrentHouseholdByUnit(unitId);
-      if (!household?.id) {
-        setUnitResidentsState((prev) => ({
-          ...prev,
-          [unitId]: {
-            residents: [],
-            loading: false,
-            error: null,
-            message: 'Chưa có hộ dân đang cư trú trong căn hộ này.',
-          },
-        }));
-        return;
+        setBuildings(buildingsWithUnits);
+      } catch (err: any) {
+        const message =
+          err?.response?.data?.message || err?.message || t('error');
+        setError(message);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const residents = await fetchHouseholdMembersByHousehold(household.id);
-      setUnitResidentsState((prev) => ({
-        ...prev,
-        [unitId]: {
-          residents,
-          loading: false,
-          error: null,
-          message: residents.length ? null : 'Chưa có cư dân nào trong căn hộ này.',
-        },
-      }));
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
-        setUnitResidentsState((prev) => ({
-          ...prev,
-          [unitId]: {
-            residents: [],
-            loading: false,
-            error: null,
-            message: 'Chưa có hộ dân đang cư trú trong căn hộ này.',
-          },
-        }));
-        return;
-      }
+    void loadData();
+  }, [t]);
 
-      const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải danh sách cư dân của căn hộ.';
-      setUnitResidentsState((prev) => ({
-        ...prev,
-        [unitId]: {
-          ...(prev[unitId] ?? DEFAULT_UNIT_RESIDENT_STATE),
-          loading: false,
-          error: message,
-          message: null,
-        },
-      }));
+  useEffect(() => {
+    if (selectedBuildingId === 'all') {
+      return;
     }
-  }, []);
 
-  const handleToggleBuilding = async (buildingId: string) => {
-    setExpandedBuildings((prev) => ({
-      ...prev,
-      [buildingId]: !prev[buildingId],
-    }));
+    const buildingExists = buildings.some((building) => building.id === selectedBuildingId);
 
-    const nextExpanded = !expandedBuildings[buildingId];
-    if (nextExpanded) {
-      const existingState = unitStates[buildingId];
-      if (!existingState || (!existingState.units.length && !existingState.loading)) {
-        void fetchUnitsForBuilding(buildingId);
+    if (!buildingExists) {
+      setSelectedBuildingId('all');
+      setSelectedUnitId('all');
+      return;
+    }
+
+    if (selectedUnitId !== 'all') {
+      const unitExists = buildings
+        .find((building) => building.id === selectedBuildingId)
+        ?.units.some((unit) => unit.id === selectedUnitId);
+
+      if (!unitExists) {
+        setSelectedUnitId('all');
       }
     }
+  }, [buildings, selectedBuildingId, selectedUnitId]);
+
+  const toggleBuilding = (buildingId: string) => {
+    setBuildings((prev) =>
+      prev.map((building) =>
+        building.id === buildingId
+          ? {
+              ...building,
+              isExpanded: !building.isExpanded,
+            }
+          : building,
+      ),
+    );
   };
 
-  const handleToggleUnit = useCallback(
-    (unitId: string) => {
-      setExpandedUnits((prev) => {
-        const nextExpanded = !(prev[unitId] ?? false);
-        if (nextExpanded) {
-          const existing = unitResidentsState[unitId];
-          if (!existing || (!existing.residents.length && !existing.message && !existing.error)) {
-            void fetchUnitResidents(unitId);
-          }
+  const toggleUnit = (buildingId: string, unitId: string) => {
+    setBuildings((prev) =>
+      prev.map((building) =>
+        building.id === buildingId
+          ? {
+              ...building,
+              units: building.units.map((unit) =>
+                unit.id === unitId
+                  ? {
+                      ...unit,
+                      isExpanded: !unit.isExpanded,
+                    }
+                  : unit,
+              ),
+            }
+          : building,
+      ),
+    );
+  };
+
+  const filteredBuildings = useMemo(() => {
+    const query = normalize(buildingSearch);
+    if (!query) {
+      return buildings;
+    }
+
+    return buildings
+      .map((building) => {
+        const buildingMatch = normalize(`${building.name ?? ''} ${building.code ?? ''}`).includes(query);
+
+        const filteredUnits = building.units.filter((unit) =>
+          normalize(`${unit.name ?? ''} ${unit.code ?? ''}`).includes(query),
+        );
+
+        if (buildingMatch) {
+          return {
+            ...building,
+            units: filteredUnits.length ? filteredUnits : building.units,
+          };
         }
-        return {
-          ...prev,
-          [unitId]: nextExpanded,
-        };
+
+        if (filteredUnits.length) {
+          return {
+            ...building,
+            units: filteredUnits,
+          };
+        }
+
+        return null;
+      })
+      .filter((item): item is BuildingWithUnits => Boolean(item));
+  }, [buildingSearch, buildings]);
+
+  const residentsWithContext = useMemo<ResidentWithContext[]>(() => {
+    const result: ResidentWithContext[] = [];
+
+    buildings.forEach((building) => {
+      building.units.forEach((unit) => {
+        unit.residents.forEach((resident) => {
+          result.push({
+            ...resident,
+            buildingId: building.id,
+            buildingName: building.name,
+            buildingCode: building.code,
+            unitId: unit.id,
+            unitCode: unit.code,
+            unitName: unit.name,
+          });
+        });
       });
-    },
-    [fetchUnitResidents, unitResidentsState],
-  );
-
-  const handleChangePage = (buildingId: string, nextPage: number) => {
-    setUnitStates((prev) => {
-      const current = prev[buildingId] ?? DEFAULT_UNIT_STATE;
-      const totalPages = Math.max(1, Math.ceil(current.units.length / current.pageSize));
-      const safePage = Math.min(Math.max(0, nextPage), totalPages - 1);
-      return {
-        ...prev,
-        [buildingId]: {
-          ...current,
-          page: safePage,
-        },
-      };
     });
+
+    return result;
+  }, [buildings]);
+
+  const residentsToDisplay = useMemo(() => {
+    let scoped = residentsWithContext;
+
+    if (selectedUnitId !== 'all') {
+      scoped = scoped.filter((resident) => resident.unitId === selectedUnitId);
+    } else if (selectedBuildingId !== 'all') {
+      scoped = scoped.filter((resident) => resident.buildingId === selectedBuildingId);
+    }
+
+    const query = normalize(residentSearch);
+    if (!query) {
+      return scoped;
+    }
+
+    return scoped.filter((resident) => {
+      const combined = [
+        resident.residentName,
+        resident.residentEmail,
+        resident.residentPhone,
+        resident.relation,
+        resident.buildingName,
+        resident.buildingCode,
+        resident.unitName,
+        resident.unitCode,
+      ]
+        .map(normalize)
+        .join(' ');
+
+      return combined.includes(query);
+    });
+  }, [residentSearch, residentsWithContext, selectedBuildingId, selectedUnitId]);
+
+  const handleSelectAll = () => {
+    setSelectedBuildingId('all');
+    setSelectedUnitId('all');
   };
 
-  const handleChangePageSize = (buildingId: string, newSize: number) => {
-    setUnitStates((prev) => {
-      const current = prev[buildingId] ?? DEFAULT_UNIT_STATE;
-      return {
-        ...prev,
-        [buildingId]: {
-          ...current,
-          pageSize: newSize,
-          page: 0,
-        },
-      };
-    });
+  const handleSelectBuilding = (buildingId: string) => {
+    setSelectedBuildingId(buildingId);
+    setSelectedUnitId('all');
   };
 
-  const renderUnitResidentsContent = useCallback(
-    (unitId: string) => {
-      const state = unitResidentsState[unitId] ?? DEFAULT_UNIT_RESIDENT_STATE;
+  const handleSelectUnit = (buildingId: string, unitId: string) => {
+    setSelectedBuildingId(buildingId);
+    setSelectedUnitId(unitId);
+  };
 
-      if (state.loading) {
-        return <p className="text-sm text-slate-500">Đang tải danh sách cư dân...</p>;
-      }
-
-      if (state.error) {
-        return <p className="text-sm text-red-600">{state.error}</p>;
-      }
-
-      if (state.message) {
-        return <p className="text-sm text-slate-500">{state.message}</p>;
-      }
-
-      if (!state.residents.length) {
-        return <p className="text-sm text-slate-500">Chưa có cư dân nào trong căn hộ này.</p>;
-      }
-
-      return (
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Họ và tên</th>
-                <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Email</th>
-                <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                  Số điện thoại
-                </th>
-                <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Quan hệ</th>
-                <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Chủ hộ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {state.residents.map((resident) => (
-                <tr key={resident.id}>
-                  <td className="px-4 py-3 font-medium text-slate-800">{resident.residentName ?? 'Chưa cập nhật'}</td>
-                  <td className="px-4 py-3 text-slate-600">{resident.residentEmail ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-600">{resident.residentPhone ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-600">{resident.relation ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        resident.isPrimary ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {resident.isPrimary ? 'Chủ hộ' : 'Thành viên'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-8">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary-2"></div>
+          <p className="text-sm text-slate-600">{t('loading')}</p>
         </div>
-      );
-    },
-    [unitResidentsState],
-  );
+      </div>
+    );
+  }
 
-  const renderUnitTable = useCallback(
-    (buildingId: string) => {
-      const state = unitStates[buildingId] ?? DEFAULT_UNIT_STATE;
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-8">
+        <div className="text-center">
+          <p className="mb-4 text-sm text-red-600">{error}</p>
+          <button
+            type="button"
+            onClick={() => router.refresh()}
+            className="rounded-md bg-[#02542D] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#024428]"
+          >
+            {t('retry')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-      if (state.loading) {
-        return (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-            Đang tải danh sách căn hộ...
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-semibold text-[#02542D]">{t('title')}</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={() => router.push('/base/regisresiView')}
+            className="inline-flex items-center justify-center rounded-lg border border-green-600 bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-green-700 hover:bg-green-700"
+          >
+            {t('viewRegistrationButton')}
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={`relative grid gap-6 ${
+          isSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[320px_1fr]'
+        }`}
+      >
+        {!isSidebarCollapsed && (
+          <aside className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800">{t('buildingUnitList')}</h2>
+                  <p className="text-sm text-slate-500">{t('buildingUnitDescription')}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarCollapsed(true)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
+                  aria-label={t('collapseBuildingUnit')}
+                >
+                  <span className="text-base leading-none">{'«'}</span>
+                </button>
+              </div>
+              <div className="px-5 py-4">
+                <input
+                  type="text"
+                  value={buildingSearch}
+                  onChange={(event) => setBuildingSearch(event.target.value)}
+                  placeholder={t('searchBuildingUnit')}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                />
+
+                <div className="mt-4 space-y-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={handleSelectAll}
+                    className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition ${
+                      selectedBuildingId === 'all'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-transparent hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{t('all')}</span>
+                    <span className="text-xs text-slate-500">{residentsWithContext.length}</span>
+                  </button>
+
+                  <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                    {filteredBuildings.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-slate-500">
+                        {t('noData')}
+                      </div>
+                    ) : (
+                      filteredBuildings.map((building) => (
+                        <div key={building.id} className="rounded-lg border border-slate-200">
+                          <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleBuilding(building.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
+                              aria-label={t('buildingToggleAria')}
+                            >
+                              <Image
+                                src={DropdownArrow}
+                                alt="Toggle"
+                                width={16}
+                                height={16}
+                                className={`transition-transform duration-200 ${building.isExpanded ? 'rotate-180' : ''}`}
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSelectBuilding(building.id)}
+                              className={`flex flex-1 flex-col rounded-lg px-3 py-2 text-left transition ${
+                                selectedBuildingId === building.id && selectedUnitId === 'all'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'hover:bg-white'
+                              }`}
+                            >
+                              <span className="font-semibold text-[#02542D]">{building.name}</span>
+                              <span className="text-xs text-slate-500">{building.code}</span>
+                            </button>
+                            <span className="text-xs font-medium text-slate-500">
+                              {t('unitCount', { count: building.units.length })}
+                            </span>
+                          </div>
+
+                          {building.isExpanded && building.units.length > 0 && (
+                            <div className="space-y-1 px-3 py-2">
+                              {building.units.map((unit) => (
+                                <button
+                                  key={unit.id}
+                                  type="button"
+                                  onClick={() => handleSelectUnit(building.id, unit.id)}
+                                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                                    selectedUnitId === unit.id
+                                      ? 'bg-emerald-50 text-emerald-700'
+                                      : 'hover:bg-slate-100'
+                                  }`}
+                                >
+                                  <div>
+                                    <span className="font-medium text-[#02542D]">{unit.name ?? '—'}</span>
+                                    <span className="ml-2 text-xs text-slate-500">{unit.code}</span>
+                                  </div>
+                                  <span className="text-xs text-slate-500">{unit.residents.length}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        )}
+
+        <section className="relative rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {isSidebarCollapsed && (
+            <button
+              type="button"
+              onClick={() => setIsSidebarCollapsed(false)}
+              className="absolute left-0 top-5 z-10 inline-flex -translate-x-1/2 items-center justify-center rounded-full border border-slate-300 bg-white p-2 text-slate-500 shadow transition hover:border-emerald-300 hover:text-emerald-700"
+              aria-label={t('expandBuildingUnit')}
+            >
+              <span className="text-sm leading-none">{'»'}</span>
+            </button>
+          )}
+
+          <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800">{t('residentsPanelTitle')}</h2>
+              <p className="text-sm text-slate-500">
+                {selectedUnitId === 'all' && selectedBuildingId === 'all'
+                  ? t('residentsPanelAll', { count: residentsToDisplay.length })
+                  : selectedUnitId === 'all'
+                  ? t('residentsPanelBuilding', { count: residentsToDisplay.length })
+                  : t('residentsPanelUnit', { count: residentsToDisplay.length })}
+              </p>
+            </div>
+            <div className="w-full max-w-xs">
+              <input
+                type="text"
+                value={residentSearch}
+                onChange={(event) => setResidentSearch(event.target.value)}
+                placeholder={t('searchResident')}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+            </div>
           </div>
-        );
-      }
 
-      if (state.error) {
-        return (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-600">
-            {state.error}
-          </div>
-        );
-      }
-
-      if (!state.units.length) {
-        return (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-            Tòa nhà này chưa có căn hộ nào hoặc dữ liệu đang trống.
-          </div>
-        );
-      }
-
-      const totalPages = Math.max(1, Math.ceil(state.units.length / state.pageSize));
-      const startIndex = state.page * state.pageSize;
-      const currentUnits = state.units.slice(startIndex, startIndex + state.pageSize);
-
-      return (
-        <div className="space-y-4">
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
+          <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Mã căn hộ</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Tên căn hộ</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Tầng</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Diện tích</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Phòng ngủ</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Trạng thái</th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">Chủ hộ</th>
-                  <th className="w-12 px-4 py-3" aria-label="Toggle" />
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('tableName')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('tableContact')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('tableRelation')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('tableBuilding')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('tableUnit')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('tablePrimary')}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    {t('tableAction')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                {currentUnits.map((unit) => {
-                  const ownerLabel = (unit as unknown as { primaryResidentId?: string | null }).primaryResidentId
-                    ? 'Đã có'
-                    : 'Chưa có';
-                  const isExpanded = expandedUnits[unit.id] ?? false;
-
-                  return (
-                    <Fragment key={unit.id}>
-                      <tr className="hover:bg-emerald-50/40">
-                        <td className="px-4 py-3 font-medium text-slate-800">{unit.code ?? 'Không rõ'}</td>
-                        <td className="px-4 py-3 text-slate-600">{unit.name ?? '—'}</td>
-                        <td className="px-4 py-3 text-slate-600">{formatFloor(unit.floor)}</td>
-                        <td className="px-4 py-3 text-slate-600">{formatArea(unit.areaM2)}</td>
-                        <td className="px-4 py-3 text-slate-600">{unit.bedrooms ?? '—'}</td>
-                        <td className="px-4 py-3 text-slate-600">{formatStatus(unit.status)}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                              ownerLabel === 'Đã có'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {ownerLabel}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleUnit(unit.id)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white transition hover:border-emerald-300 hover:bg-emerald-50"
-                            aria-label={isExpanded ? 'Thu gọn cư dân' : 'Mở danh sách cư dân'}
-                          >
-                            <Image
-                              src={DropdownArrow}
-                              alt="Toggle residents"
-                              className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : 'rotate-0'}`}
-                            />
-                          </button>
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr className="bg-emerald-50/30">
-                          <td colSpan={8} className="px-6 py-4">
-                            <h4 className="text-sm font-semibold text-slate-700">Cư dân trong căn hộ</h4>
-                            <div className="mt-2">{renderUnitResidentsContent(unit.id)}</div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
+                {residentsToDisplay.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-slate-500">
+                      {t('noResidents')}
+                    </td>
+                  </tr>
+                ) : (
+                  residentsToDisplay.map((resident) => (
+                    <tr key={resident.id} className="hover:bg-emerald-50/40">
+                      <td className="px-4 py-3 font-medium text-slate-800">{resident.residentName ?? 'Chưa cập nhật'}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        <div className="flex flex-col">
+                          <span>{resident.residentPhone ?? '—'}</span>
+                          <span className="text-xs text-slate-500">{resident.residentEmail ?? '—'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{resident.relation ?? '—'}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        <div className="flex flex-col">
+                          <span>{resident.buildingName ?? '—'}</span>
+                          <span className="text-xs text-slate-500">{resident.buildingCode ?? '—'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        <div className="flex flex-col">
+                          <span>{resident.unitName ?? '—'}</span>
+                          <span className="text-xs text-slate-500">{resident.unitCode ?? '—'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            resident.isPrimary ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {resident.isPrimary ? t('primaryYes') : t('primaryNo')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/base/residents/${resident.residentId ?? resident.id}`}
+                          className="rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700"
+                        >
+                          {t('detailButton')}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <span>Hiển thị</span>
-              <select
-                value={state.pageSize}
-                onChange={(event) => handleChangePageSize(buildingId, Number(event.target.value))}
-                className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-              >
-                {PAGE_SIZE_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-              <span>hàng mỗi trang</span>
-            </div>
-
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => handleChangePage(buildingId, state.page - 1)}
-                disabled={state.page === 0}
-                className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Trước
-              </button>
-              <span className="text-sm text-slate-600">
-                Trang {state.page + 1} / {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleChangePage(buildingId, state.page + 1)}
-                disabled={state.page >= totalPages - 1}
-                className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Sau
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    },
-    [expandedUnits, handleChangePage, handleChangePageSize, handleToggleUnit, renderUnitResidentsContent, unitStates],
-  );
-
-  const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredBuildings = useMemo(() => {
-    if (!normalizedSearch) {
-      return buildings;
-    }
-    return buildings.filter((building) => {
-      const name = (building.name ?? building.code ?? '').toLowerCase();
-      return name.includes(normalizedSearch);
-    });
-  }, [buildings, normalizedSearch]);
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <header className="space-y-2">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-2xl font-bold text-[#02542D]">Phê duyệt cư dân và tài khoản</h1>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Tìm theo tên hoặc mã tòa nhà"
-              className="w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-            />
-            <button
-                type="button"
-                onClick={() => router.push('/base/regisresiView')}
-                className="inline-flex w-full items-center justify-center rounded-lg border border-green-600 bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-green-700 hover:bg-green-700 sm:w-auto"
-                >
-                Xem đơn đăng ký cư dân
-            </button>
-            </div>
-
-        </header>
-
-        <section className="space-y-4">
-          {loadingBuildings && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
-              Đang tải danh sách tòa nhà...
-            </div>
-          )}
-
-          {buildingsError && !loadingBuildings && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-6 text-sm text-red-600">
-              {buildingsError}
-            </div>
-          )}
-
-          {!loadingBuildings && !buildingsError && !buildings.length && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
-              Chưa có tòa nhà nào được cấu hình.
-            </div>
-          )}
-
-          {!loadingBuildings && !buildingsError && buildings.length && !filteredBuildings.length && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-8 text-center text-sm text-slate-500">
-              Không tìm thấy tòa nhà phù hợp với từ khóa "{searchTerm}".
-            </div>
-          )}
-
-          {!loadingBuildings &&
-            !buildingsError &&
-            filteredBuildings.map((building) => {
-              const isExpanded = expandedBuildings[building.id] ?? false;
-              return (
-                <div key={building.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleBuilding(building.id)}
-                    className="flex w-full items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left transition hover:bg-emerald-50"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className="text-lg font-semibold text-slate-800">
-                        {building.name ?? building.code}
-                      </span>
-                      <span className="text-sm text-slate-500">Mã tòa nhà: {building.code ?? building.id}</span>
-                    </div>
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white">
-                      <Image
-                        src={DropdownArrow}
-                        alt="Toggle building"
-                        className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : 'rotate-0'}`}
-                      />
-                    </span>
-                  </button>
-
-                  {isExpanded && (
-                    <div className="border-t border-slate-200 px-5 py-4">
-                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
-                        Danh sách căn hộ trong tòa nhà
-                      </h3>
-                      <div className="mt-3">{renderUnitTable(building.id)}</div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
         </section>
       </div>
     </div>

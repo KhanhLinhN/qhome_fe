@@ -139,6 +139,22 @@ export async function getServiceOptions(
   return response.data as ServiceOption[];
 }
 
+export async function getServiceTickets(
+  serviceId: string,
+  isActive?: boolean,
+): Promise<ServiceTicket[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/asset-maintenance/services/${serviceId}/tickets`,
+    {
+      params: {
+        isActive,
+      },
+      ...withCredentials,
+    },
+  );
+  return response.data as ServiceTicket[];
+}
+
 export async function getServiceOptionGroups(serviceId: string): Promise<ServiceOptionGroup[]> {
   const response = await axios.get(
     `${BASE_URL}/api/asset-maintenance/services/${serviceId}/option-groups`,
@@ -193,4 +209,25 @@ export async function createServiceTicket(
     withCredentials,
   );
   return response.data as ServiceTicket;
+}
+
+export async function deleteServiceCombo(comboId: string): Promise<void> {
+  await axios.delete(
+    `${BASE_URL}/api/asset-maintenance/service-combos/${comboId}`,
+    withCredentials,
+  );
+}
+
+export async function deleteServiceOption(optionId: string): Promise<void> {
+  await axios.delete(
+    `${BASE_URL}/api/asset-maintenance/service-options/${optionId}`,
+    withCredentials,
+  );
+}
+
+export async function deleteServiceTicket(ticketId: string): Promise<void> {
+  await axios.delete(
+    `${BASE_URL}/api/asset-maintenance/service-tickets/${ticketId}`,
+    withCredentials,
+  );
 }

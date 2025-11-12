@@ -13,6 +13,7 @@ import {
   fetchContractsByUnit,
   uploadContractFiles,
 } from '@/src/services/base/contractService';
+import DateBox from '@/src/components/customer-interaction/DateBox';
 
 type AsyncState<T> = {
   data: T;
@@ -41,6 +42,14 @@ const DEFAULT_CONTRACTS_STATE: AsyncState<ContractSummary[]> = {
 const CONTRACT_TYPE_OPTIONS = [
   { value: 'RENTAL', label: 'Thuê (RENTAL)' },
   { value: 'PURCHASE', label: 'Mua (PURCHASE)' },
+];
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: '', label: '-- Chọn phương thức --' },
+  { value: 'Chuyển khoản', label: 'Chuyển khoản' },
+  { value: 'Tiền mặt', label: 'Tiền mặt' },
+  { value: 'Ví điện tử', label: 'Ví điện tử' },
+  { value: 'Khác', label: 'Khác' },
 ];
 
 const BASE_API_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081').replace(/\/$/, '');
@@ -77,10 +86,8 @@ export default function ContractManagementPage() {
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [createFiles, setCreateFiles] = useState<FileList | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const startDateInputRef = useRef<HTMLInputElement>(null);
-  const endDateInputRef = useRef<HTMLInputElement>(null);
-  const purchaseDateInputRef = useRef<HTMLInputElement>(null);
   const detailFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [detailUploadError, setDetailUploadError] = useState<string | null>(null);
   const [detailUploading, setDetailUploading] = useState(false);
 
@@ -109,6 +116,35 @@ export default function ContractManagementPage() {
     notes: '',
     status: 'ACTIVE',
   });
+
+  const clearFieldErrors = (...fields: (keyof CreateContractPayload)[]) => {
+    setFormErrors((prev) => {
+      if (!prev || Object.keys(prev).length === 0) {
+        return prev;
+      }
+      let hasChanges = false;
+      const next = { ...prev };
+      fields.forEach((field) => {
+        const key = field as string;
+        if (key in next) {
+          delete next[key];
+          hasChanges = true;
+        }
+      });
+      return hasChanges ? next : prev;
+    });
+  };
+
+  const setFieldValue = <K extends keyof CreateContractPayload>(
+    field: K,
+    value: CreateContractPayload[K],
+  ) => {
+    setFormState((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    clearFieldErrors(field);
+  };
 
   useEffect(() => {
     const loadBuildings = async () => {
@@ -147,7 +183,7 @@ export default function ContractManagementPage() {
   const handleSelectBuilding = async (buildingId: string) => {
     setSelectedBuildingId(buildingId);
     setSelectedUnitId('');
-    setFormState((prev) => ({ ...prev, unitId: '' }));
+    setFieldValue('unitId', '');
     setUnitsState(DEFAULT_UNITS_STATE);
     setContractsState(DEFAULT_CONTRACTS_STATE);
 
@@ -174,17 +210,21 @@ export default function ContractManagementPage() {
       const data = await fetchContractsByUnit(unitId);
       setContractsState({ data, loading: false, error: null });
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể tải danh sách hợp đồng của căn hộ.';
-      setContractsState({ data: [], loading: false, error: message });
+      if (err?.response?.status === 404) {
+        setContractsState({ data: [], loading: false, error: null });
+        return;
+      }
+      setContractsState({
+        data: [],
+        loading: false,
+        error: 'Đã xảy ra lỗi khi tải hợp đồng. Vui lòng thử lại.',
+      });
     }
   };
 
   const handleSelectUnit = async (unitId: string) => {
     setSelectedUnitId(unitId);
-    setFormState((prev) => ({ ...prev, unitId }));
+    setFieldValue('unitId', unitId);
 
     if (!unitId) {
       setContractsState(DEFAULT_CONTRACTS_STATE);
@@ -199,9 +239,10 @@ export default function ContractManagementPage() {
     setCreateSuccess(null);
     setCreateModalOpen(true);
     if (selectedUnitId) {
-      setFormState((prev) => ({ ...prev, unitId: selectedUnitId }));
+      setFieldValue('unitId', selectedUnitId);
     }
     setCreateFiles(null);
+    setFormErrors({});
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -224,6 +265,7 @@ export default function ContractManagementPage() {
     });
     setCreateError(null);
     setCreateFiles(null);
+    setFormErrors({});
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -232,18 +274,6 @@ export default function ContractManagementPage() {
   const isValidDate = (value?: string | null) => {
     if (!value) return true;
     return /^\d{4}-\d{2}-\d{2}$/.test(value);
-  };
-
-  const triggerNativeDatePicker = (ref: React.RefObject<HTMLInputElement | null>) => {
-    const input = ref.current;
-    if (!input) return;
-    const picker = input as HTMLInputElement & { showPicker?: () => void };
-    if (typeof picker.showPicker === 'function') {
-      picker.showPicker();
-    } else {
-      input.focus();
-      input.click();
-    }
   };
 
   const handleUploadFilesForDetail = async (files: FileList | null) => {
@@ -277,53 +307,51 @@ export default function ContractManagementPage() {
     setCreateError(null);
     setCreateSuccess(null);
 
+    const errors: Record<string, string> = {};
+
     if (!formState.unitId) {
-      setCreateError('Vui lòng chọn căn hộ trước khi tạo hợp đồng.');
-      return;
+      errors.unitId = 'Vui lòng chọn căn hộ trước khi tạo hợp đồng.';
     }
+
     if (!formState.contractNumber.trim()) {
-      setCreateError('Vui lòng nhập số hợp đồng.');
-      return;
+      errors.contractNumber = 'Vui lòng nhập số hợp đồng.';
     }
+
     if (!formState.startDate) {
-      setCreateError('Vui lòng chọn ngày bắt đầu hợp đồng.');
-      return;
+      errors.startDate = 'Vui lòng chọn ngày bắt đầu hợp đồng.';
+    } else if (!isValidDate(formState.startDate)) {
+      errors.startDate = 'Ngày bắt đầu phải theo định dạng YYYY-MM-DD.';
     }
 
-    if (!isValidDate(formState.startDate)) {
-      setCreateError('Ngày bắt đầu phải theo định dạng YYYY-MM-DD.');
-      return;
-    }
-
-    if (formState.contractType === 'RENTAL' && !formState.monthlyRent && formState.monthlyRent !== 0) {
-      setCreateError('Vui lòng nhập giá thuê hàng tháng cho hợp đồng thuê.');
-      return;
-    }
-
-    if (formState.contractType === 'PURCHASE' && !formState.purchasePrice && formState.purchasePrice !== 0) {
-      setCreateError('Vui lòng nhập giá mua cho hợp đồng mua.');
-      return;
+    if (formState.contractType === 'RENTAL') {
+      if (formState.monthlyRent === null || formState.monthlyRent === undefined) {
+        errors.monthlyRent = 'Vui lòng nhập giá thuê hàng tháng cho hợp đồng thuê.';
+      }
+      if (formState.endDate && !isValidDate(formState.endDate)) {
+        errors.endDate = 'Ngày kết thúc phải theo định dạng YYYY-MM-DD.';
+      }
     }
 
     if (formState.contractType === 'PURCHASE') {
       if (formState.endDate) {
-        setCreateError('Hợp đồng mua không thể có ngày kết thúc.');
-        return;
+        errors.endDate = 'Hợp đồng mua không thể có ngày kết thúc.';
+      }
+      if (formState.purchasePrice === null || formState.purchasePrice === undefined) {
+        errors.purchasePrice = 'Vui lòng nhập giá mua cho hợp đồng mua.';
       }
       if (!formState.purchaseDate) {
-        setCreateError('Vui lòng nhập ngày mua cho hợp đồng mua.');
-        return;
-      }
-      if (!isValidDate(formState.purchaseDate)) {
-        setCreateError('Ngày mua phải theo định dạng YYYY-MM-DD.');
-        return;
+        errors.purchaseDate = 'Vui lòng nhập ngày mua cho hợp đồng mua.';
+      } else if (!isValidDate(formState.purchaseDate)) {
+        errors.purchaseDate = 'Ngày mua phải theo định dạng YYYY-MM-DD.';
       }
     }
 
-    if (formState.contractType === 'RENTAL' && formState.endDate && !isValidDate(formState.endDate)) {
-      setCreateError('Ngày kết thúc phải theo định dạng YYYY-MM-DD.');
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
+
+    setFormErrors({});
 
     try {
       setCreateSubmitting(true);
@@ -398,9 +426,19 @@ export default function ContractManagementPage() {
       }
       setDetailState({ data: detail, loading: false, error: null });
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải chi tiết hợp đồng.';
-      setDetailState({ data: null, loading: false, error: message });
+      if (err?.response?.status === 404) {
+        setDetailState({
+          data: null,
+          loading: false,
+          error: 'Không tìm thấy hợp đồng.',
+        });
+        return;
+      }
+      setDetailState({
+        data: null,
+        loading: false,
+        error: 'Đã xảy ra lỗi khi tải chi tiết hợp đồng. Vui lòng thử lại.',
+      });
     }
   };
 
@@ -415,12 +453,12 @@ export default function ContractManagementPage() {
   const filteredContracts = contractsState.data;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
+    <div className="min-h-screen bg-[#F5F9F6] px-[41px] py-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Quản lý hợp đồng căn hộ</h1>
-            <p className="text-sm text-slate-500">
+            <h1 className="text-2xl font-semibold text-[#02542D]">Quản lý hợp đồng căn hộ</h1>
+            <p className="text-sm text-gray-600">
               Tạo mới và theo dõi các hợp đồng thuê/mua của từng căn hộ trong dự án.
             </p>
           </div>
@@ -428,20 +466,20 @@ export default function ContractManagementPage() {
             type="button"
             onClick={handleOpenCreateModal}
             disabled={!selectedUnitId}
-            className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+            className="inline-flex items-center rounded-lg bg-[#14AE5C] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0c793f] disabled:cursor-not-allowed disabled:bg-[#A3D9B1]"
           >
             + Thêm hợp đồng
           </button>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl bg-white p-6 shadow-sm">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-700">Tòa nhà</label>
+              <label className="text-sm font-medium text-[#02542D]">Tòa nhà</label>
               <select
                 value={selectedBuildingId}
                 onChange={(event) => handleSelectBuilding(event.target.value)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
               >
                 <option value="">-- Chọn tòa nhà --</option>
                 {buildingOptions.map((option) => (
@@ -451,19 +489,19 @@ export default function ContractManagementPage() {
                 ))}
               </select>
               {buildingsState.loading && (
-                <span className="text-xs text-slate-500">Đang tải danh sách tòa nhà...</span>
+                <span className="text-xs text-gray-500">Đang tải danh sách tòa nhà...</span>
               )}
               {buildingsState.error && (
                 <span className="text-xs text-red-500">{buildingsState.error}</span>
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-700">Căn hộ</label>
+              <label className="text-sm font-medium text-[#02542D]">Căn hộ</label>
               <select
                 value={selectedUnitId}
                 onChange={(event) => handleSelectUnit(event.target.value)}
                 disabled={!selectedBuildingId || unitsState.loading}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2] disabled:cursor-not-allowed disabled:bg-gray-100"
               >
                 <option value="">
                   {selectedBuildingId ? '-- Chọn căn hộ --' : 'Chọn tòa nhà trước'}
@@ -475,7 +513,7 @@ export default function ContractManagementPage() {
                 ))}
               </select>
               {unitsState.loading && (
-                <span className="text-xs text-slate-500">Đang tải danh sách căn hộ...</span>
+                <span className="text-xs text-gray-500">Đang tải danh sách căn hộ...</span>
               )}
               {unitsState.error && <span className="text-xs text-red-500">{unitsState.error}</span>}
             </div>
@@ -483,7 +521,7 @@ export default function ContractManagementPage() {
 
           <div className="mt-6">
             {contractsState.loading ? (
-              <div className="flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+              <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-600">
                 Đang tải danh sách hợp đồng...
               </div>
             ) : contractsState.error ? (
@@ -491,54 +529,54 @@ export default function ContractManagementPage() {
                 {contractsState.error}
               </div>
             ) : filteredContracts.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-600">
                 {selectedUnitId
-                  ? 'Căn hộ hiện chưa có hợp đồng nào.'
+                  ? 'Căn hộ này hiện không có hợp đồng.'
                   : 'Chọn tòa nhà và căn hộ để xem danh sách hợp đồng.'}
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50">
+              <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead className="bg-[#E9F4EE]">
                     <tr>
-                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
                         Số hợp đồng
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
                         Loại
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
                         Hiệu lực
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
                         Trạng thái
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-slate-600">
+                      <th className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-[#02542D]">
                         Chi tiết
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
+                  <tbody className="divide-y divide-gray-100 bg-white">
                     {filteredContracts.map((contract) => (
-                      <tr key={contract.id} className="hover:bg-emerald-50/40">
-                        <td className="px-4 py-3 font-medium text-slate-800">
+                      <tr key={contract.id} className="hover:bg-[#E9F4EE]">
+                        <td className="px-4 py-3 font-medium text-[#02542D]">
                           {contract.contractNumber ?? 'Không rõ'}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">
+                        <td className="px-4 py-3 text-gray-600">
                           {contract.contractType ?? 'Không xác định'}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">
+                        <td className="px-4 py-3 text-gray-600">
                           <div className="flex flex-col">
                             <span>Bắt đầu: {formatDate(contract.startDate)}</span>
                             <span>Kết thúc: {formatDate(contract.endDate)}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-slate-600">
+                        <td className="px-4 py-3 text-gray-600">
                           <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${
                               contract.status === 'ACTIVE'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-slate-200 text-slate-700'
+                                ? 'bg-[#C7E8D2] text-[#02542D]'
+                                : 'bg-gray-200 text-gray-700'
                             }`}
                           >
                             {contract.status ?? 'Không xác định'}
@@ -548,7 +586,7 @@ export default function ContractManagementPage() {
                           <button
                             type="button"
                             onClick={() => handleOpenContractDetail(contract.id)}
-                            className="inline-flex items-center rounded-lg border border-blue-300 px-3 py-1 text-sm text-blue-600 transition hover:bg-blue-50"
+                            className="inline-flex items-center rounded-lg border border-[#14AE5C] px-3 py-1 text-sm font-medium text-[#02542D] shadow-sm transition hover:bg-[#14AE5C] hover:text-white"
                           >
                             Xem
                           </button>
@@ -563,7 +601,7 @@ export default function ContractManagementPage() {
         </div>
 
         {createSuccess && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="rounded-xl border border-[#C7E8D2] bg-[#E9F4EE] px-4 py-3 text-sm text-[#02542D]">
             {createSuccess}
           </div>
         )}
@@ -571,10 +609,10 @@ export default function ContractManagementPage() {
         {createModalOpen && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/50 px-4 py-8">
             <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-800">Thêm hợp đồng mới</h2>
-                  <p className="text-sm text-slate-500">
+                  <h2 className="text-lg font-semibold text-[#02542D]">Thêm hợp đồng mới</h2>
+                  <p className="text-sm text-gray-500">
                     Nhập thông tin hợp đồng thuê hoặc mua cho căn hộ được chọn.
                   </p>
                 </div>
@@ -584,7 +622,7 @@ export default function ContractManagementPage() {
                     setCreateModalOpen(false);
                     resetCreateForm();
                   }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-100"
                   aria-label="Đóng tạo hợp đồng"
                 >
                   ×
@@ -593,13 +631,11 @@ export default function ContractManagementPage() {
               <form onSubmit={handleCreateContract} className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-slate-700">Căn hộ</label>
+                    <label className="text-sm font-medium text-[#02542D]">Căn hộ</label>
                     <select
                       value={formState.unitId}
-                      onChange={(event) =>
-                        setFormState((prev) => ({ ...prev, unitId: event.target.value }))
-                      }
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                      onChange={(event) => setFieldValue('unitId', event.target.value)}
+                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       required
                     >
                       <option value="">-- Chọn căn hộ --</option>
@@ -609,38 +645,48 @@ export default function ContractManagementPage() {
                         </option>
                       ))}
                     </select>
+                    {formErrors.unitId && (
+                      <span className="mt-1 text-xs text-red-500">{formErrors.unitId}</span>
+                    )}
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-slate-700">Số hợp đồng</label>
+                    <label className="text-sm font-medium text-[#02542D]">Số hợp đồng</label>
                     <input
                       type="text"
                       value={formState.contractNumber}
-                      onChange={(event) =>
-                        setFormState((prev) => ({ ...prev, contractNumber: event.target.value }))
-                      }
+                      onChange={(event) => setFieldValue('contractNumber', event.target.value)}
                       placeholder="Ví dụ: HD-2025-0001"
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       required
                     />
+                    {formErrors.contractNumber && (
+                      <span className="mt-1 text-xs text-red-500">{formErrors.contractNumber}</span>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-slate-700">Loại hợp đồng</label>
+                    <label className="text-sm font-medium text-[#02542D]">Loại hợp đồng</label>
                     <select
                       value={formState.contractType ?? 'RENTAL'}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const nextType = event.target.value as CreateContractPayload['contractType'];
                         setFormState((prev) => ({
                           ...prev,
-                          contractType: event.target.value,
-                          endDate: event.target.value === 'PURCHASE' ? '' : prev.endDate,
-                          monthlyRent: event.target.value === 'PURCHASE' ? null : prev.monthlyRent,
-                          purchasePrice: event.target.value === 'RENTAL' ? null : prev.purchasePrice,
-                          purchaseDate: event.target.value === 'RENTAL' ? '' : prev.purchaseDate,
-                        }))
-                      }
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                          contractType: nextType,
+                          endDate: nextType === 'PURCHASE' ? '' : prev.endDate,
+                          monthlyRent: nextType === 'PURCHASE' ? null : prev.monthlyRent,
+                          purchasePrice: nextType === 'RENTAL' ? null : prev.purchasePrice,
+                          purchaseDate: nextType === 'RENTAL' ? '' : prev.purchaseDate,
+                        }));
+                        if (nextType === 'PURCHASE') {
+                          clearFieldErrors('endDate', 'monthlyRent');
+                        } else {
+                          clearFieldErrors('purchasePrice', 'purchaseDate');
+                        }
+                      }}
+                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                     >
                       {CONTRACT_TYPE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -650,8 +696,8 @@ export default function ContractManagementPage() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-slate-700">Trạng thái</label>
-                    <div className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600">
+                    <label className="text-sm font-medium text-[#02542D]">Trạng thái</label>
+                    <div className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 shadow-inner">
                       Đang hiệu lực (mặc định)
                     </div>
                   </div>
@@ -659,93 +705,47 @@ export default function ContractManagementPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-slate-700">Ngày bắt đầu</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        readOnly
-                        placeholder="YYYY-MM-DD"
-                        value={formState.startDate ?? ''}
-                        onClick={() => triggerNativeDatePicker(startDateInputRef)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            triggerNativeDatePicker(startDateInputRef);
-                          }
-                        }}
-                        className="w-full cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                        aria-describedby="start-date-help"
-                        required
-                      />
-                      <input
-                        ref={startDateInputRef}
-                        type="date"
-                        value={formState.startDate ?? ''}
-                        onChange={(event) =>
-                          setFormState((prev) => ({ ...prev, startDate: event.target.value }))
-                        }
-                        className="hidden"
-                      />
-                    </div>
+                    <label className="text-sm font-medium text-[#02542D]">Ngày bắt đầu</label>
+                    <DateBox
+                      value={formState.startDate ?? ''}
+                      onChange={(event) => setFieldValue('startDate', event.target.value)}
+                      placeholderText="YYYY-MM-DD"
+                    />
+                    {formErrors.startDate && (
+                      <span className="mt-1 text-xs text-red-500">{formErrors.startDate}</span>
+                    )}
                   </div>
                   {formState.contractType !== 'PURCHASE' && (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-slate-700">Ngày kết thúc</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          readOnly
-                          placeholder="YYYY-MM-DD"
-                          value={formState.endDate ?? ''}
-                          onClick={() => triggerNativeDatePicker(endDateInputRef)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              triggerNativeDatePicker(endDateInputRef);
-                            }
-                          }}
-                          className="w-full cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                        />
-                        <input
-                          ref={endDateInputRef}
-                          type="date"
-                          value={formState.endDate ?? ''}
-                          onChange={(event) =>
-                            setFormState((prev) => ({ ...prev, endDate: event.target.value || null }))
-                          }
-                          className="hidden"
-                        />
-                      </div>
+                      <label className="text-sm font-medium text-[#02542D]">Ngày kết thúc</label>
+                      <DateBox
+                        value={formState.endDate ?? ''}
+                        onChange={(event) =>
+                          setFieldValue('endDate', event.target.value ? event.target.value : null)
+                        }
+                        placeholderText="YYYY-MM-DD"
+                      />
+                      {formErrors.endDate && (
+                        <span className="mt-1 text-xs text-red-500">{formErrors.endDate}</span>
+                      )}
                     </div>
                   )}
                   {formState.contractType === 'PURCHASE' && (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-slate-700">Ngày mua</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          readOnly
-                          placeholder="YYYY-MM-DD"
-                          value={formState.purchaseDate ?? ''}
-                          onClick={() => triggerNativeDatePicker(purchaseDateInputRef)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              triggerNativeDatePicker(purchaseDateInputRef);
-                            }
-                          }}
-                          className="w-full cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                        />
-                        <input
-                          ref={purchaseDateInputRef}
-                          type="date"
-                          value={formState.purchaseDate ?? ''}
-                          onChange={(event) =>
-                            setFormState((prev) => ({ ...prev, purchaseDate: event.target.value || null }))
-                          }
-                          className="hidden"
-                        />
-                      </div>
+                      <label className="text-sm font-medium text-[#02542D]">Ngày mua</label>
+                      <DateBox
+                        value={formState.purchaseDate ?? ''}
+                        onChange={(event) =>
+                          setFieldValue(
+                            'purchaseDate',
+                            event.target.value ? event.target.value : null,
+                          )
+                        }
+                        placeholderText="YYYY-MM-DD"
+                      />
+                      {formErrors.purchaseDate && (
+                        <span className="mt-1 text-xs text-red-500">{formErrors.purchaseDate}</span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -753,81 +753,86 @@ export default function ContractManagementPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {formState.contractType === 'RENTAL' && (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-slate-700">Giá thuê / tháng</label>
+                      <label className="text-sm font-medium text-[#02542D]">Giá thuê / tháng</label>
                       <input
                         type="number"
                         min={0}
                         value={formState.monthlyRent ?? ''}
                         onChange={(event) =>
-                          setFormState((prev) => ({
-                            ...prev,
-                            monthlyRent: event.target.value ? Number(event.target.value) : null,
-                          }))
+                          setFieldValue(
+                            'monthlyRent',
+                            event.target.value ? Number(event.target.value) : null,
+                          )
                         }
                         placeholder="Ví dụ: 12000000"
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                        className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       />
+                      {formErrors.monthlyRent && (
+                        <span className="mt-1 text-xs text-red-500">{formErrors.monthlyRent}</span>
+                      )}
                     </div>
                   )}
                   {formState.contractType === 'PURCHASE' && (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-slate-700">Giá mua</label>
+                      <label className="text-sm font-medium text-[#02542D]">Giá mua</label>
                       <input
                         type="number"
                         min={0}
                         value={formState.purchasePrice ?? ''}
                         onChange={(event) =>
-                          setFormState((prev) => ({
-                            ...prev,
-                            purchasePrice: event.target.value ? Number(event.target.value) : null,
-                          }))
+                          setFieldValue(
+                            'purchasePrice',
+                            event.target.value ? Number(event.target.value) : null,
+                          )
                         }
                         placeholder="Ví dụ: 2500000000"
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                        className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       />
+                      {formErrors.purchasePrice && (
+                        <span className="mt-1 text-xs text-red-500">{formErrors.purchasePrice}</span>
+                      )}
                     </div>
                   )}
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-slate-700">Phương thức thanh toán</label>
-                    <input
-                      type="text"
+                    <label className="text-sm font-medium text-[#02542D]">Phương thức thanh toán</label>
+                    <select
                       value={formState.paymentMethod ?? ''}
-                      onChange={(event) =>
-                        setFormState((prev) => ({ ...prev, paymentMethod: event.target.value }))
-                      }
-                      placeholder="Chuyển khoản, tiền mặt..."
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                    />
+                      onChange={(event) => setFieldValue('paymentMethod', event.target.value)}
+                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
+                      disabled={formState.contractType === 'PURCHASE'}
+                    >
+                      {PAYMENT_METHOD_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-slate-700">Điều khoản thanh toán</label>
+                    <label className="text-sm font-medium text-[#02542D]">Điều khoản thanh toán</label>
                     <input
                       type="text"
                       value={formState.paymentTerms ?? ''}
-                      onChange={(event) =>
-                        setFormState((prev) => ({ ...prev, paymentTerms: event.target.value }))
-                      }
+                      onChange={(event) => setFieldValue('paymentTerms', event.target.value)}
                       placeholder="Ví dụ: trả theo quý..."
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-slate-700">Ghi chú</label>
+                  <label className="text-sm font-medium text-[#02542D]">Ghi chú</label>
                   <textarea
                     value={formState.notes ?? ''}
-                    onChange={(event) =>
-                      setFormState((prev) => ({ ...prev, notes: event.target.value }))
-                    }
+                    onChange={(event) => setFieldValue('notes', event.target.value)}
                     rows={3}
                     placeholder="Thông tin bổ sung về hợp đồng..."
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                   />
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-slate-700">
+                  <label className="text-sm font-medium text-[#02542D]">
                     Tệp đính kèm hợp đồng (tuỳ chọn)
                   </label>
                   <input
@@ -835,10 +840,10 @@ export default function ContractManagementPage() {
                     type="file"
                     multiple
                     onChange={(event) => setCreateFiles(event.target.files)}
-                    className="text-sm text-slate-600 file:mr-4 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
+                    className="text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#02542D] hover:file:bg-gray-200"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-gray-500">
                     Có thể tải nhiều tệp (PDF, ảnh...) để lưu trữ cùng hợp đồng.
                   </span>
                 </div>
@@ -849,21 +854,21 @@ export default function ContractManagementPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+                <div className="flex items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
                   <button
                     type="button"
                     onClick={() => {
                       setCreateModalOpen(false);
                       resetCreateForm();
                     }}
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-white"
+                    className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-white"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
                     disabled={createSubmitting}
-                    className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                    className="inline-flex items-center justify-center rounded-lg bg-[#14AE5C] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0c793f] disabled:cursor-not-allowed disabled:bg-[#A3D9B1]"
                   >
                     {createSubmitting ? 'Đang tạo...' : 'Tạo hợp đồng'}
                   </button>
@@ -876,11 +881,11 @@ export default function ContractManagementPage() {
         {detailModalOpen && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/50 px-4 py-8">
             <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800">Chi tiết hợp đồng</h3>
+                  <h3 className="text-lg font-semibold text-[#02542D]">Chi tiết hợp đồng</h3>
                   {detailState.data?.contractNumber && (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-gray-500">
                       Số hợp đồng: {detailState.data.contractNumber}
                     </p>
                   )}
@@ -888,7 +893,7 @@ export default function ContractManagementPage() {
                 <button
                   type="button"
                   onClick={handleCloseContractDetail}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-100"
                   aria-label="Đóng chi tiết hợp đồng"
                 >
                   ×
@@ -896,7 +901,7 @@ export default function ContractManagementPage() {
               </div>
               <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
                 {detailState.loading && (
-                  <p className="text-sm text-slate-500">Đang tải chi tiết hợp đồng...</p>
+                  <p className="text-sm text-gray-500">Đang tải chi tiết hợp đồng...</p>
                 )}
                 {detailState.error && (
                   <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -904,68 +909,68 @@ export default function ContractManagementPage() {
                   </div>
                 )}
                 {!detailState.loading && !detailState.error && detailState.data && (
-                  <div className="space-y-5 text-sm text-slate-700">
+                  <div className="space-y-5 text-sm text-gray-700">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <p>
-                        <span className="font-medium text-slate-900">Loại hợp đồng:</span>{' '}
+                        <span className="font-medium text-[#02542D]">Loại hợp đồng:</span>{' '}
                         {detailState.data.contractType ?? 'Không xác định'}
                       </p>
                       <p>
-                        <span className="font-medium text-slate-900">Trạng thái:</span>{' '}
+                        <span className="font-medium text-[#02542D]">Trạng thái:</span>{' '}
                         {detailState.data.status ?? 'Không xác định'}
                       </p>
                       <p>
-                        <span className="font-medium text-slate-900">Ngày bắt đầu:</span>{' '}
+                        <span className="font-medium text-[#02542D]">Ngày bắt đầu:</span>{' '}
                         {formatDate(detailState.data.startDate)}
                       </p>
                       <p>
-                        <span className="font-medium text-slate-900">Ngày kết thúc:</span>{' '}
+                        <span className="font-medium text-[#02542D]">Ngày kết thúc:</span>{' '}
                         {detailState.data.endDate ? formatDate(detailState.data.endDate) : 'Không giới hạn'}
                       </p>
                       {detailState.data.monthlyRent != null && (
                         <p>
-                          <span className="font-medium text-slate-900">Giá thuê / tháng:</span>{' '}
+                          <span className="font-medium text-[#02542D]">Giá thuê / tháng:</span>{' '}
                           {detailState.data.monthlyRent.toLocaleString('vi-VN')} đ
                         </p>
                       )}
                       {detailState.data.purchasePrice != null && (
                         <p>
-                          <span className="font-medium text-slate-900">Giá mua:</span>{' '}
+                          <span className="font-medium text-[#02542D]">Giá mua:</span>{' '}
                           {detailState.data.purchasePrice.toLocaleString('vi-VN')} đ
                         </p>
                       )}
                       {detailState.data.purchaseDate && (
                         <p>
-                          <span className="font-medium text-slate-900">Ngày mua:</span>{' '}
+                          <span className="font-medium text-[#02542D]">Ngày mua:</span>{' '}
                           {formatDate(detailState.data.purchaseDate)}
                         </p>
                       )}
                       {detailState.data.paymentMethod && (
                         <p>
-                          <span className="font-medium text-slate-900">Phương thức thanh toán:</span>{' '}
+                          <span className="font-medium text-[#02542D]">Phương thức thanh toán:</span>{' '}
                           {detailState.data.paymentMethod}
                         </p>
                       )}
                     </div>
                     {detailState.data.paymentTerms && (
                       <div>
-                        <p className="font-medium text-slate-900">Điều khoản thanh toán</p>
-                        <p className="mt-1 whitespace-pre-line text-slate-600">
+                        <p className="font-medium text-[#02542D]">Điều khoản thanh toán</p>
+                        <p className="mt-1 whitespace-pre-line text-gray-600">
                           {detailState.data.paymentTerms}
                         </p>
                       </div>
                     )}
                     {detailState.data.notes && (
                       <div>
-                        <p className="font-medium text-slate-900">Ghi chú</p>
-                        <p className="mt-1 whitespace-pre-line text-slate-600">
+                        <p className="font-medium text-[#02542D]">Ghi chú</p>
+                        <p className="mt-1 whitespace-pre-line text-gray-600">
                           {detailState.data.notes}
                         </p>
                       </div>
                     )}
                     <div className="space-y-3">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="font-medium text-slate-900">Tệp đính kèm</p>
+                        <p className="font-medium text-[#02542D]">Tệp đính kèm</p>
                         <div className="flex items-center gap-3">
                           <input
                             ref={detailFileInputRef}
@@ -979,7 +984,7 @@ export default function ContractManagementPage() {
                             type="button"
                             onClick={() => detailFileInputRef.current?.click()}
                             disabled={!detailState.data || detailUploading}
-                            className="inline-flex items-center rounded-lg border border-blue-300 px-3 py-1.5 text-sm font-medium text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+                            className="inline-flex items-center rounded-lg border border-[#14AE5C] px-3 py-1.5 text-sm font-medium text-[#02542D] shadow-sm transition hover:bg-[#14AE5C] hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300"
                           >
                             {detailUploading ? 'Đang tải lên...' : 'Tải tệp đính kèm'}
                           </button>
@@ -1003,19 +1008,19 @@ export default function ContractManagementPage() {
                             return (
                               <div
                                 key={file.id}
-                                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                                className="rounded-lg border border-gray-200 bg-gray-50 p-3"
                               >
                                 <div className="flex items-center justify-between gap-3">
                                   <div>
-                                    <p className="font-medium text-slate-800">
+                                    <p className="font-medium text-[#02542D]">
                                       {file.originalFileName ?? file.fileName ?? 'Tệp không tên'}
                                     </p>
-                                    <p className="text-xs text-slate-500">
+                                    <p className="text-xs text-gray-500">
                                       {file.contentType ?? 'Không rõ định dạng'} •{' '}
                                       {file.fileSize ? `${(file.fileSize / 1024).toFixed(1)} KB` : 'Kích thước không rõ'}
                                     </p>
                                     {file.isPrimary && (
-                                      <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                      <span className="mt-1 inline-flex rounded-full bg-[#C7E8D2] px-2 py-0.5 text-xs font-medium text-[#02542D]">
                                         Tệp chính
                                       </span>
                                     )}
@@ -1032,22 +1037,22 @@ export default function ContractManagementPage() {
                                   )}
                                 </div>
                                 {isImage && displayUrl && (
-                                  <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                  <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white">
                                     <img
                                       src={displayUrl}
                                       alt={file.originalFileName ?? file.fileName ?? 'Contract image'}
-                                      className="max-h-96 w-full object-contain bg-slate-100"
+                                  className="max-h-96 w-full object-contain bg-gray-100"
                                     />
                                   </div>
                                 )}
                                 {isPdf && displayUrl && (
-                                  <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                  <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white">
                                     <object
                                       data={displayUrl}
                                       type="application/pdf"
                                       className="h-96 w-full"
                                     >
-                                      <p className="p-4 text-sm text-slate-500">
+                                  <p className="p-4 text-sm text-gray-500">
                                         Không thể hiển thị PDF.{' '}
                                         <a
                                           href={displayUrl}
@@ -1066,7 +1071,7 @@ export default function ContractManagementPage() {
                           })}
                         </div>
                       ) : (
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-gray-500">
                           Hợp đồng chưa có tệp đính kèm. Bạn có thể tải tệp ngay tại đây.
                         </p>
                       )}
@@ -1074,11 +1079,11 @@ export default function ContractManagementPage() {
                   </div>
                 )}
               </div>
-              <div className="flex items-center justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
+              <div className="flex items-center justify-end border-t border-gray-200 bg-gray-50 px-6 py-4">
                 <button
                   type="button"
                   onClick={handleCloseContractDetail}
-                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-white"
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-white"
                 >
                   Đóng
                 </button>

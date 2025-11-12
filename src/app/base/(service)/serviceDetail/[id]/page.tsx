@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import Edit from '@/src/assets/Edit.svg';
@@ -10,11 +11,18 @@ import DetailField from '@/src/components/base-service/DetailField';
 import { useServiceDetailPage } from '@/src/hooks/useServiceDetailPage';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import {
+  deleteServiceCombo,
+  deleteServiceOption,
+  deleteServiceTicket,
+  getServiceCombos,
+  getServiceOptions,
+  getServiceTickets,
+} from '@/src/services/asset-maintenance/serviceService';
+import {
   ServiceBookingType,
   ServicePricingType,
   ServiceCombo,
   ServiceOption,
-  ServiceOptionGroup,
   ServiceTicket,
   ServiceTicketType,
 } from '@/src/types/service';
@@ -84,6 +92,64 @@ export default function ServiceDetailPage() {
 
   const { serviceData, loading, error } = useServiceDetailPage(serviceId);
 
+  const [combos, setCombos] = useState<ServiceCombo[]>([]);
+  const [options, setOptions] = useState<ServiceOption[]>([]);
+  const [tickets, setTickets] = useState<ServiceTicket[]>([]);
+  const [comboLoading, setComboLoading] = useState<boolean>(false);
+  const [optionLoading, setOptionLoading] = useState<boolean>(false);
+  const [ticketLoading, setTicketLoading] = useState<boolean>(false);
+  const [isComboExpanded, setIsComboExpanded] = useState<boolean>(true);
+  const [isOptionExpanded, setIsOptionExpanded] = useState<boolean>(true);
+  const [isTicketExpanded, setIsTicketExpanded] = useState<boolean>(true);
+
+  const serviceIdValue = Array.isArray(serviceId) ? serviceId[0] : (serviceId as string) ?? '';
+
+  const fetchCombos = useCallback(async () => {
+    if (!serviceIdValue) return;
+    setComboLoading(true);
+    try {
+      const comboData = await getServiceCombos(serviceIdValue);
+      setCombos(comboData);
+    } catch (err) {
+      console.error('Failed to load service combos', err);
+    } finally {
+      setComboLoading(false);
+    }
+  }, [serviceIdValue]);
+
+  const fetchOptions = useCallback(async () => {
+    if (!serviceIdValue) return;
+    setOptionLoading(true);
+    try {
+      const optionData = await getServiceOptions(serviceIdValue);
+      setOptions(optionData);
+    } catch (err) {
+      console.error('Failed to load service options', err);
+    } finally {
+      setOptionLoading(false);
+    }
+  }, [serviceIdValue]);
+
+  const fetchTickets = useCallback(async () => {
+    if (!serviceIdValue) return;
+    setTicketLoading(true);
+    try {
+      const ticketData = await getServiceTickets(serviceIdValue);
+      setTickets(ticketData);
+    } catch (err) {
+      console.error('Failed to load service tickets', err);
+    } finally {
+      setTicketLoading(false);
+    }
+  }, [serviceIdValue]);
+
+  useEffect(() => {
+    if (!serviceIdValue) return;
+    fetchCombos();
+    fetchOptions();
+    fetchTickets();
+  }, [serviceIdValue, fetchCombos, fetchOptions, fetchTickets]);
+
   const handleBack = () => {
     router.push('/base/serviceList');
   };
@@ -132,12 +198,6 @@ export default function ServiceDetailPage() {
     );
   }
 
-  const serviceIdValue = Array.isArray(serviceId) ? serviceId[0] : (serviceId as string) ?? '';
-  const bookingType = serviceData.bookingType;
-  const isComboBooking = bookingType === ServiceBookingType.COMBO_BASED;
-  const isOptionBooking = bookingType === ServiceBookingType.OPTION_BASED;
-  const isTicketBooking = bookingType === ServiceBookingType.TICKET_BASED;
-
   const handleNavigateToCreate = (type: string) => {
     if (!serviceIdValue) return;
     router.push(`/base/serviceType?serviceId=${serviceIdValue}&type=${type}`);
@@ -145,50 +205,61 @@ export default function ServiceDetailPage() {
 
   const handleAddCombo = () => handleNavigateToCreate('combo');
   const handleAddOption = () => handleNavigateToCreate('option');
-  const handleAddOptionGroup = () => handleNavigateToCreate('option-group');
   const handleAddTicket = () => handleNavigateToCreate('ticket');
 
   const handleEditCombo = (comboId?: string) => {
     if (!comboId) return;
-    show('Chức năng chỉnh sửa gói dịch vụ đang được phát triển.', 'info');
+    show(t('Service.notifications.comboEdit'), 'info');
   };
 
-  const handleDeleteCombo = (comboId?: string) => {
+  const handleDeleteCombo = async (comboId?: string) => {
     if (!comboId) return;
-    show('Chức năng xóa gói dịch vụ đang được phát triển.', 'info');
+    try {
+      await deleteServiceCombo(comboId);
+      show(t('Service.notifications.comboDelete'), 'success');
+      await fetchCombos();
+    } catch (err) {
+      console.error('Failed to delete combo', err);
+      show(t('Service.error'), 'error');
+    }
   };
 
   const handleEditOption = (optionId?: string) => {
     if (!optionId) return;
-    show('Chức năng chỉnh sửa tùy chọn đang được phát triển.', 'info');
+    show(t('Service.notifications.optionEdit'), 'info');
   };
 
-  const handleDeleteOption = (optionId?: string) => {
+  const handleDeleteOption = async (optionId?: string) => {
     if (!optionId) return;
-    show('Chức năng xóa tùy chọn đang được phát triển.', 'info');
+    try {
+      await deleteServiceOption(optionId);
+      show(t('Service.notifications.optionDelete'), 'success');
+      await fetchOptions();
+    } catch (err) {
+      console.error('Failed to delete option', err);
+      show(t('Service.error'), 'error');
+    }
   };
 
-  const handleEditOptionGroup = (groupId?: string) => {
-    if (!groupId) return;
-    show('Chức năng chỉnh sửa nhóm tùy chọn đang được phát triển.', 'info');
-  };
-
-  const handleDeleteOptionGroup = (groupId?: string) => {
-    if (!groupId) return;
-    show('Chức năng xóa nhóm tùy chọn đang được phát triển.', 'info');
-  };
   const handleEditTicket = (ticketId?: string) => {
     if (!ticketId) {
       return;
     }
-    show('Chức năng chỉnh sửa vé đang được phát triển.', 'info');
+    show(t('Service.notifications.ticketEdit'), 'info');
   };
 
-  const handleDeleteTicket = (ticketId?: string) => {
+  const handleDeleteTicket = async (ticketId?: string) => {
     if (!ticketId) {
       return;
     }
-    show('Chức năng xóa vé đang được phát triển.', 'info');
+    try {
+      await deleteServiceTicket(ticketId);
+      show(t('Service.notifications.ticketDelete'), 'success');
+      await fetchTickets();
+    } catch (err) {
+      console.error('Failed to delete ticket', err);
+      show(t('Service.error'), 'error');
+    }
   };
 
   return (
@@ -228,7 +299,7 @@ export default function ServiceDetailPage() {
                 height={24}
                 className="w-6 h-6"
               />
-              <span className="text-white">Chỉnh sửa</span>
+              <span className="text-white">{t('Service.editService')}</span>
             </button>
           </div>
         </div>
@@ -325,12 +396,17 @@ export default function ServiceDetailPage() {
       </div>
 
       <div className="max-w-5xl mx-auto mt-6 grid grid-cols-1 gap-6">
-        {isComboBooking && (
-          <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-[#02542D]">
-                {t('Service.combos')}
-              </h2>
+        <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              className="flex items-center gap-3 text-left text-xl font-semibold text-[#02542D]"
+              onClick={() => setIsComboExpanded((prev) => !prev)}
+            >
+              <span className="text-2xl leading-none">{isComboExpanded ? '-' : '+'}</span>
+              <span>{t('Service.combos')}</span>
+            </button>
+            {isComboExpanded && (
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-80 transition"
@@ -338,83 +414,98 @@ export default function ServiceDetailPage() {
               >
                 {t('Service.addCombo')}
               </button>
-            </div>
-            {serviceData.combos && serviceData.combos.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-100 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboName')}</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboCode')}</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboPrice')}</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.status')}</th>
-                      <th className="px-4 py-3 text-center font-medium text-gray-600">{t('Service.action')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {serviceData.combos.map((combo: ServiceCombo) => (
-                      <tr key={combo.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{combo.name ?? '-'}</td>
-                        <td className="px-4 py-3 text-gray-600">{combo.code ?? '-'}</td>
-                        <td className="px-4 py-3 text-gray-600">{formatCurrency(combo.price ?? null)}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                              combo.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
-                            }`}
-                          >
-                            {combo.isActive ? t('Service.active') : t('Service.inactive')}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-center">
-                          <div className="flex space-x-2 justify-center">
-                            <button
-                              type="button"
-                              onClick={() => handleEditCombo(combo.id)}
-                              className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
-                            >
-                              <Image src={Edit} alt="Edit combo" width={24} height={24} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteCombo(combo.id)}
-                              className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
-                            >
-                              <Image src={Delete} alt="Delete combo" width={24} height={24} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-gray-500">
-                {t('Service.noCombos')}
-              </div>
             )}
-          </section>
-        )}
+          </div>
+          {isComboExpanded && (
+            <>
+              {comboLoading ? (
+                <div className="text-gray-500">{t('Service.loading')}</div>
+              ) : combos.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-100 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboName')}</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboCode')}</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboPrice')}</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.status')}</th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-600">{t('Service.action')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {combos.map((combo: ServiceCombo) => (
+                        <tr key={combo.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium text-gray-900">{combo.name ?? '-'}</td>
+                          <td className="px-4 py-3 text-gray-600">{combo.code ?? '-'}</td>
+                          <td className="px-4 py-3 text-gray-600">{formatCurrency(combo.price ?? null)}</td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                combo.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
+                              }`}
+                            >
+                              {combo.isActive ? t('Service.active') : t('Service.inactive')}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-center">
+                            <div className="flex space-x-2 justify-center">
+                              <button
+                                type="button"
+                                onClick={() => handleEditCombo(combo.id)}
+                                className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
+                              >
+                                <Image src={Edit} alt="Edit combo" width={24} height={24} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCombo(combo.id)}
+                                className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
+                              >
+                                <Image src={Delete} alt="Delete combo" width={24} height={24} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-gray-500">
+                  {t('Service.noCombos')}
+                </div>
+              )}
+            </>
+          )}
+        </section>
 
-        {isOptionBooking && (
-          <>
-            <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-[#02542D]">
-                  {t('Service.options')}
-                </h2>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-80 transition"
-                  onClick={handleAddOption}
-                >
-                  {t('Service.addOption')}
-                </button>
-              </div>
-              {serviceData.options && serviceData.options.length > 0 ? (
+        <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              className="flex items-center gap-3 text-left text-xl font-semibold text-[#02542D]"
+              onClick={() => setIsOptionExpanded((prev) => !prev)}
+            >
+              <span className="text-2xl leading-none">{isOptionExpanded ? '-' : '+'}</span>
+              <span>{t('Service.options')}</span>
+            </button>
+            {isOptionExpanded && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-80 transition"
+                onClick={handleAddOption}
+              >
+                {t('Service.addOption')}
+              </button>
+            )}
+          </div>
+          {isOptionExpanded && (
+            <>
+              {optionLoading ? (
+                <div className="text-gray-500">{t('Service.loading')}</div>
+              ) : options.length > 0 ? (
                 <div className="grid md:grid-cols-2 gap-4">
-                  {serviceData.options.map((option: ServiceOption) => (
+                  {options.map((option: ServiceOption) => (
                     <div key={option.id} className="border border-gray-200 rounded-lg p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div>
@@ -459,16 +550,21 @@ export default function ServiceDetailPage() {
                   {t('Service.noOptions')}
                 </div>
               )}
-            </section>
-          </>
-        )}
+            </>
+          )}
+        </section>
 
-        {isTicketBooking && (
-          <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-[#02542D]">
-                {t('Service.tickets')}
-              </h2>
+        <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              className="flex items-center gap-3 text-left text-xl font-semibold text-[#02542D]"
+              onClick={() => setIsTicketExpanded((prev) => !prev)}
+            >
+              <span className="text-2xl leading-none">{isTicketExpanded ? '-' : '+'}</span>
+              <span>{t('Service.tickets')}</span>
+            </button>
+            {isTicketExpanded && (
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-80 transition"
@@ -476,74 +572,80 @@ export default function ServiceDetailPage() {
               >
                 {t('Service.addTicket')}
               </button>
-            </div>
-            {serviceData.tickets && serviceData.tickets.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-100 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketName')}</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketCode')}</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketTypeLabel')}</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketDuration')}</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketPrice')}</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketMaxPeople')}</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.status')}</th>
-                      <th className="px-4 py-3 text-center font-medium text-gray-600">{t('Service.action')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {serviceData.tickets.map((ticket: ServiceTicket) => (
-                      <tr key={ticket.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{ticket.name ?? '-'}</td>
-                        <td className="px-4 py-3 text-gray-600">{ticket.code ?? '-'}</td>
-                        <td className="px-4 py-3 text-gray-600">{t(mapTicketType(ticket.ticketType))}</td>
-                        <td className="px-4 py-3 text-gray-600">
-                          {ticket.durationHours != null ? ticket.durationHours.toString() : '-'}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">{formatCurrency(ticket.price ?? null)}</td>
-                        <td className="px-4 py-3 text-gray-600">
-                          {ticket.maxPeople != null ? ticket.maxPeople.toString() : '-'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                              ticket.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
-                            }`}
-                          >
-                            {ticket.isActive ? t('Service.active') : t('Service.inactive')}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-center">
-                          <div className="flex space-x-2 justify-center">
-                            <button
-                              type="button"
-                              onClick={() => handleEditTicket(ticket.id)}
-                              className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
-                            >
-                              <Image src={Edit} alt="Edit ticket" width={24} height={24} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTicket(ticket.id)}
-                              className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
-                            >
-                              <Image src={Delete} alt="Delete ticket" width={24} height={24} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-gray-500">
-                {t('Service.noTickets')}
-              </div>
             )}
-          </section>
-        )}
+          </div>
+          {isTicketExpanded && (
+            <>
+              {ticketLoading ? (
+                <div className="text-gray-500">{t('Service.loading')}</div>
+              ) : tickets.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-100 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketName')}</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketCode')}</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketTypeLabel')}</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketDuration')}</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketPrice')}</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.ticketMaxPeople')}</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.status')}</th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-600">{t('Service.action')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {tickets.map((ticket: ServiceTicket) => (
+                        <tr key={ticket.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium text-gray-900">{ticket.name ?? '-'}</td>
+                          <td className="px-4 py-3 text-gray-600">{ticket.code ?? '-'}</td>
+                          <td className="px-4 py-3 text-gray-600">{t(mapTicketType(ticket.ticketType))}</td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {ticket.durationHours != null ? ticket.durationHours.toString() : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">{formatCurrency(ticket.price ?? null)}</td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {ticket.maxPeople != null ? ticket.maxPeople.toString() : '-'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                ticket.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
+                              }`}
+                            >
+                              {ticket.isActive ? t('Service.active') : t('Service.inactive')}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-center">
+                            <div className="flex space-x-2 justify-center">
+                              <button
+                                type="button"
+                                onClick={() => handleEditTicket(ticket.id)}
+                                className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
+                              >
+                                <Image src={Edit} alt="Edit ticket" width={24} height={24} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTicket(ticket.id)}
+                                className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
+                              >
+                                <Image src={Delete} alt="Delete ticket" width={24} height={24} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-gray-500">
+                  {t('Service.noTickets')}
+                </div>
+              )}
+            </>
+          )}
+        </section>
       </div>
     </div>
   );

@@ -13,7 +13,6 @@ import { getServiceCategories, getServices } from '@/src/services/asset-maintena
 import {
   CreateServicePayload,
   Page,
-  ServiceBookingType,
   ServiceCategory,
   Service,
   ServicePricingType,
@@ -27,13 +26,10 @@ type FormState = {
   location: string;
   mapUrl: string;
   pricingType: ServicePricingType;
-  bookingType: ServiceBookingType;
   pricePerHour: string;
   pricePerSession: string;
   maxCapacity: string;
   minDurationHours: string;
-  maxDurationHours: string;
-  advanceBookingDays: string;
   rules: string;
   isActive: boolean;
 };
@@ -46,13 +42,10 @@ const initialState: FormState = {
   location: '',
   mapUrl: '',
   pricingType: ServicePricingType.HOURLY,
-  bookingType: ServiceBookingType.STANDARD,
   pricePerHour: '',
   pricePerSession: '',
   maxCapacity: '',
   minDurationHours: '',
-  maxDurationHours: '',
-  advanceBookingDays: '',
   rules: '',
   isActive: true,
 };
@@ -84,16 +77,6 @@ export default function ServiceCreatePage() {
       { name: t('Service.pricing.hourly'), value: ServicePricingType.HOURLY },
       { name: t('Service.pricing.session'), value: ServicePricingType.SESSION },
       { name: t('Service.pricing.free'), value: ServicePricingType.FREE },
-    ],
-    [t],
-  );
-
-  const bookingOptions = useMemo(
-    () => [
-      { name: t('Service.booking.combo'), value: ServiceBookingType.COMBO_BASED },
-      { name: t('Service.booking.ticket'), value: ServiceBookingType.TICKET_BASED },
-      { name: t('Service.booking.option'), value: ServiceBookingType.OPTION_BASED },
-      { name: t('Service.booking.standard'), value: ServiceBookingType.STANDARD },
     ],
     [t],
   );
@@ -169,6 +152,13 @@ export default function ServiceCreatePage() {
     return Number.isNaN(parsed) ? undefined : parsed;
   };
 
+  const parsePositiveNumber = (value: string) => {
+    const parsed = parseNumber(value);
+    if (parsed === undefined) return undefined;
+    if (parsed <= 0) return undefined;
+    return parsed;
+  };
+
   const validate = () => {
     const errors: Record<string, string> = {};
 
@@ -188,17 +178,11 @@ export default function ServiceCreatePage() {
     if (!formData.pricingType) {
       errors.pricingType = t('Service.validation.pricingType');
     }
-    if (!formData.bookingType) {
-      errors.bookingType = t('Service.validation.bookingType');
-    }
-
-    const priceHour = parseNumber(formData.pricePerHour);
-    const priceSession = parseNumber(formData.pricePerSession);
 
     if (formData.pricingType === ServicePricingType.HOURLY) {
       if (!formData.pricePerHour.trim()) {
         errors.pricePerHour = t('Service.validation.pricePerHour');
-      } else if (priceHour === undefined || priceHour < 0) {
+      } else if (parsePositiveNumber(formData.pricePerHour) === undefined) {
         errors.pricePerHour = t('Service.validation.pricePerHour');
       }
     }
@@ -206,42 +190,24 @@ export default function ServiceCreatePage() {
     if (formData.pricingType === ServicePricingType.SESSION) {
       if (!formData.pricePerSession.trim()) {
         errors.pricePerSession = t('Service.validation.pricePerSession');
-      } else if (priceSession === undefined || priceSession < 0) {
+      } else if (parsePositiveNumber(formData.pricePerSession) === undefined) {
         errors.pricePerSession = t('Service.validation.pricePerSession');
       }
     }
 
     const maxCapacity = parseNumber(formData.maxCapacity);
-    if (formData.maxCapacity.trim() === '' || maxCapacity === undefined || maxCapacity < 0) {
+    if (formData.maxCapacity.trim() === '' || maxCapacity === undefined) {
       errors.maxCapacity = t('Service.validation.maxCapacity');
+    } else if (maxCapacity < 1 || maxCapacity > 1000) {
+      errors.maxCapacity = t('Service.validation.maxCapacityRange');
     }
 
     const minDuration = parseNumber(formData.minDurationHours);
-    const maxDuration = parseNumber(formData.maxDurationHours);
 
-    if (formData.minDurationHours.trim() === '' || minDuration === undefined || minDuration < 0) {
+    if (formData.minDurationHours.trim() === '' || minDuration === undefined) {
       errors.minDurationHours = t('Service.validation.minDuration');
-    }
-
-    if (formData.maxDurationHours.trim() === '' || maxDuration === undefined || maxDuration < 0) {
-      errors.maxDurationHours = t('Service.validation.maxDuration');
-    }
-
-    if (
-      minDuration !== undefined &&
-      maxDuration !== undefined &&
-      maxDuration < minDuration
-    ) {
-      errors.maxDurationHours = t('Service.validation.durationRange');
-    }
-
-    const advanceBooking = parseNumber(formData.advanceBookingDays);
-    if (
-      formData.advanceBookingDays.trim() === '' ||
-      advanceBooking === undefined ||
-      advanceBooking < 0
-    ) {
-      errors.advanceBookingDays = t('Service.validation.advanceBooking');
+    } else if (minDuration < 1) {
+      errors.minDurationHours = t('Service.validation.minDuration');
     }
 
     setFormErrors(errors);
@@ -250,7 +216,6 @@ export default function ServiceCreatePage() {
 
   const buildPayload = (): CreateServicePayload => {
     const pricingTypeValue = formData.pricingType || ServicePricingType.HOURLY;
-    const bookingTypeValue = formData.bookingType || ServiceBookingType.STANDARD;
 
     return {
       categoryId: formData.categoryId,
@@ -260,23 +225,16 @@ export default function ServiceCreatePage() {
       location: formData.location.trim() || undefined,
       mapUrl: formData.mapUrl.trim() || undefined,
       pricingType: pricingTypeValue,
-      bookingType: bookingTypeValue,
       pricePerHour:
         pricingTypeValue === ServicePricingType.HOURLY
-          ? parseNumber(formData.pricePerHour) ?? 0
-          : pricingTypeValue === ServicePricingType.FREE
-          ? 0
-          : null,
+          ? parsePositiveNumber(formData.pricePerHour)
+          : undefined,
       pricePerSession:
         pricingTypeValue === ServicePricingType.SESSION
-          ? parseNumber(formData.pricePerSession) ?? 0
-          : pricingTypeValue === ServicePricingType.FREE
-          ? 0
-          : null,
-      maxCapacity: parseNumber(formData.maxCapacity) ?? 0,
-      minDurationHours: parseNumber(formData.minDurationHours) ?? 0,
-      maxDurationHours: parseNumber(formData.maxDurationHours) ?? 0,
-      advanceBookingDays: parseNumber(formData.advanceBookingDays) ?? 0,
+          ? parsePositiveNumber(formData.pricePerSession)
+          : undefined,
+      maxCapacity: parseNumber(formData.maxCapacity),
+      minDurationHours: parseNumber(formData.minDurationHours),
       rules: formData.rules.trim() || undefined,
       isActive: formData.isActive,
     };
@@ -437,14 +395,10 @@ export default function ServiceCreatePage() {
                   pricePerHour:
                     item.value === ServicePricingType.HOURLY
                       ? prev.pricePerHour
-                      : item.value === ServicePricingType.FREE
-                      ? '0'
                       : '',
                   pricePerSession:
                     item.value === ServicePricingType.SESSION
                       ? prev.pricePerSession
-                      : item.value === ServicePricingType.FREE
-                      ? '0'
                       : '',
                 }));
                 setFormErrors((prev) => {
@@ -466,30 +420,6 @@ export default function ServiceCreatePage() {
             {formErrors.pricingType && (
               <span className="text-red-500 text-xs mt-1">
                 {formErrors.pricingType}
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-col mb-4">
-            <label className="text-md font-bold text-[#02542D] mb-1">
-              {t('Service.bookingType')}
-            </label>
-            <Select
-              options={bookingOptions}
-              value={formData.bookingType}
-              onSelect={(item) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  bookingType: item.value as ServiceBookingType,
-                }))
-              }
-              renderItem={(item) => item.name}
-              getValue={(item) => item.value}
-              placeholder={t('Service.bookingType')}
-            />
-            {formErrors.bookingType && (
-              <span className="text-red-500 text-xs mt-1">
-                {formErrors.bookingType}
               </span>
             )}
           </div>
@@ -539,28 +469,6 @@ export default function ServiceCreatePage() {
             readonly={false}
             error={formErrors.minDurationHours}
             placeholder={t('Service.minDuration')}
-            inputType="number"
-          />
-
-          <DetailField
-            label={t('Service.maxDuration')}
-            name="maxDurationHours"
-            value={formData.maxDurationHours}
-            onChange={handleInputChange}
-            readonly={false}
-            error={formErrors.maxDurationHours}
-            placeholder={t('Service.maxDuration')}
-            inputType="number"
-          />
-
-          <DetailField
-            label={t('Service.advanceBookingDays')}
-            name="advanceBookingDays"
-            value={formData.advanceBookingDays}
-            onChange={handleInputChange}
-            readonly={false}
-            error={formErrors.advanceBookingDays}
-            placeholder={t('Service.advanceBookingDays')}
             inputType="number"
           />
 
