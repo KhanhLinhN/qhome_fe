@@ -50,10 +50,33 @@ export default function WaterAssignPage() {
     try {
       setLoading(true);
       
+      console.log('[WaterAssignPage] Loading reading cycles...');
       // Load cycles
       const cycles = await getAllReadingCycles();
-      const filteredCycles = cycles.filter(cycle => cycle.status === 'IN_PROGRESS');
-      
+      console.log('[WaterAssignPage] Loaded reading cycles:', cycles.map((c: ReadingCycleDto) => ({
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        periodFrom: c.periodFrom,
+        periodTo: c.periodTo,
+      })));
+      const parseDate = (...values: (string | null | undefined)[]) => {
+        for (const value of values) {
+          if (!value) continue;
+          const time = new Date(value).getTime();
+          if (!Number.isNaN(time)) {
+            return time;
+          }
+        }
+        return 0;
+      };
+
+      const sortedCycles = [...cycles].sort(
+        (a, b) =>
+          parseDate(b.periodFrom, b.fromDate, b.createdAt, b.updatedAt) -
+          parseDate(a.periodFrom, a.fromDate, a.createdAt, a.updatedAt)
+      );
+
       // Load employees to get username mapping
       let userMap: Map<string, string> = new Map();
       try {
@@ -69,14 +92,20 @@ export default function WaterAssignPage() {
       
       // Load assignments for each cycle and enrich with username and progress
       const cyclesData: CycleWithAssignments[] = await Promise.all(
-        filteredCycles.map(async (cycle) => {
+        sortedCycles.map(async (cycle) => {
           try {
             const assignments = await getAssignmentsByCycle(cycle.id);
+            console.log('[WaterAssignPage] Assignments for cycle', cycle.id, assignments.map((a: MeterReadingAssignmentDto) => ({
+              id: a.id,
+              cycleId: a.cycleId,
+              completedAt: a.completedAt,
+              unitCount: a.unitIds?.length ?? 0,
+            })));
             
             // Enrich each assignment with username and progress
             const enrichedAssignments = await Promise.all(
               assignments.map(async (assignment) => {
-                const enriched = { ...assignment };
+                const enriched = { ...assignment, cycleId: assignment.cycleId || cycle.id };
                 
                 // Add username
                 enriched.assignedToName = userMap.get(assignment.assignedTo) || assignment.assignedTo;
@@ -100,7 +129,7 @@ export default function WaterAssignPage() {
               })
             );
             const allAssignmentsCompleted = enrichedAssignments.length > 0
-              ? enrichedAssignments.every(a => a.status === 'COMPLETED')
+              ? enrichedAssignments.every(a => Boolean(a.completedAt))
               : false;
             
             return { cycle, assignments: enrichedAssignments, allAssignmentsCompleted };
@@ -111,7 +140,16 @@ export default function WaterAssignPage() {
         })
       );
 
-      setCyclesWithAssignments(cyclesData);
+      const activeCycles = cyclesData.filter(({ cycle }) =>
+        cycle.status === 'IN_PROGRESS' || cycle.status === 'OPEN'
+      );
+      console.log('[WaterAssignPage] Active cycles after enrichment:', activeCycles.map(({ cycle, assignments }) => ({
+        id: cycle.id,
+        status: cycle.status,
+        assignmentIds: assignments.map((a) => ({ id: a.id, cycleId: a.cycleId })),
+      })));
+
+      setCyclesWithAssignments(activeCycles);
     } catch (error) {
       console.error('Failed to load cycles:', error);
       show('Failed to load cycles', 'error');
@@ -173,11 +211,27 @@ export default function WaterAssignPage() {
       show('Cannot export invoices: cycle information is missing.', 'error');
       return;
     }
+    console.log('[WaterAssignPage] Export requested for assignment', {
+      assignmentId: assignment.id,
+      assignmentCycleId: assignment.cycleId,
+      assignmentCompletedAt: assignment.completedAt,
+    });
     const cycleInfo = cyclesWithAssignments.find(item => item.cycle.id === assignment.cycleId);
     if (!cycleInfo) {
+      console.warn('[WaterAssignPage] Cycle not found in state for assignment', {
+        assignmentId: assignment.id,
+        assignmentCycleId: assignment.cycleId,
+        availableCycles: cyclesWithAssignments.map(({ cycle }) => cycle.id),
+      });
       show('Unable to locate cycle in current view. Please refresh the page.', 'error');
       return;
     }
+    console.log('[WaterAssignPage] Export cycle data', {
+      cycleId: cycleInfo.cycle.id,
+      cycleStatus: cycleInfo.cycle.status,
+      assignmentsInCycle: cycleInfo.assignments.map((a) => ({ id: a.id, cycleId: a.cycleId })),
+      allAssignmentsCompleted: cycleInfo.allAssignmentsCompleted,
+    });
     try {
       setIsExporting(true);
       if (cycleInfo.cycle.status !== 'COMPLETED') {
