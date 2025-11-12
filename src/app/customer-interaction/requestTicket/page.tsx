@@ -16,7 +16,7 @@ import Pagination from '@/src/components/customer-interaction/Pagination';
 
 export default function Home() {
   const t = useTranslations('customer-interaction.Request');
-  const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('dateCreated'), t('priority'), t('status')];
+  const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('dateCreated'), t('status'), 'Action'];
 
   const {
       data,
@@ -38,7 +38,6 @@ export default function Home() {
       residentName: item.residentName,
       title: item.title,
       status: item.status,
-      priority: item.priority,
       createdAt: item.createdAt.slice(0, 10).replace(/-/g, '/'), // Format to YYYY/MM/DD
   })) || [];
   

@@ -2,7 +2,6 @@ import "./globals.css";
 import { cookies } from "next/headers";
 import Providers from "./providers";
 import Navbar from "@/src/components/layout/Navbar";
-import Footer from "@/src/components/layout/Footer";
 
 async function getMessages(locale: string) {
   const data = (await import(`../../messages/${locale}.json`)).default;
@@ -19,10 +18,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <Providers initialLocale={currentLocale} initialMessages={messages}>
           <Navbar />
-          <div className="min-h-[calc(100vh-160px)] bg-gradient-to-br from-slate-50 via-white to-slate-100">
+          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
             {children}
           </div>
-          <Footer />
         </Providers>
       </body>
     </html>

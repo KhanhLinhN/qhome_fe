@@ -46,7 +46,9 @@ const adminSections: NavSection[] = [
     items: [
       {href: "/base/building/buildingList", label: "Quản lý Building", icon: "🏢"},
       {href: "/base/residentView", label: "Danh sách cư dân", icon: "👨‍👩‍👧‍👦"},
-      {href: "/base/regisresiView", label: "Đăng ký cư dân", icon: "📝"},
+      {href: "/base/regisresiView", label: "Duyệt tài khoản cư dân", icon: "📝"},
+      {href: "/base/household/householdMemberRequests", label: "Duyệt thành viên gia đình", icon: "👪"},
+      {href: "/base/contract/contracts", label: "Hợp đồng căn hộ", icon: "📄"},
       {href: "/base/vehicles/vehicleAll", label: "Quản lý phương tiện", icon: "🚗"},
     ],
   },

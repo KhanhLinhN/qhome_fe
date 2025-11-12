@@ -48,6 +48,41 @@ export interface ResidentWithoutAccount {
   isPrimary: boolean;
 }
 
+export interface ResidentAccountDto {
+  userId: string;
+  username: string;
+  email: string;
+  roles: string[];
+  active: boolean;
+}
+
+export interface PrimaryResidentProvisionResponse {
+  residentId: string;
+  householdMemberId: string;
+  account: ResidentAccountDto | null;
+}
+
+export interface ResidentCreatePayload {
+  fullName: string;
+  phone?: string;
+  email?: string;
+  nationalId?: string;
+  dob?: string;
+  status?: string;
+}
+
+export interface CreateResidentAccountDto {
+  username?: string | null;
+  password?: string | null;
+  autoGenerate: boolean;
+}
+
+export interface PrimaryResidentProvisionRequest {
+  resident: ResidentCreatePayload;
+  account?: CreateResidentAccountDto | null;
+  relation?: string | null;
+}
+
 export async function fetchPendingAccountRequests(): Promise<AccountCreationRequest[]> {
   const response = await axios.get<AccountCreationRequest[]>(
     `${BASE_URL}/api/admin/account-requests/pending`,
@@ -78,4 +113,14 @@ export async function fetchResidentsWithoutAccount(
   return response.data;
 }
 
-
+export async function provisionPrimaryResident(
+  unitId: string,
+  payload: PrimaryResidentProvisionRequest,
+): Promise<PrimaryResidentProvisionResponse> {
+  const response = await axios.post<PrimaryResidentProvisionResponse>(
+    `${BASE_URL}/api/units/${unitId}/primary-resident/provision`,
+    payload,
+    { withCredentials: true },
+  );
+  return response.data;
+}

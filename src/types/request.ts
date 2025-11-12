@@ -7,7 +7,6 @@ export interface Request {
     title: string;
     content: string;
     status: string;
-    priority: string;
     createdAt: string;
     updatedAt: string;
 }

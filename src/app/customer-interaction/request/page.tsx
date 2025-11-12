@@ -10,7 +10,7 @@ import Pagination from '@/src/components/customer-interaction/Pagination';
 
 export default function Home() {
   const t = useTranslations('customer-interaction.Request');
-  const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('dateCreated'), t('priority'), t('status')];
+  const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('dateCreated'), t('status'), 'Action'];
 
   const {
       data,
@@ -32,7 +32,6 @@ export default function Home() {
       residentName: item.residentName,
       title: item.title,
       status: item.status,
-      priority: item.priority,
       createdAt: item.createdAt.slice(0, 10).replace(/-/g, '/'), // Format to YYYY/MM/DD
   })) || [];
   
@@ -41,10 +40,9 @@ export default function Home() {
     
     return [
         { title: t('totalRequests'), count: counts.total || 0, status: '' },
-        { title: t('newRequests'), count: counts.New || 0, status: 'new' },
-        { title: t('processingRequests'), count: counts.Processing || 0, status: 'processing' },
-        { title: t('respondedRequests'), count: counts.Responded || 0, status: 'responded' },
-        { title: t('closedRequests'), count: counts.Closed || 0, status: 'closed' },
+        { title: 'Pending', count: counts.Pending || 0, status: 'Pending' },
+        { title: 'Processing', count: counts.Processing || 0, status: 'Processing' },
+        { title: 'Done', count: counts.Done || 0, status: 'Done' },
     ];
   }, [statusCounts, t]);
   
