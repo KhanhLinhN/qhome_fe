@@ -1,9 +1,11 @@
 "use client";
-import React from "react";
+import React, {useState} from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {usePathname} from "next/navigation";
 import {useAuth} from "@/src/contexts/AuthContext";
 import {useTranslations} from "next-intl";
+import DropdownArrow from "@/src/assets/DropdownArrow.svg";
 
 type SidebarVariant = "admin" | "tenant-owner" | "technician";
 
@@ -79,7 +81,7 @@ const adminSections: NavSection[] = [
     items: [
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
-      // {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
+      {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
       {href: "/customer-interaction/requestTicket", labelKey: "tickets", icon: "🎫"},
     ],
   },
@@ -142,6 +144,7 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
   const pathname = usePathname();
   const {user} = useAuth();
   const t = useTranslations('Sidebar');
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const normalizedRoles = user?.roles?.map(role => role.toLowerCase()) ?? [];
 
@@ -156,35 +159,62 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
 
   const sections = menuConfig[resolvedVariant];
 
+  const toggleSection = (sectionKey: string) => {
+    setCollapsedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionKey)) {
+        newSet.delete(sectionKey);
+      } else {
+        newSet.add(sectionKey);
+      }
+      return newSet;
+    });
+  };
+
   return (
-    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed max-h-screen pb-4">
-      <nav className="p-3 space-y-6 overflow-y-auto max-h-screen">
-        {sections.map(section => (
-          <div key={section.titleKey} className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 px-2">
-              {t(section.titleKey)}
-            </p>
-            <div className="space-y-1">
-              {section.items.map(item => {
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      active ? "bg-[#6B9B6E] text-white" : "text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    <span aria-hidden className="w-5 text-center flex items-center justify-center">
-                      {item.icon}
-                    </span>
-                    <span className="truncate">{t(item.labelKey)}</span>
-                  </Link>
-                );
-              })}
+    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen">
+      <nav className="p-3 space-y-6 overflow-y-auto flex-1">
+        {sections.map(section => {
+          const isCollapsed = collapsedSections.has(section.titleKey);
+          return (
+            <div key={section.titleKey} className="space-y-2">
+              <button
+                onClick={() => toggleSection(section.titleKey)}
+                className="w-full flex items-center justify-between px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <span>{t(section.titleKey)}</span>
+                <Image
+                  src={DropdownArrow}
+                  alt="Toggle"
+                  width={12}
+                  height={12}
+                  className={`transition-transform ${isCollapsed ? "rotate-180" : ""}`}
+                />
+              </button>
+              {!isCollapsed && (
+                <div className="space-y-1">
+                  {section.items.map(item => {
+                    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          active ? "bg-[#6B9B6E] text-white" : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span aria-hidden className="w-5 text-center flex items-center justify-center">
+                          {item.icon}
+                        </span>
+                        <span className="truncate">{t(item.labelKey)}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
     </aside>
   );

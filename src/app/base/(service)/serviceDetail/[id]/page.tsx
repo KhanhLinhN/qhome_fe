@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import Edit from '@/src/assets/Edit.svg';
 import Delete from '@/src/assets/Delete.svg';
+import DropdownArrow from '@/src/assets/DropdownArrow.svg';
 import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import DetailField from '@/src/components/base-service/DetailField';
@@ -512,7 +513,13 @@ export default function ServiceDetailPage() {
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
                 onClick={() => setIsComboExpanded((prev) => !prev)}
               >
-                <span className="text-lg leading-none">{isComboExpanded ? '-' : '+'}</span>
+                <Image
+                  src={DropdownArrow}
+                  alt="Toggle"
+                  width={16}
+                  height={16}
+                  className={`transition-transform ${isComboExpanded ? "rotate-180" : ""}`}
+                />
               </button>
               <h2 className="text-xl font-semibold text-[#02542D]">{t('Service.combos')}</h2>
             </div>
@@ -558,7 +565,13 @@ export default function ServiceDetailPage() {
                                     onClick={() => toggleComboDetail(comboId)}
                                     className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
                                   >
-                                    <span className="text-base leading-none">{isRowExpanded ? '-' : '+'}</span>
+                                    <Image
+                                      src={DropdownArrow}
+                                      alt="Toggle"
+                                      width={14}
+                                      height={14}
+                                      className={`transition-transform ${isRowExpanded ? "rotate-180" : ""}`}
+                                    />
                                   </button>
                                 ) : (
                                   <span className="text-gray-400">—</span>
@@ -670,7 +683,13 @@ export default function ServiceDetailPage() {
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
                 onClick={() => setIsOptionExpanded((prev) => !prev)}
               >
-                <span className="text-lg leading-none">{isOptionExpanded ? '-' : '+'}</span>
+                <Image
+                  src={DropdownArrow}
+                  alt="Toggle"
+                  width={16}
+                  height={16}
+                  className={`transition-transform ${isOptionExpanded ? "rotate-180" : ""}`}
+                />
               </button>
               <h2 className="text-xl font-semibold text-[#02542D]">{t('Service.options')}</h2>
             </div>
@@ -747,7 +766,13 @@ export default function ServiceDetailPage() {
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
                 onClick={() => setIsTicketExpanded((prev) => !prev)}
               >
-                <span className="text-lg leading-none">{isTicketExpanded ? '-' : '+'}</span>
+                <Image
+                  src={DropdownArrow}
+                  alt="Toggle"
+                  width={16}
+                  height={16}
+                  className={`transition-transform ${isTicketExpanded ? "rotate-180" : ""}`}
+                />
               </button>
               <h2 className="text-xl font-semibold text-[#02542D]">{t('Service.tickets')}</h2>
             </div>
