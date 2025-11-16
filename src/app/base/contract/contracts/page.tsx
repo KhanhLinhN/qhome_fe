@@ -14,6 +14,7 @@ import {
   uploadContractFiles,
 } from '@/src/services/base/contractService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
+import { useTranslations } from 'next-intl';
 
 type AsyncState<T> = {
   data: T;
@@ -64,13 +65,27 @@ function resolveFileUrl(url?: string | null) {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return 'Chưa thiết lập';
+  if (!value) return t('common.notSet');
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString('vi-VN');
 }
 
+function generateAutoContractNumber() {
+  const now = new Date();
+  const yyyy = String(now.getFullYear());
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mi = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const ms = String(now.getMilliseconds()).padStart(3, '0');
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `HD-${yyyy}${mm}${dd}-${hh}${mi}${ss}${ms}-${rand}`;
+}
+
 export default function ContractManagementPage() {
+  const t = useTranslations('Contracts');
   const [buildingsState, setBuildingsState] =
     useState<AsyncState<Building[]>>(DEFAULT_BUILDINGS_STATE);
   const [unitsState, setUnitsState] = useState<AsyncState<Unit[]>>(DEFAULT_UNITS_STATE);
@@ -101,6 +116,7 @@ export default function ContractManagementPage() {
     loading: false,
     error: null,
   });
+  const [showExpired, setShowExpired] = useState(false);
 
   const [formState, setFormState] = useState<CreateContractPayload>({
     unitId: '',
@@ -154,13 +170,13 @@ export default function ContractManagementPage() {
         setBuildingsState({ data, loading: false, error: null });
       } catch (err: any) {
         const message =
-          err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+          err?.response?.data?.message || err?.message || t('errors.loadBuildings');
         setBuildingsState({ data: [], loading: false, error: message });
       }
     };
 
     void loadBuildings();
-  }, []);
+  }, [t]);
 
   const buildingOptions = useMemo(
     () =>
@@ -199,7 +215,7 @@ export default function ContractManagementPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tải danh sách căn hộ của tòa nhà này.';
+        t('errors.loadUnits');
       setUnitsState({ data: [], loading: false, error: message });
     }
   };
@@ -217,7 +233,7 @@ export default function ContractManagementPage() {
       setContractsState({
         data: [],
         loading: false,
-        error: 'Đã xảy ra lỗi khi tải hợp đồng. Vui lòng thử lại.',
+        error: t('errors.loadContracts'),
       });
     }
   };
@@ -246,6 +262,8 @@ export default function ContractManagementPage() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    // Auto-generate contract number with strong uniqueness
+    setFieldValue('contractNumber', generateAutoContractNumber());
   };
 
   const resetCreateForm = () => {
@@ -273,7 +291,40 @@ export default function ContractManagementPage() {
 
   const isValidDate = (value?: string | null) => {
     if (!value) return true;
-    return /^\d{4}-\d{2}-\d{2}$/.test(value);
+    return /^\d{2}\/\d{2}\/\d{4}$/.test(value);
+  };
+
+  const ddmmyyyyToYyyyMmDd = (value: string | null | undefined) => {
+    if (!value) return '';
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return '';
+    const [d, m, y] = value.split('/').map(Number);
+    const dt = new Date(y, m - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return '';
+    const yyyy = String(y);
+    const mm = String(m).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const parseDdMmYyyyToDate = (value?: string | null) => {
+    if (!value || !/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null;
+    const [d, m, y] = value.split('/').map(Number);
+    const dt = new Date(y, m - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+    dt.setHours(0, 0, 0, 0);
+    return dt;
+  };
+
+  const addMonths = (date: Date, months: number) => {
+    const d = new Date(date.getTime());
+    const targetMonth = d.getMonth() + months;
+    d.setMonth(targetMonth);
+    // Handle end-of-month rollovers
+    if (d.getMonth() !== (targetMonth % 12 + 12) % 12) {
+      d.setDate(0);
+    }
+    d.setHours(0, 0, 0, 0);
+    return d;
   };
 
   const handleUploadFilesForDetail = async (files: FileList | null) => {
@@ -310,40 +361,80 @@ export default function ContractManagementPage() {
     const errors: Record<string, string> = {};
 
     if (!formState.unitId) {
-      errors.unitId = 'Vui lòng chọn căn hộ trước khi tạo hợp đồng.';
+      errors.unitId = t('validation.unitRequired');
     }
 
-    if (!formState.contractNumber.trim()) {
-      errors.contractNumber = 'Vui lòng nhập số hợp đồng.';
+    // contractNumber is auto-generated and readonly; ensure present
+    if (!formState.contractNumber || !formState.contractNumber.trim()) {
+      setFieldValue('contractNumber', generateAutoContractNumber());
+    }
+
+    // Contract type must be selected
+    if (!formState.contractType) {
+      errors.contractType = t('validation.contractTypeRequired');
     }
 
     if (!formState.startDate) {
-      errors.startDate = 'Vui lòng chọn ngày bắt đầu hợp đồng.';
+      errors.startDate = t('validation.startDateRequired');
     } else if (!isValidDate(formState.startDate)) {
-      errors.startDate = 'Ngày bắt đầu phải theo định dạng YYYY-MM-DD.';
+      errors.startDate = t('validation.dateFormat');
+    } else {
+      const start = parseDdMmYyyyToDate(formState.startDate);
+      const today = new Date(); today.setHours(0,0,0,0);
+      if (!start) {
+        errors.startDate = t('validation.startDateInvalid');
+      } else if (start < today) {
+        errors.startDate = t('validation.startDateInFuture');
+      }
     }
 
     if (formState.contractType === 'RENTAL') {
-      if (formState.monthlyRent === null || formState.monthlyRent === undefined) {
-        errors.monthlyRent = 'Vui lòng nhập giá thuê hàng tháng cho hợp đồng thuê.';
+      // End date required and at least 1 month after start
+      if (!formState.endDate) {
+        errors.endDate = t('validation.endDateRequired');
+      } else if (!isValidDate(formState.endDate)) {
+        errors.endDate = t('validation.dateFormat');
+      } else {
+        const start = parseDdMmYyyyToDate(formState.startDate);
+        const end = parseDdMmYyyyToDate(formState.endDate);
+        if (!start || !end) {
+          errors.endDate = t('validation.endDateInvalid');
+        } else {
+          const minEnd = addMonths(start, 1);
+          if (end < minEnd) {
+            errors.endDate = t('validation.endDateMinDiff');
+          }
+        }
       }
-      if (formState.endDate && !isValidDate(formState.endDate)) {
-        errors.endDate = 'Ngày kết thúc phải theo định dạng YYYY-MM-DD.';
+
+      if (formState.monthlyRent === null || formState.monthlyRent === undefined) {
+        errors.monthlyRent = t('validation.monthlyRentRequired');
+      } else if (formState.monthlyRent < 0) {
+        errors.monthlyRent = t('validation.nonNegative');
+      }
+
+      if (!formState.paymentMethod || !formState.paymentMethod.trim()) {
+        errors.paymentMethod = t('validation.paymentMethodRequired');
       }
     }
 
     if (formState.contractType === 'PURCHASE') {
       if (formState.endDate) {
-        errors.endDate = 'Hợp đồng mua không thể có ngày kết thúc.';
+        errors.endDate = t('validation.purchaseHasNoEndDate');
       }
       if (formState.purchasePrice === null || formState.purchasePrice === undefined) {
-        errors.purchasePrice = 'Vui lòng nhập giá mua cho hợp đồng mua.';
+        errors.purchasePrice = t('validation.purchasePriceRequired');
       }
       if (!formState.purchaseDate) {
-        errors.purchaseDate = 'Vui lòng nhập ngày mua cho hợp đồng mua.';
+        errors.purchaseDate = t('validation.purchaseDateRequired');
       } else if (!isValidDate(formState.purchaseDate)) {
-        errors.purchaseDate = 'Ngày mua phải theo định dạng YYYY-MM-DD.';
+        errors.purchaseDate = t('validation.dateFormat');
       }
+    }
+
+    // Require at least one file to be uploaded
+    if (!createFiles || createFiles.length === 0) {
+      errors.files = t('validation.filesRequired');
     }
 
     if (Object.keys(errors).length > 0) {
@@ -363,16 +454,21 @@ export default function ContractManagementPage() {
         formState.paymentTerms && formState.paymentTerms.trim().length > 0
           ? formState.paymentTerms.trim()
           : null;
-      const payload: CreateContractPayload = {
+      const basePayload: CreateContractPayload = {
         ...formState,
+        startDate: ddmmyyyyToYyyyMmDd(formState.startDate) || '',
+        endDate:
+          formState.contractType === 'RENTAL'
+            ? ddmmyyyyToYyyyMmDd(formState.endDate ?? '') || null
+            : null,
+        purchaseDate:
+          formState.contractType === 'PURCHASE'
+            ? ddmmyyyyToYyyyMmDd(formState.purchaseDate ?? '') || null
+            : null,
         monthlyRent:
           formState.contractType === 'RENTAL' ? formState.monthlyRent ?? 0 : null,
         purchasePrice:
           formState.contractType === 'PURCHASE' ? formState.purchasePrice ?? 0 : null,
-        endDate:
-          formState.contractType === 'RENTAL' ? formState.endDate || null : null,
-        purchaseDate:
-          formState.contractType === 'PURCHASE' ? formState.purchaseDate || null : null,
         paymentMethod:
           formState.contractType === 'PURCHASE' ? null : trimmedPaymentMethod,
         paymentTerms:
@@ -381,29 +477,61 @@ export default function ContractManagementPage() {
         status: 'ACTIVE',
       };
 
-      const contract = await createContract(payload);
-
-      if (createFiles && createFiles.length > 0) {
+      // Retry up to 3 times if backend reports duplicate contract number
+      let attempts = 0;
+      let lastError: any = null;
+      while (attempts < 3) {
+        attempts += 1;
+        const candidateNumber =
+          attempts === 1 ? formState.contractNumber : generateAutoContractNumber();
+        const payload: CreateContractPayload = {
+          ...basePayload,
+          contractNumber: candidateNumber,
+        };
         try {
-          await uploadContractFiles(contract.id, createFiles);
-        } catch (fileError: any) {
-          const message =
-            fileError?.response?.data?.message ||
-            fileError?.message ||
-            'Tạo hợp đồng thành công nhưng tải tệp đính kèm thất bại.';
-          setCreateError(message);
+          const contract = await createContract(payload);
+
+          if (createFiles && createFiles.length > 0) {
+            try {
+              await uploadContractFiles(contract.id, createFiles);
+            } catch (fileError: any) {
+              const message =
+                fileError?.response?.data?.message ||
+                fileError?.message ||
+                'Tạo hợp đồng thành công nhưng tải tệp đính kèm thất bại.';
+              setCreateError(message);
+            }
+          }
+
+          setCreateSuccess(t('messages.createSuccess'));
+          await loadContracts(payload.unitId);
+          resetCreateForm();
+          setCreateModalOpen(false);
+          setFieldValue('contractNumber', candidateNumber);
+          lastError = null;
+          break;
+        } catch (err: any) {
+          const msg =
+            err?.response?.data?.message?.toString() ||
+            err?.message?.toString() ||
+            '';
+          lastError = err;
+          if (msg.includes('Contract number already exists')) {
+            // regenerate and retry
+            continue;
+          }
+          throw err;
         }
       }
 
-      setCreateSuccess('Đã tạo hợp đồng thành công.');
-      await loadContracts(payload.unitId);
-      resetCreateForm();
-      setCreateModalOpen(false);
+      if (lastError) {
+        throw lastError;
+      }
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tạo hợp đồng. Vui lòng thử lại.';
+        t('errors.createFailed');
       setCreateError(message);
     } finally {
       setCreateSubmitting(false);
@@ -452,36 +580,64 @@ export default function ContractManagementPage() {
 
   const filteredContracts = contractsState.data;
 
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  const isExpired = (contract: ContractSummary) => {
+    if (!contract.endDate) {
+      // No end date -> considered not expired (unlimited)
+      return false;
+    }
+    const end = new Date(contract.endDate);
+    end.setHours(0, 0, 0, 0);
+    return end < today;
+  };
+
+  const expiredContracts = useMemo(
+    () => filteredContracts.filter((c) => isExpired(c)),
+    [filteredContracts, today],
+  );
+  const validContracts = useMemo(
+    () => filteredContracts.filter((c) => !isExpired(c)),
+    [filteredContracts, today],
+  );
+
   return (
     <div className="min-h-screen bg-[#F5F9F6] px-[41px] py-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-[#02542D]">Quản lý hợp đồng căn hộ</h1>
+            <h1 className="text-2xl font-semibold text-[#02542D]">{t('title')}</h1>
             <p className="text-sm text-gray-600">
-              Tạo mới và theo dõi các hợp đồng thuê/mua của từng căn hộ trong dự án.
+              {t('subtitle')}
             </p>
           </div>
           <button
             type="button"
             onClick={handleOpenCreateModal}
-            disabled={!selectedUnitId}
-            className="inline-flex items-center rounded-lg bg-[#14AE5C] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0c793f] disabled:cursor-not-allowed disabled:bg-[#A3D9B1]"
+            disabled={!selectedUnitId || validContracts.length > 0}
+            className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition
+              ${!selectedUnitId || validContracts.length > 0
+                ? 'cursor-not-allowed bg-[#A3D9B1] text-white'
+                : 'bg[#14AE5C] bg-[#14AE5C] text-white hover:bg-[#0c793f]'}`}
           >
-            + Thêm hợp đồng
+            + {t('buttons.addContract')}
           </button>
         </div>
 
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-[#02542D]">Tòa nhà</label>
+              <label className="text-sm font-medium text-[#02542D]">{t('fields.building')}</label>
               <select
                 value={selectedBuildingId}
                 onChange={(event) => handleSelectBuilding(event.target.value)}
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
               >
-                <option value="">-- Chọn tòa nhà --</option>
+                <option value="">{t('placeholders.selectBuilding')}</option>
                 {buildingOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -489,14 +645,14 @@ export default function ContractManagementPage() {
                 ))}
               </select>
               {buildingsState.loading && (
-                <span className="text-xs text-gray-500">Đang tải danh sách tòa nhà...</span>
+                <span className="text-xs text-gray-500">{t('loading.buildings')}</span>
               )}
               {buildingsState.error && (
                 <span className="text-xs text-red-500">{buildingsState.error}</span>
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-[#02542D]">Căn hộ</label>
+              <label className="text-sm font-medium text-[#02542D]">{t('fields.unit')}</label>
               <select
                 value={selectedUnitId}
                 onChange={(event) => handleSelectUnit(event.target.value)}
@@ -504,7 +660,7 @@ export default function ContractManagementPage() {
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2] disabled:cursor-not-allowed disabled:bg-gray-100"
               >
                 <option value="">
-                  {selectedBuildingId ? '-- Chọn căn hộ --' : 'Chọn tòa nhà trước'}
+                  {selectedBuildingId ? t('placeholders.selectUnit') : t('placeholders.selectBuildingFirst')}
                 </option>
                 {unitOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -513,7 +669,7 @@ export default function ContractManagementPage() {
                 ))}
               </select>
               {unitsState.loading && (
-                <span className="text-xs text-gray-500">Đang tải danh sách căn hộ...</span>
+                <span className="text-xs text-gray-500">{t('loading.units')}</span>
               )}
               {unitsState.error && <span className="text-xs text-red-500">{unitsState.error}</span>}
             </div>
@@ -522,7 +678,7 @@ export default function ContractManagementPage() {
           <div className="mt-6">
             {contractsState.loading ? (
               <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-600">
-                Đang tải danh sách hợp đồng...
+                {t('loading.contracts')}
               </div>
             ) : contractsState.error ? (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -531,70 +687,142 @@ export default function ContractManagementPage() {
             ) : filteredContracts.length === 0 ? (
               <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-600">
                 {selectedUnitId
-                  ? 'Căn hộ này hiện không có hợp đồng.'
-                  : 'Chọn tòa nhà và căn hộ để xem danh sách hợp đồng.'}
+                  ? t('empty.noContracts')
+                  : t('empty.selectToView')}
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200 text-sm">
-                  <thead className="bg-[#E9F4EE]">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
-                        Số hợp đồng
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
-                        Loại
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
-                        Hiệu lực
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
-                        Trạng thái
-                      </th>
-                      <th className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-[#02542D]">
-                        Chi tiết
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
-                    {filteredContracts.map((contract) => (
-                      <tr key={contract.id} className="hover:bg-[#E9F4EE]">
-                        <td className="px-4 py-3 font-medium text-[#02542D]">
-                          {contract.contractNumber ?? 'Không rõ'}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">
-                          {contract.contractType ?? 'Không xác định'}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">
-                          <div className="flex flex-col">
-                            <span>Bắt đầu: {formatDate(contract.startDate)}</span>
-                            <span>Kết thúc: {formatDate(contract.endDate)}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${
-                              contract.status === 'ACTIVE'
-                                ? 'bg-[#C7E8D2] text-[#02542D]'
-                                : 'bg-gray-200 text-gray-700'
-                            }`}
-                          >
-                            {contract.status ?? 'Không xác định'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenContractDetail(contract.id)}
-                            className="inline-flex items-center rounded-lg border border-[#14AE5C] px-3 py-1 text-sm font-medium text-[#02542D] shadow-sm transition hover:bg-[#14AE5C] hover:text-white"
-                          >
-                            Xem
-                          </button>
-                        </td>
+              <div className="space-y-4">
+                <div className="overflow-x-auto rounded-xl border border-gray-200">
+                  <table className="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead className="bg-[#E9F4EE]">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
+                          {t('table.contractNumber')}
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
+                          {t('table.type')}
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
+                          {t('table.validity')}
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
+                          {t('table.status')}
+                        </th>
+                        <th className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-[#02542D]">
+                          {t('table.detail')}
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {validContracts.map((contract) => (
+                        <tr key={contract.id} className="hover:bg-[#E9F4EE]">
+                          <td className="px-4 py-3 font-medium text-[#02542D]">
+                            {contract.contractNumber ?? t('common.unknown')}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {contract.contractType ?? t('common.unknown')}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            <div className="flex flex-col">
+                              <span>{t('table.start')}: {formatDate(contract.startDate)}</span>
+                              <span>{t('table.end')}: {formatDate(contract.endDate)}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${
+                                contract.status === 'ACTIVE'
+                                  ? 'bg-[#C7E8D2] text-[#02542D]'
+                                  : 'bg-gray-200 text-gray-700'
+                              }`}
+                            >
+                              {contract.status ?? t('common.unknown')}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenContractDetail(contract.id)}
+                              className="inline-flex items-center rounded-lg border border-[#14AE5C] px-3 py-1 text-sm font-medium text-[#02542D] shadow-sm transition hover:bg-[#14AE5C] hover:text-white"
+                            >
+                              {t('buttons.view')}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {expiredContracts.length > 0 && (
+                  <div className="rounded-xl border border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setShowExpired((s) => !s)}
+                      className="flex w-full items-center justify-between bg-gray-50 px-4 py-3 text-left text-sm font-medium text-[#02542D]"
+                    >
+                      <span>Hợp đồng đã hết hạn ({expiredContracts.length})</span>
+                      <span className="text-gray-500">{showExpired ? '▾' : '▸'}</span>
+                    </button>
+                    {showExpired && (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 text-sm">
+                          <thead className="bg-[#F6FAF8]">
+                            <tr>
+                              <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
+                                {t('table.contractNumber')}
+                              </th>
+                              <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
+                                {t('table.type')}
+                              </th>
+                              <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
+                                {t('table.validity')}
+                              </th>
+                              <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-[#02542D]">
+                                {t('table.status')}
+                              </th>
+                              <th className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-[#02542D]">
+                                {t('table.detail')}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 bg-white">
+                            {expiredContracts.map((contract) => (
+                              <tr key={contract.id} className="opacity-60 hover:bg-[#E9F4EE]">
+                                <td className="px-4 py-3 font-medium text-[#02542D]">
+                                  {contract.contractNumber ?? t('common.unknown')}
+                                </td>
+                                <td className="px-4 py-3 text-gray-600">
+                                  {contract.contractType ?? t('common.unknown')}
+                                </td>
+                                <td className="px-4 py-3 text-gray-600">
+                                  <div className="flex flex-col">
+                                    <span>{t('table.start')}: {formatDate(contract.startDate)}</span>
+                                    <span>{t('table.end')}: {formatDate(contract.endDate)}</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-gray-600">
+                                  <span className="inline-flex rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700 shadow-sm">
+                                    {contract.status ?? t('common.unknown')}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenContractDetail(contract.id)}
+                                    className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-1 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-100"
+                                  >
+                                    {t('buttons.view')}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -611,9 +839,9 @@ export default function ContractManagementPage() {
             <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-[#02542D]">Thêm hợp đồng mới</h2>
+                  <h2 className="text-lg font-semibold text-[#02542D]">{t('create.title')}</h2>
                   <p className="text-sm text-gray-500">
-                    Nhập thông tin hợp đồng thuê hoặc mua cho căn hộ được chọn.
+                    {t('create.subtitle')}
                   </p>
                 </div>
                 <button
@@ -630,14 +858,15 @@ export default function ContractManagementPage() {
               <form onSubmit={handleCreateContract} className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-[#02542D]">Căn hộ</label>
+                    <label className="text-sm font-medium text-[#02542D]">{t('fields.unit')}</label>
                     <select
                       value={formState.unitId}
                       onChange={(event) => setFieldValue('unitId', event.target.value)}
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
+                      disabled
+                      className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-[#02542D] shadow-inner focus:border-gray-200 focus:outline-none disabled:cursor-not-allowed"
                       required
                     >
-                      <option value="">-- Chọn căn hộ --</option>
+                      <option value="">{t('placeholders.selectUnit')}</option>
                       {unitOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -649,14 +878,14 @@ export default function ContractManagementPage() {
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-[#02542D]">Số hợp đồng</label>
+                    <label className="text-sm font-medium text-[#02542D]">{t('fields.contractNumber')}</label>
                     <input
                       type="text"
                       value={formState.contractNumber}
-                      onChange={(event) => setFieldValue('contractNumber', event.target.value)}
-                      placeholder="Ví dụ: HD-2025-0001"
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
-                      required
+                      readOnly
+                      disabled
+                      placeholder={t('placeholders.contractNumber')}
+                      className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-[#02542D] shadow-inner focus:border-gray-200 focus:outline-none disabled:cursor-not-allowed"
                     />
                     {formErrors.contractNumber && (
                       <span className="mt-1 text-xs text-red-500">{formErrors.contractNumber}</span>
@@ -666,7 +895,7 @@ export default function ContractManagementPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-[#02542D]">Loại hợp đồng</label>
+                    <label className="text-sm font-medium text-[#02542D]">{t('fields.contractType')}</label>
                     <select
                       value={formState.contractType ?? 'RENTAL'}
                       onChange={(event) => {
@@ -687,28 +916,25 @@ export default function ContractManagementPage() {
                       }}
                       className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                     >
-                      {CONTRACT_TYPE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                      <option value="RENTAL">{t('contractTypes.rental')}</option>
+                      <option value="PURCHASE">{t('contractTypes.purchase')}</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-[#02542D]">Trạng thái</label>
+                    <label className="text-sm font-medium text-[#02542D]">{t('fields.status')}</label>
                     <div className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 shadow-inner">
-                      Đang hiệu lực (mặc định)
+                      {t('status.activeDefault')}
                     </div>
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-[#02542D]">Ngày bắt đầu</label>
+                    <label className="text-sm font-medium text-[#02542D]">{t('fields.startDate')}</label>
                     <DateBox
                       value={formState.startDate ?? ''}
                       onChange={(event) => setFieldValue('startDate', event.target.value)}
-                      placeholderText="YYYY-MM-DD"
+                      placeholderText={t('placeholders.ddmmyyyy')}
                     />
                     {formErrors.startDate && (
                       <span className="mt-1 text-xs text-red-500">{formErrors.startDate}</span>
@@ -716,13 +942,13 @@ export default function ContractManagementPage() {
                   </div>
                   {formState.contractType !== 'PURCHASE' && (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-[#02542D]">Ngày kết thúc</label>
+                      <label className="text-sm font-medium text-[#02542D]">{t('fields.endDate')}</label>
                       <DateBox
                         value={formState.endDate ?? ''}
                         onChange={(event) =>
                           setFieldValue('endDate', event.target.value ? event.target.value : null)
                         }
-                        placeholderText="YYYY-MM-DD"
+                        placeholderText={t('placeholders.ddmmyyyy')}
                       />
                       {formErrors.endDate && (
                         <span className="mt-1 text-xs text-red-500">{formErrors.endDate}</span>
@@ -731,7 +957,7 @@ export default function ContractManagementPage() {
                   )}
                   {formState.contractType === 'PURCHASE' && (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-[#02542D]">Ngày mua</label>
+                      <label className="text-sm font-medium text-[#02542D]">{t('fields.purchaseDate')}</label>
                       <DateBox
                         value={formState.purchaseDate ?? ''}
                         onChange={(event) =>
@@ -740,7 +966,7 @@ export default function ContractManagementPage() {
                             event.target.value ? event.target.value : null,
                           )
                         }
-                        placeholderText="YYYY-MM-DD"
+                        placeholderText={t('placeholders.ddmmyyyy')}
                       />
                       {formErrors.purchaseDate && (
                         <span className="mt-1 text-xs text-red-500">{formErrors.purchaseDate}</span>
@@ -752,7 +978,7 @@ export default function ContractManagementPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {formState.contractType === 'RENTAL' && (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-[#02542D]">Giá thuê / tháng</label>
+                      <label className="text-sm font-medium text-[#02542D]">{t('fields.monthlyRent')}</label>
                       <input
                         type="number"
                         min={0}
@@ -763,7 +989,7 @@ export default function ContractManagementPage() {
                             event.target.value ? Number(event.target.value) : null,
                           )
                         }
-                        placeholder="Ví dụ: 12000000"
+                        placeholder={t('placeholders.monthlyRent')}
                         className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       />
                       {formErrors.monthlyRent && (
@@ -773,7 +999,7 @@ export default function ContractManagementPage() {
                   )}
                   {formState.contractType === 'PURCHASE' && (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-[#02542D]">Giá mua</label>
+                      <label className="text-sm font-medium text-[#02542D]">{t('fields.purchasePrice')}</label>
                       <input
                         type="number"
                         min={0}
@@ -784,7 +1010,7 @@ export default function ContractManagementPage() {
                             event.target.value ? Number(event.target.value) : null,
                           )
                         }
-                        placeholder="Ví dụ: 2500000000"
+                        placeholder={t('placeholders.purchasePrice')}
                         className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       />
                       {formErrors.purchasePrice && (
@@ -793,46 +1019,49 @@ export default function ContractManagementPage() {
                     </div>
                   )}
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-[#02542D]">Phương thức thanh toán</label>
+                    <label className="text-sm font-medium text-[#02542D]">{t('fields.paymentMethod')}</label>
                     <select
                       value={formState.paymentMethod ?? ''}
                       onChange={(event) => setFieldValue('paymentMethod', event.target.value)}
                       className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       disabled={formState.contractType === 'PURCHASE'}
                     >
-                      {PAYMENT_METHOD_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                      <option value="">{t('placeholders.selectPaymentMethod')}</option>
+                      <option value="Chuyển khoản">{t('paymentMethods.transfer')}</option>
+                      <option value="Tiền mặt">{t('paymentMethods.cash')}</option>
+                      <option value="Ví điện tử">{t('paymentMethods.eWallet')}</option>
+                      <option value="Khác">{t('paymentMethods.other')}</option>
                     </select>
+                    {formErrors.paymentMethod && (
+                      <span className="mt-1 text-xs text-red-500">{formErrors.paymentMethod}</span>
+                    )}
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-[#02542D]">Điều khoản thanh toán</label>
+                    <label className="text-sm font-medium text-[#02542D]">{t('fields.paymentTerms')}</label>
                     <input
                       type="text"
                       value={formState.paymentTerms ?? ''}
                       onChange={(event) => setFieldValue('paymentTerms', event.target.value)}
-                      placeholder="Ví dụ: trả theo quý..."
+                      placeholder={t('placeholders.paymentTerms')}
                       className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#02542D]">Ghi chú</label>
+                  <label className="text-sm font-medium text-[#02542D]">{t('fields.notes')}</label>
                   <textarea
                     value={formState.notes ?? ''}
                     onChange={(event) => setFieldValue('notes', event.target.value)}
                     rows={3}
-                    placeholder="Thông tin bổ sung về hợp đồng..."
+                    placeholder={t('placeholders.notes')}
                     className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                   />
                 </div>
 
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-[#02542D]">
-                    Tệp đính kèm hợp đồng (tuỳ chọn)
+                    {t('fields.attachmentsRequired')}
                   </label>
                   <input
                     ref={fileInputRef}
@@ -842,9 +1071,10 @@ export default function ContractManagementPage() {
                     className="text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#02542D] hover:file:bg-gray-200"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
-                  <span className="text-xs text-gray-500">
-                    Có thể tải nhiều tệp (PDF, ảnh...) để lưu trữ cùng hợp đồng.
-                  </span>
+                  <span className="text-xs text-gray-500">{t('hints.attachments')}</span>
+                  {formErrors.files && (
+                    <span className="mt-1 text-xs text-red-500">{formErrors.files}</span>
+                  )}
                 </div>
 
                 {createError && (
@@ -862,14 +1092,14 @@ export default function ContractManagementPage() {
                     }}
                     className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-white"
                   >
-                    Hủy
+                    {t('buttons.cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={createSubmitting}
                     className="inline-flex items-center justify-center rounded-lg bg-[#14AE5C] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0c793f] disabled:cursor-not-allowed disabled:bg-[#A3D9B1]"
                   >
-                    {createSubmitting ? 'Đang tạo...' : 'Tạo hợp đồng'}
+                    {createSubmitting ? t('buttons.creating') : t('buttons.create')}
                   </button>
                 </div>
               </form>
@@ -882,10 +1112,10 @@ export default function ContractManagementPage() {
             <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-[#02542D]">Chi tiết hợp đồng</h3>
+                  <h3 className="text-lg font-semibold text-[#02542D]">{t('detail.title')}</h3>
                   {detailState.data?.contractNumber && (
                     <p className="text-sm text-gray-500">
-                      Số hợp đồng: {detailState.data.contractNumber}
+                      {t('detail.contractNumber')}: {detailState.data.contractNumber}
                     </p>
                   )}
                 </div>
@@ -899,7 +1129,7 @@ export default function ContractManagementPage() {
               </div>
               <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
                 {detailState.loading && (
-                  <p className="text-sm text-gray-500">Đang tải chi tiết hợp đồng...</p>
+                  <p className="text-sm text-gray-500">{t('loading.detail')}</p>
                 )}
                 {detailState.error && (
                   <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -910,49 +1140,49 @@ export default function ContractManagementPage() {
                   <div className="space-y-5 text-sm text-gray-700">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <p>
-                        <span className="font-medium text-[#02542D]">Loại hợp đồng:</span>{' '}
-                        {detailState.data.contractType ?? 'Không xác định'}
+                        <span className="font-medium text-[#02542D]">{t('detail.type')}:</span>{' '}
+                        {detailState.data.contractType ?? t('common.unknown')}
                       </p>
                       <p>
-                        <span className="font-medium text-[#02542D]">Trạng thái:</span>{' '}
-                        {detailState.data.status ?? 'Không xác định'}
+                        <span className="font-medium text-[#02542D]">{t('detail.status')}:</span>{' '}
+                        {detailState.data.status ?? t('common.unknown')}
                       </p>
                       <p>
-                        <span className="font-medium text-[#02542D]">Ngày bắt đầu:</span>{' '}
+                        <span className="font-medium text-[#02542D]">{t('detail.start')}:</span>{' '}
                         {formatDate(detailState.data.startDate)}
                       </p>
                       <p>
-                        <span className="font-medium text-[#02542D]">Ngày kết thúc:</span>{' '}
-                        {detailState.data.endDate ? formatDate(detailState.data.endDate) : 'Không giới hạn'}
+                        <span className="font-medium text-[#02542D]">{t('detail.end')}:</span>{' '}
+                        {detailState.data.endDate ? formatDate(detailState.data.endDate) : t('detail.unlimited')}
                       </p>
                       {detailState.data.monthlyRent != null && (
                         <p>
-                          <span className="font-medium text-[#02542D]">Giá thuê / tháng:</span>{' '}
+                          <span className="font-medium text-[#02542D]">{t('detail.monthlyRent')}:</span>{' '}
                           {detailState.data.monthlyRent.toLocaleString('vi-VN')} đ
                         </p>
                       )}
                       {detailState.data.purchasePrice != null && (
                         <p>
-                          <span className="font-medium text-[#02542D]">Giá mua:</span>{' '}
+                          <span className="font-medium text-[#02542D]">{t('detail.purchasePrice')}:</span>{' '}
                           {detailState.data.purchasePrice.toLocaleString('vi-VN')} đ
                         </p>
                       )}
                       {detailState.data.purchaseDate && (
                         <p>
-                          <span className="font-medium text-[#02542D]">Ngày mua:</span>{' '}
+                          <span className="font-medium text-[#02542D]">{t('detail.purchaseDate')}:</span>{' '}
                           {formatDate(detailState.data.purchaseDate)}
                         </p>
                       )}
                       {detailState.data.paymentMethod && (
                         <p>
-                          <span className="font-medium text-[#02542D]">Phương thức thanh toán:</span>{' '}
+                          <span className="font-medium text-[#02542D]">{t('detail.paymentMethod')}:</span>{' '}
                           {detailState.data.paymentMethod}
                         </p>
                       )}
                     </div>
                     {detailState.data.paymentTerms && (
                       <div>
-                        <p className="font-medium text-[#02542D]">Điều khoản thanh toán</p>
+                        <p className="font-medium text-[#02542D]">{t('detail.paymentTerms')}</p>
                         <p className="mt-1 whitespace-pre-line text-gray-600">
                           {detailState.data.paymentTerms}
                         </p>
@@ -960,7 +1190,7 @@ export default function ContractManagementPage() {
                     )}
                     {detailState.data.notes && (
                       <div>
-                        <p className="font-medium text-[#02542D]">Ghi chú</p>
+                        <p className="font-medium text-[#02542D]">{t('detail.notes')}</p>
                         <p className="mt-1 whitespace-pre-line text-gray-600">
                           {detailState.data.notes}
                         </p>
@@ -968,7 +1198,7 @@ export default function ContractManagementPage() {
                     )}
                     <div className="space-y-3">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="font-medium text-[#02542D]">Tệp đính kèm</p>
+                        <p className="font-medium text-[#02542D]">{t('detail.attachments')}</p>
                         <div className="flex items-center gap-3">
                           <input
                             ref={detailFileInputRef}
@@ -984,7 +1214,7 @@ export default function ContractManagementPage() {
                             disabled={!detailState.data || detailUploading}
                             className="inline-flex items-center rounded-lg border border-[#14AE5C] px-3 py-1.5 text-sm font-medium text-[#02542D] shadow-sm transition hover:bg-[#14AE5C] hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300"
                           >
-                            {detailUploading ? 'Đang tải lên...' : 'Tải tệp đính kèm'}
+                            {detailUploading ? t('buttons.uploading') : t('buttons.uploadAttachment')}
                           </button>
                         </div>
                       </div>
@@ -1011,15 +1241,15 @@ export default function ContractManagementPage() {
                                 <div className="flex items-center justify-between gap-3">
                                   <div>
                                     <p className="font-medium text-[#02542D]">
-                                      {file.originalFileName ?? file.fileName ?? 'Tệp không tên'}
+                                      {file.originalFileName ?? file.fileName ?? t('detail.unnamedFile')}
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                      {file.contentType ?? 'Không rõ định dạng'} •{' '}
-                                      {file.fileSize ? `${(file.fileSize / 1024).toFixed(1)} KB` : 'Kích thước không rõ'}
+                                      {file.contentType ?? t('detail.unknownType')} •{' '}
+                                      {file.fileSize ? `${(file.fileSize / 1024).toFixed(1)} KB` : t('detail.unknownSize')}
                                     </p>
                                     {file.isPrimary && (
                                       <span className="mt-1 inline-flex rounded-full bg-[#C7E8D2] px-2 py-0.5 text-xs font-medium text-[#02542D]">
-                                        Tệp chính
+                                        {t('detail.primaryFile')}
                                       </span>
                                     )}
                                   </div>
@@ -1030,7 +1260,7 @@ export default function ContractManagementPage() {
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center rounded-md border border-blue-300 px-3 py-1 text-sm text-blue-600 transition hover:bg-blue-50"
                                     >
-                                      Xem / tải
+                                      {t('buttons.viewOrDownload')}
                                     </a>
                                   )}
                                 </div>
@@ -1038,7 +1268,7 @@ export default function ContractManagementPage() {
                                   <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white">
                                     <img
                                       src={displayUrl}
-                                      alt={file.originalFileName ?? file.fileName ?? 'Contract image'}
+                                      alt={file.originalFileName ?? file.fileName ?? t('detail.contractImageAlt')}
                                   className="max-h-96 w-full object-contain bg-gray-100"
                                     />
                                   </div>
@@ -1051,14 +1281,14 @@ export default function ContractManagementPage() {
                                       className="h-96 w-full"
                                     >
                                   <p className="p-4 text-sm text-gray-500">
-                                        Không thể hiển thị PDF.{' '}
+                                        {t('detail.cannotDisplayPdf')}{' '}
                                         <a
                                           href={displayUrl}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="text-blue-600 underline"
                                         >
-                                          Bấm vào đây để tải xuống.
+                                          {t('buttons.downloadHere')}
                                         </a>
                                       </p>
                                     </object>
@@ -1070,7 +1300,7 @@ export default function ContractManagementPage() {
                         </div>
                       ) : (
                         <p className="text-sm text-gray-500">
-                          Hợp đồng chưa có tệp đính kèm. Bạn có thể tải tệp ngay tại đây.
+                          {t('detail.noAttachments')}
                         </p>
                       )}
                     </div>
@@ -1083,7 +1313,7 @@ export default function ContractManagementPage() {
                   onClick={handleCloseContractDetail}
                   className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-white"
                 >
-                  Đóng
+                  {t('buttons.close')}
                 </button>
               </div>
             </div>

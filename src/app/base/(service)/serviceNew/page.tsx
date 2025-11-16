@@ -29,7 +29,6 @@ type FormState = {
   name: string;
   description: string;
   location: string;
-  mapUrl: string;
   pricingType: ServicePricingType;
   pricePerHour: string;
   pricePerSession: string;
@@ -65,7 +64,6 @@ const initialState: FormState = {
   name: '',
   description: '',
   location: '',
-  mapUrl: '',
   pricingType: ServicePricingType.HOURLY,
   pricePerHour: '',
   pricePerSession: '',
@@ -96,6 +94,12 @@ export default function ServiceCreatePage() {
   const [loadingServiceCodes, setLoadingServiceCodes] = useState<boolean>(false);
   const [existingServiceCodes, setExistingServiceCodes] = useState<string[]>([]);
   const [availabilityErrors, setAvailabilityErrors] = useState<Record<number, AvailabilityFormErrors>>({});
+
+  const generateAutoServiceCode = () => {
+    const ts = Date.now().toString(36).toUpperCase();
+    const rand = Math.random().toString(36).slice(2, 4).toUpperCase();
+    return `SV-${ts}-${rand}`;
+  };
 
   const categoryOptions = useMemo(
     () =>
@@ -183,6 +187,11 @@ export default function ServiceCreatePage() {
 
     loadCategories();
     loadServices();
+    // Auto-generate code if empty
+    setFormData((prev) => {
+      if (prev.code && prev.code.trim().length > 0) return prev;
+      return { ...prev, code: generateAutoServiceCode() };
+    });
   }, [show, t]);
 
   const handleBack = () => {
@@ -199,6 +208,13 @@ export default function ServiceCreatePage() {
     const parsed = parseNumber(value);
     if (parsed === undefined) return undefined;
     if (parsed <= 0) return undefined;
+    return parsed;
+  };
+
+  const parseNonNegativeNumber = (value: string) => {
+    const parsed = parseNumber(value);
+    if (parsed === undefined) return undefined;
+    if (parsed < 0) return undefined;
     return parsed;
   };
 
@@ -298,14 +314,21 @@ export default function ServiceCreatePage() {
     if (!trimmedCode) {
       errors.code = t('Service.validation.code');
     } else if (!loadingServiceCodes && existingServiceCodes.includes(trimmedCode.toLowerCase())) {
+      // We'll regenerate on submit if duplicate; still show error to block until regenerated
       errors.code = t('Service.validation.codeDuplicate');
     }
 
     if (!formData.categoryId) {
       errors.categoryId = t('Service.validation.category');
     }
-    if (!formData.name.trim()) {
+    const name = formData.name.trim();
+    const nameRegex = /^[a-zA-ZÀ-ỹĐđ0-9\s'-]+$/u;
+    if (!name) {
       errors.name = t('Service.validation.name');
+    } else if (name.length > 40) {
+      errors.name = t('Service.validation.nameMax40');
+    } else if (!nameRegex.test(name)) {
+      errors.name = t('Service.validation.nameNoSpecialChars');
     }
     if (!formData.pricingType) {
       errors.pricingType = t('Service.validation.pricingType');
@@ -314,16 +337,16 @@ export default function ServiceCreatePage() {
     if (formData.pricingType === ServicePricingType.HOURLY) {
       if (!formData.pricePerHour.trim()) {
         errors.pricePerHour = t('Service.validation.pricePerHour');
-      } else if (parsePositiveNumber(formData.pricePerHour) === undefined) {
-        errors.pricePerHour = t('Service.validation.pricePerHour');
+      } else if (parseNonNegativeNumber(formData.pricePerHour) === undefined) {
+        errors.pricePerHour = t('Service.validation.pricePerHourNonNegative');
       }
     }
 
     if (formData.pricingType === ServicePricingType.SESSION) {
       if (!formData.pricePerSession.trim()) {
         errors.pricePerSession = t('Service.validation.pricePerSession');
-      } else if (parsePositiveNumber(formData.pricePerSession) === undefined) {
-        errors.pricePerSession = t('Service.validation.pricePerSession');
+      } else if (parseNonNegativeNumber(formData.pricePerSession) === undefined) {
+        errors.pricePerSession = t('Service.validation.pricePerSessionNonNegative');
       }
     }
 
@@ -338,8 +361,8 @@ export default function ServiceCreatePage() {
 
     if (formData.minDurationHours.trim() === '' || minDuration === undefined) {
       errors.minDurationHours = t('Service.validation.minDuration');
-    } else if (minDuration < 1) {
-      errors.minDurationHours = t('Service.validation.minDuration');
+    } else if (minDuration < 1 || minDuration >= 24) {
+      errors.minDurationHours = t('Service.validation.minDurationRange');
     }
 
     if (!formData.availabilities || formData.availabilities.length === 0) {
@@ -415,15 +438,14 @@ export default function ServiceCreatePage() {
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
       location: formData.location.trim() || undefined,
-      mapUrl: formData.mapUrl.trim() || undefined,
       pricingType: pricingTypeValue,
       pricePerHour:
         pricingTypeValue === ServicePricingType.HOURLY
-          ? parsePositiveNumber(formData.pricePerHour)
+          ? parseNonNegativeNumber(formData.pricePerHour)
           : undefined,
       pricePerSession:
         pricingTypeValue === ServicePricingType.SESSION
-          ? parsePositiveNumber(formData.pricePerSession)
+          ? parseNonNegativeNumber(formData.pricePerSession)
           : undefined,
       maxCapacity: parsePositiveInteger(formData.maxCapacity),
       minDurationHours: parsePositiveInteger(formData.minDurationHours),
@@ -436,6 +458,18 @@ export default function ServiceCreatePage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSubmitting) return;
+
+    // If code duplicates, regenerate a few times to avoid conflicts
+    let code = formData.code.trim();
+    if (!loadingServiceCodes && existingServiceCodes.includes(code.toLowerCase())) {
+      for (let i = 0; i < 5; i += 1) {
+        code = generateAutoServiceCode();
+        if (!existingServiceCodes.includes(code.toLowerCase())) {
+          setFormData((prev) => ({ ...prev, code }));
+          break;
+        }
+      }
+    }
 
     if (!validate()) {
       show(t('Service.validation.error'), 'error');
@@ -543,8 +577,8 @@ export default function ServiceCreatePage() {
             label={t('Service.code')}
             name="code"
             value={formData.code}
-            onChange={handleInputChange}
-            readonly={false}
+            onChange={() => {}}
+            readonly={true}
             placeholder={t('Service.code')}
             error={formErrors.code}
           />
@@ -704,14 +738,7 @@ export default function ServiceCreatePage() {
             placeholder={t('Service.location')}
           />
 
-          <DetailField
-            label={t('Service.mapUrl')}
-            name="mapUrl"
-            value={formData.mapUrl}
-            onChange={handleInputChange}
-            readonly={false}
-            placeholder={t('Service.mapUrl')}
-          />
+          
 
           <DetailField
             label={t('Service.description')}

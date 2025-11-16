@@ -11,6 +11,11 @@ import { Building } from '@/src/types/building';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useNotifications } from '@/src/hooks/useNotifications';
 
+// Minimal types for provinces API
+type Province = { code: number; name: string };
+type District = { code: number; name: string };
+type Ward = { code: number; name: string };
+
 export default function BuildingEdit() {
     const { user, hasRole } = useAuth();
     const t = useTranslations('Building');
@@ -28,22 +33,200 @@ export default function BuildingEdit() {
         totalApartmentsAll: 0,
         totalApartmentsActive: 0,
         status: '',
+        name: '',
     });
 
     const [errors, setErrors] = useState<{
-        address?: string;
+        name?: string;
+        city?: string;
+        district?: string;
+        ward?: string;
+        addressDetail?: string;
     }>({});
+
+    // Address hierarchical state
+    const [cities, setCities] = useState<Province[]>([]);
+    const [districts, setDistricts] = useState<District[]>([]);
+    const [wards, setWards] = useState<Ward[]>([]);
+
+    const [selectedCity, setSelectedCity] = useState<string>('');
+    const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+    const [selectedWard, setSelectedWard] = useState<string>('');
+    const [roads, setRoads] = useState<{ name: string }[]>([]);
+    const [road, setRoad] = useState<string>('');
+    const [addressDetail, setAddressDetail] = useState<string>('');
+
+    // Gate cascading effects to only run after the user actually changes a selection
+    const userInteractedRef = React.useRef(false);
+
+    // Helpers for VN text matching
+    const normalizeText = (s: string) => (s||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+    const stripVNPrefixes = (s: string) => {
+        let x = normalizeText(s);
+        x = x.replace(/^(tinh|thanh pho|tp)\s+/g,'')
+             .replace(/^(quan|huyen|thi xa|tp)\s+/g,'')
+             .replace(/^(phuong|xa|thi tran)\s+/g,'');
+        return x.trim();
+    };
+    const findProvinceByName = (name: string) => {
+        const target = stripVNPrefixes(name);
+        return cities.find(p => {
+            const pn = stripVNPrefixes(p.name);
+            return pn===target || pn.includes(target) || target.includes(pn);
+        });
+    };
+    const findDistrictByName = (list: District[], name: string) => {
+        const target = stripVNPrefixes(name);
+        return list.find(d => {
+            const dn = stripVNPrefixes(d.name);
+            return dn===target || dn.includes(target) || target.includes(dn);
+        });
+    };
+    const findWardByName = (list: Ward[], name: string) => {
+        const target = stripVNPrefixes(name);
+        return list.find(w => {
+            const wn = stripVNPrefixes(w.name);
+            return wn===target || wn.includes(target) || target.includes(wn);
+        });
+    };
+    const fetchDistrictsOfCity = async (code: string): Promise<District[]> => {
+        try { const res = await fetch(`https://provinces.open-api.vn/api/p/${code}?depth=2`); const data = await res.json(); return Array.isArray(data?.districts)? data.districts.map((d:any)=>({code:d.code,name:d.name})) : []; } catch { return []; }
+    };
+    const fetchWardsOfDistrict = async (code: string): Promise<Ward[]> => {
+        try { const res = await fetch(`https://provinces.open-api.vn/api/d/${code}?depth=2`); const data = await res.json(); return Array.isArray(data?.wards)? data.wards.map((w:any)=>({code:w.code,name:w.name})) : []; } catch { return []; }
+    };
+
+    // Load cities on mount
+    useEffect(() => {
+        const loadCities = async () => {
+            try { const res = await fetch('https://provinces.open-api.vn/api/?depth=1'); const data: Province[] = await res.json(); setCities(Array.isArray(data)? data: []);} catch { setCities([]);} 
+        };
+        loadCities();
+    }, []);
+
+    // When city changes: fetch districts and reset district/ward/roads
+    useEffect(() => {
+        if (!userInteractedRef.current) return; // skip on initial prefill
+        const load = async () => {
+            setDistricts([]);
+            setWards([]);
+            setSelectedDistrict('');
+            setSelectedWard('');
+            setRoads([]);
+            setRoad('');
+            if (!selectedCity) return;
+            const dList = await fetchDistrictsOfCity(selectedCity);
+            setDistricts(dList);
+        };
+        void load();
+    }, [selectedCity]);
+
+    // When district changes: fetch wards and reset ward/roads
+    useEffect(() => {
+        if (!userInteractedRef.current) return; // skip on initial prefill
+        const load = async () => {
+            setWards([]);
+            setSelectedWard('');
+            setRoads([]);
+            setRoad('');
+            if (!selectedDistrict) return;
+            const wList = await fetchWardsOfDistrict(selectedDistrict);
+            setWards(wList);
+        };
+        void load();
+    }, [selectedDistrict]);
+
+    // When ward changes: load nearby roads (best-effort)
+    useEffect(() => {
+        if (!userInteractedRef.current) return; // skip on initial prefill
+        const loadNearbyRoads = async (queryPlace: string) => {
+            try {
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryPlace)}&format=json&limit=1`, { headers: { 'Accept': 'application/json' } });
+                if (!geoRes.ok) return [] as string[];
+                const geo = await geoRes.json();
+                if (!Array.isArray(geo) || geo.length === 0) return [] as string[];
+                const lat = parseFloat(geo[0].lat);
+                const lon = parseFloat(geo[0].lon);
+                if (!isFinite(lat) || !isFinite(lon)) return [] as string[];
+                const overpassQuery = `
+                    [out:json][timeout:30];
+                    (
+                      way(around:3000,${lat},${lon})["highway"]["name"];     
+                      way(around:3000,${lat},${lon})["place"]["name"];       
+                      node(around:3000,${lat},${lon})["place"]["name"];      
+                    );
+                    out tags;`;
+                const overRes = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: `data=${encodeURIComponent(overpassQuery)}`
+                });
+                if (!overRes.ok) return [] as string[];
+                const overJson = await overRes.json();
+                const names = new Set<string>();
+                if (Array.isArray(overJson?.elements)) {
+                    for (const el of overJson.elements) {
+                        const n = el?.tags?.name; if (typeof n === 'string' && n.trim()) names.add(n.trim());
+                    }
+                }
+                return Array.from(names).sort((a,b)=>a.localeCompare(b));
+            } catch {
+                return [] as string[];
+            }
+        };
+
+        const load = async () => {
+            setRoads([]);
+            setRoad('');
+            if (!selectedWard || !selectedDistrict || !selectedCity) return;
+            const cityName = cities.find(c=>String(c.code)===selectedCity)?.name || '';
+            const districtName = districts.find(d=>String(d.code)===selectedDistrict)?.name || '';
+            const wardName = wards.find(w=>String(w.code)===selectedWard)?.name || '';
+            let names = await loadNearbyRoads(`${wardName}, ${districtName}, ${cityName}`);
+            if (names.length===0) names = await loadNearbyRoads(`${districtName}, ${cityName}`);
+            if (names.length===0) names = await loadNearbyRoads(`${cityName}`);
+            setRoads(names.map(n=>({ name:n })));
+        };
+        void load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedWard]);
 
     useEffect(() => {
         if (buildingData) {
             setFormData({
+                name: buildingData.name ?? '',
                 address: buildingData.address ?? '',
                 totalApartmentsAll: buildingData.totalApartmentsAll ?? 0,
                 totalApartmentsActive: buildingData.totalApartmentsActive ?? 0,
                 status: buildingData.status ?? 'ACTIVE',
             });
+            // Prefill address selects from stored address string: "detail, road, ward, district, city"
+            const parts = (buildingData.address || '').split(',').map(s=>s.trim()).filter(Boolean);
+            const cityName = parts.length > 0 ? parts[parts.length - 1] : '';
+            const districtName = parts.length > 1 ? parts[parts.length - 2] : '';
+            const wardName = parts.length > 2 ? parts[parts.length - 3] : '';
+            const detail = parts.length > 3 ? parts.slice(0, parts.length - 3).join(', ') : (parts[0] || '');
+            setAddressDetail(detail);
+            // Do not set road from address; user may choose later
+
+            // Map names to codes sequentially
+            const prefill = async () => {
+                // wait until cities loaded
+                let tries = 0; while (cities.length===0 && tries<10){ await new Promise(r=>setTimeout(r,100)); tries++; }
+                const p = findProvinceByName(cityName);
+                if (!p) return;
+                setSelectedCity(String(p.code));
+                const dList = await fetchDistrictsOfCity(String(p.code));
+                setDistricts(dList);
+                const d = findDistrictByName(dList, districtName);
+                if (!d) return; 
+                setSelectedDistrict(String(d.code));
+                const wList = await fetchWardsOfDistrict(String(d.code));
+                setWards(wList);
+                const w = findWardByName(wList, wardName);
+                if (w) setSelectedWard(String(w.code));
+            };
+            void prefill();
         }
-    }, [buildingData]);
+    }, [buildingData, cities]);
 
     const handleBack = () => {
         router.back();
@@ -53,27 +236,32 @@ export default function BuildingEdit() {
         const newErrors = { ...errors };
         
         switch (fieldName) {
-            case 'address':
-                if (!value || String(value).trim() === '') {
-                    newErrors.address = t('addressError');
-                } else {
-                    delete newErrors.address;
-                }
+            case 'name': {
+                const trimmed = String(value||'').trim();
+                if (!trimmed) newErrors.name = t('nameError');
+                else if (trimmed.length>40) newErrors.name = t('nameMaxError') || 'Tên tòa nhà không được vượt quá 40 ký tự';
+                else delete newErrors.name;
                 break;
+            }
+            case 'addressDetail': {
+                const trimmed = String(value||'').trim();
+                if (!trimmed) newErrors.addressDetail = t('addressDetailError') || 'Địa chỉ chi tiết không được để trống'; else delete newErrors.addressDetail;
+                break;
+            }
         }
         
         setErrors(newErrors);
     };
 
     const validateAllFields = () => {
-        const newErrors: {
-            address?: string;
-        } = {};
-        
-        // Validate address
-        if (!formData.address || formData.address.trim() === '') {
-            newErrors.address = t('addressError');
-        }
+        const newErrors: { name?: string; city?: string; district?: string; ward?: string; addressDetail?: string } = {};
+        const trimmedName = String(formData.name||'').trim();
+        if (!trimmedName) newErrors.name = t('nameError');
+        else if (trimmedName.length>40) newErrors.name = t('nameMaxError') || 'Tên tòa nhà không được vượt quá 40 ký tự';
+        if (!selectedCity) newErrors.city = t('cityRequired') || 'Vui lòng chọn thành phố';
+        if (!selectedDistrict) newErrors.district = t('districtRequired') || 'Vui lòng chọn quận/huyện';
+        if (!selectedWard) newErrors.ward = t('wardRequired') || 'Vui lòng chọn phường/xã';
+        if (!addressDetail.trim()) newErrors.addressDetail = t('addressDetailError') || 'Địa chỉ chi tiết không được để trống';
         
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -88,12 +276,10 @@ export default function BuildingEdit() {
                 ...prev,
                 totalApartmentsAll: parseInt(value) || 0,
             }));
-        } else if (name === 'address') {
-            setFormData((prevData) => ({
-                ...prevData,
-                [name]: value,
-            }));
-            validateField('address', value);
+        } else if (name === 'name') {
+            const limited = value.slice(0,40);
+            setFormData(prev => ({...prev, name: limited }));
+            validateField('name', limited);
         } else {
             setFormData((prevData) => ({
                 ...prevData,
@@ -121,9 +307,21 @@ export default function BuildingEdit() {
             return;
         }
 
+        // Compose address string and submit
+        const cityName = cities.find(c=>String(c.code)===selectedCity)?.name || '';
+        const districtName = districts.find(d=>String(d.code)===selectedDistrict)?.name || '';
+        const wardName = wards.find(w=>String(w.code)===selectedWard)?.name || '';
+        const composedAddress = [addressDetail.trim(), road.trim(), wardName.trim(), districtName.trim(), cityName.trim()].filter(Boolean).join(', ');
+
         try {
-            console.log('Đang gửi dữ liệu:', formData);
-            await editBuilding(buildingId, formData);
+            const payload: Partial<Building> = {
+                name: (formData.name||'').trim(),
+                address: composedAddress,
+                totalApartmentsAll: formData.totalApartmentsAll,
+                totalApartmentsActive: formData.totalApartmentsActive,
+                status: formData.status,
+            };
+            await editBuilding(buildingId, payload);
             show('Cập nhật tòa nhà thành công!', 'success');
             router.push(`/base/building/buildingDetail/${buildingId}`);
         } catch (submitError) {
@@ -207,22 +405,88 @@ export default function BuildingEdit() {
 
                     <DetailField
                         label={t('buildingName')}
-                        value={buildingData?.name || ""}
-                        readonly={true}
+                        value={formData?.name || ""}
+                        readonly={false}
                         placeholder={t('buildingName')}
+                        name="name"
+                        onChange={handleChange}
+                        error={errors.name}
                     />
                     
-
-                    <DetailField
-                        label={t('address')}
-                        value={formData?.address || ""}
-                        readonly={false}
-                        placeholder={t('address')}
-                        name="address"
-                        onChange={handleChange}
-                        error={errors.address}
-                    />
-
+                    {/* Address structured selectors */}
+                    <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col">
+                            <label className="text-md font-bold text-[#02542D] mb-1">{t('city')}</label>
+                            <Select<Province>
+                                options={cities}
+                                value={selectedCity}
+                                onSelect={(item) => { userInteractedRef.current = true; setSelectedCity(String((item as Province).code)); }}
+                                renderItem={(item) => (item as Province).name}
+                                getValue={(item) => String((item as Province).code)}
+                                placeholder={t('placeholders.selectCity')}
+                                error={!!errors.city}
+                            />
+                            {errors.city && <span className="text-xs text-red-500 mt-1">{errors.city}</span>}
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-md font-bold text-[#02542D] mb-1">{t('district')}</label>
+                            <Select<District>
+                                options={districts}
+                                value={selectedDistrict}
+                                onSelect={(item) => { userInteractedRef.current = true; setSelectedDistrict(String((item as District).code)); }}
+                                renderItem={(item) => (item as District).name}
+                                getValue={(item) => String((item as District).code)}
+                                placeholder={t('placeholders.selectDistrict')}
+                                error={!!errors.district}
+                            />
+                            {errors.district && <span className="text-xs text-red-500 mt-1">{errors.district}</span>}
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-md font-bold text-[#02542D] mb-1">{t('ward')}</label>
+                            <Select<Ward>
+                                options={wards}
+                                value={selectedWard}
+                                onSelect={(item) => { userInteractedRef.current = true; setSelectedWard(String((item as Ward).code)); }}
+                                renderItem={(item) => (item as Ward).name}
+                                getValue={(item) => String((item as Ward).code)}
+                                placeholder={t('placeholders.selectWard')}
+                                error={!!errors.ward}
+                            />
+                            {errors.ward && <span className="text-xs text-red-500 mt-1">{errors.ward}</span>}
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-md font-bold text-[#02542D] mb-1">{t('roadOptional')}</label>
+                            <Select<{ name: string }>
+                                options={roads}
+                                value={road}
+                                onSelect={(item) => setRoad((item as { name: string }).name)}
+                                renderItem={(item) => (item as { name: string }).name}
+                                getValue={(item) => (item as { name: string }).name}
+                                placeholder={roads.length ? t('placeholders.selectRoadOptional') : t('placeholders.noRoadData')}
+                                error={false}
+                            />
+                            <span className="text-xs text-slate-500 mt-1">{t('roadHelper')}</span>
+                        </div>
+                        <div className="flex flex-col md:col-span-2">
+                            <label className="text-md font-bold text-[#02542D] mb-1">{t('addressDetail')}</label>
+                            <input
+                                type="text"
+                                value={addressDetail}
+                                onChange={(e) => {
+                                    setAddressDetail(e.target.value);
+                                    if (errors.addressDetail) {
+                                        validateField('addressDetail', e.target.value);
+                                    }
+                                }}
+                                placeholder={t('placeholders.addressDetail')}
+                                className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
+                                    errors.addressDetail ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
+                                }`}
+                            />
+                            {errors.addressDetail && <span className="text-xs text-red-500 mt-1">{errors.addressDetail}</span>}
+                        </div>
+                    </div>
+ 
                 </div>
 
                 <div className="flex justify-center mt-8 space-x-4">

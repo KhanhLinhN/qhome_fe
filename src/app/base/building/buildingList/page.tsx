@@ -10,12 +10,14 @@ import { useProjectAdd } from '@/src/hooks/useProjectAdd';
 import { useRouter } from 'next/navigation';
 import { useBuildingPage } from '@/src/hooks/useBuildingPage';
 import { useAuth } from '@/src/contexts/AuthContext';
+import PopupConfirm from '@/src/components/common/PopupComfirm';
+import { updateBuilding } from '@/src/services/base/buildingService';
 
 
 export default function Home() {
   const { user, hasRole } = useAuth();
   const t = useTranslations('Building');
-  const headers = [t('buildingCode'), t('buildingName'), t('floors'), t('status'), t('createAt'), t('createBy'), t('action')];
+  const headers = [t('buildingCode'), t('buildingName'), t('status'), t('createAt'), t('createBy'), t('action')];
 
   const {
     data,
@@ -30,7 +32,14 @@ export default function Home() {
     handlePageChange
   } = useBuildingPage()
 
-  const tableData = data?.content.map((item) => ({
+  // Order by createdAt desc (newest first)
+  const ordered = (data?.content || []).slice().sort((a: any, b: any) => {
+    const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return tb - ta;
+  });
+
+  const tableData = ordered.map((item: any) => ({
     buildingId: item.id,      
     buildingCode: item.code,  
     buildingName: item.name,  
@@ -49,7 +58,43 @@ export default function Home() {
     router.push(`/base/building/buildingList`);
   };
 
-  
+  // Change building status with confirmation
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [selectedBuildingStatus, setSelectedBuildingStatus] = useState<string | null>(null);
+
+  const onBuildingStatusChange = (buildingId: string) => {
+    const row = tableData.find(r => r.buildingId === buildingId);
+    setSelectedBuildingId(buildingId);
+    setSelectedBuildingStatus(row?.status ?? null);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmChange = async () => {
+    if (!selectedBuildingId || !selectedBuildingStatus) {
+      setConfirmOpen(false);
+      return;
+    }
+    const newStatus = selectedBuildingStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    try {
+      await updateBuilding(selectedBuildingId, { status: newStatus } as any);
+      setConfirmOpen(false);
+      setSelectedBuildingId(null);
+      setSelectedBuildingStatus(null);
+      window.location.reload();
+    } catch (e) {
+      // optionally show error
+      setConfirmOpen(false);
+    }
+  };
+
+  const handleCloseConfirm = () => {
+    setConfirmOpen(false);
+    setSelectedBuildingId(null);
+    setSelectedBuildingStatus(null);
+  };
+ 
+   
   // Handle loading and error states
   if (loading) {
     return (
@@ -98,6 +143,7 @@ export default function Home() {
                   data={tableData} 
                   headers={headers}
                   type='building'
+                  onBuildingStatusChange={onBuildingStatusChange}
               ></Table>
               <Pagination
                   currentPage={pageNo + 1} 
@@ -106,6 +152,14 @@ export default function Home() {
               />
           </div>
       </div>
+      <PopupConfirm
+        isOpen={confirmOpen}
+        onClose={handleCloseConfirm}
+        onConfirm={handleConfirmChange}
+        popupTitle={t('confirmChangeStatusTitle') || 'Xác nhận thay đổi trạng thái'}
+        popupContext={selectedBuildingStatus === 'ACTIVE' ? (t('confirmDeactivateBuilding') || 'Bạn có chắc muốn vô hiệu hoá tòa nhà này?') : (t('confirmActivateBuilding') || 'Bạn có chắc muốn kích hoạt tòa nhà này?')}
+        isDanger={false}
+      />
     </div>
   )
 

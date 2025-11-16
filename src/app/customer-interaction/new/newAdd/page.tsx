@@ -428,37 +428,37 @@ export default function NewsAdd() {
         }));
     };
 
-    // Helper function to convert date to ISO 8601 format for backend
-    const formatDateToISO = (dateString: string): string => {
-        if (!dateString) return '';
-        
-        // If already in ISO format, return as is
-        if (dateString.includes('T') && dateString.includes('Z')) {
-            return dateString;
-        }
-        
-        // Convert YYYY-MM-DD to YYYY-MM-DDTHH:mm:ss.SSSZ
-        const date = new Date(dateString);
-        // Set to start of day in UTC
-        date.setUTCHours(0, 0, 0, 0);
-        return date.toISOString();
+    // Helpers for dd/mm/yyyy <-> ISO
+    const ddmmyyyyToDate = (text: string): Date | null => {
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(text)) return null;
+        const [d, m, y] = text.split('/').map(Number);
+        const dt = new Date(y, m - 1, d);
+        if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+        return dt;
     };
-
-    // Helper function to convert ISO date to YYYY-MM-DD for DateBox display
+    const formatDateToISO = (ddmmyyyy: string, endOfDay = false): string => {
+        if (!ddmmyyyy) return '';
+        const dt = ddmmyyyyToDate(ddmmyyyy);
+        if (!dt) return '';
+        if (endOfDay) {
+            dt.setUTCHours(23, 59, 59, 999);
+        } else {
+            dt.setUTCHours(0, 0, 0, 0);
+        }
+        return dt.toISOString();
+    };
     const formatISOToDate = (isoString: string): string => {
         if (!isoString) return '';
-        
-        // If already in YYYY-MM-DD format, return as is
-        if (!isoString.includes('T')) {
-            return isoString;
-        }
-        
-        // Extract YYYY-MM-DD from ISO string
-        return isoString.split('T')[0];
+        const d = new Date(isoString);
+        if (Number.isNaN(d.getTime())) return '';
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const yyyy = d.getUTCFullYear();
+        return `${dd}/${mm}/${yyyy}`;
     };
 
     const handlePublishAtChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const isoDate = formatDateToISO(e.target.value);
+        const isoDate = formatDateToISO(e.target.value, false);
         setFormData((prev) => {
             const newData = { ...prev, publishAt: isoDate };
             // Validate with updated data
@@ -474,12 +474,7 @@ export default function NewsAdd() {
 
     const handleExpireAtChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         // For expire date, set to end of day (23:59:59.999)
-        let isoDate = '';
-        if (e.target.value) {
-            const date = new Date(e.target.value);
-            date.setUTCHours(23, 59, 59, 999);
-            isoDate = date.toISOString();
-        }
+        const isoDate = e.target.value ? formatDateToISO(e.target.value, true) : '';
         setFormData((prev) => {
             const newData = { ...prev, expireAt: isoDate };
             // Validate with updated data

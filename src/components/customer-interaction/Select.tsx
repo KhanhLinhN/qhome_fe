@@ -13,9 +13,10 @@ interface SelectProp<T> {
   getValue: (item: T) => string;
   placeholder?: string;
   disable?: boolean;
+  error?: boolean;
 }
 
-const Select = <T,>({ options, value, onSelect, renderItem, getValue, placeholder, disable = false }: SelectProp<T>) => {
+const Select = <T,>({ options, value, onSelect, renderItem, getValue, placeholder, disable = false, error = false }: SelectProp<T>) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [keyword, setKeyword] = useState<string>("");
   const t = useTranslations('customer-interaction.Request');
@@ -56,7 +57,9 @@ const Select = <T,>({ options, value, onSelect, renderItem, getValue, placeholde
   return (
     <div className="relative w-full" ref={divRef}>
       <div
-        className={`h-10 w-full rounded-md border-[1px] border-[#2ad47a] px-3 py-2.5 cursor-pointer flex flex-row items-center justify-between gap-x-3 ${disable ? "bg-gray-100" : "bg-white"}`}
+        className={`h-10 w-full rounded-md border-[1px] px-3 py-2.5 cursor-pointer flex flex-row items-center justify-between gap-x-3 ${
+          error ? "border-red-300" : "border-[#2ad47a]"
+        } ${disable ? "bg-gray-100" : "bg-white"}`}
         onClick={isOpen ? onClose : onOpen}
       >
         <div

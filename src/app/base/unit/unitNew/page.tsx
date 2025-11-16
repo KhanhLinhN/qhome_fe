@@ -148,37 +148,33 @@ export default function UnitAdd () {
         const newErrors = { ...errors };
         
         switch (fieldName) {
-            case 'name':
-                if (!value || String(value).trim() === '') {
-                    newErrors.name = t('nameError');
-                } else {
-                    delete newErrors.name;
-                }
+            case 'name': {
+                const v = String(value ?? '').trim();
+                const nameRegex = /^[a-zA-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐđ0-9\s'-]+$/;
+                if (!v) newErrors.name = t('nameError');
+                else if (v.length > 40) newErrors.name = t('nameMaxError') || 'Tên căn hộ không được vượt quá 40 ký tự';
+                else if (!nameRegex.test(v)) newErrors.name = t('nameSpecialCharError') || 'Tên căn hộ không được chứa ký tự đặc biệt';
+                else delete newErrors.name;
                 break;
-            case 'floor':
+            }
+            case 'floor': {
                 const floor = typeof value === 'number' ? value : parseInt(String(value));
-                if (!floor || floor < 0) {
-                    newErrors.floor = t('floorError');
-                } else {
-                    delete newErrors.floor;
-                }
+                if (!floor || floor <= 0) newErrors.floor = t('floorError') || 'Số tầng phải lớn hơn 0';
+                else delete newErrors.floor;
                 break;
-            case 'bedrooms':
+            }
+            case 'bedrooms': {
                 const bedrooms = typeof value === 'number' ? value : parseInt(String(value));
-                if (bedrooms <= 0) {
-                    newErrors.bedrooms = t('bedroomsError');
-                } else {
-                    delete newErrors.bedrooms;
-                }
+                if (!bedrooms || bedrooms <= 0 || bedrooms >= 10) newErrors.bedrooms = t('bedroomsErrorRange') || 'Số phòng ngủ phải trong khoảng 1-9';
+                else delete newErrors.bedrooms;
                 break;
-            case 'area':
+            }
+            case 'area': {
                 const area = typeof value === 'number' ? value : parseFloat(String(value));
-                if (area <= 0) {
-                    newErrors.area = t('areaError');
-                } else {
-                    delete newErrors.area;
-                }
+                if (!area || area <= 0 || area >= 150) newErrors.area = t('areaErrorRange') || 'Diện tích phải > 0 và < 150';
+                else delete newErrors.area;
                 break;
+            }
         }
         
         setErrors(newErrors);
@@ -193,23 +189,20 @@ export default function UnitAdd () {
         } = {};
         
         // Validate name
-        if (!formData.name || formData.name.trim() === '') {
-            newErrors.name = t('nameError');
-        }
         
         // Validate floor
-        if (formData.floor === undefined || formData.floor < 0) {
-            newErrors.floor = t('floorError');
+        if (formData.floor === undefined || formData.floor <= 0) {
+            newErrors.floor = t('floorError') || 'Số tầng phải lớn hơn 0';
         }
         
         // Validate bedrooms
-        if (formData.bedrooms === undefined || formData.bedrooms <= 0) {
-            newErrors.bedrooms = t('bedroomsError');
+        if (formData.bedrooms === undefined || formData.bedrooms <= 0 || formData.bedrooms >= 10) {
+            newErrors.bedrooms = t('bedroomsErrorRange') || 'Số phòng ngủ phải trong khoảng 1-9';
         }
         
         // Validate area
-        if (!formData.areaM2 || formData.areaM2 <= 0) {
-            newErrors.area = t('areaError');
+        if (formData.areaM2 === undefined || formData.areaM2 <= 0 || formData.areaM2 >= 150) {
+            newErrors.area = t('areaErrorRange') || 'Diện tích phải > 0 và < 150';
         }
         
         setErrors(newErrors);
@@ -325,7 +318,7 @@ export default function UnitAdd () {
                         />
                     </div> */}
 
-                    <DetailField 
+                    {/* <DetailField 
                         label={t('unitName')}
                         value={formData.name ?? ""}
                         onChange={handleChange}
@@ -333,7 +326,7 @@ export default function UnitAdd () {
                         placeholder={t('unitName')}
                         readonly={false}
                         error={errors.name}
-                    />
+                    /> */}
 
                     <DetailField 
                         label={t('floor')}

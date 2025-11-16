@@ -1,4 +1,7 @@
+'use client';
+
 import { ChangeEvent, useState } from "react";
+import { useTranslations } from 'next-intl';
 
 type PasswordChangeSectionProps = {
   newPassword: string;
@@ -13,6 +16,7 @@ export function PasswordChangeSection({
   onChangeNewPassword,
   onChangeConfirmPassword,
 }: PasswordChangeSectionProps) {
+  const t = useTranslations('PasswordChangeSection');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -37,16 +41,16 @@ export function PasswordChangeSection({
         `}</style>
                   <div className="border-t-4 border-green-600 p-4">
             <h2 className="text-sm font-semibold text-slate-700">
-              Đổi mật khẩu (tuỳ chọn)
+              {t('title')}
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Để giữ nguyên mật khẩu hiện tại, hãy để trống các ô bên dưới.
+              {t('description')}
             </p>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="relative">
                 <label className="text-xs font-medium uppercase text-slate-500">
-                  Mật khẩu mới
+                  {t('fields.newPassword')}
                 </label>
                 <input
                   type={showNewPassword ? "text" : "password"}
@@ -54,7 +58,7 @@ export function PasswordChangeSection({
                   onChange={handleNewPasswordChange}
                   minLength={8}
                   className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                  placeholder="Nhập mật khẩu mới"
+                  placeholder={t('placeholders.newPassword')}
                   autoComplete="new-password"
                 />
                   <button
@@ -81,7 +85,7 @@ export function PasswordChangeSection({
               </div>
               <div className="relative">
                 <label className="text-xs font-medium uppercase text-slate-500">
-                  Xác nhận mật khẩu
+                  {t('fields.confirmPassword')}
                 </label>
                 <input
                   type={showConfirmPassword ? "text" : "password"}
@@ -89,7 +93,7 @@ export function PasswordChangeSection({
                   onChange={handleConfirmPasswordChange}
                   minLength={8}
                   className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none"
-                  placeholder="Nhập lại mật khẩu"
+                  placeholder={t('placeholders.confirmPassword')}
                   autoComplete="new-password"
                 />
                   <button

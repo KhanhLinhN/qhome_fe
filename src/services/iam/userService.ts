@@ -205,5 +205,47 @@ export async function deleteAccount(userId: string): Promise<void> {
   return response.data;
 }
 
+/**
+ * Kiểm tra xem username đã tồn tại trong database chưa
+ * @param username - Username cần kiểm tra
+ * @returns true nếu username đã tồn tại, false nếu chưa tồn tại
+ */
+export async function checkUsernameExists(username: string): Promise<boolean> {
+  try {
+    await axios.get(
+      `${IAM_URL}/api/users/by-username/${encodeURIComponent(username)}`,
+      { withCredentials: true }
+    );
+    return true; // Username tồn tại (status 200)
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return false; // Username chưa tồn tại
+    }
+    // Nếu có lỗi khác (network, 500, etc.), throw lại để xử lý ở nơi gọi
+    throw err;
+  }
+}
+
+/**
+ * Kiểm tra xem email đã tồn tại trong database chưa
+ * @param email - Email cần kiểm tra
+ * @returns true nếu email đã tồn tại, false nếu chưa tồn tại
+ */
+export async function checkEmailExists(email: string): Promise<boolean> {
+  try {
+    await axios.get(
+      `${IAM_URL}/api/users/by-email/${encodeURIComponent(email)}`,
+      { withCredentials: true }
+    );
+    return true; // Email tồn tại (status 200)
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return false; // Email chưa tồn tại
+    }
+    // Nếu có lỗi khác (network, 500, etc.), throw lại để xử lý ở nơi gọi
+    throw err;
+  }
+}
+
 
 

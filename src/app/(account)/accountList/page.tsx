@@ -2,18 +2,23 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   fetchResidentAccounts,
   fetchStaffAccounts,
   UserAccountInfo,
   deleteAccount,
+  updateStaffAccount,
+  updateResidentAccount,
+  fetchStaffAccountDetail,
+  fetchResidentAccountDetail,
 } from '@/src/services/iam/userService';
 import Table from '@/src/components/base-service/Table';
 import Pagination from '@/src/components/customer-interaction/Pagination';
 import Select from '@/src/components/customer-interaction/Select';
+import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useNotifications } from '@/src/hooks/useNotifications';
 const PAGE_SIZE = 10;
-const TABLE_HEADERS = ['Username', 'Email', 'Roles', 'Trạng thái', 'Action'];
 
 type SelectOption = {
   id: string;
@@ -50,6 +55,7 @@ const toAccountRow = (
 
 export default function AccountListPage() {
   const router = useRouter();
+  const t = useTranslations('AccountList');
   const [staffAccounts, setStaffAccounts] = useState<AccountRow[]>([]);
   const [residentAccounts, setResidentAccounts] = useState<AccountRow[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,6 +69,20 @@ export default function AccountListPage() {
   const [loadingResidents, setLoadingResidents] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { show } = useNotifications();
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [selectedAccountType, setSelectedAccountType] = useState<'staff' | 'resident' | null>(null);
+  const [selectedAccountStatus, setSelectedAccountStatus] = useState<boolean | null>(null);
+  const [deletePopupOpen, setDeletePopupOpen] = useState(false);
+  const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+
+  const TABLE_HEADERS = [
+    t('tableHeaders.username'),
+    t('tableHeaders.email'),
+    t('tableHeaders.roles'),
+    t('tableHeaders.status'),
+    t('tableHeaders.action'),
+  ];
 
   useEffect(() => {
     let active = true;
@@ -86,7 +106,7 @@ export default function AccountListPage() {
         const message =
           err?.response?.data?.message ||
           err?.message ||
-          'Không thể tải danh sách tài khoản.';
+          t('errors.loadFailed');
         setError(message);
       } finally {
         if (active) {
@@ -102,28 +122,6 @@ export default function AccountListPage() {
       active = false;
     };
   }, []);
-
-  const formatRoleLabel = (role: string) => {
-    switch (role) {
-      case 'ADMIN':
-        return 'Admin';
-      case 'ACCOUNTANT':
-        return 'Accountant';
-      case 'TECHNICIAN':
-        return 'Technician';
-      case 'SUPPORTER':
-        return 'Supporter';
-      case 'RESIDENT':
-        return 'Resident';
-      case 'UNIT OWNER':
-        return 'Unit Owner';
-      default:
-        return role
-          .toLowerCase()
-          .replace(/_/g, ' ')
-          .replace(/(^\w|\s\w)/g, (c) => c.toUpperCase());
-    }
-  };
 
   const uniqueRoles = useMemo(() => {
     const roles = new Set<string>();
@@ -143,40 +141,64 @@ export default function AccountListPage() {
     return Array.from(buildings.entries()).map(([id, name]) => ({ id, name }));
   }, [residentAccounts]);
 
+  const formatRoleLabel = useMemo(() => {
+    return (role: string) => {
+      switch (role) {
+        case 'ADMIN':
+          return t('roles.admin');
+        case 'ACCOUNTANT':
+          return t('roles.accountant');
+        case 'TECHNICIAN':
+          return t('roles.technician');
+        case 'SUPPORTER':
+          return t('roles.supporter');
+        case 'RESIDENT':
+          return t('roles.resident');
+        case 'UNIT OWNER':
+          return t('roles.unitOwner');
+        default:
+          return role
+            .toLowerCase()
+            .replace(/_/g, ' ')
+            .replace(/(^\w|\s\w)/g, (c) => c.toUpperCase());
+      }
+    };
+  }, [t]);
+
   const roleOptions: SelectOption[] = useMemo(
     () => [
-      { id: 'ALL', label: 'Tất cả vai trò' },
+      { id: 'ALL', label: t('filters.allRoles') },
       ...uniqueRoles.map((role) => ({
         id: role,
         label: formatRoleLabel(role),
       })),
     ],
-    [uniqueRoles],
+    [uniqueRoles, t, formatRoleLabel],
   );
 
   const buildingOptions: SelectOption[] = useMemo(
     () => [
-      { id: 'ALL', label: 'Tất cả tòa nhà' },
+      { id: 'ALL', label: t('filters.allBuildings') },
       ...uniqueBuildings.map((building) => ({
         id: building.id,
         label: building.name,
       })),
     ],
-    [uniqueBuildings],
+    [uniqueBuildings, t],
   );
 
   const statusOptions: SelectOption[] = useMemo(
     () => [
-      { id: 'ALL', label: 'Tất cả trạng thái' },
-      { id: 'ACTIVE', label: 'Đang hoạt động' },
-      { id: 'INACTIVE', label: 'Ngưng hoạt động' },
+      { id: 'ALL', label: t('filters.allStatus') },
+      { id: 'ACTIVE', label: t('filters.active') },
+      { id: 'INACTIVE', label: t('filters.inactive') },
     ],
-    [],
+    [t],
   );
 
   const filteredStaff = useMemo(() => {
     const keyword = searchTerm.toLowerCase();
-    return staffAccounts.filter((row) => {
+    const filtered = staffAccounts.filter((row) => {
       const matchesSearch =
         !keyword ||
         row.username.toLowerCase().includes(keyword) ||
@@ -192,11 +214,23 @@ export default function AccountListPage() {
 
       return matchesSearch && matchesRole && matchesStatus;
     });
+
+    // Sort: active -> inactive, then by role
+    return filtered.sort((a, b) => {
+      // First sort by status: active (true) comes before inactive (false)
+      if (a.active !== b.active) {
+        return a.active ? -1 : 1; // active comes first
+      }
+      // If status is the same, sort by role
+      const roleA = a.rolesList[0] || '';
+      const roleB = b.rolesList[0] || '';
+      return roleA.localeCompare(roleB);
+    });
   }, [staffAccounts, searchTerm, roleFilter, statusFilter]);
 
   const filteredResidents = useMemo(() => {
     const keyword = searchTerm.toLowerCase();
-    return residentAccounts.filter((row) => {
+    const filtered = residentAccounts.filter((row) => {
       const matchesSearch =
         !keyword ||
         row.username.toLowerCase().includes(keyword) ||
@@ -213,6 +247,18 @@ export default function AccountListPage() {
         (statusFilter === 'ACTIVE' ? row.active : !row.active);
 
       return matchesSearch && matchesRole && matchesStatus;
+    });
+
+    // Sort: active -> inactive, then by role
+    return filtered.sort((a, b) => {
+      // First sort by status: active (true) comes before inactive (false)
+      if (a.active !== b.active) {
+        return a.active ? -1 : 1; // active comes first
+      }
+      // If status is the same, sort by role
+      const roleA = a.rolesList[0] || '';
+      const roleB = b.rolesList[0] || '';
+      return roleA.localeCompare(roleB);
     });
   }, [residentAccounts, searchTerm, buildingFilter, statusFilter]);
 
@@ -288,34 +334,121 @@ export default function AccountListPage() {
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-primary-2 text-white rounded-md hover:bg-primary-3 transition"
           >
-            Tải lại
+            {t('buttons.reload')}
           </button>
         </div>
       </div>
     );
   }
 
-  async function handleDelete(id: string) {
+  const handleDelete = (id: string) => {
+    setDeleteAccountId(id);
+    setDeletePopupOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteAccountId) {
+      return;
+    }
+
     try {
-      await deleteAccount(id);
+      await deleteAccount(deleteAccountId);
+      show(t('messages.deleteSuccess'), 'success');
       window.location.reload();
-      show('Xóa tài khoản thành công', 'success');
+      
+      // Close popup
+      setDeletePopupOpen(false);
+      setDeleteAccountId(null);
     } catch (error) {
-      show('Có lỗi xảy ra khi xóa tài khoản', 'error');
+      show(t('messages.deleteError'), 'error');
       console.error('Error deleting account:', error);
     }
-  }
+  };
+
+  const handleCloseDeletePopup = () => {
+    setDeletePopupOpen(false);
+    setDeleteAccountId(null);
+  };
+
+  const handleStatusChange = (id: string, accountType: 'staff' | 'resident') => {
+    // Tìm account để lấy status hiện tại
+    const account = accountType === 'staff' 
+      ? staffAccounts.find(acc => acc.key === id)
+      : residentAccounts.find(acc => acc.key === id);
+    
+    if (account) {
+      setSelectedAccountId(id);
+      setSelectedAccountType(accountType);
+      setSelectedAccountStatus(account.active);
+      setPopupOpen(true);
+    }
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!selectedAccountId || !selectedAccountType || selectedAccountStatus === null) {
+      return;
+    }
+
+    try {
+      const newStatus = !selectedAccountStatus;
+      let accountDetail: UserAccountInfo;
+      
+      // Lấy thông tin account hiện tại
+      if (selectedAccountType === 'staff') {
+        accountDetail = await fetchStaffAccountDetail(selectedAccountId);
+        await updateStaffAccount(selectedAccountId, {
+          username: accountDetail.username,
+          email: accountDetail.email,
+          active: newStatus,
+          roles: accountDetail.roles,
+        });
+      } else {
+        accountDetail = await fetchResidentAccountDetail(selectedAccountId);
+        await updateResidentAccount(selectedAccountId, {
+          active: newStatus,
+        });
+      }
+
+      show(
+        `Đã ${newStatus ? 'kích hoạt' : 'vô hiệu hóa'} tài khoản thành công.`,
+        'success'
+      );
+      
+      // Reload data
+      window.location.reload();
+      
+      // Close popup
+      setPopupOpen(false);
+      setSelectedAccountId(null);
+      setSelectedAccountType(null);
+      setSelectedAccountStatus(null);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Không thể cập nhật trạng thái tài khoản. Vui lòng thử lại.';
+      show(message, 'error');
+      console.error('Error updating account status:', err);
+    }
+  };
+
+  const handleClosePopup = () => {
+    setPopupOpen(false);
+    setSelectedAccountId(null);
+    setSelectedAccountType(null);
+    setSelectedAccountStatus(null);
+  };
 
   return (
     <div className="lg:col-span-1 space-y-6">
       <div className="max-w-screen overflow-x-hidden">
         <h1 className="text-2xl font-semibold text-[#02542D] mb-4">
-          Danh sách tài khoản
+          {t('title')}
         </h1>
         <div className="bg-white p-6 rounded-xl w-full min-h-[200px] shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-col gap-1">
-              <p className="text-sm text-gray-500">Filter:</p>
+              <p className="text-sm text-gray-500">{t('filters.label')}</p>
             </div>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
               <div className="w-full md:w-64">
@@ -323,7 +456,7 @@ export default function AccountListPage() {
                   type="text"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Tìm kiếm theo username, email hoặc vai trò"
+                  placeholder={t('search.placeholder')}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                 />
               </div>
@@ -337,7 +470,7 @@ export default function AccountListPage() {
                     }
                     renderItem={(option) => option.label}
                     getValue={(option) => option.id}
-                    placeholder="Tất cả vai trò"
+                    placeholder={t('filters.allRoles')}
                   />
                 </div>
               ) : (
@@ -350,7 +483,7 @@ export default function AccountListPage() {
                     }
                     renderItem={(option) => option.label}
                     getValue={(option) => option.id}
-                    placeholder="Tất cả tòa nhà"
+                    placeholder={t('filters.allBuildings')}
                   />
                 </div>
               )}
@@ -363,7 +496,7 @@ export default function AccountListPage() {
                   }
                   renderItem={(option) => option.label}
                   getValue={(option) => option.id}
-                  placeholder="Tất cả trạng thái"
+                  placeholder={t('filters.allStatus')}
                 />
               </div>
             </div>
@@ -374,7 +507,7 @@ export default function AccountListPage() {
               }
               className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
             >
-              + Thêm tài khoản
+              {t('buttons.addAccount')}
             </button>
           </div>
 
@@ -387,7 +520,7 @@ export default function AccountListPage() {
                   : 'text-gray-600 hover:text-[#02542D]'
               }`}
             >
-              Nhân viên ({filteredStaff.length})
+              {t('tabs.staff', { count: filteredStaff.length })}
             </button>
             <button
               onClick={() => setActiveTab('RESIDENT')}
@@ -397,13 +530,13 @@ export default function AccountListPage() {
                   : 'text-gray-600 hover:text-[#02542D]'
               }`}
             >
-              Cư dân ({filteredResidents.length})
+              {t('tabs.resident', { count: filteredResidents.length })}
             </button>
           </div>
 
           {currentLoading ? (
             <div className="px-6 py-10 text-center text-sm text-gray-500">
-              Đang tải dữ liệu...
+              {t('loading')}
             </div>
           ) : (
             <>
@@ -412,6 +545,7 @@ export default function AccountListPage() {
                 headers={TABLE_HEADERS} 
                 type="account" 
                 onDelete={handleDelete}
+                onStatusChange={handleStatusChange}
               />
               {currentTotalPages > 1 && (
                 <Pagination
@@ -424,6 +558,28 @@ export default function AccountListPage() {
           )}
         </div>
       </div>
+
+      <PopupConfirm
+        isOpen={popupOpen}
+        onClose={handleClosePopup}
+        onConfirm={handleConfirmStatusChange}
+        popupTitle="Xác nhận thay đổi trạng thái"
+        popupContext={
+          selectedAccountStatus !== null
+            ? `Bạn có chắc chắn muốn ${selectedAccountStatus ? 'vô hiệu hóa' : 'kích hoạt'} tài khoản này không?`
+            : 'Bạn có chắc chắn muốn thay đổi trạng thái tài khoản này không?'
+        }
+        isDanger={false}
+      />
+
+      <PopupConfirm
+        isOpen={deletePopupOpen}
+        onClose={handleCloseDeletePopup}
+        onConfirm={handleConfirmDelete}
+        popupTitle="Xác nhận xóa tài khoản"
+        popupContext="Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác."
+        isDanger={true}
+      />
     </div>
   );
 }

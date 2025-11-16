@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import DetailField from '@/src/components/base-service/DetailField';
@@ -17,7 +17,6 @@ type FormState = {
   description: string;
   icon: string;
   sortOrder: string;
-  isActive: boolean;
 };
 
 const initialState: FormState = {
@@ -26,7 +25,6 @@ const initialState: FormState = {
   description: '',
   icon: '',
   sortOrder: '',
-  isActive: true,
 };
 
 export default function ServiceCategoryCreatePage() {
@@ -37,6 +35,49 @@ export default function ServiceCategoryCreatePage() {
 
   const [formState, setFormState] = useState<FormState>(initialState);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // VN normalize and acronym helpers
+  const normalizeVN = (input: string) =>
+    input
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/gi, 'd');
+
+  const buildAcronym = (name: string) => {
+    const cleaned = normalizeVN(name).trim();
+    if (!cleaned) return '';
+    const parts = cleaned.split(/\s+/);
+    const acronym = parts
+      .map((p) => (p.match(/[A-Za-z]/) ? p.match(/[A-Za-z]/)![0] : ''))
+      .join('')
+      .toUpperCase();
+    const last = parts[parts.length - 1];
+    const numericSuffix = /^\d+$/.test(last) ? last : '';
+    return `${acronym}${numericSuffix}`;
+  };
+
+  const formatDateDDMMYY = (d: Date) => {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}${mm}${yy}`;
+  };
+
+  // Generate code per spec: SVC-<acronym>-<ddmmyy><attempt?>
+  const generateCodeFromName = (name: string, attempt: number = 0) => {
+    const acronym = buildAcronym(name);
+    const today = formatDateDDMMYY(new Date());
+    const base = `SVC-${acronym}-${today}`;
+    return attempt > 0 ? `${base}${attempt}` : base;
+  };
+
+  // Auto-update code when name changes
+  useEffect(() => {
+    setFormState((prev) => ({
+      ...prev,
+      code: generateCodeFromName(prev.name || '', 0),
+    }));
+  }, [formState.name]);
 
   const handleBack = () => {
     router.push('/base/serviceCateList');
@@ -52,20 +93,19 @@ export default function ServiceCategoryCreatePage() {
     }));
   };
 
-  const handleStatusChange = (item: { name: string; value: string }) => {
-    setFormState((prev) => ({
-      ...prev,
-      isActive: item.value === 'true',
-    }));
-  };
-
   const validate = () => {
     const errors: Record<string, string> = {};
     if (!formState.code.trim()) {
       errors.code = t('validation.code');
     }
-    if (!formState.name.trim()) {
+    const name = formState.name.trim();
+    const nameRegex = /^[a-zA-ZÀ-ỹĐđ0-9\s'-]+$/u;
+    if (!name) {
       errors.name = t('validation.name');
+    } else if (name.length > 40) {
+      errors.name = t('validation.nameMax40');
+    } else if (!nameRegex.test(name)) {
+      errors.name = t('validation.nameNoSpecialChars');
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -77,7 +117,7 @@ export default function ServiceCategoryCreatePage() {
     description: formState.description.trim() || undefined,
     icon: formState.icon.trim() || undefined,
     sortOrder: formState.sortOrder ? Number(formState.sortOrder) : null,
-    isActive: formState.isActive,
+    isActive: true, // always active on creation
   });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -89,8 +129,38 @@ export default function ServiceCategoryCreatePage() {
     }
 
     try {
-      const payload = buildPayload();
-      const created = await addCategory(payload);
+      // Retry up to 5 times if backend rejects code as duplicate by incrementing suffix
+      let attempts = 0;
+      let created = null as any;
+      let lastError: any = null;
+      while (attempts < 5) {
+        attempts += 1;
+        const nextCode = generateCodeFromName(formState.name || '', attempts - 1);
+        setFormState((prev) => ({ ...prev, code: nextCode }));
+        const payload = {
+          ...buildPayload(),
+          code: nextCode,
+        };
+        try {
+          created = await addCategory(payload);
+          lastError = null;
+          break;
+        } catch (err: any) {
+          const msg = err?.response?.data?.message?.toString() || err?.message?.toString() || '';
+          lastError = err;
+          if (
+            msg.toLowerCase().includes('code') &&
+            (msg.toLowerCase().includes('exist') || msg.toLowerCase().includes('duplicate'))
+          ) {
+            // increment and retry
+            continue;
+          }
+          throw err;
+        }
+      }
+      if (lastError) {
+        throw lastError;
+      }
       show(t('messages.createSuccess'), 'success');
       if (created?.id) {
         router.push('/base/serviceCateList');
@@ -100,11 +170,6 @@ export default function ServiceCategoryCreatePage() {
       show(t('messages.createError'), 'error');
     }
   };
-
-  const statusOptions = [
-    { name: t('active'), value: 'true' },
-    { name: t('inactive'), value: 'false' },
-  ];
 
   return (
     <div className="min-h-screen p-4 sm:p-8 font-sans">
@@ -142,8 +207,8 @@ export default function ServiceCategoryCreatePage() {
             label={t('code')}
             name="code"
             value={formState.code}
-            onChange={handleInputChange}
-            readonly={false}
+            onChange={() => {}}
+            readonly={true}
             error={formErrors.code}
           />
           <DetailField
@@ -154,19 +219,6 @@ export default function ServiceCategoryCreatePage() {
             readonly={false}
             error={formErrors.name}
           />
-          <div className="flex flex-col mb-4 col-span-1">
-            <label className="text-md font-bold text-[#02542D] mb-1">
-              {t('status')}
-            </label>
-            <Select
-              options={statusOptions}
-              value={String(formState.isActive)}
-              onSelect={handleStatusChange}
-              renderItem={(item) => item.name}
-              getValue={(item) => item.value}
-              placeholder={t('status')}
-            />
-          </div>
           <DetailField
             label={t('description')}
             name="description"

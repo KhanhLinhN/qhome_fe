@@ -20,6 +20,7 @@ export const useBuildingDetailPage = (buildingId: string | string[] | undefined)
         setError(null);
         try {
             const buildingData = await getBuilding(buildingId.toString());
+            console.log('buildingData', buildingData);
             setBuildingData(buildingData as unknown as Building);
         } catch (err) {
             setError(err as Error);
