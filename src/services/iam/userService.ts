@@ -61,6 +61,24 @@ export interface CreateStaffAccountPayload {
   active?: boolean;
 }
 
+export interface StaffImportRowResult {
+  rowNumber: number;
+  username: string;
+  email: string;
+  roles: string[];
+  active: boolean | null;
+  success: boolean;
+  createdUserId: string | null;
+  message: string | null;
+}
+
+export interface StaffImportResponse {
+  totalRows: number;
+  successCount: number;
+  failureCount: number;
+  rows: StaffImportRowResult[];
+}
+
 export interface CreateResidentAccountPayload {
   username: string;
   email: string;
@@ -171,6 +189,29 @@ export async function createStaffAccount(
     payload,
     { withCredentials: true },
   );
+  return response.data;
+}
+
+export async function importStaffAccounts(file: File): Promise<StaffImportResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await axios.post<StaffImportResponse>(
+    `${IAM_URL}/api/users/staff/import`,
+    formData,
+    {
+      withCredentials: true,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    },
+  );
+  return response.data;
+}
+
+export async function downloadStaffImportTemplate(): Promise<Blob> {
+  const response = await axios.get(`${IAM_URL}/api/users/staff/import/template`, {
+    withCredentials: true,
+    responseType: 'blob',
+  });
   return response.data;
 }
 

@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import Delete from '@/src/assets/Delete.svg';
@@ -16,6 +16,7 @@ import { Unit } from '@/src/types/unit';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useDeleteBuilding } from '@/src/hooks/useBuildingDelete';
 import FormulaPopup from '@/src/components/common/FormulaPopup';
+import { downloadUnitImportTemplate, importUnits, type UnitImportResponse } from '@/src/services/base/unitImportService';
 
 export default function BuildingDetail () {
 
@@ -31,6 +32,10 @@ export default function BuildingDetail () {
     const [loadingUnits, setLoadingUnits] = useState(false);
     const [unitsError, setUnitsError] = useState<string | null>(null);
     const { deleteBuildingById, isLoading: isDeleting } = useDeleteBuilding();    
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState<UnitImportResponse | null>(null);
+    const [importError, setImportError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
     
     useEffect(() => {
         const loadUnits = async () => {
@@ -77,6 +82,43 @@ export default function BuildingDetail () {
 
     const handleClosePopup = () => {
         setIsPopupOpen(false);
+    };
+
+    const onDownloadUnitTemplate = async () => {
+        try {
+            const blob = await downloadUnitImportTemplate();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "unit_import_template.xlsx";
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e: any) {
+            setImportError(e?.response?.data?.message || "Tải template thất bại");
+        }
+    };
+
+    const onPickUnitFile = () => {
+        setImportError(null);
+        setImportResult(null);
+        fileInputRef.current?.click();
+    };
+
+    const onUnitFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        setImporting(true);
+        setImportError(null);
+        setImportResult(null);
+        try {
+            const res = await importUnits(f);
+            setImportResult(res);
+        } catch (e: any) {
+            setImportError(e?.response?.data?.message || "Import thất bại");
+        } finally {
+            setImporting(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
     };
 
     return (
@@ -194,6 +236,26 @@ export default function BuildingDetail () {
                         </h2>
                         <div className="flex items-center gap-3">
                             <button
+                                onClick={onDownloadUnitTemplate}
+                                className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200 transition text-sm"
+                            >
+                                Tải template import căn hộ
+                            </button>
+                            <button
+                                onClick={onPickUnitFile}
+                                disabled={importing}
+                                className="px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                            >
+                                {importing ? 'Đang import...' : 'Chọn file Excel'}
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".xlsx"
+                                className="hidden"
+                                onChange={onUnitFileChange}
+                            />
+                            <button
                                 onClick={() => router.push(`/base/unit/unitNew?buildingId=${buildingId}`)}
                                 className="px-4 py-2 bg-[#14AE5C] text-white text-sm rounded-lg hover:bg-[#0c793f] transition flex items-center gap-2 shadow-sm"
                             >
@@ -205,6 +267,46 @@ export default function BuildingDetail () {
                         </div>
                     </div>
                 </div>
+
+                {buildingData?.code || buildingId ? (
+                    <div className="text-sm text-gray-600 mb-4">
+                        Vui lòng điền cột <b>buildingCode</b> = <span className="font-mono">{buildingData?.code}</span> hoặc
+                        <span> <b>buildingId</b> = </span><span className="font-mono">{typeof buildingId === 'string' ? buildingId : ''}</span> trong file Excel.
+                    </div>
+                ) : null}
+
+                {importError && <div className="text-red-600 mb-3">{importError}</div>}
+                {importResult && (
+                    <div className="mb-4">
+                        <div className="mb-2">
+                            Tổng dòng: {importResult.totalRows} | Thành công: {importResult.successCount} | Lỗi: {importResult.errorCount}
+                        </div>
+                        <div className="max-h-64 overflow-auto border rounded">
+                            <table className="min-w-full">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="border px-2 py-1 text-left">Row</th>
+                                        <th className="border px-2 py-1 text-left">Success</th>
+                                        <th className="border px-2 py-1 text-left">Message</th>
+                                        <th className="border px-2 py-1 text-left">UnitId</th>
+                                        <th className="border px-2 py-1 text-left">Code</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {importResult.rows.map((r, i) => (
+                                        <tr key={i}>
+                                            <td className="border px-2 py-1">{r.rowNumber}</td>
+                                            <td className="border px-2 py-1">{r.success ? '✓' : '✗'}</td>
+                                            <td className="border px-2 py-1">{r.message}</td>
+                                            <td className="border px-2 py-1">{r.unitId}</td>
+                                            <td className="border px-2 py-1">{r.code}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
 
                 {loadingUnits ? (
                     <div className="text-center py-8 text-gray-500">{t('loading')}</div>

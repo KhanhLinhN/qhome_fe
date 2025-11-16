@@ -2,7 +2,7 @@
 import {useTranslations} from 'next-intl';
 import FilterForm from "../../../../components/base-service/FilterForm";
 import Table from "../../../../components/base-service/Table";
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useProjectPage } from '@/src/hooks/useProjectPage';
 import Pagination from '@/src/components/customer-interaction/Pagination';
 import { create } from 'domain';
@@ -10,12 +10,18 @@ import { useProjectAdd } from '@/src/hooks/useProjectAdd';
 import { useRouter } from 'next/navigation';
 import { useBuildingPage } from '@/src/hooks/useBuildingPage';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { downloadBuildingImportTemplate, importBuildings, type BuildingImportResponse } from '@/src/services/base/buildingImportService';
 
 
 export default function Home() {
   const { user, hasRole } = useAuth();
   const t = useTranslations('Building');
   const headers = [t('buildingCode'), t('buildingName'), t('floors'), t('status'), t('createAt'), t('createBy'), t('action')];
+
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<BuildingImportResponse | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const {
     data,
@@ -47,6 +53,43 @@ export default function Home() {
 
   const handleDelete = () => {
     router.push(`/base/building/buildingList`);
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const blob = await downloadBuildingImportTemplate();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'building_import_template.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setImportError(e?.response?.data?.message || 'Tải template thất bại');
+    }
+  };
+
+  const handlePickFile = () => {
+    setImportError(null);
+    setImportResult(null);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setImporting(true);
+    setImportError(null);
+    setImportResult(null);
+    try {
+      const res = await importBuildings(f);
+      setImportResult(res);
+    } catch (e: any) {
+      setImportError(e?.response?.data?.message || 'Import thất bại');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   
@@ -94,6 +137,66 @@ export default function Home() {
                 onDelete={handleDelete}
                 projectList={allProjects}
               ></FilterForm>
+
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                >
+                  Tải template import tòa nhà
+                </button>
+                <button
+                  onClick={handlePickFile}
+                  disabled={importing}
+                  className="px-3 py-2 rounded bg-indigo-600 text-white disabled:opacity-50"
+                >
+                  {importing ? 'Đang import...' : 'Chọn file Excel để import'}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
+              {importError && (
+                <div className="text-red-600 mb-3">{importError}</div>
+              )}
+              {importResult && (
+                <div className="mb-4">
+                  <div className="mb-2">
+                    Tổng dòng: {importResult.totalRows} | Thành công: {importResult.successCount} | Lỗi: {importResult.errorCount}
+                  </div>
+                  <div className="max-h-64 overflow-auto border rounded">
+                    <table className="min-w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="border px-2 py-1 text-left">Row</th>
+                          <th className="border px-2 py-1 text-left">Success</th>
+                          <th className="border px-2 py-1 text-left">Message</th>
+                          <th className="border px-2 py-1 text-left">BuildingId</th>
+                          <th className="border px-2 py-1 text-left">Code</th>
+                          <th className="border px-2 py-1 text-left">Name</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.rows.map((r, i) => (
+                          <tr key={i}>
+                            <td className="border px-2 py-1">{r.rowNumber}</td>
+                            <td className="border px-2 py-1">{r.success ? '✓' : '✗'}</td>
+                            <td className="border px-2 py-1">{r.message}</td>
+                            <td className="border px-2 py-1">{r.buildingId}</td>
+                            <td className="border px-2 py-1">{r.code}</td>
+                            <td className="border px-2 py-1">{r.name}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               <Table 
                   data={tableData} 
                   headers={headers}
