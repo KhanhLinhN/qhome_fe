@@ -1,9 +1,9 @@
 export interface Request {
-    id: number;
+    id: string;
     requestCode: string;
-    residentId: number;
+    residentId: string;
     residentName: string;
-    imagePath: string;
+    imagePath: string | null;
     title: string;
     content: string;
     status: string;

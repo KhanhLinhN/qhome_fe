@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, FormEvent, useState, useEffect } from 'react';
+import { ChangeEvent, FormEvent, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -9,9 +9,12 @@ import Select from '@/src/components/customer-interaction/Select';
 import { useAuth } from '@/src/contexts/AuthContext';
 import {
   CreateStaffAccountPayload,
+  StaffImportResponse,
   createStaffAccount,
   checkUsernameExists,
   checkEmailExists,
+  downloadStaffImportTemplate,
+  importStaffAccounts,
 } from '@/src/services/iam/userService';
 
 type FormState = {
@@ -61,6 +64,11 @@ export default function AccountNewStaffPage() {
     { id: 'TECHNICIAN', label: t('roles.technician') },
     { id: 'SUPPORTER', label: t('roles.supporter') },
   ];
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<StaffImportResponse | null>(null);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
   const handleBack = () => {
     router.push('/accountList');
@@ -213,6 +221,70 @@ export default function AccountNewStaffPage() {
   if (!user || !isAdmin) {
     return null;
   }
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setImportError(null);
+    setImportResult(null);
+    const file = event.target.files?.[0];
+    setImportFile(file ?? null);
+  };
+
+  const handleImport = async () => {
+    setImportError(null);
+    setImportResult(null);
+
+    if (!importFile) {
+      setImportError('Vui lòng chọn file Excel (.xlsx).');
+      return;
+    }
+
+    if (!importFile.name.toLowerCase().endsWith('.xlsx')) {
+      setImportError('File phải có định dạng .xlsx.');
+      return;
+    }
+
+    try {
+      setImporting(true);
+      const result = await importStaffAccounts(importFile);
+      setImportResult(result);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Không thể import tài khoản nhân viên. Vui lòng thử lại.';
+      setImportError(message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    setImportError(null);
+    try {
+      setDownloadingTemplate(true);
+      const blob = await downloadStaffImportTemplate();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'staff_import_template.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Không thể tải file template. Vui lòng thử lại.';
+      setImportError(message);
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
+
+  const importSummary = useMemo(() => {
+    if (!importResult) return null;
+    return `Đã xử lý ${importResult.totalRows} dòng: ${importResult.successCount} thành công, ${importResult.failureCount} thất bại.`;
+  }, [importResult]);
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
@@ -226,7 +298,8 @@ export default function AccountNewStaffPage() {
         </span>
       </div>
 
-      <div className="mx-auto max-w-3xl rounded-2xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
+      <div className="mx-auto max-w-5xl space-y-8">
+        <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
         <div className="mb-6 flex flex-col gap-2">
           <h1 className="text-2xl font-bold text-slate-800">{t('title')}</h1>
           <p className="text-sm text-slate-500">
@@ -340,6 +413,108 @@ export default function AccountNewStaffPage() {
             </button>
           </div>
         </form>
+        </div>
+
+        <div className="rounded-2xl border border-dashed border-emerald-200 bg-white/70 p-6 shadow-sm sm:p-8">
+          <div className="mb-6 flex flex-col gap-2">
+            <h2 className="text-xl font-semibold text-slate-800">Import nhanh bằng Excel</h2>
+            <p className="text-sm text-slate-500">
+              Sử dụng file Excel với các cột: <code>username</code>, <code>email</code>,{' '}
+              <code>role</code>, <code>active</code>. Role có thể chứa nhiều giá trị, phân tách bằng dấu phẩy.
+            </p>
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              disabled={downloadingTemplate}
+              className="inline-flex w-fit items-center justify-center rounded-md border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {downloadingTemplate ? 'Đang tải template...' : 'Tải file template'}
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-slate-700">File Excel (.xlsx)</label>
+              <input
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={handleFileChange}
+                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+              {importFile && (
+                <p className="mt-2 text-xs text-slate-500">
+                  Đã chọn: <span className="font-medium text-slate-700">{importFile.name}</span>
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleImport}
+              disabled={importing}
+              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {importing ? 'Đang import...' : 'Import nhân viên'}
+            </button>
+          </div>
+
+          {(importError || importSummary) && (
+            <div className="mt-6 space-y-3">
+              {importError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {importError}
+                </div>
+              )}
+              {importSummary && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {importSummary}
+                </div>
+              )}
+            </div>
+          )}
+
+          {importResult && importResult.rows.length > 0 && (
+            <div className="mt-6 overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Dòng</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Username</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Email</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Role(s)</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Kích hoạt</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Kết quả</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {importResult.rows.map((row) => (
+                    <tr key={`${row.rowNumber}-${row.username}`}>
+                      <td className="px-3 py-2 text-slate-600">{row.rowNumber}</td>
+                      <td className="px-3 py-2 font-medium text-slate-800">{row.username}</td>
+                      <td className="px-3 py-2 text-slate-700">{row.email}</td>
+                      <td className="px-3 py-2 text-slate-600">{row.roles.join(', ')}</td>
+                      <td className="px-3 py-2 text-slate-600">
+                        {row.active === null ? '-' : row.active ? 'Có' : 'Không'}
+                      </td>
+                      <td className="px-3 py-2">
+                        {row.success ? (
+                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                            Thành công
+                          </span>
+                        ) : (
+                          <div className="text-xs text-red-600">
+                            Thất bại
+                            {row.message && <p className="mt-1 text-[11px] text-red-500">{row.message}</p>}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

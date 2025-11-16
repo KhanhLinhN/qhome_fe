@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
@@ -86,6 +87,7 @@ function generateAutoContractNumber() {
 
 export default function ContractManagementPage() {
   const t = useTranslations('Contracts');
+  const router = useRouter();
   const [buildingsState, setBuildingsState] =
     useState<AsyncState<Building[]>>(DEFAULT_BUILDINGS_STATE);
   const [unitsState, setUnitsState] = useState<AsyncState<Unit[]>>(DEFAULT_UNITS_STATE);
@@ -1196,6 +1198,16 @@ export default function ContractManagementPage() {
                         </p>
                       </div>
                     )}
+                    {/* Export PDF */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => detailState.data && router.push(`/base/contract/export/${detailState.data.id}`)}
+                        className="inline-flex items-center rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+                      >
+                        Xuất hợp đồng PDF
+                      </button>
+                    </div>
                     <div className="space-y-3">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="font-medium text-[#02542D]">{t('detail.attachments')}</p>

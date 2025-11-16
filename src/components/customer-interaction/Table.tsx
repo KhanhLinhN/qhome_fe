@@ -3,7 +3,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 interface TableItemProps {
-    id?: number;
+    id?: string;
     requestCode?: string;
     residentName?: string;
     title?: string;
@@ -14,12 +14,12 @@ interface TableItemProps {
 interface TableProps {
     data: TableItemProps[];
     headers?: string[];
-    // onRowClick: (id: number) => void; 
+    // onRowClick: (id: string) => void; 
 }
 
 const Table = ({ data, headers }: TableProps) => {
     const t = useTranslations('customer-interaction.Request');
-    const [selectedId, setSelectedId] = useState<number | undefined>();
+    const [selectedId, setSelectedId] = useState<string | undefined>();
 
     const [isChecked, setIsChecked] = useState(false); 
 

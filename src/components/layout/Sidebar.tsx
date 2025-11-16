@@ -11,8 +11,9 @@ type SidebarVariant = "admin" | "tenant-owner" | "technician";
 
 type NavItem = {
   href: string;
-  labelKey: string;
   icon: string;
+  labelKey?: string;
+  label?: string;
 };
 
 type NavSection = {
@@ -47,12 +48,15 @@ const adminSections: NavSection[] = [
   {
     titleKey: "buildingsAndResidents",
     items: [
-      {href: "/base/building/buildingList", labelKey: "buildingManagement", icon: "🏢"},
-      {href: "/base/residentView", labelKey: "residentList", icon: "👨‍👩‍👧‍👦"},
-      {href: "/base/regisresiView", labelKey: "approveResidentAccount", icon: "📝"},
-      {href: "/base/household/householdMemberRequests", labelKey: "approveFamilyMember", icon: "👪"},
-      {href: "/base/contract/contracts", labelKey: "unitContracts", icon: "📄"},
-      {href: "/base/vehicles/vehicleAll", labelKey: "vehicleManagement", icon: "🚗"},
+      {href: "/base/building/buildingList", label: "Quản lý Building", icon: "🏢"},
+      {href: "/base/residentView", label: "Danh sách cư dân", icon: "👨‍👩‍👧‍👦"},
+      {href: "/base/regisresiView", label: "Duyệt tài khoản cư dân", icon: "📝"},
+      {href: "/base/household/householdMemberRequests", label: "Duyệt thành viên gia đình", icon: "👪"},
+      {href: "/base/contract/contracts", label: "Hợp đồng căn hộ", icon: "📄"},
+      {href: "/base/contract/import", label: "Import hợp đồng", icon: "📥"},
+      {href: "/base/vehicles/vehicleAll", label: "Quản lý phương tiện", icon: "🚗"},
+      {href: "/base/cards/elevator", label: "Thẻ thang máy", icon: "🛗"},
+      {href: "/base/cards/resident", label: "Thẻ cư dân", icon: "🔑"},
     ],
   },
   {
@@ -206,7 +210,9 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
                         <span aria-hidden className="w-5 text-center flex items-center justify-center">
                           {item.icon}
                         </span>
-                        <span className="truncate">{t(item.labelKey)}</span>
+                        <span className="truncate">
+                          {item.labelKey ? t(item.labelKey) : item.label ?? item.href}
+                        </span>
                       </Link>
                     );
                   })}

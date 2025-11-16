@@ -2,12 +2,16 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { 
-  getMyAssignments, 
+import {
+  getMyAssignments,
   MeterReadingAssignmentDto,
   getAssignmentProgress,
   completeAssignment
 } from '@/src/services/base/waterService';
+import {
+  fetchMeterReadingReminders,
+  MeterReadingReminderDto
+} from '@/src/services/base/meterReminderService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 
 export default function ShowAssignPage() {
@@ -19,6 +23,9 @@ export default function ShowAssignPage() {
   const [assignments, setAssignments] = useState<MeterReadingAssignmentDto[]>([]);
   const [expandedCycles, setExpandedCycles] = useState<Set<string>>(new Set());
   const [assignmentProgress, setAssignmentProgress] = useState<Record<string, number>>({}); // assignmentId -> progressPercentage
+  const [reminders, setReminders] = useState<MeterReadingReminderDto[]>([]);
+  const [remindersLoading, setRemindersLoading] = useState(false);
+  const [includeAcknowledged] = useState(false);
 
   // Group assignments by cycle
   const assignmentsByCycle = assignments.reduce((acc, assignment) => {
@@ -51,6 +58,25 @@ export default function ShowAssignPage() {
       loadAssignments();
     }
   }, [user]);
+
+  const loadReminders = React.useCallback(async (includeAll = includeAcknowledged) => {
+    try {
+      setRemindersLoading(true);
+      const data = await fetchMeterReadingReminders(includeAll);
+      setReminders(data);
+    } catch (error: any) {
+      console.error("Failed to load reminders:", error);
+      show(error?.response?.data?.message || error?.message || "Không thể tải nhắc nhở", "error");
+    } finally {
+      setRemindersLoading(false);
+    }
+  }, [includeAcknowledged, show]);
+
+  useEffect(() => {
+    if (user?.userId) {
+      loadReminders();
+    }
+  }, [user, loadReminders]);
 
   const loadAssignments = async () => {
     try {
@@ -122,6 +148,11 @@ export default function ShowAssignPage() {
     }
   };
 
+  const formatDate = (value?: string) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString();
+  };
+
   if (loading && assignments.length === 0) {
     return (
       <div className="px-[41px] py-12">
@@ -138,6 +169,70 @@ export default function ShowAssignPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-[#02542D]">My Assignments</h1>
         <p className="text-sm text-gray-600 mt-1">Select an assignment to start reading meters</p>
+      </div>
+
+      <div className="mb-8 bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800">Reminders</h2>
+            <p className="text-sm text-gray-500">System reminders before assignment deadlines</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => loadReminders()}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          {remindersLoading ? (
+            <div className="py-6 text-center text-sm text-gray-500">Loading reminders...</div>
+          ) : reminders.length === 0 ? (
+            <div className="py-6 text-center text-sm text-gray-500">
+              {includeAcknowledged ? 'No reminders yet.' : 'No pending reminders.'}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {reminders.map((reminder) => (
+                <div
+                  key={reminder.id}
+                  className="border border-gray-200 rounded-lg p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-800">{reminder.title}</h3>
+                      {reminder.cycleName && (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                          {reminder.cycleName}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{reminder.message}</p>
+                    <div className="flex flex-wrap gap-4 text-xs text-gray-500 mt-2">
+                      <span>Due: <strong>{formatDate(reminder.dueDate)}</strong></span>
+                      {reminder.acknowledgedAt && (
+                        <span>Acknowledged: {formatDate(reminder.acknowledgedAt)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-2">
+                    {reminder.assignmentId && (
+                      <button
+                        onClick={() => router.push(`/base/indexReading/${reminder.assignmentId}`)}
+                        className="px-4 py-2 text-sm font-medium text-white bg-[#739559] rounded-md hover:bg-[#5a7447] transition"
+                      >
+                        Go to assignment
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {cycleList.length === 0 ? (
