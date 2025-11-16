@@ -165,11 +165,11 @@ export default function UnitDetail () {
                     />
                     <div className="col-span-1 hidden md:block"></div>
 
-                    <DetailField 
+                    {/* <DetailField 
                         label={t('unitName')}
                         value={unitData?.name ?? ""} 
                         readonly={true}
-                    />
+                    /> */}
 
                     <DetailField 
                         label={t('buildingName')} 

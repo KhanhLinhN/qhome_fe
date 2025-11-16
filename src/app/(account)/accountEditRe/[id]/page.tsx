@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
 import Arrow from '@/src/assets/Arrow.svg';
@@ -34,13 +35,9 @@ type FormState = {
   confirmPassword: string;
 };
 
-const STATUS_OPTIONS = [
-  { id: 'ACTIVE', label: 'Đang hoạt động' },
-  { id: 'INACTIVE', label: 'Ngưng hoạt động' },
-];
-
 export default function AccountEditResidentPage() {
   const router = useRouter();
+  const t = useTranslations('AccountEditRe');
   const params = useParams<{ id: string }>();
   const userIdParam = params?.id;
   const userId =
@@ -84,7 +81,7 @@ export default function AccountEditResidentPage() {
   useEffect(() => {
     if (!userId) {
       setState('error');
-      setError('Không tìm thấy mã tài khoản cư dân.');
+      setError(t('errors.userIdNotFound'));
       return;
     }
 
@@ -122,7 +119,7 @@ export default function AccountEditResidentPage() {
         const message =
           err?.response?.data?.message ||
           err?.message ||
-          'Không thể tải thông tin tài khoản cư dân.';
+          t('errors.loadFailed');
         setError(message);
         setState('error');
       }
@@ -136,6 +133,11 @@ export default function AccountEditResidentPage() {
   }, [userId]);
 
   const roles = useMemo<string[]>(() => profile?.roles ?? account?.roles ?? [], [profile, account]);
+
+  const STATUS_OPTIONS = useMemo(() => [
+    { id: 'ACTIVE', label: t('status.active') },
+    { id: 'INACTIVE', label: t('status.inactive') },
+  ], [t]);
 
   const handleBack = () => {
     router.push(`/accountDetailRe${userId}`);
@@ -170,20 +172,20 @@ export default function AccountEditResidentPage() {
 
   const validateForm = () => {
     if (!form.username.trim()) {
-      setError('Tên đăng nhập không được để trống.');
+      setError(t('validation.username.required'));
       return false;
     }
     if (!form.email.trim()) {
-      setError('Email không được để trống.');
+      setError(t('validation.email.required'));
       return false;
     }
     if (form.newPassword) {
       if (form.newPassword.length < 8) {
-        setError('Mật khẩu mới phải có ít nhất 8 ký tự.');
+        setError(t('validation.password.minLength'));
         return false;
       }
       if (form.newPassword !== form.confirmPassword) {
-        setError('Xác nhận mật khẩu không khớp.');
+        setError(t('validation.password.mismatch'));
         return false;
       }
     }
@@ -229,12 +231,12 @@ export default function AccountEditResidentPage() {
         newPassword: '',
         confirmPassword: '',
       }));
-      setSuccessMessage('Đã cập nhật tài khoản cư dân thành công.');
+      setSuccessMessage(t('messages.updateSuccess'));
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Cập nhật tài khoản thất bại. Vui lòng thử lại.';
+        t('messages.updateError');
       setError(message);
     } finally {
       setSubmitting(false);
@@ -262,7 +264,7 @@ export default function AccountEditResidentPage() {
       setBuildings(data);
     } catch (err: any) {
       const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+        err?.response?.data?.message || err?.message || t('errors.loadBuildingsFailed');
       setAssignmentError(message);
     } finally {
       setLoadingBuildings(false);
@@ -282,7 +284,7 @@ export default function AccountEditResidentPage() {
         setAvailableUnits(data);
       } catch (err: any) {
         const message =
-          err?.response?.data?.message || err?.message || 'Không thể tải danh sách căn hộ.';
+          err?.response?.data?.message || err?.message || t('errors.loadUnitsFailed');
         setAssignmentError(message);
       } finally {
         setLoadingAvailableUnits(false);
@@ -342,13 +344,13 @@ export default function AccountEditResidentPage() {
 
   const handleAddUnits = async () => {
     if (!userId) {
-      setAssignmentError('Không xác định được cư dân.');
+      setAssignmentError(t('errors.userNotIdentified'));
       return;
     }
 
     const pendingUnitIds = selectedUnitIds.filter((id) => !assignedUnitIds.has(id));
     if (!pendingUnitIds.length) {
-      setAssignmentError('Vui lòng chọn ít nhất một căn hộ chưa được gắn cho cư dân.');
+      setAssignmentError(t('errors.noUnitsSelected'));
       return;
     }
 
@@ -377,11 +379,11 @@ export default function AccountEditResidentPage() {
       const message =
         firstError?.response?.data?.message ||
         firstError?.message ||
-        'Không thể gắn căn hộ cho cư dân. Vui lòng thử lại.';
+        t('errors.assignUnitsFailed');
       setAssignmentError(message);
     } else {
       const successCount = results.length - rejected.length;
-      setAssignmentSuccess(`Đã gắn thành công ${successCount} căn hộ cho cư dân.`);
+      setAssignmentSuccess(t('messages.assignUnitsSuccess', { count: successCount }));
       setSelectedUnitIds([]);
       await refreshResidentUnits();
     }
@@ -397,7 +399,7 @@ export default function AccountEditResidentPage() {
     if (residentUnitsLoading) {
       return (
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-          Đang tải danh sách căn hộ...
+          {t('units.loading')}
         </div>
       );
     }
@@ -412,7 +414,7 @@ export default function AccountEditResidentPage() {
 
     if (!residentUnits.length) {
       return (
-        <p className="text-sm text-slate-500">Chưa có căn hộ nào được gắn cho tài khoản cư dân này.</p>
+        <p className="text-sm text-slate-500">{t('units.noUnits')}</p>
       );
     }
 
@@ -420,7 +422,7 @@ export default function AccountEditResidentPage() {
       <div className="space-y-3">
         {residentUnits.map((assignment) => {
           const joinedAt = formatDateLabel(assignment.joinedAt);
-          const buildingLabel = assignment.buildingName ?? assignment.buildingCode ?? 'Không rõ tòa nhà';
+          const buildingLabel = assignment.buildingName ?? assignment.buildingCode ?? t('units.unknownBuilding');
 
           return (
             <div
@@ -430,7 +432,7 @@ export default function AccountEditResidentPage() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-800">
-                    {assignment.unitCode ?? assignment.unitId ?? 'Không rõ mã căn hộ'}
+                    {assignment.unitCode ?? assignment.unitId ?? t('units.unknownUnitCode')}
                   </p>
                   <p className="text-xs text-slate-500">
                     {assignment.buildingId ? (
@@ -449,7 +451,7 @@ export default function AccountEditResidentPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     {assignment.isPrimary && (
                       <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                        Chủ hộ
+                        {t('units.houseOwner')}
                       </span>
                     )}
                     {assignment.relation && (
@@ -459,7 +461,7 @@ export default function AccountEditResidentPage() {
                     )}
                   </div>
                   {joinedAt && (
-                    <span className="text-xs text-slate-500">Từ {joinedAt}</span>
+                    <span className="text-xs text-slate-500">{t('units.from')} {joinedAt}</span>
                   )}
                 </div>
               </div>
@@ -474,7 +476,7 @@ export default function AccountEditResidentPage() {
     if (state === 'loading' || state === 'idle') {
       return (
         <div className="flex min-h-[240px] items-center justify-center text-sm text-slate-500">
-          Đang tải thông tin tài khoản cư dân...
+          {t('loading')}
         </div>
       );
     }
@@ -488,7 +490,7 @@ export default function AccountEditResidentPage() {
             onClick={() => router.refresh()}
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
           >
-            Thử lại
+            {t('buttons.retry')}
           </button>
         </div>
       );
@@ -497,7 +499,7 @@ export default function AccountEditResidentPage() {
     if (!account) {
       return (
         <div className="flex min-h-[240px] items-center justify-center text-sm text-slate-500">
-          Không tìm thấy thông tin tài khoản.
+          {t('errors.accountNotFound')}
         </div>
       );
     }
@@ -516,7 +518,7 @@ export default function AccountEditResidentPage() {
                   form.active ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
                 }`}
               >
-                {form.active ? 'Đang hoạt động' : 'Ngưng hoạt động'}
+                {form.active ? t('status.active') : t('status.inactive')}
               </span>
             </div>
           </div>
@@ -524,40 +526,40 @@ export default function AccountEditResidentPage() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
           <DetailField
-            label="Tên đăng nhập"
+            label={t('fields.username')}
             value={form.username}
             readonly={false}
             onChange={handleChange('username')}
           />
           <DetailField
-            label="Email"
+            label={t('fields.email')}
             value={form.email}
             readonly={false}
             onChange={handleChange('email')}
           />
           <div className="flex flex-col">
-            <span className="text-md font-bold text-[#02542D] mb-1">Trạng thái</span>
+            <span className="text-md font-bold text-[#02542D] mb-1">{t('fields.status')}</span>
             <Select
               options={STATUS_OPTIONS}
               value={form.active ? 'ACTIVE' : 'INACTIVE'}
               onSelect={(option) => handleStatusSelect(option.id)}
               renderItem={(option) => option.label}
               getValue={(option) => option.id}
-              placeholder="Chọn trạng thái"
+              placeholder={t('placeholders.selectStatus')}
             />
           </div>
         </div>
 
         <div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-md font-semibold text-[#02542D]">Danh sách căn hộ đã gắn</h2>
+            <h2 className="text-md font-semibold text-[#02542D]">{t('sections.assignedUnits')}</h2>
             {!unitPanelOpen && (
               <button
                 type="button"
                 onClick={handleOpenUnitPanel}
                 className="inline-flex items-center justify-center rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
               >
-                Thêm căn hộ
+                {t('buttons.addUnit')}
               </button>
             )}
           </div>
@@ -581,13 +583,13 @@ export default function AccountEditResidentPage() {
           {unitPanelOpen && (
             <div className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-slate-700">Tòa nhà</label>
+                <label className="text-sm font-medium text-slate-700">{t('units.building')}</label>
                 <select
                   value={selectedBuildingId}
                   onChange={(event) => setSelectedBuildingId(event.target.value)}
                   className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                 >
-                  <option value="">Chọn tòa nhà</option>
+                  <option value="">{t('placeholders.selectBuilding')}</option>
                   {buildings.map((building) => (
                     <option key={building.id} value={building.id}>
                       {building.name || building.code || building.id}
@@ -595,16 +597,16 @@ export default function AccountEditResidentPage() {
                   ))}
                 </select>
                 {loadingBuildings && (
-                  <span className="text-xs text-slate-500">Đang tải danh sách tòa nhà...</span>
+                  <span className="text-xs text-slate-500">{t('units.loadingBuildings')}</span>
                 )}
               </div>
 
               {selectedBuildingId && (
                 <div className="space-y-3">
-                  <span className="text-sm font-medium text-slate-700">Chọn căn hộ</span>
+                  <span className="text-sm font-medium text-slate-700">{t('units.selectUnit')}</span>
                   {loadingAvailableUnits ? (
                     <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                      Đang tải danh sách căn hộ...
+                      {t('units.loading')}
                     </div>
                   ) : availableUnits.length ? (
                     <div className="space-y-2">
@@ -643,14 +645,14 @@ export default function AccountEditResidentPage() {
                                 </span>
                                 {floor !== undefined && (
                                   <span className="block text-xs text-slate-500">
-                                    Tầng {floor}
+                                    {t('units.floor')} {floor}
                                   </span>
                                 )}
                               </span>
                             </span>
                             {disabled && (
                               <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-600">
-                                Đã gắn
+                                {t('units.assigned')}
                               </span>
                             )}
                           </label>
@@ -659,7 +661,7 @@ export default function AccountEditResidentPage() {
                     </div>
                   ) : (
                     <p className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                      Không tìm thấy căn hộ nào trong tòa nhà đã chọn.
+                      {t('units.noUnitsInBuilding')}
                     </p>
                   )}
                 </div>
@@ -671,7 +673,7 @@ export default function AccountEditResidentPage() {
                   onClick={handleCloseUnitPanel}
                   className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-white"
                 >
-                  Hủy
+                  {t('buttons.cancel')}
                 </button>
                 <button
                   type="button"
@@ -679,7 +681,7 @@ export default function AccountEditResidentPage() {
                   disabled={assigningUnits || !selectedUnitIds.length}
                   className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {assigningUnits ? 'Đang gắn...' : 'Gắn căn hộ'}
+                  {assigningUnits ? t('buttons.assigning') : t('buttons.assignUnit')}
                 </button>
               </div>
             </div>
@@ -698,7 +700,7 @@ export default function AccountEditResidentPage() {
               disabled={submitting}
               className="flex items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+              {submitting ? t('buttons.saving') : t('buttons.save')}
             </button>
           </div>
 
@@ -713,9 +715,9 @@ export default function AccountEditResidentPage() {
         className="mx-auto mb-6 flex max-w-4xl cursor-pointer items-center"
         onClick={handleBack}
       >
-        <Image src={Arrow} alt="Back" width={20} height={20} className="mr-2 h-5 w-5" />
+        <Image src={Arrow} alt={t('back')} width={20} height={20} className="mr-2 h-5 w-5" />
         <span className="text-2xl font-bold text-[#02542D] transition hover:text-opacity-80">
-          Quay lại danh sách tài khoản
+          {t('back')}
         </span>
       </div>
       {renderContent()}

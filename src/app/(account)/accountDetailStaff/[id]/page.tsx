@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import Arrow from '@/src/assets/Arrow.svg';
 import Edit from '@/src/assets/Edit.svg';
@@ -19,6 +20,7 @@ type FetchState = 'idle' | 'loading' | 'error' | 'success';
 
 export default function AccountDetailStaffPage() {
   const router = useRouter();
+  const t = useTranslations('AccountDetailStaff');
   const params = useParams<{ id: string }>();
   const userIdParam = params?.id;
   const userId =
@@ -33,7 +35,7 @@ export default function AccountDetailStaffPage() {
   useEffect(() => {
     if (!userId) {
       setState('error');
-      setError('Không tìm thấy mã tài khoản nhân viên.');
+      setError(t('errors.userIdNotFound'));
       return;
     }
 
@@ -64,7 +66,7 @@ export default function AccountDetailStaffPage() {
         const message =
           err?.response?.data?.message ||
           err?.message ||
-          'Không thể tải thông tin tài khoản nhân viên.';
+          t('errors.loadFailed');
         setError(message);
         setState('error');
       }
@@ -100,7 +102,7 @@ export default function AccountDetailStaffPage() {
   };
 
   const formatDateTime = (value?: string | null) => {
-    if (!value) return 'Chưa ghi nhận';
+    if (!value) return t('common.notRecorded');
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
       return value;
@@ -110,7 +112,7 @@ export default function AccountDetailStaffPage() {
 
   const renderRoles = () => {
     if (!roles.length) {
-      return 'Không có vai trò';
+      return t('roles.noRoles');
     }
     return (
       <div className="flex flex-wrap gap-2">
@@ -128,7 +130,7 @@ export default function AccountDetailStaffPage() {
 
   const renderPermissions = () => {
     if (!permissions.length) {
-      return <p className="text-sm text-gray-500">Không có phân quyền bổ sung.</p>;
+      return <p className="text-sm text-gray-500">{t('permissions.noPermissions')}</p>;
     }
     return (
       <div className="grid gap-2 sm:grid-cols-2">
@@ -148,7 +150,7 @@ export default function AccountDetailStaffPage() {
     if (state === 'loading' || state === 'idle') {
       return (
         <div className="flex min-h-[240px] items-center justify-center text-sm text-slate-500">
-          Đang tải thông tin tài khoản nhân viên...
+          {t('loading')}
         </div>
       );
     }
@@ -162,7 +164,7 @@ export default function AccountDetailStaffPage() {
             onClick={() => router.refresh()}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
           >
-            Thử lại
+            {t('buttons.retry')}
           </button>
         </div>
       );
@@ -171,7 +173,7 @@ export default function AccountDetailStaffPage() {
     if (!account) {
       return (
         <div className="flex min-h-[240px] items-center justify-center text-sm text-slate-500">
-          Không tìm thấy thông tin tài khoản.
+          {t('errors.accountNotFound')}
         </div>
       );
     }
@@ -190,17 +192,17 @@ export default function AccountDetailStaffPage() {
                         isActive ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
                     }`}
                     >
-                    {isActive ? 'Đang hoạt động' : 'Ngưng hoạt động'}
+                    {isActive ? t('status.active') : t('status.inactive')}
                     </span>
                 </div>
             </div>
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-            <DetailField label="Tên đăng nhập" value={account.username} readonly />
-            <DetailField label="Email" value={account.email} readonly />
-            <DetailField label="Trạng thái" value={isActive ? 'Đang hoạt động' : 'Ngưng hoạt động'} readonly />
-            <DetailField label="Vai trò" value={roles.join(', ')} readonly />
+            <DetailField label={t('fields.username')} value={account.username} readonly />
+            <DetailField label={t('fields.email')} value={account.email} readonly />
+            <DetailField label={t('fields.status')} value={isActive ? t('status.active') : t('status.inactive')} readonly />
+            <DetailField label={t('fields.role')} value={roles.join(', ')} readonly />
           </div>
 
         </div>
@@ -214,9 +216,9 @@ export default function AccountDetailStaffPage() {
         className="mx-auto mb-6 flex max-w-4xl cursor-pointer items-center"
         onClick={handleBack}
       >
-        <Image src={Arrow} alt="Back" width={20} height={20} className="mr-2 h-5 w-5" />
+        <Image src={Arrow} alt={t('back')} width={20} height={20} className="mr-2 h-5 w-5" />
         <span className="text-2xl font-bold text-[#02542D] transition hover:text-opacity-80">
-          Quay lại danh sách tài khoản
+          {t('back')}
         </span>
       </div>
       {renderContent()}

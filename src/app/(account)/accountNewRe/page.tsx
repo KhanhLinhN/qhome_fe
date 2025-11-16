@@ -25,6 +25,7 @@ import {
 } from '@/src/services/base/contractService';
 import { getUnit, getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { checkEmailExists } from '@/src/services/iam/userService';
 import Select from '@/src/components/customer-interaction/Select';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 
@@ -211,6 +212,129 @@ export default function AccountNewResidentPage() {
     await loadHouseholdForUnit(unitId);
   };
 
+  // Validate email format
+  const validateEmailFormat = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Validate phone number (Vietnam format)
+  const validatePhone = (phone: string): string | null => {
+    if (!phone.trim()) {
+      return 'Số điện thoại không được để trống.';
+    }
+    // Remove spaces and special characters for validation
+    const cleaned = phone.replace(/\s+/g, '');
+    
+    // Check if contains only digits
+    if (!/^\d+$/.test(cleaned)) {
+      return 'Số điện thoại không được chứa ký tự đặc biệt.';
+    }
+    
+    // Check if starts with 0
+    if (!cleaned.startsWith('0')) {
+      return 'Số điện thoại phải bắt đầu bằng số 0.';
+    }
+    
+    // Check length (10 digits)
+    if (cleaned.length !== 10) {
+      return 'Số điện thoại phải có đúng 10 số.';
+    }
+    
+    // Check Vietnamese mobile prefixes
+    const vietnamPrefixes = [
+      '032', '033', '034', '035', '036', '037', '038', '039', // Viettel
+      '070', '076', '077', '078', '079', // MobiFone
+      '081', '082', '083', '084', '085', // Vinaphone
+      '056', '058', // Vietnamobile
+      '059', // GMobile
+    ];
+    
+    const prefix = cleaned.substring(0, 3);
+    if (!vietnamPrefixes.includes(prefix)) {
+      return 'Số điện thoại không hợp lệ. Vui lòng kiểm tra lại đầu số.';
+    }
+    
+    return null;
+  };
+
+  // Validate full name
+  const validateFullName = (fullName: string): string | null => {
+    if (!fullName.trim()) {
+      return 'Họ và tên cư dân không được để trống.';
+    }
+    if (fullName.length > 40) {
+      return 'Họ và tên không được vượt quá 40 ký tự.';
+    }
+    // Check for special characters (allow Vietnamese characters, spaces, and apostrophes)
+    if (!/^[a-zA-ZÀÁẢÃẠẦẤẨẪẬÈÉẺẼẸỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌỒỐỔỖỘỜỚỞỠỢÙÚỦŨỤỪỨỬỮỰỲÝỶỸỴĐàáảãạầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵđ\s'-]+$/.test(fullName)) {
+      return 'Họ và tên không được chứa ký tự đặc biệt.';
+    }
+    return null;
+  };
+
+  // Validate national ID (CCCD)
+  const validateNationalId = (nationalId: string): string | null => {
+    if (!nationalId.trim()) {
+      return 'CMND/CCCD không được để trống.';
+    }
+    const cleaned = nationalId.replace(/\s+/g, '');
+    
+    // Check if contains only digits
+    if (!/^\d+$/.test(cleaned)) {
+      return 'CMND/CCCD không được chứa ký tự đặc biệt.';
+    }
+    
+    // Check length (13 digits for CCCD)
+    if (cleaned.length !== 13) {
+      return 'CMND/CCCD phải có đúng 13 số.';
+    }
+    
+    return null;
+  };
+
+  // Validate username
+  const validateUsername = (username: string): string | null => {
+    if (username.trim()) {
+      if (/\s/.test(username)) {
+        return 'Tên đăng nhập không được chứa khoảng trắng.';
+      }
+      if (username.length > 40) {
+        return 'Tên đăng nhập không được vượt quá 40 ký tự.';
+      }
+    }
+    return null;
+  };
+
+  // Validate date of birth
+  const validateDateOfBirth = (dob: string): string | null => {
+    if (!dob) {
+      return 'Ngày sinh không được để trống.';
+    }
+    
+    const birthDate = new Date(dob);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (isNaN(birthDate.getTime())) {
+      return 'Ngày sinh không hợp lệ.';
+    }
+    
+    const age = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    
+    if (age < 0) {
+      return 'Ngày sinh không thể trong tương lai.';
+    }
+    if (age === 0) {
+      return 'Tuổi phải lớn hơn 0.';
+    }
+    if (age >= 200) {
+      return 'Tuổi phải nhỏ hơn 200.';
+    }
+    
+    return null;
+  };
+
   const handleManualChange =
     (field: keyof ManualFormState) =>
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -261,7 +385,7 @@ export default function AccountNewResidentPage() {
     setContractModalOpen(false);
   };
 
-  const validateManualForm = () => {
+  const validateManualForm = async () => {
     const errors: ManualFieldErrors = {};
     let isValid = true;
 
@@ -293,32 +417,68 @@ export default function AccountNewResidentPage() {
       isValid = false;
     }
 
-    if (!manualForm.fullName.trim()) {
-      errors.fullName = 'Tên cư dân không được để trống.';
+    // Validate full name
+    const fullNameError = validateFullName(manualForm.fullName);
+    if (fullNameError) {
+      errors.fullName = fullNameError;
       isValid = false;
     }
 
+    // Validate email
     if (!manualForm.email.trim()) {
       errors.email = 'Email không được để trống.';
       isValid = false;
-    } else if (!manualForm.email.includes('@')) {
+    } else if (/\s/.test(manualForm.email)) {
+      errors.email = 'Email không được chứa ký tự trắng.';
+      isValid = false;
+    } else if (manualForm.email.length > 40) {
+      errors.email = 'Email không được vượt quá 40 ký tự.';
+      isValid = false;
+    } else if (!validateEmailFormat(manualForm.email)) {
       errors.email = 'Email không hợp lệ.';
       isValid = false;
+    } else {
+      // Check email exists in database
+      try {
+        const exists = await checkEmailExists(manualForm.email.trim());
+        if (exists) {
+          errors.email = 'Email đã tồn tại trong hệ thống.';
+          isValid = false;
+        }
+      } catch (err: any) {
+        // If there's an error checking (network, etc.), log but don't block submit
+        console.error('Error checking email:', err);
+      }
     }
 
-    if (!manualForm.phone.trim()) {
-      errors.phone = 'Số điện thoại không được để trống.';
+    // Validate phone
+    const phoneError = validatePhone(manualForm.phone);
+    if (phoneError) {
+      errors.phone = phoneError;
       isValid = false;
     }
 
-    if (!manualForm.dob) {
-      errors.dob = 'Ngày sinh không được để trống.';
+    // Validate date of birth
+    const dobError = validateDateOfBirth(manualForm.dob);
+    if (dobError) {
+      errors.dob = dobError;
       isValid = false;
     }
 
-    if (!manualForm.nationalId.trim()) {
-      errors.nationalId = 'CMND/CCCD không được để trống.';
+    // Validate national ID
+    const nationalIdError = validateNationalId(manualForm.nationalId);
+    if (nationalIdError) {
+      errors.nationalId = nationalIdError;
       isValid = false;
+    }
+
+    // Validate username (optional field)
+    if (manualForm.username.trim()) {
+      const usernameError = validateUsername(manualForm.username);
+      if (usernameError) {
+        errors.username = usernameError;
+        isValid = false;
+      }
     }
 
     setManualFieldErrors(errors);
@@ -458,7 +618,7 @@ export default function AccountNewResidentPage() {
     if (!manualForm.householdId.trim() && selectedUnitId) {
       await loadHouseholdForUnit(selectedUnitId);
     }
-    const isValid = validateManualForm();
+    const isValid = await validateManualForm();
     if (!isValid) {
       return;
     }
@@ -854,7 +1014,12 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     value={manualForm.fullName}
                     onChange={handleManualChange('fullName')}
                     placeholder="Nhập họ tên đầy đủ"
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    maxLength={40}
+                    className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
+                      manualFieldErrors.fullName
+                        ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
+                        : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
+                    }`}
                   />
                   {manualFieldErrors.fullName && (
                     <span className="text-xs text-red-500">{manualFieldErrors.fullName}</span>
@@ -867,7 +1032,12 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     value={manualForm.email}
                     onChange={handleManualChange('email')}
                     placeholder="example@domain.com"
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    maxLength={40}
+                    className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
+                      manualFieldErrors.email
+                        ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
+                        : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
+                    }`}
                   />
                   {manualFieldErrors.email && (
                     <span className="text-xs text-red-500">{manualFieldErrors.email}</span>
@@ -882,8 +1052,13 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     type="tel"
                     value={manualForm.phone}
                     onChange={handleManualChange('phone')}
-                    placeholder="Nhập số điện thoại"
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    placeholder="Nhập số điện thoại (10 số, bắt đầu bằng 0)"
+                    maxLength={10}
+                    className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
+                      manualFieldErrors.phone
+                        ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
+                        : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
+                    }`}
                   />
                   {manualFieldErrors.phone && (
                     <span className="text-xs text-red-500">{manualFieldErrors.phone}</span>
@@ -909,8 +1084,13 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     type="text"
                     value={manualForm.nationalId}
                     onChange={handleManualChange('nationalId')}
-                    placeholder="Nhập số CMND/CCCD"
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    placeholder="Nhập số CMND/CCCD (13 số)"
+                    maxLength={13}
+                    className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
+                      manualFieldErrors.nationalId
+                        ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
+                        : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
+                    }`}
                   />
                   {manualFieldErrors.nationalId && (
                     <span className="text-xs text-red-500">{manualFieldErrors.nationalId}</span>
@@ -925,8 +1105,16 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     value={manualForm.username}
                     onChange={handleManualChange('username')}
                     placeholder="Để trống để hệ thống tự tạo"
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    maxLength={40}
+                    className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
+                      manualFieldErrors.username
+                        ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
+                        : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
+                    }`}
                   />
+                  {manualFieldErrors.username && (
+                    <span className="text-xs text-red-500">{manualFieldErrors.username}</span>
+                  )}
                 </div>
               </div>
 

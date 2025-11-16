@@ -59,10 +59,18 @@ interface TableProps {
     type: string;
     onEdit?: (id: string) => void;
     onDelete?: (id: string) => void;
+    onStatusChange?: (id: string, accountType: 'staff' | 'resident') => void;
+    onBuildingStatusChange?: (buildingId: string) => void;
+    onServiceCategoryStatusChange?: (categoryId: string) => void;
+    onNewsChangeStatusAndTarget?: (newsId: string) => void;
 }
 
-const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
-    const t = useTranslations();
+const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildingStatusChange, onServiceCategoryStatusChange, onNewsChangeStatusAndTarget }: TableProps) => {
+    const t = useTranslations('Table');
+    const tProject = useTranslations('Project');
+    const tBuilding = useTranslations('Building');
+    const tService = useTranslations('Service');
+    const tServiceCategory = useTranslations('ServiceCategory');
     const { show } = useNotifications();
 
     const formatDate = (dateString: string) => {
@@ -78,11 +86,11 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
     const getStatusLabel = (status: string) => {
         switch (status) {
             case 'DRAFT':
-                return 'Nháp';
+                return t('status.draft');
             case 'PUBLISHED':
-                return 'Đã xuất bản';
+                return t('status.published');
             case 'ARCHIVED':
-                return 'Đã lưu trữ';
+                return t('status.archived');
             default:
                 return status;
         }
@@ -103,11 +111,11 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
 
     const getTypeLabel = (type: string) => {
         const typeMap: { [key: string]: string } = {
-            'INFO': 'Thông tin',
-            'WARNING': 'Cảnh báo',
-            'ALERT': 'Khẩn cấp',
-            'SUCCESS': 'Thành công',
-            'ANNOUNCEMENT': 'Thông báo chung',
+            'INFO': t('type.info'),
+            'WARNING': t('type.warning'),
+            'ALERT': t('type.alert'),
+            'SUCCESS': t('type.success'),
+            'ANNOUNCEMENT': t('type.announcement'),
         };
         return typeMap[type] || type;
     };
@@ -124,24 +132,24 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
     };
 
     const getScopeLabel = (scope: string) => {
-        return scope === 'INTERNAL' ? 'Nội bộ' : 'Bên ngoài';
+        return scope === 'INTERNAL' ? t('scope.internal') : t('scope.external');
     };
 
     const getRoleBadge = (role: string) => {
         const normalized = role.trim().toUpperCase();
         switch (normalized) {
             case 'ADMIN':
-                return { label: 'Admin', className: 'bg-red-100 text-red-700' };
+                return { label: t('roles.admin'), className: 'bg-red-100 text-red-700' };
             case 'ACCOUNTANT':
-                return { label: 'Accountant', className: 'bg-blue-100 text-blue-700' };
+                return { label: t('roles.accountant'), className: 'bg-blue-100 text-blue-700' };
             case 'TECHNICIAN':
-                return { label: 'Technician', className: 'bg-orange-100 text-orange-700' };
+                return { label: t('roles.technician'), className: 'bg-orange-100 text-orange-700' };
             case 'SUPPORTER':
-                return { label: 'Supporter', className: 'bg-purple-100 text-purple-700' };
+                return { label: t('roles.supporter'), className: 'bg-purple-100 text-purple-700' };
             case 'RESIDENT':
-                return { label: 'Resident', className: 'bg-gray-100 text-gray-700' };
+                return { label: t('roles.resident'), className: 'bg-gray-100 text-gray-700' };
             case 'UNIT_OWNER':
-                return { label: 'Unit Owner', className: 'bg-teal-100 text-teal-700' };
+                return { label: t('roles.unitOwner'), className: 'bg-teal-100 text-teal-700' };
             default:
                 return { label: role, className: 'bg-slate-100 text-slate-700' };
         }
@@ -157,8 +165,8 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                             <th
                                 key={index}
                                 className={`px-4 py-3 text-[14px] font-bold text-[#024023] uppercase tracking-wider text-center whitespace-nowrap`}
-                                style={{ width: header === t('Project.projectCode') || header === t('Project.createAt') || header === t('Project.createBy') || header === t('Project.status') || header === t('Project.action') 
-                                    || header === t('Building.buildingCode') || header === t('Building.createAt') || header === t('Building.createBy') || header === t('Building.status') || header === t('Building.action') || header === t('Building.floors') ? '5%' : 'auto' }}
+                                style={{ width: header === tProject('projectCode') || header === tProject('createAt') || header === tProject('createBy') || header === tProject('status') || header === tProject('action') 
+                                    || header === tBuilding('buildingCode') || header === tBuilding('createAt') || header === tBuilding('createBy') || header === tBuilding('status') || header === tBuilding('action') || header === tBuilding('floors') ? '5%' : 'auto' }}
                             >
                                 {header}
                             </th>
@@ -173,7 +181,7 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                 colSpan={headers?.length ?? 1}
                                 className="px-4 py-6 text-center text-sm text-gray-500"
                             >
-                                Không có dữ liệu.
+                                {t('noData')}
                             </td>
                         </tr>
                     ) : (
@@ -194,8 +202,15 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                 {item.buildingCode}
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.buildingName}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.floors}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.status}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold">
+                                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                                (item.status || '').toUpperCase() === 'ACTIVE'
+                                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                                    : 'bg-gray-50 text-gray-700 border border-gray-200'
+                                            }`}>
+                                                {(item.status || '').toUpperCase() === 'ACTIVE' ? tBuilding('active') : tBuilding('inactive')}
+                                            </span>
+                                        </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>
         
                                         <td className={`px-4 py-3 whitespace-nowrap text-center font-semibold text-[#024023]`}>{item.createBy}</td>
@@ -204,15 +219,35 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                 <Link 
                                                     href={`/base/building/buildingDetail/${item.buildingId}`}
                                                     className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
-                                                    title="Xem chi tiết"
+                                                    title={t('actions.viewDetail')}
                                                 >
                                                     <Image 
                                                         src={Edit} 
-                                                        alt="Edit" 
+                                                        alt={t('actions.viewDetail')} 
                                                         width={24} 
                                                         height={24}
                                                     />
                                                 </Link>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onBuildingStatusChange && onBuildingStatusChange(item.buildingId as string)}
+                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-100 transition"
+                                                        title={t('actions.changeStatus')}
+                                                    >
+                                                        <svg 
+                                                            xmlns="http://www.w3.org/2000/svg" 
+                                                            viewBox="0 0 16 16" 
+                                                            height="16" 
+                                                            width="16"
+                                                            fill="currentColor"
+                                                        >
+                                                            <g fill="none" fillRule="nonzero">
+                                                                <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                                                                <path fill="currentColor" d="M13.333333333333332 9.333333333333332a1 1 0 0 1 0.09599999999999999 1.9953333333333332L13.333333333333332 11.333333333333332H5.080666666666667l0.96 0.96a1 1 0 0 1 -1.3386666666666667 1.4826666666666668l-0.076 -0.06866666666666665 -2.5526666666666666 -2.5533333333333332c-0.6493333333333333 -0.6493333333333333 -0.22666666666666668 -1.7446666666666666 0.6606666666666666 -1.8166666666666667l0.09333333333333334 -0.004H13.333333333333332ZM9.959999999999999 2.293333333333333a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.5526666666666666 2.5533333333333332c0.6493333333333333 0.6493333333333333 0.22666666666666668 1.7446666666666666 -0.6606666666666666 1.8166666666666667l-0.09333333333333334 0.004H2.6666666666666665a1 1 0 0 1 -0.09599999999999999 -1.9953333333333332L2.6666666666666665 4.666666666666666h8.252666666666666l-0.96 -0.96a1 1 0 0 1 0 -1.4133333333333333Z" strokeWidth="0.6667"></path>
+                                                            </g>
+                                                        </svg>
+                                                    </button>
+                                                {/* )} */}
                                             </div>
                                         </td>
                                     </tr>
@@ -244,7 +279,7 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                         : 'bg-gray-200 text-gray-600'
                                                 }`}
                                             >
-                                                {item.isActive ? t('Service.active') : t('Service.inactive')}
+                                                {item.isActive ? tService('active') : tService('inactive')}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold">
@@ -255,11 +290,11 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                 <Link
                                                     href={`/base/serviceDetail/${item.serviceId}`}
                                                     className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
-                                                    title={t('Service.viewDetail')}
+                                                    title={t('actions.viewDetail')}
                                                 >
                                                     <Image
                                                         src={Edit}
-                                                        alt="View detail"
+                                                        alt={t('actions.viewDetail')}
                                                         width={24}
                                                         height={24}
                                                     />
@@ -270,7 +305,7 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                 >
                                                     <Image
                                                         src={Delete}
-                                                        alt="Delete"
+                                                        alt={t('actions.delete')}
                                                         width={24}
                                                         height={24}
                                                     />
@@ -301,7 +336,7 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                         : 'bg-gray-200 text-gray-600'
                                                 }`}
                                             >
-                                                {item.isActive ? t('ServiceCategory.active') : t('ServiceCategory.inactive')}
+                                                {item.isActive ? tServiceCategory('active') : tServiceCategory('inactive')}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold">
@@ -309,6 +344,27 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023] text-center">
                                             <div className="flex space-x-2 justify-center">
+                                                {onServiceCategoryStatusChange && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => item.categoryId && onServiceCategoryStatusChange(item.categoryId)}
+                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-100 transition"
+                                                        title={t('actions.changeStatus')}
+                                                    >
+                                                        <svg 
+                                                            xmlns="http://www.w3.org/2000/svg" 
+                                                            viewBox="0 0 16 16" 
+                                                            height="16" 
+                                                            width="16"
+                                                            fill="currentColor"
+                                                        >
+                                                            <g fill="none" fillRule="nonzero">
+                                                                <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                                                                <path fill="currentColor" d="M13.333333333333332 9.333333333333332a1 1 0 0 1 0.09599999999999999 1.9953333333333332L13.333333333333332 11.333333333333332H5.080666666666667l0.96 0.96a1 1 0 0 1 -1.3386666666666667 1.4826666666666668l-0.076 -0.06866666666666665 -2.5526666666666666 -2.5533333333333332c-0.6493333333333333 -0.6493333333333333 -0.22666666666666668 -1.7446666666666666 0.6606666666666666 -1.8166666666666667l0.09333333333333334 -0.004H13.333333333333332ZM9.959999999999999 2.293333333333333a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.5526666666666666 2.5533333333333332c0.6493333333333333 0.6493333333333333 0.22666666666666668 1.7446666666666666 -0.6606666666666666 1.8166666666666667l-0.09333333333333334 0.004H2.6666666666666665a1 1 0 0 1 -0.09599999999999999 -1.9953333333333332L2.6666666666666665 4.666666666666666h8.252666666666666l-0.96 -0.96a1 1 0 0 1 0 -1.4133333333333333Z" strokeWidth="0.6667"></path>
+                                                            </g>
+                                                        </svg>
+                                                    </button>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={() => item.categoryId && onEdit && onEdit(item.categoryId)}
@@ -316,7 +372,7 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                 >
                                                     <Image
                                                         src={Edit}
-                                                        alt="Edit"
+                                                        alt={t('actions.edit')}
                                                         width={24}
                                                         height={24}
                                                     />
@@ -340,7 +396,7 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                 >
                                                     <Image
                                                         src={Delete}
-                                                        alt="Edit"
+                                                        alt={t('actions.delete')}
                                                         width={24}
                                                         height={24}
                                                     />
@@ -398,7 +454,7 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                         : 'bg-gray-200 text-gray-600'
                                                 }`}
                                             >
-                                                {isActive ? 'Đang hoạt động' : 'Ngưng hoạt động'}
+                                                {isActive ? t('status.active') : t('status.inactive')}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023] text-center">
@@ -409,19 +465,47 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                 >
                                                     <Image
                                                         src={Edit}
-                                                        alt="Xem chi tiết"
+                                                        alt={t('actions.viewDetail')}
                                                         width={24}
                                                         height={24}
                                                     />
                                                 </Link>
+                                                {onStatusChange && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const targetId = item.accountId ?? item.userId;
+                                                            if (!targetId) {
+                                                                show(t('errors.cannotIdentifyAccountForStatusChange'));
+                                                                return;
+                                                            }
+                                                            onStatusChange(targetId, accountType);
+                                                        }}
+                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-100 transition"
+                                                        title={t('actions.changeStatus')}
+                                                    >
+                                                        <svg 
+                                                            xmlns="http://www.w3.org/2000/svg" 
+                                                            viewBox="0 0 16 16" 
+                                                            height="16" 
+                                                            width="16"
+                                                            fill="currentColor"
+                                                        >
+                                                            <g fill="none" fillRule="nonzero">
+                                                                <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                                                                <path fill="currentColor" d="M13.333333333333332 9.333333333333332a1 1 0 0 1 0.09599999999999999 1.9953333333333332L13.333333333333332 11.333333333333332H5.080666666666667l0.96 0.96a1 1 0 0 1 -1.3386666666666667 1.4826666666666668l-0.076 -0.06866666666666665 -2.5526666666666666 -2.5533333333333332c-0.6493333333333333 -0.6493333333333333 -0.22666666666666668 -1.7446666666666666 0.6606666666666666 -1.8166666666666667l0.09333333333333334 -0.004H13.333333333333332ZM9.959999999999999 2.293333333333333a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.5526666666666666 2.5533333333333332c0.6493333333333333 0.6493333333333333 0.22666666666666668 1.7446666666666666 -0.6606666666666666 1.8166666666666667l-0.09333333333333334 0.004H2.6666666666666665a1 1 0 0 1 -0.09599999999999999 -1.9953333333333332L2.6666666666666665 4.666666666666666h8.252666666666666l-0.96 -0.96a1 1 0 0 1 0 -1.4133333333333333Z" strokeWidth="0.6667"></path>
+                                                            </g>
+                                                        </svg>
+                                                    </button>
+                                                )}
                                                 {item.roles === 'admin' ? (
                                                     <button 
-                                                        onClick={() => {show('Bạn không có quyền chỉnh sửa tài khoản admin');}}
+                                                        onClick={() => {show(t('errors.noPermissionToEditAdmin'));}}
                                                         className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-gray-500 hover:bg-gray-600 transition"
                                                     >
                                                         <Image 
                                                             src={Delete} 
-                                                            alt="Delete" 
+                                                            alt={t('actions.delete')} 
                                                             width={24} 
                                                             height={24}
                                                         />
@@ -432,20 +516,26 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                         onClick={() => {
                                                             const targetId = item.accountId ?? item.userId;
                                                             if (!targetId) {
-                                                                show('Không thể xác định tài khoản để xoá.');
+                                                                show(t('errors.cannotIdentifyAccountForDelete'));
                                                                 return;
                                                             }
                                                             if (onDelete) {
                                                                 onDelete(targetId);
                                                             } else {
-                                                                show('Chức năng xoá chưa được cấu hình.');
+                                                                show(t('errors.deleteNotConfigured'));
                                                             }
                                                         }}
-                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
+                                                        disabled={!isActive}
+                                                        className={`w-[47px] h-[34px] flex items-center justify-center rounded-md transition ${
+                                                            isActive
+                                                                ? 'bg-red-500 hover:bg-red-600 cursor-pointer'
+                                                                : 'bg-gray-300 cursor-not-allowed opacity-50'
+                                                        }`}
+                                                        title={isActive ? t('actions.deleteAccount') : t('errors.cannotDeleteInactiveAccount')}
                                                     >
                                                         <Image
                                                             src={Delete}
-                                                            alt="Delete"
+                                                            alt={t('actions.delete')}
                                                             width={24}
                                                             height={24}
                                                         />
@@ -476,15 +566,35 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                         <td className="px-4 py-3 text-center text-[14px] text-gray-700">{formatDate(item.expireAt || '')}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex space-x-2 justify-center">
+                                                {onNewsChangeStatusAndTarget && (
+                                                    <button 
+                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-100 transition disabled:opacity-40"
+                                                        onClick={() => item.newsId && onNewsChangeStatusAndTarget(item.newsId)}
+                                                        title={t('actions.changeStatus')}
+                                                    >
+                                                        <svg 
+                                                            xmlns="http://www.w3.org/2000/svg" 
+                                                            viewBox="0 0 16 16" 
+                                                            height="16" 
+                                                            width="16"
+                                                            fill="currentColor"
+                                                        >
+                                                            <g fill="none" fillRule="nonzero">
+                                                                <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                                                                <path fill="currentColor" d="M13.333333333333332 9.333333333333332a1 1 0 0 1 0.09599999999999999 1.9953333333333332L13.333333333333332 11.333333333333332H5.080666666666667l0.96 0.96a1 1 0 0 1 -1.3386666666666667 1.4826666666666668l-0.076 -0.06866666666666665 -2.5526666666666666 -2.5533333333333332c-0.6493333333333333 -0.6493333333333333 -0.22666666666666668 -1.7446666666666666 0.6606666666666666 -1.8166666666666667l0.09333333333333334 -0.004H13.333333333333332ZM9.959999999999999 2.293333333333333a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.5526666666666666 2.5533333333333332c0.6493333333333333 0.6493333333333333 0.22666666666666668 1.7446666666666666 -0.6606666666666666 1.8166666666666667l-0.09333333333333334 0.004H2.6666666666666665a1 1 0 0 1 -0.09599999999999999 -1.9953333333333332L2.6666666666666665 4.666666666666666h8.252666666666666l-0.96 -0.96a1 1 0 0 1 0 -1.4133333333333333Z" strokeWidth="0.6667"></path>
+                                                            </g>
+                                                        </svg>
+                                                    </button>
+                                                )}
                                                 {onEdit && (
                                                     <button 
                                                         className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition disabled:opacity-40"
                                                         onClick={() => item.newsId && onEdit(item.newsId)}
-                                                        title="Chỉnh sửa"
+                                                        title={t('actions.edit')}
                                                     >
                                                         <Image 
                                                             src={Edit} 
-                                                            alt="Edit" 
+                                                            alt={t('actions.edit')} 
                                                             width={24} 
                                                             height={24}
                                                         />
@@ -494,11 +604,11 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                     <button 
                                                         className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition disabled:opacity-40"
                                                         onClick={() => item.newsId && onDelete(item.newsId)}
-                                                        title="Xóa"
+                                                        title={t('actions.delete')}
                                                     >
                                                         <Image 
                                                             src={Delete} 
-                                                            alt="Delete" 
+                                                            alt={t('actions.delete')} 
                                                             width={24} 
                                                             height={24}
                                                         />
@@ -532,11 +642,11 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                     <button 
                                                         className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition disabled:opacity-40"
                                                         onClick={() => item.notificationId && onEdit(item.notificationId)}
-                                                        title="Chỉnh sửa"
+                                                        title={t('actions.edit')}
                                                     >
                                                         <Image 
                                                             src={Edit} 
-                                                            alt="Edit" 
+                                                            alt={t('actions.edit')} 
                                                             width={24} 
                                                             height={24}
                                                         />
@@ -546,11 +656,11 @@ const Table = ({ data, headers, type, onEdit, onDelete }: TableProps) => {
                                                     <button 
                                                         className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition disabled:opacity-40"
                                                         onClick={() => item.notificationId && onDelete(item.notificationId)}
-                                                        title="Xóa"
+                                                        title={t('actions.delete')}
                                                     >
                                                         <Image 
                                                             src={Delete} 
-                                                            alt="Delete" 
+                                                            alt={t('actions.delete')} 
                                                             width={24} 
                                                             height={24}
                                                         />

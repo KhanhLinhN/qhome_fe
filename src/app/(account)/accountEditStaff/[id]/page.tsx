@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import DetailField from '@/src/components/base-service/DetailField';
@@ -18,23 +19,6 @@ import {
   updateStaffAccount,
 } from '@/src/services/iam/userService';
 
-const STAFF_ROLE_OPTIONS = [
-  { value: 'ADMIN', label: 'Admin' },
-  { value: 'ACCOUNTANT', label: 'Accountant' },
-  { value: 'TECHNICIAN', label: 'Technician' },
-  { value: 'SUPPORTER', label: 'Supporter' },
-];
-
-const STAFF_ROLE_SELECT_OPTIONS = STAFF_ROLE_OPTIONS.map((role) => ({
-  id: role.value,
-  label: role.label,
-}));
-
-const STATUS_OPTIONS = [
-  { id: 'ACTIVE', label: 'Đang hoạt động' },
-  { id: 'INACTIVE', label: 'Ngưng hoạt động' },
-];
-
 type FetchState = 'idle' | 'loading' | 'error' | 'success';
 
 type FormState = {
@@ -48,6 +32,7 @@ type FormState = {
 
 export default function AccountEditStaffPage() {
   const router = useRouter();
+  const t = useTranslations('AccountEditStaff');
   const params = useParams<{ id: string }>();
   const userIdParam = params?.id;
   const userId =
@@ -58,6 +43,24 @@ export default function AccountEditStaffPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const STAFF_ROLE_SELECT_OPTIONS = useMemo(
+    () => [
+      { id: 'ADMIN', label: t('roles.admin') },
+      { id: 'ACCOUNTANT', label: t('roles.accountant') },
+      { id: 'TECHNICIAN', label: t('roles.technician') },
+      { id: 'SUPPORTER', label: t('roles.supporter') },
+    ],
+    [t],
+  );
+
+  const STATUS_OPTIONS = useMemo(
+    () => [
+      { id: 'ACTIVE', label: t('status.active') },
+      { id: 'INACTIVE', label: t('status.inactive') },
+    ],
+    [t],
+  );
 
   const [account, setAccount] = useState<UserAccountInfo | null>(null);
   const [profile, setProfile] = useState<UserProfileInfo | null>(null);
@@ -75,7 +78,7 @@ export default function AccountEditStaffPage() {
   useEffect(() => {
     if (!userId) {
       setState('error');
-      setError('Không tìm thấy mã tài khoản nhân viên.');
+      setError(t('errors.userIdNotFound'));
       return;
     }
 
@@ -114,7 +117,7 @@ export default function AccountEditStaffPage() {
         const message =
           err?.response?.data?.message ||
           err?.message ||
-          'Không thể tải thông tin tài khoản nhân viên.';
+          t('errors.loadFailed');
         setError(message);
         setState('error');
       }
@@ -170,24 +173,24 @@ export default function AccountEditStaffPage() {
   const validateForm = () => {
     setFormError(null);
     if (!form.username.trim()) {
-      setFormError('Tên đăng nhập không được để trống.');
+      setFormError(t('validation.username.required'));
       return false;
     }
     if (!form.email.trim()) {
-      setFormError('Email không được để trống.');
+      setFormError(t('validation.email.required'));
       return false;
     }
     if (!form.role) {
-      setFormError('Phải chọn vai trò cho nhân viên.');
+      setFormError(t('validation.role.required'));
       return false;
     }
     if (form.newPassword) {
       if (form.newPassword.length < 8) {
-        setFormError('Mật khẩu mới phải có ít nhất 8 ký tự.');
+        setFormError(t('validation.password.minLength'));
         return false;
       }
       if (form.newPassword !== form.confirmPassword) {
-        setFormError('Xác nhận mật khẩu không khớp.');
+        setFormError(t('validation.password.mismatch'));
         return false;
       }
     }
@@ -236,12 +239,12 @@ export default function AccountEditStaffPage() {
         newPassword: '',
         confirmPassword: '',
       }));
-      setSuccessMessage('Đã cập nhật tài khoản nhân viên thành công.');
+      setSuccessMessage(t('messages.updateSuccess'));
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Cập nhật tài khoản thất bại. Vui lòng thử lại.';
+        t('messages.updateError');
       setFormError(message);
     } finally {
       setSubmitting(false);
@@ -249,7 +252,7 @@ export default function AccountEditStaffPage() {
   };
 
   const formatDateTime = (value?: string | null) => {
-    if (!value) return 'Chưa ghi nhận';
+    if (!value) return t('common.notRecorded');
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
       return value;
@@ -261,7 +264,7 @@ export default function AccountEditStaffPage() {
     if (state === 'loading' || state === 'idle') {
       return (
         <div className="flex min-h-[240px] items-center justify-center text-sm text-slate-500">
-          Đang tải thông tin tài khoản nhân viên...
+          {t('loading')}
         </div>
       );
     }
@@ -275,7 +278,7 @@ export default function AccountEditStaffPage() {
             onClick={() => router.refresh()}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
           >
-            Thử lại
+            {t('buttons.retry')}
           </button>
         </div>
       );
@@ -284,7 +287,7 @@ export default function AccountEditStaffPage() {
     if (!account) {
       return (
         <div className="flex min-h-[240px] items-center justify-center text-sm text-slate-500">
-          Không tìm thấy thông tin tài khoản.
+          {t('errors.accountNotFound')}
         </div>
       );
     }
@@ -318,7 +321,7 @@ export default function AccountEditStaffPage() {
                   form.active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
                 }`}
               >
-                {form.active ? 'Đang hoạt động' : 'Ngưng hoạt động'}
+                {form.active ? t('status.active') : t('status.inactive')}
               </span>
             </div>
           </div>
@@ -326,31 +329,31 @@ export default function AccountEditStaffPage() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
           <DetailField
-            label="Tên đăng nhập"
+            label={t('fields.username')}
             value={form.username}
-            readonly={false}
+            readonly={true}
             onChange={handleChange('username')}
           />
           <DetailField
-            label="Email"
+            label={t('fields.email')}
             value={form.email}
-            readonly={false}
+            readonly={true}
             onChange={handleChange('email')}
           />
           <div className="flex flex-col">
-            <span className="text-md font-bold text-[#02542D] mb-1">Trạng thái</span>
+            <span className="text-md font-bold text-[#02542D] mb-1">{t('fields.status')}</span>
             <Select
               options={STATUS_OPTIONS}
               value={form.active ? 'ACTIVE' : 'INACTIVE'}
               onSelect={(option) => handleStatusSelect(option.id)}
               renderItem={(option) => option.label}
               getValue={(option) => option.id}
-              placeholder="Chọn trạng thái"
+              placeholder={t('placeholders.selectStatus')}
             />
           </div>
 
           <div className="flex flex-col gap-3">
-            <h2 className="text-md font-semibold text-[#02542D]">Vai trò</h2>
+            <h2 className="text-md font-semibold text-[#02542D]">{t('fields.role')}</h2>
             <div className="w-full sm:w-64">
               <Select
                 options={STAFF_ROLE_SELECT_OPTIONS}
@@ -358,12 +361,12 @@ export default function AccountEditStaffPage() {
                 onSelect={(option) => handleRoleSelect(option.id)}
                 renderItem={(option) => option.label}
                 getValue={(option) => option.id}
-                placeholder="Chọn vai trò"
+                placeholder={t('placeholders.selectRole')}
               />
             </div>
-            {formError === 'Phải chọn vai trò cho nhân viên.' && (
+            {formError === t('validation.role.required') && (
               <p className="text-xs font-medium text-red-600">
-                Vui lòng chọn một vai trò cho nhân viên.
+                {t('validation.role.selectMessage')}
               </p>
             )}
           </div>
@@ -383,7 +386,7 @@ export default function AccountEditStaffPage() {
               disabled={submitting}
               className="flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+              {submitting ? t('buttons.saving') : t('buttons.save')}
             </button>
           </div>
       </form>
@@ -396,9 +399,9 @@ export default function AccountEditStaffPage() {
         className="mx-auto mb-6 flex max-w-4xl cursor-pointer items-center"
         onClick={handleBack}
       >
-        <Image src={Arrow} alt="Back" width={20} height={20} className="mr-2 h-5 w-5" />
+        <Image src={Arrow} alt={t('back')} width={20} height={20} className="mr-2 h-5 w-5" />
         <span className="text-2xl font-bold text-[#02542D] transition hover:text-opacity-80">
-          Quay lại danh sách tài khoản
+          {t('back')}
         </span>
       </div>
       {renderContent()}

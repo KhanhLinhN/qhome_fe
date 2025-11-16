@@ -72,6 +72,9 @@ export default function ServiceCategoryListPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [statusPopupOpen, setStatusPopupOpen] = useState(false);
+  const [statusTargetId, setStatusTargetId] = useState<string | null>(null);
+  const [statusTargetNew, setStatusTargetNew] = useState<boolean | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [serviceLoading, setServiceLoading] = useState<boolean>(true);
   const [serviceError, setServiceError] = useState<string | null>(null);
@@ -106,6 +109,11 @@ export default function ServiceCategoryListPage() {
     setIsPopupOpen(false);
     setDeleteTargetId(null);
   };
+  const handleCloseStatusPopup = () => {
+    setStatusPopupOpen(false);
+    setStatusTargetId(null);
+    setStatusTargetNew(null);
+  };
 
   useEffect(() => {
     fetchServices();
@@ -132,6 +140,14 @@ export default function ServiceCategoryListPage() {
     if (!target) return;
     setSelectedCategory(target);
     setIsModalOpen(true);
+  };
+
+  const handleOpenChangeStatus = (categoryId: string) => {
+    const target = categories.find((item) => item.id === categoryId);
+    if (!target) return;
+    setStatusTargetId(categoryId);
+    setStatusTargetNew(!(target.isActive ?? true));
+    setStatusPopupOpen(true);
   };
 
   const handleCloseModal = () => {
@@ -184,8 +200,11 @@ export default function ServiceCategoryListPage() {
 
   const validate = () => {
     const errors: Record<string, string> = {};
-    if (!formState.name.trim()) {
+    const name = formState.name.trim();
+    if (!name) {
       errors.name = t('validation.name');
+    } else if (name.length > 40) {
+      errors.name = t('validation.nameMax40');
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -287,6 +306,7 @@ export default function ServiceCategoryListPage() {
             type="service-category"
             onEdit={handleOpenModal}
             onDelete={handleDeleteCategory}
+            onServiceCategoryStatusChange={handleOpenChangeStatus}
           />
         </div>
       </div>
@@ -374,6 +394,29 @@ export default function ServiceCategoryListPage() {
           </div>
         </div>
       )}
+      <PopupConfirm
+        isOpen={statusPopupOpen}
+        onClose={handleCloseStatusPopup}
+        onConfirm={async () => {
+          if (!statusTargetId || statusTargetNew === null) return;
+          try {
+            await updateCategory(statusTargetId, { isActive: statusTargetNew });
+            show(t('messages.updateSuccess'), 'success');
+            await refetch();
+          } catch (err) {
+            console.error('Failed to change status for service category', err);
+            show(t('messages.updateError'), 'error');
+          } finally {
+            handleCloseStatusPopup();
+          }
+        }}
+        popupTitle={t('changeStatusTitle')}
+        popupContext={
+          statusTargetNew === true
+            ? t('confirmActivateMessage')
+            : t('confirmDeactivateMessage')
+        }
+      />
       <PopupConfirm
         isOpen={isPopupOpen}
         onClose={handleClosePopup}

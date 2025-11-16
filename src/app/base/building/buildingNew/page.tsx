@@ -13,6 +13,11 @@ import { Project } from '@/src/types/project';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { checkBuildingCodeExists } from '@/src/services/base/buildingService';
 
+// Minimal types for provinces API
+type Province = { code: number; name: string };
+type District = { code: number; name: string };
+type Ward = { code: number; name: string };
+
 export default function BuildingAdd () {
 
     const { user, hasRole } = useAuth();
@@ -26,6 +31,10 @@ export default function BuildingAdd () {
     const [errors, setErrors] = useState<{
         name?: string;
         address?: string;
+        city?: string;
+        district?: string;
+        ward?: string;
+        addressDetail?: string;
     }>({});
 
     const { addBuilding, loading, error, isSubmitting } = useBuildingAdd();
@@ -40,13 +49,285 @@ export default function BuildingAdd () {
         status: 'ACTIVE',
     });
 
+    // Address pieces
+    const [cities, setCities] = useState<Province[]>([]);
+    const [districts, setDistricts] = useState<District[]>([]);
+    const [wards, setWards] = useState<Ward[]>([]);
+
+    const [selectedCity, setSelectedCity] = useState<string>('');
+    const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+    const [selectedWard, setSelectedWard] = useState<string>('');
+    // Roads (street/thôn) options loaded dynamically (optional)
+    const [roads, setRoads] = useState<{ name: string }[]>([]);
+    const [road, setRoad] = useState<string>(''); // optional
+    const [addressDetail, setAddressDetail] = useState<string>(''); // required
+
+    // Helper string normalization for robust matching
+    const normalizeText = (s: string) =>
+        (s || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/\p{Diacritic}/gu, '')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+    const stripVNPrefixes = (s: string) => {
+        let x = normalizeText(s);
+        x = x.replace(/^(tinh|thanh pho|tp)\s+/g, '')
+             .replace(/^(quan|huyen|thi xa|tp)\s+/g, '')
+             .replace(/^(phuong|xa|thi tran)\s+/g, '');
+        return x.trim();
+    };
+
+    const findProvinceByName = (name: string): Province | undefined => {
+        const target = stripVNPrefixes(name);
+        return cities.find(p => {
+            const pn = stripVNPrefixes(p.name);
+            return pn === target || pn.includes(target) || target.includes(pn);
+        });
+    };
+
+    const findDistrictByName = (list: District[], name: string): District | undefined => {
+        const target = stripVNPrefixes(name);
+        return list.find(d => {
+            const dn = stripVNPrefixes(d.name);
+            return dn === target || dn.includes(target) || target.includes(dn);
+        });
+    };
+
+    const findWardByName = (list: Ward[], name: string): Ward | undefined => {
+        const target = stripVNPrefixes(name);
+        return list.find(w => {
+            const wn = stripVNPrefixes(w.name);
+            return wn === target || wn.includes(target) || target.includes(wn);
+        });
+    };
+
+    const fetchDistrictsOfCity = async (cityCode: string): Promise<District[]> => {
+        try {
+            const res = await fetch(`https://provinces.open-api.vn/api/p/${cityCode}?depth=2`);
+            const data = await res.json();
+            return Array.isArray(data?.districts) ? data.districts.map((d: any) => ({ code: d.code, name: d.name })) : [];
+        } catch {
+            return [];
+        }
+    };
+
+    const fetchWardsOfDistrict = async (districtCode: string): Promise<Ward[]> => {
+        try {
+            const res = await fetch(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`);
+            const data = await res.json();
+            return Array.isArray(data?.wards) ? data.wards.map((w: any) => ({ code: w.code, name: w.name })) : [];
+        } catch {
+            return [];
+        }
+    };
+
+    const geocodeAndFillFromDetail = async (raw: string) => {
+        const q = (raw || '').trim();
+        if (!q) return;
+        try {
+            // 1) Geocode search
+            const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Vietnam')}&format=json&addressdetails=1&limit=1`, {
+                headers: { 'Accept': 'application/json' },
+            });
+            if (!searchRes.ok) return;
+            const arr = await searchRes.json();
+            console.log("searchRes", searchRes);
+            if (!Array.isArray(arr) || arr.length === 0) return;
+            const item = arr[0];
+            const addr = item?.address || {};
+
+            // Extract components
+            const provinceName = addr.state || addr.province || '';
+            const districtName = addr.county || addr.city_district || addr.district || '';
+            const wardName = addr.suburb || addr.town || addr.village || addr.hamlet || addr.neighbourhood || '';
+            const roadName = addr.road || addr.pedestrian || addr.path || '';
+
+            // 2) Map to our lists
+            const province = findProvinceByName(provinceName);
+            if (!province) return; // cannot map reliably
+            const provinceCode = String(province.code);
+
+            const distList = await fetchDistrictsOfCity(provinceCode);
+            const district = findDistrictByName(distList, districtName);
+            const districtCode = district ? String(district.code) : '';
+
+            let wardList: Ward[] = [];
+            let ward: Ward | undefined;
+            if (districtCode) {
+                wardList = await fetchWardsOfDistrict(districtCode);
+                ward = findWardByName(wardList, wardName);
+            }
+
+            // 3) Update states in one go
+            setSelectedCity(provinceCode);
+            setDistricts(distList);
+            if (districtCode) setSelectedDistrict(districtCode);
+            if (wardList.length) setWards(wardList);
+            if (ward) setSelectedWard(String(ward.code));
+
+            // 4) Populate road options if we have a road candidate
+            if (roadName) {
+                const rn = roadName.trim();
+                if (rn) {
+                    setRoads(prev => {
+                        const exists = prev.some(r => normalizeText(r.name) === normalizeText(rn));
+                        return exists ? prev : [{ name: rn }, ...prev];
+                    });
+                    setRoad(rn);
+                }
+            }
+        } catch {
+            // ignore failures
+        }
+    };
+
+    // Helper: validate building name (required, max 40, no special chars)
+    const validateBuildingName = (value: string): string | undefined => {
+        const trimmed = (value ?? '').trim();
+        if (!trimmed) return t('nameError');
+        if (trimmed.length > 40) return t('nameMaxError') || 'Tên tòa nhà không được vượt quá 40 ký tự';
+        // Allow letters (including Vietnamese), digits and spaces only
+        const nameRegex = /^[a-zA-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐđ0-9\s]+$/;
+        if (!nameRegex.test(trimmed)) return t('nameSpecialCharError') || 'Tên tòa nhà không được chứa ký tự đặc biệt';
+        return undefined;
+    };
+
+    // Load cities on mount
+    useEffect(() => {
+        const loadCities = async () => {
+            try {
+                const res = await fetch('https://provinces.open-api.vn/api/?depth=1');
+                const data: Province[] = await res.json();
+                setCities(Array.isArray(data) ? data : []);
+            } catch (_e) {
+                setCities([]);
+            }
+        };
+        loadCities();
+    }, []);
+
+    // Load districts when city changes
+    useEffect(() => {
+        const loadDistricts = async () => {
+            setDistricts([]);
+            setWards([]);
+            setSelectedDistrict('');
+            setSelectedWard('');
+            if (!selectedCity) return;
+            try {
+                const res = await fetch(`https://provinces.open-api.vn/api/p/${selectedCity}?depth=2`);
+                const data = await res.json();
+                const list: District[] = Array.isArray(data?.districts) ? data.districts.map((d: any) => ({ code: d.code, name: d.name })) : [];
+                setDistricts(list);
+            } catch (_e) {
+                setDistricts([]);
+            }
+        };
+        void loadDistricts();
+    }, [selectedCity]);
+
+    // Load wards when district changes
+    useEffect(() => {
+        const loadWards = async () => {
+            setWards([]);
+            setSelectedWard('');
+            if (!selectedDistrict) return;
+            try {
+                const res = await fetch(`https://provinces.open-api.vn/api/d/${selectedDistrict}?depth=2`);
+                const data = await res.json();
+                const list: Ward[] = Array.isArray(data?.wards) ? data.wards.map((w: any) => ({ code: w.code, name: w.name })) : [];
+                setWards(list);
+            } catch (_e) {
+                setWards([]);
+            }
+        };
+        void loadWards();
+    }, [selectedDistrict]);
+
+    // Load roads when ward changes (best-effort via Overpass API)
+    useEffect(() => {
+        const loadNearbyRoads = async (queryPlace: string) => {
+            try {
+                // 1) Geocode center point with Nominatim
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryPlace)}&format=json&limit=1`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!geoRes.ok) return [] as string[];
+                const geo = await geoRes.json();
+                if (!Array.isArray(geo) || geo.length === 0) return [] as string[];
+                const lat = parseFloat(geo[0].lat);
+                const lon = parseFloat(geo[0].lon);
+                if (!isFinite(lat) || !isFinite(lon)) return [] as string[];
+
+                // 2) Query Overpass for nearby named features within 3km
+                const overpassQuery = `
+                    [out:json][timeout:30];
+                    (
+                      way(around:3000,${lat},${lon})["highway"]["name"];     
+                      way(around:3000,${lat},${lon})["place"]["name"];       
+                      node(around:3000,${lat},${lon})["place"]["name"];      
+                    );
+                    out tags;`;
+                const overRes = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                    body: `data=${encodeURIComponent(overpassQuery)}`,
+                });
+                if (!overRes.ok) return [] as string[];
+                const overJson = await overRes.json();
+                const names = new Set<string>();
+                if (Array.isArray(overJson?.elements)) {
+                    for (const el of overJson.elements) {
+                        const n = el?.tags?.name;
+                        if (typeof n === 'string') {
+                            const trimmed = n.trim();
+                            if (trimmed) names.add(trimmed);
+                        }
+                    }
+                }
+                return Array.from(names).sort((a,b)=>a.localeCompare(b));
+            } catch (_e) {
+                return [] as string[];
+            }
+        };
+
+        const loadRoads = async () => {
+            setRoads([]);
+            setRoad('');
+            if (!selectedWard || !selectedDistrict || !selectedCity) return;
+
+            const cityName = cities.find(c => String(c.code) === selectedCity)?.name || '';
+            const districtName = districts.find(d => String(d.code) === selectedDistrict)?.name || '';
+            const wardName = wards.find(w => String(w.code) === selectedWard)?.name || '';
+
+            // Try ward center first
+            let names = await loadNearbyRoads(`${wardName}, ${districtName}, ${cityName}`);
+            // Fallback to district center if empty
+            if (names.length === 0) {
+                names = await loadNearbyRoads(`${districtName}, ${cityName}`);
+            }
+            // Fallback to city center if still empty
+            if (names.length === 0) {
+                names = await loadNearbyRoads(`${cityName}`);
+            }
+
+            setRoads(names.map(n => ({ name: n })));
+        };
+
+        void loadRoads();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedWard]);
+
     useEffect(() => {
         const checkCode = async () => {
             if (!formData.code ) {
                 setCodeError('');
                 return;
             }
-            
             const exists = await checkBuildingCodeExists(formData.code);
             if (exists) {
                 setCodeError(t('codeError'));
@@ -57,7 +338,7 @@ export default function BuildingAdd () {
 
         const timeoutId = setTimeout(checkCode, 500); // Debounce 500ms
         return () => clearTimeout(timeoutId);
-    }, [formData.code]);
+    }, [formData.code, t]);
     
     const handleBack = () => {
         router.back(); 
@@ -70,6 +351,20 @@ export default function BuildingAdd () {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (isSubmitting) return;
+
+        // Compose address from parts before validate
+        const cityName = cities.find(c => String(c.code) === selectedCity)?.name || '';
+        const districtName = districts.find(d => String(d.code) === selectedDistrict)?.name || '';
+        const wardName = wards.find(w => String(w.code) === selectedWard)?.name || '';
+        const composed = [
+            (addressDetail || '').trim(),
+            (road || '').trim(),
+            wardName.trim(),
+            districtName.trim(),
+            cityName.trim(),
+        ].filter(Boolean).join(', ');
+
+        setFormData(prev => ({ ...prev, address: composed }));
 
         // Validate all fields at once
         const isValid = validateAllFields();
@@ -87,8 +382,9 @@ export default function BuildingAdd () {
         setIsSubmit(true);
         try {
             const { totalApartmentsAllStr, ...buildingData } = formData;
-            console.log('Dữ liệu gửi đi:', buildingData);
-            await addBuilding(buildingData);
+            // Ensure composed address used
+            const payload = { ...buildingData, address: composed };
+            await addBuilding(payload);
             show(t('success'), 'success');
             router.push(`/base/building/buildingList`);
         } catch (error) {
@@ -116,22 +412,17 @@ export default function BuildingAdd () {
 
     const validateField = (fieldName: string, value: string | number) => {
         const newErrors = { ...errors };
-        
         switch (fieldName) {
-            case 'name':
-                if (!value || String(value).trim() === '') {
-                    newErrors.name = t('nameError');
-                } else {
-                    delete newErrors.name;
-                }
+            case 'name': {
+                const msg = validateBuildingName(String(value ?? ''));
+                if (msg) newErrors.name = msg; else delete newErrors.name;
                 break;
-            case 'address':
-                if (!value || String(value).trim() === '') {
-                    newErrors.address = t('addressError');
-                } else {
-                    delete newErrors.address;
-                }
+            }
+            case 'addressDetail': {
+                const trimmed = String(value ?? '').trim();
+                if (!trimmed) newErrors.addressDetail = t('addressDetailError') || 'Địa chỉ chi tiết không được để trống'; else delete newErrors.addressDetail;
                 break;
+            }
         }
         setErrors(newErrors);
     };
@@ -140,18 +431,19 @@ export default function BuildingAdd () {
         const newErrors: {
             name?: string;
             address?: string;
+            city?: string;
+            district?: string;
+            ward?: string;
+            addressDetail?: string;
         } = {};
-        
-        // Validate name
-        if (!formData.name || formData.name.trim() === '') {
-            newErrors.name = t('nameError');
-        }
-        
-        // Validate address
-        if (!formData.address || formData.address.trim() === '') {
-            newErrors.address = t('addressError');
-        }
-        
+        const nameMsg = validateBuildingName(String(formData.name ?? ''));
+        if (nameMsg) newErrors.name = nameMsg;
+
+        if (!selectedCity) newErrors.city = t('cityRequired') || 'Vui lòng chọn thành phố';
+        if (!selectedDistrict) newErrors.district = t('districtRequired') || 'Vui lòng chọn quận/huyện';
+        if (!selectedWard) newErrors.ward = t('wardRequired') || 'Vui lòng chọn phường/xã';
+        if (!addressDetail.trim()) newErrors.addressDetail = t('addressDetailError') || 'Địa chỉ chi tiết không được để trống';
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -159,30 +451,15 @@ export default function BuildingAdd () {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         if (name === 'name') {
-            const newCode = generateCodeFromName(value);
+            // enforce max length 40 on name input
+            const limited = value.slice(0, 40);
+            const newCode = generateCodeFromName(limited);
             setFormData(prevData => ({
                 ...prevData,
-                name: value,
+                name: limited,
                 code: newCode,
             }));
-            validateField('name', value);
-        } else if (name === 'totalApartmentsAll') {
-            setFormData(prev => ({
-                ...prev,
-                totalApartmentsAllStr: value,
-                totalApartmentsAll: parseInt(value) || 0,
-            }));
-        } else if (name === 'address') {
-            setFormData(prev => ({
-                ...prev,
-                [name]: value,
-            }));
-            validateField('address', value);
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: value,
-            }));
+            validateField('name', limited);
         }
     };
 
@@ -206,7 +483,7 @@ export default function BuildingAdd () {
                     height={20}
                     className="w-5 h-5 mr-2" 
                 />
-                <span className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150 `}>
+                <span className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150`}>
                     {t('return')}
                 </span>
             </div>
@@ -224,19 +501,9 @@ export default function BuildingAdd () {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                    
-                    {/* <DetailField 
-                        label={t('buildingCode')}
-                        value={formData.code ?? ""}
-                        name="code"
-                        placeholder={t('buildingCode')}
-                        readonly={true}
-                        error={codeError}
-                    /> */}
-
                     <DetailField 
                         label={t('buildingName')}
-                        value={formData.name ?? ""}
+                        value={formData.name ?? ''}
                         onChange={handleChange}
                         name="name"
                         placeholder={t('buildingName')}
@@ -261,16 +528,89 @@ export default function BuildingAdd () {
                         />
                     </div>
 
-                    <DetailField 
-                        label={t('address')}
-                        value={formData.address ?? ""}
-                        onChange={handleChange}
-                        name="address"
-                        placeholder={t('address')}
-                        readonly={false}
-                        error={errors.address}
-                    />
-                    
+                    {/* Address structured selectors */}
+                    <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col">
+                            <label className="text-md font-bold text-[#02542D] mb-1">Thành phố</label>
+                            <Select<Province>
+                                options={cities}
+                                value={selectedCity}
+                                onSelect={(item) => setSelectedCity(String((item as Province).code))}
+                                renderItem={(item) => (item as Province).name}
+                                getValue={(item) => String((item as Province).code)}
+                                placeholder="Chọn thành phố"
+                                error={!!errors.city}
+                            />
+                            {errors.city && <span className="text-xs text-red-500 mt-1">{errors.city}</span>}
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-md font-bold text-[#02542D] mb-1">Quận/Huyện</label>
+                            <Select<District>
+                                options={districts}
+                                value={selectedDistrict}
+                                onSelect={(item) => setSelectedDistrict(String((item as District).code))}
+                                renderItem={(item) => (item as District).name}
+                                getValue={(item) => String((item as District).code)}
+                                placeholder="Chọn quận/huyện"
+                                error={!!errors.district}
+                            />
+                            {errors.district && <span className="text-xs text-red-500 mt-1">{errors.district}</span>}
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-md font-bold text-[#02542D] mb-1">Phường/Xã</label>
+                            <Select<Ward>
+                                options={wards}
+                                value={selectedWard}
+                                onSelect={(item) => setSelectedWard(String((item as Ward).code))}
+                                renderItem={(item) => (item as Ward).name}
+                                getValue={(item) => String((item as Ward).code)}
+                                placeholder="Chọn phường/xã"
+                                error={!!errors.ward}
+                            />
+                            {errors.ward && <span className="text-xs text-red-500 mt-1">{errors.ward}</span>}
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-md font-bold text-[#02542D] mb-1">Đường/Thôn (tuỳ chọn)</label>
+                            <Select<{ name: string }>
+                                options={roads}
+                                value={road}
+                                onSelect={(item) => setRoad((item as { name: string }).name)}
+                                renderItem={(item) => (item as { name: string }).name}
+                                getValue={(item) => (item as { name: string }).name}
+                                placeholder={roads.length ? 'Chọn đường/thôn (có thể để trống)' : 'Không có dữ liệu đường/thôn'}
+                                error={false}
+                            />
+                        </div>
+                        <div className="flex flex-col md:col-span-2">
+                            <label className="text-md font-bold text-[#02542D] mb-1">Địa chỉ chi tiết</label>
+                            <input
+                                type="text"
+                                value={addressDetail}
+                                onChange={(e) => {
+                                    setAddressDetail(e.target.value);
+                                    if (errors.addressDetail) {
+                                        validateField('addressDetail', e.target.value);
+                                    }
+                                }}
+                                onPaste={(e) => {
+                                    // Allow paste to update value first
+                                    setTimeout(() => {
+                                        const pasted = (e.target as HTMLInputElement).value;
+                                        void geocodeAndFillFromDetail(pasted);
+                                    }, 0);
+                                }}
+                                onBlur={(e) => {
+                                    const v = (e.target as HTMLInputElement).value;
+                                    void geocodeAndFillFromDetail(v);
+                                }}
+                                placeholder="Số nhà, toà, tầng..."
+                                className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
+                                    errors.addressDetail ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
+                                }`}
+                            />
+                            {errors.addressDetail && <span className="text-xs text-red-500 mt-1">{errors.addressDetail}</span>}
+                        </div>
+                    </div>
 
                     <div className="col-span-full flex justify-center space-x-3 mt-8">
                         <button 

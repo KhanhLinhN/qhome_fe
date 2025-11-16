@@ -38,6 +38,7 @@ export default function BuildingDetail () {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     
     useEffect(() => {
+        console.log('buildingData', buildingData);
         const loadUnits = async () => {
             if (!buildingId || typeof buildingId !== 'string') return;
             
@@ -193,7 +194,7 @@ export default function BuildingDetail () {
                         value={buildingData?.code ?? ""} 
                         readonly={true}
                     />
-                    <div className="col-span-1 hidden md:block"></div>
+                    {/* <div className="col-span-1 hidden md:block"></div> */}
 
                     <DetailField 
                         label={t('buildingName')}
@@ -206,11 +207,11 @@ export default function BuildingDetail () {
                         value={buildingData?.address ?? ""} 
                         readonly={true}
                     />
-                    <DetailField 
+                    {/* <DetailField 
                         label={t('floors')}
                         value={buildingData?.floorsMax.toString() ?? ""} 
                         readonly={true}
-                    />
+                    /> */}
 
                     {/* <DetailField 
                         label={t('createAt')}
@@ -320,7 +321,6 @@ export default function BuildingDetail () {
                             <thead className="bg-gray-100 border-b border-gray-200">
                                 <tr>
                                     <th className="px-4 py-3 text-left font-medium text-gray-600">{tUnits('unitCode')}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-600">{tUnits('unitName')}</th>
                                     <th className="px-4 py-3 text-center font-medium text-gray-600">{tUnits('floor')}</th>
                                     <th className="px-4 py-3 text-center font-medium text-gray-600">{tUnits('areaM2')}</th>
                                     <th className="px-4 py-3 text-center font-medium text-gray-600">{tUnits('status')}</th>
@@ -334,7 +334,6 @@ export default function BuildingDetail () {
                                         <td className="px-4 py-3">
                                             <span className="font-medium text-[#739559]">{unit.code}</span>
                                         </td>
-                                        <td className="px-4 py-3">{unit.name}</td>
                                         <td className="px-4 py-3 text-center">{unit.floor}</td>
                                         <td className="px-4 py-3 text-center">{unit.areaM2 || '-'}</td>
                                         <td className="px-4 py-3 text-center">

@@ -43,7 +43,10 @@
     "confirmDeleteTitle": "Confirm delete",
     "confirmDeleteMessage": "Are you sure you want to delete this service category?",
     "confirmUpdateTitle": "Confirm update",
-    "confirmUpdateMessage": "Are you sure you want to update this service category?"
+    "confirmUpdateMessage": "Are you sure you want to update this service category?",
+    "changeStatusTitle": "Confirm change status",
+    "confirmActivateMessage": "Are you sure you want to activate this category?",
+    "confirmDeactivateMessage": "Are you sure you want to deactivate this category?"
   },
   "ResidentAccountApproval": {
     "title": "Resident account approvals",
@@ -187,6 +190,168 @@
       "updateFailed": "Failed to update account. Please try again.",
       "deleteFailed": "An error occurred while deleting the account",
       "deleteSuccess": "Account deleted successfully"
+    }
+  },
+  "AccountNewStaff": {
+    "back": "Back to account list",
+    "title": "Create new staff account",
+    "subtitle": "Enter information below to create account for internal staff.",
+    "fields": {
+      "username": "Username",
+      "email": "Email",
+      "role": "Role"
+    },
+    "placeholders": {
+      "username": "Enter username",
+      "email": "example@domain.com",
+      "role": "Select role"
+    },
+    "roles": {
+      "admin": "Admin",
+      "accountant": "Accountant",
+      "technician": "Technician",
+      "supporter": "Supporter"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "create": "Create account",
+      "creating": "Creating..."
+    },
+    "validation": {
+      "username": {
+        "required": "Username cannot be empty.",
+        "noWhitespace": "Username cannot contain whitespace characters.",
+        "maxLength": "Username cannot exceed 40 characters.",
+        "exists": "Username already exists in the system."
+      },
+      "email": {
+        "required": "Email cannot be empty.",
+        "noWhitespace": "Email cannot contain whitespace characters.",
+        "maxLength": "Email cannot exceed 40 characters.",
+        "invalid": "Email is invalid.",
+        "exists": "Email already exists in the system."
+      },
+      "role": {
+        "required": "Please select a role for the staff."
+      }
+    },
+    "messages": {
+      "createSuccess": "Staff account created successfully.",
+      "createError": "Unable to create staff account. Please try again."
+    }
+  },
+  "AccountList": {
+    "title": "Account List",
+    "tableHeaders": {
+      "username": "Username",
+      "email": "Email",
+      "roles": "Roles",
+      "status": "Status",
+      "action": "Action"
+    },
+    "filters": {
+      "label": "Filter:",
+      "allRoles": "All roles",
+      "allBuildings": "All buildings",
+      "allStatus": "All status",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "search": {
+      "placeholder": "Search by username, email or role"
+    },
+    "roles": {
+      "admin": "Admin",
+      "accountant": "Accountant",
+      "technician": "Technician",
+      "supporter": "Supporter",
+      "resident": "Resident",
+      "unitOwner": "Unit Owner"
+    },
+    "tabs": {
+      "staff": "Staff ({count})",
+      "resident": "Resident ({count})"
+    },
+    "buttons": {
+      "addAccount": "+ Add account",
+      "reload": "Reload"
+    },
+    "loading": "Loading data...",
+    "errors": {
+      "loadFailed": "Unable to load account list."
+    },
+    "messages": {
+      "deleteSuccess": "Account deleted successfully",
+      "deleteError": "An error occurred while deleting the account"
+    }
+  },
+  "AccountEditStaff": {
+    "back": "Back to account list",
+    "loading": "Loading staff account information...",
+    "fields": {
+      "username": "Username",
+      "email": "Email",
+      "status": "Status",
+      "role": "Role"
+    },
+    "placeholders": {
+      "selectStatus": "Select status",
+      "selectRole": "Select role"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "roles": {
+      "admin": "Admin",
+      "accountant": "Accountant",
+      "technician": "Technician",
+      "supporter": "Supporter"
+    },
+    "buttons": {
+      "retry": "Retry",
+      "save": "Save changes",
+      "saving": "Saving..."
+    },
+    "validation": {
+      "username": {
+        "required": "Username cannot be empty."
+      },
+      "email": {
+        "required": "Email cannot be empty."
+      },
+      "role": {
+        "required": "Please select a role for the staff.",
+        "selectMessage": "Please select a role for the staff."
+      },
+      "password": {
+        "minLength": "New password must be at least 8 characters.",
+        "mismatch": "Password confirmation does not match."
+      }
+    },
+    "errors": {
+      "userIdNotFound": "Staff account ID not found.",
+      "loadFailed": "Unable to load staff account information.",
+      "accountNotFound": "Account information not found."
+    },
+    "messages": {
+      "updateSuccess": "Staff account updated successfully.",
+      "updateError": "Failed to update account. Please try again."
+    },
+    "common": {
+      "notRecorded": "Not recorded"
+    }
+  },
+  "PasswordChangeSection": {
+    "title": "Change password (optional)",
+    "description": "To keep the current password, leave the fields below empty.",
+    "fields": {
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password"
+    },
+    "placeholders": {
+      "newPassword": "Enter new password",
+      "confirmPassword": "Re-enter password"
     }
   },
     "Login": {
@@ -369,10 +534,16 @@
     "deleteBuildingConfirm": "Are you sure you want to delete building",
     "saving": "Is saving",
     "nameError": "Name is required",
+    "nameMaxError": "Name must not exceed 40 characters",
+    "nameSpecialCharError": "Name must not contain special characters",
     "addressError": "Address is required",
+    "addressDetailError": "Detailed address is required",
     "floorsError": "Floors must be greater than 0",
     "codeError": "Code has already been taken",
     "projectError": "Please select a project",
+    "cityRequired": "Please select a city",
+    "districtRequired": "Please select a district",
+    "wardRequired": "Please select a ward",
     "error": "Please fix the errors before saving",
     "success": "Building created successfully",
     "errorBuilding": "An error occurred while creating the building",
@@ -384,7 +555,24 @@
     "editBuildingError": "An error occurred while editing the building",
     "editBuildingReturn": "Return building list",
     "editBuildingDetail": "Return building detail",
-    "editBuildingDelete": "Delete building"
+    "editBuildingDelete": "Delete building",
+    "confirmChangeStatusTitle": "Confirm status change",
+    "confirmDeactivateBuilding": "Are you sure you want to deactivate this building?",
+    "confirmActivateBuilding": "Are you sure you want to activate this building?",
+    "city": "City",
+    "district": "District",
+    "ward": "Ward",
+    "roadOptional": "Street/Hamlet (optional)",
+    "addressDetail": "Detailed address",
+    "placeholders": {
+      "selectCity": "Select city",
+      "selectDistrict": "Select district",
+      "selectWard": "Select ward",
+      "selectRoadOptional": "Select street/hamlet (optional)",
+      "noRoadData": "No street/hamlet data",
+      "addressDetail": "House number, building, floor..."
+    },
+    "roadHelper": "Optional. List is based on the selected area."
   },
   "Service": {
     "listTitle": "Service List",
@@ -631,6 +819,7 @@
     "unitName": "Unit Name",
     "unitType": "Unit Type",
     "unitStatus": "Status",
+    "status": "Status",
     "ownerName": "Owner Name",
     "ownerContact": "Owner Contact",
     "return": "Return building detail",
@@ -668,19 +857,22 @@
     "unitList": "Unit List",
     "unit": "Unit",
     "noUnit": "No unit",
+    "action": "Action",
     "floorError": "Floor must be greater than 0",
     "bedroomsError": "Bedrooms must be greater than 0",
+    "bedroomsErrorRange": "Bedrooms must be between 1 and 9",
     "areaError": "Area must be greater than 0",
+    "areaErrorRange": "Area must be greater than 0 and less than 150",
     "nameError": "Name is required",
+    "nameMaxError": "Name must not exceed 40 characters",
+    "nameSpecialCharError": "Name must not contain special characters",
     "addressError": "Address is required",
     "floorsError": "Floors must be greater than 0",
     "codeError": "Code has already been taken",
     "projectError": "Please select a project",
     "success": "Building created successfully",
     "errorBuilding": "An error occurred while creating the building",
-    "missingBuildingId": "Missing buildingId or tenantId",
-    "status": "Status",
-    "action": "Action"
+    "missingBuildingId": "Missing buildingId or tenantId"
   },
   "Vehicle": {
     "vehicleList": "Vehicle List",
@@ -814,6 +1006,7 @@
     "createNews": "Create News",
     "editNews": "Edit News",
     "deleteNews": "Delete News",
+    "changeStatusTarget": "Change status & target",
     "newsTitle": "News Title",
     "newsContent": "News Content",
     "newsImage": "News Image",
@@ -877,6 +1070,7 @@
     "createdAt": "Created At",
     "updatedAt": "Updated At",
     "back": "Back",
+    "goBack": "Go back",
     "edit": "Edit",
     "delete": "Delete",
     "publish": "Publish",
@@ -893,8 +1087,11 @@
     "expired": "Expired",
     "titlePlaceholder": "Enter news title",
     "summaryPlaceholder": "Enter news summary",
+    "enterSummary": "Enter news summary",
     "bodyPlaceholder": "Enter news content",
+    "enterBodyHtml": "Enter body HTML",
     "publishDatePlaceholder": "Select publish date",
+    "selectPublishDate": "Select publish date",
     "expireDatePlaceholder": "Select expire date",
     "imageDescriptionPlaceholder": "Enter image description",
     "addNewNews": "Add new news",
@@ -935,6 +1132,196 @@
     "internalNewsTargetRoleRequired": "Please select a target role for INTERNAL news",
     "expireDate": "Expire date",
     "viewCount": "View count"
+  },
+  "AccountDetailRe": {
+    "back": "Back to account list",
+    "loading": "Loading resident account information...",
+    "fields": {
+      "username": "Username",
+      "email": "Email",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "sections": {
+      "building": "Building",
+      "linkedUnits": "Linked units"
+    },
+    "building": {
+      "noBuildingInfo": "No building information linked."
+    },
+    "units": {
+      "loading": "Loading unit list...",
+      "noUnits": "No units assigned to this resident.",
+      "unknownBuilding": "Unknown building",
+      "unknownUnitCode": "Unknown unit code",
+      "houseOwner": "House owner",
+      "from": "From"
+    },
+    "roles": {
+      "noRoles": "No roles"
+    },
+    "permissions": {
+      "noPermissions": "No additional permissions."
+    },
+    "buttons": {
+      "edit": "Edit",
+      "retry": "Retry"
+    },
+    "errors": {
+      "userIdNotFound": "Resident account ID not found.",
+      "loadFailed": "Unable to load resident account information.",
+      "accountNotFound": "Account information not found."
+    },
+    "common": {
+      "notRecorded": "Not recorded"
+    }
+  },
+  "AccountDetailStaff": {
+    "back": "Back to account list",
+    "loading": "Loading staff account information...",
+    "fields": {
+      "username": "Username",
+      "email": "Email",
+      "status": "Status",
+      "role": "Role"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "roles": {
+      "noRoles": "No roles"
+    },
+    "permissions": {
+      "noPermissions": "No additional permissions."
+    },
+    "buttons": {
+      "retry": "Retry"
+    },
+    "errors": {
+      "userIdNotFound": "Staff account ID not found.",
+      "loadFailed": "Unable to load staff account information.",
+      "accountNotFound": "Account information not found."
+    },
+    "common": {
+      "notRecorded": "Not recorded"
+    }
+  },
+  "AccountEditRe": {
+    "back": "Back to account list",
+    "loading": "Loading resident account information...",
+    "fields": {
+      "username": "Username",
+      "email": "Email",
+      "status": "Status"
+    },
+    "placeholders": {
+      "selectStatus": "Select status",
+      "selectBuilding": "Select building"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "sections": {
+      "assignedUnits": "Assigned units list"
+    },
+    "units": {
+      "loading": "Loading unit list...",
+      "loadingBuildings": "Loading building list...",
+      "noUnits": "No units assigned to this resident account.",
+      "noUnitsInBuilding": "No units found in the selected building.",
+      "unknownBuilding": "Unknown building",
+      "unknownUnitCode": "Unknown unit code",
+      "houseOwner": "House owner",
+      "from": "From",
+      "building": "Building",
+      "selectUnit": "Select unit",
+      "floor": "Floor",
+      "assigned": "Assigned"
+    },
+    "buttons": {
+      "retry": "Retry",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "addUnit": "Add unit",
+      "assignUnit": "Assign unit",
+      "assigning": "Assigning..."
+    },
+    "validation": {
+      "username": {
+        "required": "Username cannot be empty."
+      },
+      "email": {
+        "required": "Email cannot be empty."
+      },
+      "password": {
+        "minLength": "New password must be at least 8 characters.",
+        "mismatch": "Password confirmation does not match."
+      }
+    },
+    "errors": {
+      "userIdNotFound": "Resident account ID not found.",
+      "loadFailed": "Unable to load resident account information.",
+      "accountNotFound": "Account information not found.",
+      "loadBuildingsFailed": "Unable to load building list.",
+      "loadUnitsFailed": "Unable to load unit list.",
+      "userNotIdentified": "Unable to identify resident.",
+      "noUnitsSelected": "Please select at least one unit that has not been assigned to the resident.",
+      "assignUnitsFailed": "Unable to assign units to resident. Please try again."
+    },
+    "messages": {
+      "updateSuccess": "Resident account updated successfully.",
+      "updateError": "Failed to update account. Please try again.",
+      "assignUnitsSuccess": "Successfully assigned {count} unit(s) to resident."
+    }
+  },
+  "Table": {
+    "noData": "No data.",
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "archived": "Archived",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "type": {
+      "info": "Information",
+      "warning": "Warning",
+      "alert": "Alert",
+      "success": "Success",
+      "announcement": "Announcement"
+    },
+    "scope": {
+      "internal": "Internal",
+      "external": "External"
+    },
+    "roles": {
+      "admin": "Admin",
+      "accountant": "Accountant",
+      "technician": "Technician",
+      "supporter": "Supporter",
+      "resident": "Resident",
+      "unitOwner": "Unit Owner"
+    },
+    "actions": {
+      "viewDetail": "View detail",
+      "edit": "Edit",
+      "delete": "Delete",
+      "changeStatus": "Change status",
+      "deleteAccount": "Delete account"
+    },
+    "errors": {
+      "cannotIdentifyAccountForStatusChange": "Unable to identify account to change status.",
+      "cannotIdentifyAccountForDelete": "Unable to identify account to delete.",
+      "deleteNotConfigured": "Delete function is not configured.",
+      "cannotDeleteInactiveAccount": "Cannot delete inactive account.",
+      "noPermissionToEditAdmin": "You do not have permission to edit admin account."
+    }
   },
   "Noti" : {
     "fetchBuildingError": "Can not load building list",
@@ -1001,5 +1388,141 @@
     "external": "External",
     "internal": "Internal",
     "selectScope": "Select scope"
+  },
+  "Contracts": {
+    "title": "Apartment contract management",
+    "subtitle": "Create and track rental/purchase contracts for each unit.",
+    "buttons": {
+      "addContract": "Add contract",
+      "cancel": "Cancel",
+      "create": "Create contract",
+      "creating": "Creating...",
+      "view": "View",
+      "uploadAttachment": "Upload attachment",
+      "uploading": "Uploading...",
+      "viewOrDownload": "View / download",
+      "downloadHere": "Click here to download",
+      "close": "Close"
+    },
+    "fields": {
+      "building": "Building",
+      "unit": "Unit",
+      "contractNumber": "Contract number",
+      "contractType": "Contract type",
+      "status": "Status",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "purchaseDate": "Purchase date",
+      "monthlyRent": "Monthly rent",
+      "purchasePrice": "Purchase price",
+      "paymentMethod": "Payment method",
+      "paymentTerms": "Payment terms",
+      "notes": "Notes",
+      "attachmentsRequired": "Contract attachments (required)"
+    },
+    "placeholders": {
+      "selectBuilding": "-- Select building --",
+      "selectUnit": "-- Select unit --",
+      "selectBuildingFirst": "Select building first",
+      "ddmmyyyy": "dd/mm/yyyy",
+      "contractNumber": "E.g. HD-2025-0001",
+      "monthlyRent": "E.g. 12000000",
+      "purchasePrice": "E.g. 2500000000",
+      "selectPaymentMethod": "-- Select payment method --",
+      "paymentTerms": "E.g. quarterly payments...",
+      "notes": "Additional information about contract..."
+    },
+    "paymentMethods": {
+      "transfer": "Bank transfer",
+      "cash": "Cash",
+      "eWallet": "E-wallet",
+      "other": "Other"
+    },
+    "contractTypes": {
+      "rental": "Rental (RENTAL)",
+      "purchase": "Purchase (PURCHASE)"
+    },
+    "status": {
+      "activeDefault": "Active (default)"
+    },
+    "table": {
+      "contractNumber": "Contract no.",
+      "type": "Type",
+      "validity": "Validity",
+      "status": "Status",
+      "detail": "Detail",
+      "start": "Start",
+      "end": "End"
+    },
+    "loading": {
+      "buildings": "Loading buildings...",
+      "units": "Loading units...",
+      "contracts": "Loading contracts...",
+      "detail": "Loading contract detail..."
+    },
+    "empty": {
+      "noContracts": "This unit currently has no contracts.",
+      "selectToView": "Select a building and a unit to view contracts.",
+      "noAttachments": "This contract has no attachments yet. You can upload files here."
+    },
+    "detail": {
+      "title": "Contract detail",
+      "contractNumber": "Contract number",
+      "type": "Type",
+      "status": "Status",
+      "start": "Start date",
+      "end": "End date",
+      "unlimited": "Unlimited",
+      "monthlyRent": "Monthly rent",
+      "purchasePrice": "Purchase price",
+      "purchaseDate": "Purchase date",
+      "paymentMethod": "Payment method",
+      "paymentTerms": "Payment terms",
+      "notes": "Notes",
+      "attachments": "Attachments",
+      "unnamedFile": "Unnamed file",
+      "unknownType": "Unknown type",
+      "unknownSize": "Unknown size",
+      "primaryFile": "Primary file",
+      "contractImageAlt": "Contract image",
+      "cannotDisplayPdf": "Cannot display PDF."
+    },
+    "create": {
+      "title": "Add new contract",
+      "subtitle": "Enter rental or purchase contract for the selected unit."
+    },
+    "validation": {
+      "unitRequired": "Please select a unit before creating a contract.",
+      "contractTypeRequired": "Please select a contract type.",
+      "startDateRequired": "Please select the contract start date.",
+      "startDateInvalid": "Start date is invalid.",
+      "startDateInFuture": "Start date must be today or later.",
+      "endDateRequired": "Please select the contract end date.",
+      "endDateInvalid": "End date is invalid.",
+      "endDateMinDiff": "End date must be at least 1 month after start date.",
+      "monthlyRentRequired": "Please enter monthly rent.",
+      "paymentMethodRequired": "Please select a payment method.",
+      "purchaseHasNoEndDate": "Purchase contracts cannot have an end date.",
+      "purchasePriceRequired": "Please enter purchase price for purchase contracts.",
+      "purchaseDateRequired": "Please enter purchase date for purchase contracts.",
+      "dateFormat": "Date must follow dd/mm/yyyy format.",
+      "filesRequired": "Please upload at least one attachment file."
+    },
+    "errors": {
+      "loadBuildings": "Unable to load building list.",
+      "loadUnits": "Unable to load unit list for this building.",
+      "loadContracts": "An error occurred while loading contracts. Please try again.",
+      "createFailed": "Unable to create contract. Please try again."
+    },
+    "messages": {
+      "createSuccess": "Contract created successfully."
+    },
+    "common": {
+      "notSet": "Not set",
+      "unknown": "Unknown"
+    },
+    "hints": {
+      "attachments": "Please upload at least one file (PDF, image...)"
+    }
   }
 }
