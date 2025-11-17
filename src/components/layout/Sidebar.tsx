@@ -53,7 +53,6 @@ const adminSections: NavSection[] = [
       {href: "/base/regisresiView", label: "Duyệt tài khoản cư dân", icon: "📝"},
       {href: "/base/household/householdMemberRequests", label: "Duyệt thành viên gia đình", icon: "👪"},
       {href: "/base/contract/contracts", label: "Hợp đồng căn hộ", icon: "📄"},
-      {href: "/base/contract/import", label: "Import hợp đồng", icon: "📥"},
       {href: "/base/vehicles/vehicleAll", label: "Quản lý phương tiện", icon: "🚗"},
       {href: "/base/cards/elevator", label: "Thẻ thang máy", icon: "🛗"},
       {href: "/base/cards/resident", label: "Thẻ cư dân", icon: "🔑"},

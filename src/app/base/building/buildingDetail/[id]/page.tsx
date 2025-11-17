@@ -16,7 +16,7 @@ import { Unit } from '@/src/types/unit';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useDeleteBuilding } from '@/src/hooks/useBuildingDelete';
 import FormulaPopup from '@/src/components/common/FormulaPopup';
-import { downloadUnitImportTemplate, importUnits, type UnitImportResponse } from '@/src/services/base/unitImportService';
+import { downloadUnitImportTemplate, importUnits, exportUnits, type UnitImportResponse } from '@/src/services/base/unitImportService';
 
 export default function BuildingDetail () {
 
@@ -96,6 +96,21 @@ export default function BuildingDetail () {
             URL.revokeObjectURL(url);
         } catch (e: any) {
             setImportError(e?.response?.data?.message || "Tải template thất bại");
+        }
+    };
+
+    const onExportUnits = async () => {
+        if (!buildingId || typeof buildingId !== 'string') return;
+        try {
+            const blob = await exportUnits(buildingId);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `units_export_${buildingData?.code || buildingId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e: any) {
+            setImportError(e?.response?.data?.message || "Xuất Excel thất bại");
         }
     };
 
@@ -249,6 +264,12 @@ export default function BuildingDetail () {
                             >
                                 {importing ? 'Đang import...' : 'Chọn file Excel'}
                             </button>
+                            <button
+                                onClick={onExportUnits}
+                                className="px-3 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition text-sm"
+                            >
+                                Xuất Excel
+                            </button>
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -269,10 +290,9 @@ export default function BuildingDetail () {
                     </div>
                 </div>
 
-                {buildingData?.code || buildingId ? (
+                {buildingData?.code ? (
                     <div className="text-sm text-gray-600 mb-4">
-                        Vui lòng điền cột <b>buildingCode</b> = <span className="font-mono">{buildingData?.code}</span> hoặc
-                        <span> <b>buildingId</b> = </span><span className="font-mono">{typeof buildingId === 'string' ? buildingId : ''}</span> trong file Excel.
+                        Vui lòng điền cột <b>buildingCode</b> = <span className="font-mono">{buildingData?.code}</span> trong file Excel.
                     </div>
                 ) : null}
 

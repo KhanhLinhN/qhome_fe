@@ -41,4 +41,12 @@ export async function importUnits(file: File): Promise<UnitImportResponse> {
   return res.data as UnitImportResponse;
 }
 
+export async function exportUnits(buildingId?: string): Promise<Blob> {
+  const url = buildingId 
+    ? `${BASE_URL}/api/units/export?buildingId=${buildingId}`
+    : `${BASE_URL}/api/units/export`;
+  const res = await axios.get(url, { responseType: "blob", withCredentials: true });
+  return res.data as Blob;
+}
+
 

@@ -40,4 +40,12 @@ export async function importBuildings(file: File): Promise<BuildingImportRespons
   return res.data as BuildingImportResponse;
 }
 
+export async function exportBuildings(withUnits: boolean = false): Promise<Blob> {
+  const url = withUnits 
+    ? `${BASE_URL}/api/buildings/export?withUnits=true`
+    : `${BASE_URL}/api/buildings/export`;
+  const res = await axios.get(url, { responseType: "blob", withCredentials: true });
+  return res.data as Blob;
+}
+
 
