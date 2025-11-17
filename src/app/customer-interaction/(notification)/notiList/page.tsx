@@ -1,15 +1,17 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useNotificationList } from '@/src/hooks/useNotificationList';
-import { deleteNotification } from '@/src/services/customer-interaction/notiService';
+import { deleteNotification, updateNotification } from '@/src/services/customer-interaction/notiService';
 import { useAuth } from '@/src/contexts/AuthContext';
 import Table from '@/src/components/base-service/Table';
 import Select from '@/src/components/customer-interaction/Select';
 import { useNotifications } from '@/src/hooks/useNotifications';
-import { NotificationType } from '@/src/types/notification';
+import { NotificationType, NotificationScope } from '@/src/types/notification';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
+import Pagination from '@/src/components/customer-interaction/Pagination';
+import { getBuildings, type Building } from '@/src/services/base/buildingService';
 
 export default function NotificationList() {
     const t = useTranslations('Noti');
@@ -18,6 +20,8 @@ export default function NotificationList() {
     const { show } = useNotifications();
     
     const [selectedType, setSelectedType] = useState<NotificationType | ''>('');
+    const [pageNo, setPageNo] = useState<number>(0);
+    const [pageSize] = useState<number>(10);
     const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
     const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
     
@@ -25,12 +29,38 @@ export default function NotificationList() {
 
     const headers = [t('title'), t('content'), t('type'), t('createdAt'), t('action')];
 
+    // Sort notifications by createdAt desc (newest first)
+    const orderedNotifications = useMemo(() => {
+        if (!notificationList || notificationList.length === 0) return [];
+        return notificationList.slice().sort((a, b) => {
+            const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return tb - ta; // Descending order (newest first)
+        });
+    }, [notificationList]);
+
+    // Paginate the sorted notifications
+    const paginatedNotifications = useMemo(() => {
+        const startIndex = pageNo * pageSize;
+        const endIndex = startIndex + pageSize;
+        return orderedNotifications.slice(startIndex, endIndex);
+    }, [orderedNotifications, pageNo, pageSize]);
+
+    const totalPages = useMemo(() => {
+        return pageSize > 0 ? Math.ceil(orderedNotifications.length / pageSize) : 0;
+    }, [orderedNotifications.length, pageSize]);
+
+    const handlePageChange = (newPage: number) => {
+        setPageNo(newPage);
+    };
+
     const handleAdd = () => {
         router.push('/customer-interaction/notiAdd');
     };
 
     const handleTypeChange = (item: { name: string; value: string }) => {
         setSelectedType(item.value as NotificationType | '');
+        setPageNo(0); // Reset to first page when filter changes
     };
 
     const handleEdit = (id: string) => {
@@ -57,8 +87,84 @@ export default function NotificationList() {
         }
     };
 
-    // Transform notification list to table data format
-    const tableData = notificationList.map((notification) => ({
+    // Change scope modal state
+    const [changeOpen, setChangeOpen] = useState(false);
+    const [changeId, setChangeId] = useState<string | null>(null);
+    const [changeScope, setChangeScope] = useState<NotificationScope>('INTERNAL');
+    const [changeTargetRole, setChangeTargetRole] = useState<string>('ALL');
+    const [changeBuildingId, setChangeBuildingId] = useState<string>('all');
+    const [changing, setChanging] = useState(false);
+    const [buildings, setBuildings] = useState<Building[]>([]);
+    const [loadingBuildings, setLoadingBuildings] = useState<boolean>(false);
+
+    const handleOpenChangeScope = (id: string) => {
+        setChangeId(id);
+        // Prefill from existing item if available
+        const item = notificationList.find(n => n.id === id);
+        if (item) {
+            setChangeScope(item.scope ?? 'INTERNAL');
+            setChangeTargetRole(item.targetRole ?? 'ALL');
+            setChangeBuildingId(item.targetBuildingId ?? 'all');
+        } else {
+            setChangeScope('INTERNAL');
+            setChangeTargetRole('ALL');
+            setChangeBuildingId('all');
+        }
+        setChangeOpen(true);
+    };
+
+    const handleCloseChange = () => {
+        setChangeOpen(false);
+        setChangeId(null);
+        setChanging(false);
+    };
+
+    useEffect(() => {
+        if (!changeOpen) return;
+        let mounted = true;
+        const loadBuildings = async () => {
+            setLoadingBuildings(true);
+            try {
+                const result = await getBuildings();
+                if (mounted) {
+                    setBuildings(result);
+                }
+            } catch (e) {
+                console.error('Failed to load buildings for notification change scope', e);
+                setBuildings([]);
+            } finally {
+                setLoadingBuildings(false);
+            }
+        };
+        void loadBuildings();
+        return () => {
+            mounted = false;
+        };
+    }, [changeOpen]);
+
+    const handleConfirmChange = async () => {
+        if (!changeId) return;
+        try {
+            setChanging(true);
+            await updateNotification(changeId, {
+                scope: changeScope,
+                targetRole: changeScope === 'INTERNAL' ? (changeTargetRole || 'ALL') : undefined,
+                targetBuildingId: changeScope === 'EXTERNAL'
+                    ? (changeBuildingId === 'all' ? null : changeBuildingId)
+                    : undefined,
+            });
+            show('Cập nhật phạm vi thành công!', 'success');
+            await refetch();
+            handleCloseChange();
+        } catch (e: any) {
+            console.error('Failed to update notification scope', e);
+            show('Có lỗi xảy ra khi cập nhật phạm vi!', 'error');
+            setChanging(false);
+        }
+    };
+
+    // Transform paginated notification list to table data format
+    const tableData = paginatedNotifications.map((notification) => ({
         notificationId: notification.id,
         title: notification.title,
         message: notification.message.length > 100 ? notification.message.substring(0, 100) + '...' : notification.message,
@@ -146,7 +252,10 @@ export default function NotificationList() {
                             </div>
                             {selectedType && (
                                 <button
-                                    onClick={() => setSelectedType('')}
+                                    onClick={() => {
+                                        setSelectedType('');
+                                        setPageNo(0);
+                                    }}
                                     className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                                 >
                                     Xóa bộ lọc
@@ -157,7 +266,7 @@ export default function NotificationList() {
                 </div>
 
                 {/* Table */}
-                {notificationList.length === 0 ? (
+                {orderedNotifications.length === 0 ? (
                     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center text-gray-500">
                         Chưa có thông báo nào. Nhấn "Thêm thông báo" để tạo mới.
                     </div>
@@ -169,11 +278,105 @@ export default function NotificationList() {
                             type="notification"
                             onEdit={handleEdit}
                             onDelete={handleDelete}
+                            onNotificationChangeScope={handleOpenChangeScope}
                         />
-                        {/* Summary */}
-                        <div className="mt-4 text-sm text-gray-600">
-                            Tổng số: <span className="font-semibold">{notificationList.length}</span> thông báo
-                        </div>
+                        <Pagination
+                            currentPage={pageNo + 1}
+                            totalPages={totalPages}
+                            onPageChange={(page) => handlePageChange(page - 1)}
+                        />
+                        {changeOpen && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                                <div className="bg-white w-full max-w-md rounded-lg shadow-xl p-6">
+                                    <div className="flex items-start justify-between border-b pb-3 mb-4">
+                                        <h3 className="text-lg font-semibold text-[#02542D]">Thay đổi phạm vi</h3>
+                                        <button
+                                            onClick={handleCloseChange}
+                                            className="text-gray-500 hover:text-gray-700 text-xl leading-none"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex flex-col">
+                                            <label className="text-sm font-medium text-[#02542D]">Phạm vi</label>
+                                            <Select
+                                                options={[
+                                                    { name: 'Nội bộ', value: 'INTERNAL' },
+                                                    { name: 'Bên ngoài', value: 'EXTERNAL' },
+                                                ]}
+                                                value={changeScope}
+                                                onSelect={(item) => setChangeScope(item.value as NotificationScope)}
+                                                renderItem={(item) => item.name}
+                                                getValue={(item) => item.value}
+                                                placeholder="Chọn phạm vi"
+                                            />
+                                        </div>
+                                        {changeScope === 'INTERNAL' && (
+                                            <div className="flex flex-col">
+                                                <label className="text-sm font-medium text-[#02542D]">Vai trò đích</label>
+                                                <Select
+                                                    options={[
+                                                        { name: 'Tất cả', value: 'ALL' },
+                                                        { name: 'Quản trị viên', value: 'ADMIN' },
+                                                        { name: 'Kỹ thuật viên', value: 'TECHNICIAN' },
+                                                        { name: 'Hỗ trợ', value: 'SUPPORTER' },
+                                                        { name: 'Kế toán', value: 'ACCOUNT' },
+                                                        { name: 'Cư dân', value: 'RESIDENT' },
+                                                    ]}
+                                                    value={changeTargetRole}
+                                                    onSelect={(item) => setChangeTargetRole(item.value)}
+                                                    renderItem={(item) => item.name}
+                                                    getValue={(item) => item.value}
+                                                    placeholder="Chọn vai trò"
+                                                />
+                                            </div>
+                                        )}
+                                        {changeScope === 'EXTERNAL' && (
+                                            <div className="flex flex-col">
+                                                <label className="text-sm font-medium text-[#02542D]">Chọn tòa nhà</label>
+                                                {loadingBuildings ? (
+                                                    <p className="text-gray-500 text-sm">Đang tải...</p>
+                                                ) : (
+                                                    <Select
+                                                        options={[
+                                                            { name: 'Tất cả tòa nhà', value: 'all' },
+                                                            ...buildings.map((b) => ({
+                                                                name: `${b.name} (${b.code})`,
+                                                                value: b.id,
+                                                            })),
+                                                        ]}
+                                                        value={changeBuildingId}
+                                                        onSelect={(item) => setChangeBuildingId(item.value)}
+                                                        renderItem={(item) => item.name}
+                                                        getValue={(item) => item.value}
+                                                        placeholder="Chọn tòa nhà"
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex justify-end gap-3 mt-6">
+                                        <button
+                                            type="button"
+                                            onClick={handleCloseChange}
+                                            className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition"
+                                            disabled={changing}
+                                        >
+                                            Hủy
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleConfirmChange}
+                                            className="px-4 py-2 rounded-lg bg-[#02542D] text-white hover:bg-opacity-80 transition disabled:opacity-50"
+                                            disabled={changing}
+                                        >
+                                            {changing ? 'Đang lưu...' : 'Lưu'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
             </div>

@@ -521,6 +521,81 @@ export default function ServiceCreatePage() {
     }
   };
 
+  // Validate individual field
+  const validateField = (fieldName: string, value: string) => {
+    const newErrors = { ...formErrors };
+    
+    switch (fieldName) {
+      case 'name':
+        const name = value.trim();
+        const nameRegex = /^[a-zA-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐđ0-9\s'-]+$/;
+        if (!name) {
+          newErrors.name = t('Service.validation.name');
+        } else if (name.length > 40) {
+          newErrors.name = t('Service.validation.nameMax40');
+        } else if (!nameRegex.test(name)) {
+          newErrors.name = t('Service.validation.nameNoSpecialChars');
+        } else {
+          delete newErrors.name;
+        }
+        break;
+      case 'pricePerHour':
+        if (!value.trim()) {
+          newErrors.pricePerHour = t('Service.validation.pricePerHour');
+        } else if (parseNonNegativeNumber(value) === undefined) {
+          newErrors.pricePerHour = t('Service.validation.pricePerHourNonNegative');
+        } else {
+          delete newErrors.pricePerHour;
+        }
+        break;
+      case 'pricePerSession':
+        if (!value.trim()) {
+          newErrors.pricePerSession = t('Service.validation.pricePerSession');
+        } else if (parseNonNegativeNumber(value) === undefined) {
+          newErrors.pricePerSession = t('Service.validation.pricePerSessionNonNegative');
+        } else {
+          delete newErrors.pricePerSession;
+        }
+        break;
+      case 'maxCapacity':
+        if (!value.trim()) {
+          newErrors.maxCapacity = t('Service.validation.maxCapacity');
+        } else {
+          const num = parsePositiveInteger(value);
+          if (num === undefined) {
+            newErrors.maxCapacity = t('Service.validation.maxCapacityPositive');
+          } else if (num >= 1000) {
+            newErrors.maxCapacity = t('Service.validation.maxCapacityMax');
+          } else {
+            delete newErrors.maxCapacity;
+          }
+        }
+        break;
+      case 'minDurationHours':
+        if (!value.trim()) {
+          newErrors.minDurationHours = t('Service.validation.minDurationHours');
+        } else {
+          const num = parsePositiveNumber(value);
+          if (num === undefined) {
+            newErrors.minDurationHours = t('Service.validation.minDurationHoursPositive');
+          } else if (num >= 24) {
+            newErrors.minDurationHours = t('Service.validation.minDurationHoursMax');
+          } else {
+            delete newErrors.minDurationHours;
+          }
+        }
+        break;
+      default:
+        // Clear error for other fields
+        if (fieldName in newErrors) {
+          delete newErrors[fieldName];
+        }
+        break;
+    }
+    
+    setFormErrors(newErrors);
+  };
+
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -529,7 +604,12 @@ export default function ServiceCreatePage() {
       ...prev,
       [name]: value,
     }));
-    if (name) {
+    // Validate field on change
+    if (name === 'name' || name === 'pricePerHour' || name === 'pricePerSession' || 
+        name === 'maxCapacity' || name === 'minDurationHours') {
+      validateField(name, value);
+    } else if (name) {
+      // Clear error for other fields
       setFormErrors((prev) => {
         if (!(name in prev)) return prev;
         const { [name]: _removed, ...rest } = prev;

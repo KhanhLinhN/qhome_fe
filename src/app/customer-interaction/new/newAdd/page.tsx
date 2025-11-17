@@ -44,7 +44,6 @@ interface NewsFormData {
     status: NewsStatus;
     publishAt: string;
     expireAt: string;
-    displayOrder: number;
     images: NewsImage[];
     scope: NotificationScope;
     targetRole?: string;
@@ -80,7 +79,6 @@ export default function NewsAdd() {
         status: 'DRAFT',
         publishAt: '',
         expireAt: '',
-        displayOrder: 1,
         images: [],
         scope: 'EXTERNAL',
         targetRole: undefined,
@@ -106,6 +104,8 @@ export default function NewsAdd() {
         bodyHtml?: string;
         publishAt?: string;
         expireAt?: string;
+        images?: string;
+        coverImage?: string;
     }>({});
 
     useEffect(() => {
@@ -143,6 +143,8 @@ export default function NewsAdd() {
             case 'title':
                 if (!value || value.trim() === '') {
                     newErrors.title = t('titleRequired');
+                } else if (value.trim().length > 200) {
+                    newErrors.title = t('titleMaxLength') || 'Tiêu đề không được vượt quá 200 ký tự';
                 } else {
                     delete newErrors.title;
                 }
@@ -150,6 +152,8 @@ export default function NewsAdd() {
             case 'summary':
                 if (!value || value.trim() === '') {
                     newErrors.summary = t('summaryRequired');
+                } else if (value.trim().length > 400) {
+                    newErrors.summary = t('summaryMaxLength') || 'Tóm tắt không được vượt quá 400 ký tự';
                 } else {
                     delete newErrors.summary;
                 }
@@ -163,15 +167,39 @@ export default function NewsAdd() {
                 break;
             case 'publishAt':
                 if (!value || value.trim() === '') {
-                    newErrors.publishAt = t('publishAtRequired');
+                    newErrors.publishAt = t('publishAtRequired') || 'Ngày xuất bản không được để trống';
                 } else {
-                    // Validate publishAt < expireAt
-                    const expireAt = fieldName === 'publishAt' ? data.expireAt : value;
-                    const publishAt = fieldName === 'publishAt' ? value : data.publishAt;
-                    if (expireAt && publishAt >= expireAt) {
-                        newErrors.publishAt = t('publishAtInvalid');
-                    } else {
-                        delete newErrors.publishAt;
+                    try {
+                        // Validate publishAt > today
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        today.setMinutes(0, 0, 0);
+                        today.setSeconds(0, 0);
+                        today.setMilliseconds(0);
+                        
+                        const publishDate = new Date(value);
+                        publishDate.setHours(0, 0, 0, 0);
+                        publishDate.setMinutes(0, 0, 0);
+                        publishDate.setSeconds(0, 0);
+                        publishDate.setMilliseconds(0);
+                        
+                        // Check if date is valid
+                        if (isNaN(publishDate.getTime())) {
+                            newErrors.publishAt = t('publishAtInvalid') || 'Ngày xuất bản không hợp lệ';
+                        } else if (publishDate <= today) {
+                            newErrors.publishAt = t('publishAtMustBeFuture') || 'Ngày xuất bản phải lớn hơn ngày hôm nay';
+                        } else {
+                            // Validate publishAt < expireAt
+                            const expireAt = fieldName === 'publishAt' ? data.expireAt : value;
+                            const publishAt = fieldName === 'publishAt' ? value : data.publishAt;
+                            if (expireAt && publishAt && publishAt >= expireAt) {
+                                newErrors.publishAt = t('publishAtInvalid') || 'Ngày xuất bản phải nhỏ hơn ngày hết hạn';
+                            } else {
+                                delete newErrors.publishAt;
+                            }
+                        }
+                    } catch (err) {
+                        newErrors.publishAt = t('publishAtInvalid') || 'Ngày xuất bản không hợp lệ';
                     }
                 }
                 break;
@@ -183,18 +211,9 @@ export default function NewsAdd() {
                     const publishAt = fieldName === 'expireAt' ? data.publishAt : value;
                     const expireAt = fieldName === 'expireAt' ? value : data.expireAt;
                     if (publishAt && publishAt >= expireAt) {
-                        newErrors.expireAt = t('expireAtInvalid');
+                        newErrors.expireAt = t('expireAtInvalid') || 'Ngày hết hạn phải lớn hơn ngày xuất bản';
                     } else {
-                        // For create page: expireAt must be > today
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const expireDate = new Date(value);
-                        expireDate.setHours(0, 0, 0, 0);
-                        if (expireDate <= today) {
-                            newErrors.expireAt = t('expireAtInvalid');
-                        } else {
-                            delete newErrors.expireAt;
-                        }
+                        delete newErrors.expireAt;
                     }
                 }
                 break;
@@ -211,16 +230,22 @@ export default function NewsAdd() {
             bodyHtml?: string;
             publishAt?: string;
             expireAt?: string;
+            images?: string;
+            coverImage?: string;
         } = {};
 
         // Validate title
         if (!formData.title || formData.title.trim() === '') {
             newErrors.title = t('titleRequired');
+        } else if (formData.title.trim().length > 200) {
+            newErrors.title = t('titleMaxLength') || 'Tiêu đề không được vượt quá 200 ký tự';
         }
 
         // Validate summary
         if (!formData.summary || formData.summary.trim() === '') {
             newErrors.summary = t('summaryRequired');
+        } else if (formData.summary.trim().length > 400) {
+            newErrors.summary = t('summaryMaxLength') || 'Tóm tắt không được vượt quá 400 ký tự';
         }
 
         // Validate bodyHtml
@@ -230,31 +255,51 @@ export default function NewsAdd() {
 
         // Validate publishAt
         if (!formData.publishAt || formData.publishAt.trim() === '') {
-            newErrors.publishAt = t('publishAtRequired');
+            newErrors.publishAt = t('publishAtRequired') || 'Ngày xuất bản không được để trống';
+        } else {
+            try {
+                // Validate publishAt > today
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                today.setMinutes(0, 0, 0);
+                today.setSeconds(0, 0);
+                today.setMilliseconds(0);
+                
+                const publishDate = new Date(formData.publishAt);
+                publishDate.setHours(0, 0, 0, 0);
+                publishDate.setMinutes(0, 0, 0);
+                publishDate.setSeconds(0, 0);
+                publishDate.setMilliseconds(0);
+                
+                // Check if date is valid
+                if (isNaN(publishDate.getTime())) {
+                    newErrors.publishAt = t('publishAtInvalid') || 'Ngày xuất bản không hợp lệ';
+                } else if (publishDate <= today) {
+                    newErrors.publishAt = t('publishAtMustBeFuture') || 'Ngày xuất bản phải lớn hơn ngày hôm nay';
+                }
+            } catch (err) {
+                newErrors.publishAt = t('publishAtInvalid') || 'Ngày xuất bản không hợp lệ';
+            }
         }
 
         // Validate expireAt
         if (!formData.expireAt || formData.expireAt.trim() === '') {
             newErrors.expireAt = t('expireAtRequired');
-        }
-
-        // Validate publishAt < expireAt
-        if (formData.publishAt && formData.expireAt) {
+        } else if (formData.publishAt && formData.expireAt) {
+            // Validate publishAt < expireAt
             if (formData.publishAt >= formData.expireAt) {
-                newErrors.publishAt = t('publishAtInvalid');
-                newErrors.expireAt = t('expireAtInvalid');
+                newErrors.expireAt = t('expireAtInvalid') || 'Ngày hết hạn phải lớn hơn ngày xuất bản';
             }
         }
 
-        // For create page: expireAt must be > today
-        if (formData.expireAt) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const expireDate = new Date(formData.expireAt);
-            expireDate.setHours(0, 0, 0, 0);
-            if (expireDate <= today) {
-                newErrors.expireAt = t('expireAtInvalid');
-            }
+        // Validate detail images: max 3
+        if (formData.images.length > 3) {
+            newErrors.images = t('maxImagesError') || 'Chỉ được chọn tối đa 3 ảnh chi tiết';
+        }
+
+        // Validate cover image is required
+        if (!coverImageFile && !formData.coverImageUrl) {
+            newErrors.coverImage = t('coverImageRequired') || 'Vui lòng chọn ảnh bìa';
         }
 
         setErrors(newErrors);
@@ -289,7 +334,6 @@ export default function NewsAdd() {
                 bodyHtml: formData.bodyHtml,
                 status: formData.status,
                 scope: formData.scope,
-                displayOrder: formData.displayOrder || 0,
             };
 
             // Add optional fields only if they have values
@@ -412,12 +456,19 @@ export default function NewsAdd() {
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         const { name, value } = e.target;
+        // Enforce max length for title and summary
+        let finalValue = value;
+        if (name === 'title' && value.length > 200) {
+            finalValue = value.substring(0, 200);
+        } else if (name === 'summary' && value.length > 400) {
+            finalValue = value.substring(0, 400);
+        }
         setFormData((prev) => ({
             ...prev,
-            [name]: value,
+            [name]: finalValue,
         }));
         // Validate field on change
-        validateField(name, value);
+        validateField(name, finalValue);
     };
 
     const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -428,37 +479,37 @@ export default function NewsAdd() {
         }));
     };
 
-    // Helpers for dd/mm/yyyy <-> ISO
-    const ddmmyyyyToDate = (text: string): Date | null => {
-        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(text)) return null;
-        const [d, m, y] = text.split('/').map(Number);
-        const dt = new Date(y, m - 1, d);
-        if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
-        return dt;
-    };
-    const formatDateToISO = (ddmmyyyy: string, endOfDay = false): string => {
-        if (!ddmmyyyy) return '';
-        const dt = ddmmyyyyToDate(ddmmyyyy);
-        if (!dt) return '';
-        if (endOfDay) {
-            dt.setUTCHours(23, 59, 59, 999);
-        } else {
-            dt.setUTCHours(0, 0, 0, 0);
+    // Helper function to convert date to ISO 8601 format for backend
+    const formatDateToISO = (dateString: string): string => {
+        if (!dateString) return '';
+        
+        // If already in ISO format, return as is
+        if (dateString.includes('T') && dateString.includes('Z')) {
+            return dateString;
         }
-        return dt.toISOString();
+        
+        // Convert YYYY-MM-DD to YYYY-MM-DDTHH:mm:ss.SSSZ
+        const date = new Date(dateString);
+        // Set to start of day in UTC
+        date.setUTCHours(0, 0, 0, 0);
+        return date.toISOString();
     };
+
+    // Helper function to convert ISO date to YYYY-MM-DD for DateBox display
     const formatISOToDate = (isoString: string): string => {
         if (!isoString) return '';
-        const d = new Date(isoString);
-        if (Number.isNaN(d.getTime())) return '';
-        const dd = String(d.getUTCDate()).padStart(2, '0');
-        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-        const yyyy = d.getUTCFullYear();
-        return `${dd}/${mm}/${yyyy}`;
+        
+        // If already in YYYY-MM-DD format, return as is
+        if (!isoString.includes('T')) {
+            return isoString;
+        }
+        
+        // Extract YYYY-MM-DD from ISO string
+        return isoString.split('T')[0];
     };
 
     const handlePublishAtChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const isoDate = formatDateToISO(e.target.value, false);
+        const isoDate = formatDateToISO(e.target.value);
         setFormData((prev) => {
             const newData = { ...prev, publishAt: isoDate };
             // Validate with updated data
@@ -474,7 +525,12 @@ export default function NewsAdd() {
 
     const handleExpireAtChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         // For expire date, set to end of day (23:59:59.999)
-        const isoDate = e.target.value ? formatDateToISO(e.target.value, true) : '';
+        let isoDate = '';
+        if (e.target.value) {
+            const date = new Date(e.target.value);
+            date.setUTCHours(23, 59, 59, 999);
+            isoDate = date.toISOString();
+        }
         setFormData((prev) => {
             const newData = { ...prev, expireAt: isoDate };
             // Validate with updated data
@@ -522,6 +578,12 @@ export default function NewsAdd() {
     const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Validate image file type
+            if (!file.type.startsWith('image/')) {
+                show(t('coverImageMustBeImage') || 'Ảnh bìa phải là file ảnh', 'error');
+                e.target.value = '';
+                return;
+            }
             setCoverImageFile(file);
             
             // Show preview only (upload sau khi tạo news)
@@ -536,6 +598,12 @@ export default function NewsAdd() {
     const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Validate image file type
+            if (!file.type.startsWith('image/')) {
+                show(t('detailImageMustBeImage') || 'Ảnh chi tiết phải là file ảnh', 'error');
+                e.target.value = '';
+                return;
+            }
             // Show preview only (upload sau khi tạo news)
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -550,6 +618,11 @@ export default function NewsAdd() {
     };
 
     const handleAddImage = () => {
+        // Check max 3 images
+        if (formData.images.length >= 3) {
+            show(t('maxImagesError') || 'Chỉ được chọn tối đa 3 ảnh chi tiết', 'error');
+            return;
+        }
         // Add image với file (sẽ upload sau khi tạo news)
         if (newImage.file) {
             setFormData((prev) => ({
@@ -647,7 +720,7 @@ export default function NewsAdd() {
                             name="title"
                             placeholder={t('titlePlaceholder')}
                             readonly={false}
-                            required={true}
+                            // required={true}
                             error={errors.title}
                         />
                     </div>
@@ -662,7 +735,7 @@ export default function NewsAdd() {
                             type="textarea"
                             placeholder={t('summaryPlaceholder')}
                             readonly={false}
-                            required={true}
+                            // required={true}
                             error={errors.summary}
                         />
                     </div>
@@ -677,7 +750,7 @@ export default function NewsAdd() {
                             type="textarea"
                             placeholder={t('bodyHtmlPlaceholder')}
                             readonly={false}
-                            required={true}
+                            // required={true}
                             error={errors.bodyHtml}
                         />
                     </div>
@@ -685,7 +758,7 @@ export default function NewsAdd() {
                     {/* Cover Image Upload */}
                     <div className="col-span-full">
                         <label className="text-md font-bold text-[#02542D] mb-2 block">
-                            {t('coverImage')}
+                            {t('coverImage')} <span className="text-red-500">*</span>
                         </label>
                         <div className="flex flex-col gap-3">
                             <input
@@ -694,6 +767,9 @@ export default function NewsAdd() {
                                 onChange={handleCoverImageChange}
                                 className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#02542D] file:text-white hover:file:bg-opacity-80 file:cursor-pointer border border-gray-300 rounded-lg cursor-pointer"
                             />
+                            {errors.coverImage && (
+                                <span className="text-red-500 text-xs">{errors.coverImage}</span>
+                            )}
                             {coverImagePreview && (
                                 <div className="relative w-full max-w-md">
                                     <img
@@ -743,21 +819,7 @@ export default function NewsAdd() {
                             placeholder={t('statusPlaceholder')}
                         />
                     </div>
-
-                    {/* Display Order */}
-                    <div className={`flex flex-col mb-4 col-span-1`}>
-                        <label className="text-md font-bold text-[#02542D] mb-1">
-                            {t('displayOrder')}
-                        </label>
-                        <input
-                            type="number"
-                            name="displayOrder"
-                            value={formData.displayOrder}
-                            onChange={handleNumberChange}
-                            placeholder="1"
-                            className="p-2 border border-[#739559] rounded-md text-[#34674F] focus:outline-none focus:ring-1 focus:ring-[#739559] shadow-inner transition duration-150"
-                        />
-                    </div>
+                    <div className="col-span-full"> </div>
 
                     {/* Publish At */}
                     <div className={`flex flex-col mb-4 col-span-1`}>
@@ -859,8 +921,11 @@ export default function NewsAdd() {
                     {/* Images Section */}
                     <div className="col-span-full mt-6">
                         <h3 className="text-lg font-bold text-[#02542D] mb-4">
-                            {t('detailedImages')}
+                            {t('detailedImages')} ({formData.images.length}/3)
                         </h3>
+                        {errors.images && (
+                            <span className="text-red-500 text-xs mb-2 block">{errors.images}</span>
+                        )}
 
                         {/* Add Image Form */}
                         <div className="bg-gray-50 p-4 rounded-lg mb-4">
@@ -909,7 +974,7 @@ export default function NewsAdd() {
                             <button
                                 type="button"
                                 onClick={handleAddImage}
-                                disabled={!newImage.file && !newImage.url.trim()}
+                                disabled={(!newImage.file && !newImage.url.trim()) || formData.images.length >= 3}
                                 className="mt-4 px-4 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {t('addImage')}
