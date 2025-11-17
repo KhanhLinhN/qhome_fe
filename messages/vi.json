@@ -153,16 +153,7 @@
     "management": "Quản lý",
     "buildings": "Tòa nhà",
     "employees": "Nhân viên",
-    "home": "Trang chủ",
-    "buildingManagement": "Quản lý Building",
-    "residentList": "Danh sách cư dân",
-    "approveResidentAccount": "Duyệt tài khoản cư dân",
-    "approveFamilyMember": "Duyệt thành viên gia đình",
-    "unitContracts": "Hợp đồng căn hộ",
-    "importContracts": "Import hợp đồng",
-    "vehicleManagement": "Quản lý phương tiện",
-    "elevatorCard": "Thẻ thang máy",
-    "residentCard": "Thẻ cư dân"
+    "home": "Trang chủ"
   },
   "Account": {
     "selectBuilding": "Chọn tòa nhà",
@@ -252,16 +243,6 @@
     "messages": {
       "createSuccess": "Tạo tài khoản nhân viên thành công.",
       "createError": "Không thể tạo tài khoản nhân viên. Vui lòng thử lại."
-    },
-    "import": {
-      "fileRequired": "Vui lòng chọn file Excel (.xlsx).",
-      "fileFormatError": "File phải có định dạng .xlsx.",
-      "importError": "Không thể import tài khoản nhân viên. Vui lòng thử lại.",
-      "downloadTemplateError": "Không thể tải file template. Vui lòng thử lại.",
-      "downloadingTemplate": "Đang tải template...",
-      "importing": "Đang import...",
-      "downloadTemplate": "Tải file template",
-      "importStaff": "Import nhân viên"
     }
   },
   "AccountList": {
@@ -604,8 +585,8 @@
   "active": "Hoạt động",
   "hotline": "Đường dây nóng",
   "email": "Email",
-  "save":  "Lưu",
-  "cancel":  "Hủy",
+  "save": "Lưu",
+  "cancel": "Hủy",
   "address": "Địa chỉ",
   "clear": "Xóa",
   "loading": "Đang tải dữ liệu...",
@@ -613,19 +594,14 @@
   "deleteBuildingConfirm": "Bạn có chắc chắn muốn xóa tòa nhà này không",
   "saving": "Đang lưu",
   "nameError": "Tên tòa nhà là bắt buộc",
-  "nameMaxError": "Tên tòa nhà không được vượt quá 40 ký tự",
-  "nameSpecialCharError": "Tên tòa nhà không được chứa ký tự đặc biệt",
   "addressError": "Địa chỉ là bắt buộc",
-  "addressDetailError": "Địa chỉ chi tiết không được để trống",
   "floorsError": "Số tầng phải lớn hơn 0",
   "codeError": "Mã tòa nhà đã tồn tại",
   "projectError": "Vui lòng chọn dự án",
-  "cityRequired": "Vui lòng chọn thành phố",
-  "districtRequired": "Vui lòng chọn quận/huyện",
-  "wardRequired": "Vui lòng chọn phường/xã",
   "error": "Vui lòng sửa các lỗi trước khi lưu",
   "success": "Tạo tòa nhà thành công",
   "errorBuilding": "Có lỗi xảy ra khi tạo tòa nhà",
+  "missingBuildingId": "Thiếu buildingId hoặc tenantId",
   "returnBuildingList": "Quay lại danh sách tòa nhà",
   "returnBuildingDetail": "Quay lại chi tiết tòa nhà",
   "editBuilding": "Chỉnh sửa tòa nhà",
@@ -634,24 +610,7 @@
   "editBuildingError": "Có lỗi xảy ra khi chỉnh sửa tòa nhà",
   "editBuildingReturn": "Quay lại danh sách tòa nhà",
   "editBuildingDetail": "Quay lại chi tiết tòa nhà",
-  "editBuildingDelete": "Xóa tòa nhà",
-  "confirmChangeStatusTitle": "Xác nhận thay đổi trạng thái",
-  "confirmDeactivateBuilding": "Bạn có chắc muốn vô hiệu hoá tòa nhà này?",
-  "confirmActivateBuilding": "Bạn có chắc muốn kích hoạt tòa nhà này?",
-  "city": "Thành phố",
-  "district": "Quận/Huyện",
-  "ward": "Phường/Xã",
-  "roadOptional": "Đường/Thôn (tuỳ chọn)",
-  "addressDetail": "Địa chỉ chi tiết",
-  "placeholders": {
-    "selectCity": "Chọn thành phố",
-    "selectDistrict": "Chọn quận/huyện",
-    "selectWard": "Chọn phường/xã",
-    "selectRoadOptional": "Chọn đường/thôn (có thể để trống)",
-    "noRoadData": "Không có dữ liệu đường/thôn",
-    "addressDetail": "Số nhà, toà, tầng..."
-  },
-  "roadHelper": "Không bắt buộc. Danh sách dựa trên khu vực đã chọn."
+  "editBuildingDelete": "Xóa tòa nhà"
   },
   "Service": {
     "listTitle": "Danh sách dịch vụ",
@@ -882,7 +841,6 @@
   "unitName": "Tên căn hộ",
   "unitType": "Loại căn hộ",
   "unitStatus": "Trạng thái",
-  "status": "Trạng thái",
   "ownerName": "Tên chủ sở hữu",
   "ownerContact": "Liên hệ chủ sở hữu",
   "return": "Quay lại chi tiết tòa nhà",
@@ -893,8 +851,8 @@
   "hotline": "Đường dây nóng",
   "email": "Email",
   "description": "Mô tả",
-  "save":  "Lưu",
-  "cancel":  "Hủy",
+  "save": "Lưu",
+  "cancel": "Hủy",
   "newDescription": "Mô tả mới",
   "loading": "Đang tải dữ liệu...",
   "error": "Lỗi tải dữ liệu",
@@ -920,22 +878,21 @@
   "unitList": "Danh sách căn hộ",
   "unit": "Căn hộ",
   "noUnit": "Không có căn hộ nào",
-  "action": "Hành động",
   "floorError": "Tầng phải lớn hơn 0",
   "bedroomsError": "Số phòng ngủ phải lớn hơn 0",
-  "bedroomsErrorRange": "Số phòng ngủ phải trong khoảng 1-9",
   "areaError": "Diện tích phải lớn hơn 0",
-  "areaErrorRange": "Diện tích phải > 0 và < 150",
   "nameError": "Tên căn hộ là bắt buộc",
-  "nameMaxError": "Tên căn hộ không được vượt quá 40 ký tự",
-  "nameSpecialCharError": "Tên căn hộ không được chứa ký tự đặc biệt",
   "addressError": "Địa chỉ là bắt buộc",
   "floorsError": "Số tầng phải lớn hơn 0",
-  "codeError": "Mã đã tồn tại",
+  "codeError": "Mã căn hộ đã tồn tại",
   "projectError": "Vui lòng chọn dự án",
   "success": "Tạo căn hộ thành công",
-  "errorBuilding": "Có lỗi xảy ra khi tạo căn hộ",
-  "missingBuildingId": "Thiếu buildingId hoặc tenantId"
+  "errorUnit": "Có lỗi xảy ra khi tạo căn hộ",
+  "missingBuildingId": "Thiếu buildingId hoặc tenantId",
+  "status": "Trạng thái",
+  "action": "Hành động",
+  "images": "Hình ảnh",
+  "additionalInfo": "Thông tin bổ sung"
   },
   "Vehicle": {
   "vehicleList": "Danh sách phương tiện",
@@ -1069,7 +1026,6 @@
     "createNews": "Tạo tin tức",
     "editNews": "Chỉnh sửa tin tức",
     "deleteNews": "Xóa tin tức",
-    "changeStatusTarget": "Thay đổi trạng thái & đối tượng",
     "newsTitle": "Tiêu đề tin tức",
     "newsContent": "Nội dung tin tức",
     "newsImage": "Hình ảnh tin tức",
@@ -1133,7 +1089,6 @@
     "createdAt": "Ngày tạo",
     "updatedAt": "Ngày cập nhật",
     "back": "Quay lại",
-    "goBack": "Quay lại",
     "edit": "Chỉnh sửa",
     "delete": "Xóa",
     "publish": "Xuất bản",
@@ -1150,26 +1105,19 @@
     "expired": "Đã hết hạn",
     "publishAt": "Ngày xuất bản",
     "expireAt": "Ngày hết hạn",
-    "publishAtRequired": "Vui lòng chọn ngày xuất bản",
-    "expireAtRequired": "Vui lòng chọn ngày hết hạn",
-    "titlePlaceholder": "Nhập tiêu đề tin tức",
-    "enterTitle": "Nhập tiêu đề tin tức",
-    "summaryPlaceholder": "Nhập tóm tắt tin tức",
-    "enterSummary": "Nhập tóm tắt tin tức",
-    "bodyPlaceholder": "Nhập nội dung tin tức",
-    "enterBodyHtml": "Nhập nội dung body HTML",
-    "publishDatePlaceholder": "Chọn ngày xuất bản",
-    "selectPublishDate": "Chọn ngày xuất bản",
-    "expireDatePlaceholder": "Chọn ngày hết hạn",
-    "selectExpireDate": "Chọn ngày hết hạn",
-    "imageDescriptionPlaceholder": "Nhập mô tả cho hình ảnh này",
-    "addNewNews": "Thêm tin tức mới",
     "selectBuilding": "Chọn tòa nhà",
     "allBuildings": "Tất cả tòa nhà",
     "actionUrl": "Action URL",
     "enterActionUrl": "Nhập Action URL (tùy chọn)",
     "iconUrl": "Icon URL",
     "enterIconUrl": "Nhập Icon URL (tùy chọn)",
+    "addNewNews": "Thêm tin tức mới",
+    "titlePlaceholder": "Nhập tiêu đề tin tức",
+    "summaryPlaceholder": "Nhập tóm tắt tin tức",
+    "bodyPlaceholder": "Nhập nội dung tin tức",
+    "publishDatePlaceholder": "Chọn ngày xuất bản",
+    "expireDatePlaceholder": "Chọn ngày hết hạn",
+    "imageDescriptionPlaceholder": "Nhập mô tả cho hình ảnh này",
     "bodyHtml": "Body HTML",
     "bodyHtmlPlaceholder": "Nhập nội dung tin tức (tùy chọn)",
     "coverImage": "Hình ảnh bìa",
@@ -1182,7 +1130,6 @@
     "publishAtPlaceholder": "Chọn ngày xuất bản",
     "expireAtPlaceholder": "Chọn ngày hết hạn",
     "scopePlaceholder": "Chọn phạm vi",
-    "selectScope": "Chọn phạm vi",
     "targetRolePlaceholder": "Chọn vai trò mục tiêu",
     "targetRoleAll": "Tất cả",
     "targetRoleAdmin": "Quản trị viên",
@@ -1199,19 +1146,7 @@
     "selectBuildingForExternalNews": "Vui lòng chọn tòa nhà cho tin tức Ngoại bộ",
     "internalNewsTargetRoleRequired": "Vui lòng chọn vai trò mục tiêu cho tin tức Nội bộ",
     "expireDate": "Ngày hết hạn",
-    "viewCount": "Lượt xem",
-    "titleRequired": "Vui lòng nhập tiêu đề tin tức",
-    "summaryRequired": "Vui lòng nhập tóm tắt tin tức",
-    "bodyHtmlRequired": "Vui lòng nhập nội dung tin tức",
-    "titleMaxLength": "Tiêu đề không được vượt quá 200 ký tự",
-    "summaryMaxLength": "Tóm tắt không được vượt quá 400 ký tự",
-    "publishAtMustBeFuture": "Ngày xuất bản phải lớn hơn ngày hôm nay",
-    "publishAtInvalid": "Ngày xuất bản phải trước ngày hết hạn",
-    "expireAtInvalid": "Ngày hết hạn phải lớn hơn ngày xuất bản",
-    "maxImagesError": "Chỉ được chọn tối đa 3 ảnh chi tiết",
-    "coverImageRequired": "Vui lòng chọn ảnh bìa",
-    "coverImageMustBeImage": "Ảnh bìa phải là file ảnh",
-    "detailImageMustBeImage": "Ảnh chi tiết phải là file ảnh"
+    "viewCount": "Lượt xem"
   },
   "AccountDetailRe": {
     "back": "Quay lại danh sách tài khoản",
@@ -1400,7 +1335,7 @@
       "cannotIdentifyAccountForDelete": "Không thể xác định tài khoản để xoá.",
       "deleteNotConfigured": "Chức năng xoá chưa được cấu hình.",
       "cannotDeleteInactiveAccount": "Không thể xóa tài khoản đang ngưng hoạt động.",
-      "noPermissionToEditAdmin": "Bạn không có quyền chỉnh sửa tài khoản admin."
+      "noPermissionToEditAdmin": "Bạn không có quyền xóa tài khoản admin."
     }
   },
   "Noti" : {
@@ -1468,165 +1403,5 @@
     "external": "Ngoại bộ",
     "internal": "Nội bộ",
     "selectScope": "Chọn phạm vi"
-  },
-  "Contracts": {
-  "title": "Quản lý hợp đồng căn hộ",
-  "subtitle": "Tạo mới và theo dõi các hợp đồng thuê/mua của từng căn hộ trong dự án.",
-  "buttons": {
-    "addContract": "Thêm hợp đồng",
-    "cancel": "Hủy",
-    "create": "Tạo hợp đồng",
-    "creating": "Đang tạo...",
-    "view": "Xem",
-    "uploadAttachment": "Tải tệp đính kèm",
-    "uploading": "Đang tải lên...",
-    "viewOrDownload": "Xem / tải",
-    "downloadHere": "Bấm vào đây để tải xuống",
-    "close": "Đóng"
-  },
-  "fields": {
-    "building": "Tòa nhà",
-    "unit": "Căn hộ",
-    "contractNumber": "Số hợp đồng",
-    "contractType": "Loại hợp đồng",
-    "status": "Trạng thái",
-    "startDate": "Ngày bắt đầu",
-    "endDate": "Ngày kết thúc",
-    "purchaseDate": "Ngày mua",
-    "monthlyRent": "Giá thuê / tháng",
-    "purchasePrice": "Giá mua",
-    "paymentMethod": "Phương thức thanh toán",
-    "paymentTerms": "Điều khoản thanh toán",
-    "notes": "Ghi chú",
-    "attachmentsRequired": "Tệp đính kèm hợp đồng (bắt buộc)"
-  },
-  "placeholders": {
-    "selectBuilding": "-- Chọn tòa nhà --",
-    "selectUnit": "-- Chọn căn hộ --",
-    "selectBuildingFirst": "Chọn tòa nhà trước",
-    "ddmmyyyy": "dd/mm/yyyy",
-    "contractNumber": "Ví dụ: HD-2025-0001",
-    "monthlyRent": "Ví dụ: 12000000",
-    "purchasePrice": "Ví dụ: 2500000000",
-    "selectPaymentMethod": "-- Chọn phương thức --",
-    "paymentTerms": "Ví dụ: trả theo quý...",
-    "notes": "Thông tin bổ sung về hợp đồng..."
-  },
-  "paymentMethods": {
-    "transfer": "Chuyển khoản",
-    "cash": "Tiền mặt",
-    "eWallet": "Ví điện tử",
-    "other": "Khác"
-  },
-  "contractTypes": {
-    "rental": "Thuê (RENTAL)",
-    "purchase": "Mua (PURCHASE)"
-  },
-  "status": {
-    "activeDefault": "Đang hiệu lực (mặc định)"
-  },
-  "table": {
-    "contractNumber": "Số hợp đồng",
-    "type": "Loại",
-    "validity": "Hiệu lực",
-    "status": "Trạng thái",
-    "detail": "Chi tiết",
-    "start": "Bắt đầu",
-    "end": "Kết thúc"
-  },
-  "loading": {
-    "buildings": "Đang tải danh sách tòa nhà...",
-    "units": "Đang tải danh sách căn hộ...",
-    "contracts": "Đang tải danh sách hợp đồng...",
-    "detail": "Đang tải chi tiết hợp đồng..."
-  },
-  "empty": {
-    "noContracts": "Căn hộ này hiện không có hợp đồng.",
-    "selectToView": "Chọn tòa nhà và căn hộ để xem danh sách hợp đồng.",
-    "noAttachments": "Hợp đồng chưa có tệp đính kèm. Bạn có thể tải tệp ngay tại đây."
-  },
-  "detail": {
-    "title": "Chi tiết hợp đồng",
-    "contractNumber": "Số hợp đồng",
-    "type": "Loại hợp đồng",
-    "status": "Trạng thái",
-    "start": "Ngày bắt đầu",
-    "end": "Ngày kết thúc",
-    "unlimited": "Không giới hạn",
-    "monthlyRent": "Giá thuê / tháng",
-    "purchasePrice": "Giá mua",
-    "purchaseDate": "Ngày mua",
-    "paymentMethod": "Phương thức thanh toán",
-    "paymentTerms": "Điều khoản thanh toán",
-    "notes": "Ghi chú",
-    "attachments": "Tệp đính kèm",
-    "unnamedFile": "Tệp không tên",
-    "unknownType": "Không rõ định dạng",
-    "unknownSize": "Kích thước không rõ",
-    "primaryFile": "Tệp chính",
-    "contractImageAlt": "Hình ảnh hợp đồng",
-    "cannotDisplayPdf": "Không thể hiển thị PDF."
-  },
-  "create": {
-    "title": "Thêm hợp đồng mới",
-    "subtitle": "Nhập thông tin hợp đồng thuê hoặc mua cho căn hộ được chọn."
-  },
-  "validation": {
-    "unitRequired": "Vui lòng chọn căn hộ trước khi tạo hợp đồng.",
-    "contractTypeRequired": "Vui lòng chọn loại hợp đồng.",
-    "startDateRequired": "Vui lòng chọn ngày bắt đầu hợp đồng.",
-    "startDateInvalid": "Ngày bắt đầu không hợp lệ.",
-    "startDateInFuture": "Ngày bắt đầu phải từ hôm nay trở đi.",
-    "endDateRequired": "Vui lòng chọn ngày kết thúc hợp đồng.",
-    "endDateInvalid": "Ngày kết thúc không hợp lệ.",
-    "endDateMinDiff": "Ngày kết thúc phải lớn hơn ngày bắt đầu ít nhất 1 tháng.",
-    "monthlyRentRequired": "Vui lòng nhập giá thuê hàng tháng.",
-    "paymentMethodRequired": "Vui lòng chọn phương thức thanh toán.",
-    "purchaseHasNoEndDate": "Hợp đồng mua không thể có ngày kết thúc.",
-    "purchasePriceRequired": "Vui lòng nhập giá mua cho hợp đồng mua.",
-    "purchaseDateRequired": "Vui lòng nhập ngày mua cho hợp đồng mua.",
-    "dateFormat": "Ngày phải theo định dạng dd/mm/yyyy.",
-    "filesRequired": "Vui lòng tải lên ít nhất 1 tệp đính kèm."
-  },
-  "errors": {
-    "loadBuildings": "Không thể tải danh sách tòa nhà.",
-    "loadUnits": "Không thể tải danh sách căn hộ của tòa nhà này.",
-    "loadContracts": "Đã xảy ra lỗi khi tải hợp đồng. Vui lòng thử lại.",
-    "createFailed": "Không thể tạo hợp đồng. Vui lòng thử lại."
-  },
-  "messages": {
-    "createSuccess": "Đã tạo hợp đồng thành công."
-  },
-  "common": {
-    "notSet": "Chưa thiết lập",
-    "unknown": "Không xác định"
-  },
-  "tableValues": {
-    "unknown": "Không rõ",
-    "notSet": "Chưa thiết lập",
-    "start": "Bắt đầu:",
-    "end": "Kết thúc:",
-    "unlimited": "Không giới hạn",
-    "active": "Đang hiệu lực",
-    "noFormat": "Không rõ định dạng",
-    "primaryFile": "Tệp chính",
-    "viewDownload": "Xem / tải"
-  },
-  "detailLabels": {
-    "contractType": "Loại hợp đồng:",
-    "status": "Trạng thái:",
-    "startDate": "Ngày bắt đầu:",
-    "endDate": "Ngày kết thúc:",
-    "unlimited": "Không giới hạn",
-    "monthlyRent": "Giá thuê / tháng:",
-    "purchasePrice": "Giá mua:",
-    "purchaseDate": "Ngày mua:",
-    "paymentMethod": "Phương thức thanh toán:",
-    "paymentTerms": "Điều khoản thanh toán:",
-    "notes": "Ghi chú:"
-  },
-  "unitLabel": {
-    "floor": "Tầng"
   }
-}
 }

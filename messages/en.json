@@ -148,16 +148,7 @@
     "management": "Management",
     "buildings": "Buildings",
     "employees": "Employees",
-    "home": "Home",
-    "buildingManagement": "Building Management",
-    "residentList": "Resident List",
-    "approveResidentAccount": "Approve Resident Account",
-    "approveFamilyMember": "Approve Family Member",
-    "unitContracts": "Unit Contracts",
-    "importContracts": "Import Contracts",
-    "vehicleManagement": "Vehicle Management",
-    "elevatorCard": "Elevator Card",
-    "residentCard": "Resident Card"
+    "home": "Home"
   },
   "Account": {
     "selectBuilding": "Select building",
@@ -247,16 +238,6 @@
     "messages": {
       "createSuccess": "Staff account created successfully.",
       "createError": "Unable to create staff account. Please try again."
-    },
-    "import": {
-      "fileRequired": "Please select an Excel file (.xlsx).",
-      "fileFormatError": "File must be in .xlsx format.",
-      "importError": "Unable to import staff accounts. Please try again.",
-      "downloadTemplateError": "Unable to download template file. Please try again.",
-      "downloadingTemplate": "Downloading template...",
-      "importing": "Importing...",
-      "downloadTemplate": "Download template file",
-      "importStaff": "Import staff"
     }
   },
   "AccountList": {
@@ -553,16 +534,10 @@
     "deleteBuildingConfirm": "Are you sure you want to delete building",
     "saving": "Is saving",
     "nameError": "Name is required",
-    "nameMaxError": "Name must not exceed 40 characters",
-    "nameSpecialCharError": "Name must not contain special characters",
     "addressError": "Address is required",
-    "addressDetailError": "Detailed address is required",
     "floorsError": "Floors must be greater than 0",
     "codeError": "Code has already been taken",
     "projectError": "Please select a project",
-    "cityRequired": "Please select a city",
-    "districtRequired": "Please select a district",
-    "wardRequired": "Please select a ward",
     "error": "Please fix the errors before saving",
     "success": "Building created successfully",
     "errorBuilding": "An error occurred while creating the building",
@@ -574,24 +549,7 @@
     "editBuildingError": "An error occurred while editing the building",
     "editBuildingReturn": "Return building list",
     "editBuildingDetail": "Return building detail",
-    "editBuildingDelete": "Delete building",
-    "confirmChangeStatusTitle": "Confirm status change",
-    "confirmDeactivateBuilding": "Are you sure you want to deactivate this building?",
-    "confirmActivateBuilding": "Are you sure you want to activate this building?",
-    "city": "City",
-    "district": "District",
-    "ward": "Ward",
-    "roadOptional": "Street/Hamlet (optional)",
-    "addressDetail": "Detailed address",
-    "placeholders": {
-      "selectCity": "Select city",
-      "selectDistrict": "Select district",
-      "selectWard": "Select ward",
-      "selectRoadOptional": "Select street/hamlet (optional)",
-      "noRoadData": "No street/hamlet data",
-      "addressDetail": "House number, building, floor..."
-    },
-    "roadHelper": "Optional. List is based on the selected area."
+    "editBuildingDelete": "Delete building"
   },
   "Service": {
     "listTitle": "Service List",
@@ -838,7 +796,6 @@
     "unitName": "Unit Name",
     "unitType": "Unit Type",
     "unitStatus": "Status",
-    "status": "Status",
     "ownerName": "Owner Name",
     "ownerContact": "Owner Contact",
     "return": "Return building detail",
@@ -876,22 +833,19 @@
     "unitList": "Unit List",
     "unit": "Unit",
     "noUnit": "No unit",
-    "action": "Action",
     "floorError": "Floor must be greater than 0",
     "bedroomsError": "Bedrooms must be greater than 0",
-    "bedroomsErrorRange": "Bedrooms must be between 1 and 9",
     "areaError": "Area must be greater than 0",
-    "areaErrorRange": "Area must be greater than 0 and less than 150",
     "nameError": "Name is required",
-    "nameMaxError": "Name must not exceed 40 characters",
-    "nameSpecialCharError": "Name must not contain special characters",
     "addressError": "Address is required",
     "floorsError": "Floors must be greater than 0",
     "codeError": "Code has already been taken",
     "projectError": "Please select a project",
     "success": "Building created successfully",
     "errorBuilding": "An error occurred while creating the building",
-    "missingBuildingId": "Missing buildingId or tenantId"
+    "missingBuildingId": "Missing buildingId or tenantId",
+    "status": "Status",
+    "action": "Action"
   },
   "Vehicle": {
     "vehicleList": "Vehicle List",
@@ -1025,7 +979,6 @@
     "createNews": "Create News",
     "editNews": "Edit News",
     "deleteNews": "Delete News",
-    "changeStatusTarget": "Change status & target",
     "newsTitle": "News Title",
     "newsContent": "News Content",
     "newsImage": "News Image",
@@ -1089,7 +1042,6 @@
     "createdAt": "Created At",
     "updatedAt": "Updated At",
     "back": "Back",
-    "goBack": "Go back",
     "edit": "Edit",
     "delete": "Delete",
     "publish": "Publish",
@@ -1105,15 +1057,10 @@
     "hidden": "Hidden",
     "expired": "Expired",
     "titlePlaceholder": "Enter news title",
-    "enterTitle": "Enter news title",
     "summaryPlaceholder": "Enter news summary",
-    "enterSummary": "Enter news summary",
     "bodyPlaceholder": "Enter news content",
-    "enterBodyHtml": "Enter body HTML",
     "publishDatePlaceholder": "Select publish date",
-    "selectPublishDate": "Select publish date",
     "expireDatePlaceholder": "Select expire date",
-    "selectExpireDate": "Select expire date",
     "imageDescriptionPlaceholder": "Enter image description",
     "addNewNews": "Add new news",
     "publishAt": "Publish date",
@@ -1136,7 +1083,6 @@
     "publishAtPlaceholder": "Select publish date",
     "expireAtPlaceholder": "Select expire date",
     "scopePlaceholder": "Select scope",
-    "selectScope": "Select scope",
     "targetRolePlaceholder": "Select target role",
     "targetRoleAll": "All roles",
     "targetRoleAdmin": "Admin",
@@ -1153,19 +1099,7 @@
     "selectBuildingForExternalNews": "Please select a building for EXTERNAL news",
     "internalNewsTargetRoleRequired": "Please select a target role for INTERNAL news",
     "expireDate": "Expire date",
-    "viewCount": "View count",
-    "titleRequired": "Please enter the news title",
-    "summaryRequired": "Please enter the news summary",
-    "bodyHtmlRequired": "Please enter the news content",
-    "titleMaxLength": "Title cannot exceed 200 characters",
-    "summaryMaxLength": "Summary cannot exceed 400 characters",
-    "publishAtMustBeFuture": "Publish date must be after today",
-    "publishAtInvalid": "Publish date must be before expire date",
-    "expireAtInvalid": "Expire date must be after publish date",
-    "maxImagesError": "Maximum 3 detail images allowed",
-    "coverImageRequired": "Please select a cover image",
-    "coverImageMustBeImage": "Cover image must be an image file",
-    "detailImageMustBeImage": "Detail image must be an image file"
+    "viewCount": "View count"
   },
   "AccountDetailRe": {
     "back": "Back to account list",
@@ -1354,7 +1288,7 @@
       "cannotIdentifyAccountForDelete": "Unable to identify account to delete.",
       "deleteNotConfigured": "Delete function is not configured.",
       "cannotDeleteInactiveAccount": "Cannot delete inactive account.",
-      "noPermissionToEditAdmin": "You do not have permission to edit admin account."
+      "noPermissionToEditAdmin": "You do not have permission to delete admin account."
     }
   },
   "Noti" : {
@@ -1557,33 +1491,6 @@
     },
     "hints": {
       "attachments": "Please upload at least one file (PDF, image...)"
-    },
-    "tableValues": {
-      "unknown": "Unknown",
-      "notSet": "Not set",
-      "start": "Start:",
-      "end": "End:",
-      "unlimited": "Unlimited",
-      "active": "Active",
-      "noFormat": "Unknown format",
-      "primaryFile": "Primary file",
-      "viewDownload": "View / download"
-    },
-    "detailLabels": {
-      "contractType": "Contract type:",
-      "status": "Status:",
-      "startDate": "Start date:",
-      "endDate": "End date:",
-      "unlimited": "Unlimited",
-      "monthlyRent": "Monthly rent:",
-      "purchasePrice": "Purchase price:",
-      "purchaseDate": "Purchase date:",
-      "paymentMethod": "Payment method:",
-      "paymentTerms": "Payment terms:",
-      "notes": "Notes:"
-    },
-    "unitLabel": {
-      "floor": "Floor"
     }
   }
 }
