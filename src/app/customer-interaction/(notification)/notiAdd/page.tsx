@@ -54,6 +54,7 @@ export default function NotificationAdd() {
 
     // Validation errors state
     const [errors, setErrors] = useState<{
+        type?: string;
         title?: string;
         message?: string;
     }>({});
@@ -90,9 +91,18 @@ export default function NotificationAdd() {
         const newErrors = { ...errors };
         
         switch (fieldName) {
+            case 'type':
+                if (!value || value.trim() === '') {
+                    newErrors.type = t('typeRequired') || 'Loại thông báo không được để trống';
+                } else {
+                    delete newErrors.type;
+                }
+                break;
             case 'title':
                 if (!value || value.trim() === '') {
                     newErrors.title = t('titleRequired');
+                } else if (value.trim().length > 200) {
+                    newErrors.title = t('titleMaxLength') || 'Tiêu đề không được vượt quá 200 ký tự';
                 } else {
                     delete newErrors.title;
                 }
@@ -112,13 +122,21 @@ export default function NotificationAdd() {
     // Validate all fields
     const validateAllFields = (): boolean => {
         const newErrors: {
+            type?: string;
             title?: string;
             message?: string;
         } = {};
 
+        // Validate type
+        if (!formData.type || formData.type.trim() === '') {
+            newErrors.type = t('typeRequired') || 'Loại thông báo không được để trống';
+        }
+
         // Validate title
         if (!formData.title || formData.title.trim() === '') {
             newErrors.title = t('titleRequired');
+        } else if (formData.title.trim().length > 200) {
+            newErrors.title = t('titleMaxLength') || 'Tiêu đề không được vượt quá 200 ký tự';
         }
 
         // Validate message
@@ -193,19 +211,27 @@ export default function NotificationAdd() {
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         const { name, value } = e.target;
+        // Enforce max length for title
+        let finalValue = value;
+        if (name === 'title' && value.length > 200) {
+            finalValue = value.substring(0, 200);
+        }
         setFormData((prev) => ({
             ...prev,
-            [name]: value,
+            [name]: finalValue,
         }));
         // Validate field on change
-        validateField(name, value);
+        validateField(name, finalValue);
     };
 
     const handleTypeChange = (item: { name: string; value: string }) => {
+        const newType = item.value as NotificationType;
         setFormData((prevData) => ({
             ...prevData,
-            type: item.value as NotificationType,
+            type: newType,
         }));
+        // Validate type on change
+        validateField('type', newType);
     };
 
     const handleScopeChange = (item: { name: string; value: string }) => {
@@ -269,7 +295,7 @@ export default function NotificationAdd() {
                     {/* Type */}
                     <div className={`col-span-full`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
-                            {t('notificationType')}
+                            {t('notificationType')} <span className="text-red-500">*</span>
                         </label>
                         <Select
                             options={[
@@ -285,7 +311,11 @@ export default function NotificationAdd() {
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
                             placeholder={t('selectNotificationType')}
+                            error={!!errors.type}
                         />
+                        {errors.type && (
+                            <span className="text-red-500 text-xs mt-1">{errors.type}</span>
+                        )}
                     </div>
 
                     {/* Title */}
@@ -297,7 +327,7 @@ export default function NotificationAdd() {
                             name="title"
                             placeholder={t('enterNotificationTitle')}
                             readonly={false}
-                            required={true}
+                            // required={true}
                             error={errors.title}
                         />
                     </div>
@@ -312,7 +342,7 @@ export default function NotificationAdd() {
                             type="textarea"
                             placeholder={t('enterNotificationContent')}
                             readonly={false}
-                            required={true}
+                            // required={true}
                             error={errors.message}
                         />
                     </div>

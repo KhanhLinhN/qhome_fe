@@ -148,7 +148,16 @@
     "management": "Management",
     "buildings": "Buildings",
     "employees": "Employees",
-    "home": "Home"
+    "home": "Home",
+    "buildingManagement": "Building Management",
+    "residentList": "Resident List",
+    "approveResidentAccount": "Approve Resident Account",
+    "approveFamilyMember": "Approve Family Member",
+    "unitContracts": "Unit Contracts",
+    "importContracts": "Import Contracts",
+    "vehicleManagement": "Vehicle Management",
+    "elevatorCard": "Elevator Card",
+    "residentCard": "Resident Card"
   },
   "Account": {
     "selectBuilding": "Select building",
@@ -238,6 +247,16 @@
     "messages": {
       "createSuccess": "Staff account created successfully.",
       "createError": "Unable to create staff account. Please try again."
+    },
+    "import": {
+      "fileRequired": "Please select an Excel file (.xlsx).",
+      "fileFormatError": "File must be in .xlsx format.",
+      "importError": "Unable to import staff accounts. Please try again.",
+      "downloadTemplateError": "Unable to download template file. Please try again.",
+      "downloadingTemplate": "Downloading template...",
+      "importing": "Importing...",
+      "downloadTemplate": "Download template file",
+      "importStaff": "Import staff"
     }
   },
   "AccountList": {
@@ -1086,6 +1105,7 @@
     "hidden": "Hidden",
     "expired": "Expired",
     "titlePlaceholder": "Enter news title",
+    "enterTitle": "Enter news title",
     "summaryPlaceholder": "Enter news summary",
     "enterSummary": "Enter news summary",
     "bodyPlaceholder": "Enter news content",
@@ -1093,6 +1113,7 @@
     "publishDatePlaceholder": "Select publish date",
     "selectPublishDate": "Select publish date",
     "expireDatePlaceholder": "Select expire date",
+    "selectExpireDate": "Select expire date",
     "imageDescriptionPlaceholder": "Enter image description",
     "addNewNews": "Add new news",
     "publishAt": "Publish date",
@@ -1115,6 +1136,7 @@
     "publishAtPlaceholder": "Select publish date",
     "expireAtPlaceholder": "Select expire date",
     "scopePlaceholder": "Select scope",
+    "selectScope": "Select scope",
     "targetRolePlaceholder": "Select target role",
     "targetRoleAll": "All roles",
     "targetRoleAdmin": "Admin",
@@ -1131,7 +1153,19 @@
     "selectBuildingForExternalNews": "Please select a building for EXTERNAL news",
     "internalNewsTargetRoleRequired": "Please select a target role for INTERNAL news",
     "expireDate": "Expire date",
-    "viewCount": "View count"
+    "viewCount": "View count",
+    "titleRequired": "Please enter the news title",
+    "summaryRequired": "Please enter the news summary",
+    "bodyHtmlRequired": "Please enter the news content",
+    "titleMaxLength": "Title cannot exceed 200 characters",
+    "summaryMaxLength": "Summary cannot exceed 400 characters",
+    "publishAtMustBeFuture": "Publish date must be after today",
+    "publishAtInvalid": "Publish date must be before expire date",
+    "expireAtInvalid": "Expire date must be after publish date",
+    "maxImagesError": "Maximum 3 detail images allowed",
+    "coverImageRequired": "Please select a cover image",
+    "coverImageMustBeImage": "Cover image must be an image file",
+    "detailImageMustBeImage": "Detail image must be an image file"
   },
   "AccountDetailRe": {
     "back": "Back to account list",
@@ -1523,6 +1557,33 @@
     },
     "hints": {
       "attachments": "Please upload at least one file (PDF, image...)"
+    },
+    "tableValues": {
+      "unknown": "Unknown",
+      "notSet": "Not set",
+      "start": "Start:",
+      "end": "End:",
+      "unlimited": "Unlimited",
+      "active": "Active",
+      "noFormat": "Unknown format",
+      "primaryFile": "Primary file",
+      "viewDownload": "View / download"
+    },
+    "detailLabels": {
+      "contractType": "Contract type:",
+      "status": "Status:",
+      "startDate": "Start date:",
+      "endDate": "End date:",
+      "unlimited": "Unlimited",
+      "monthlyRent": "Monthly rent:",
+      "purchasePrice": "Purchase price:",
+      "purchaseDate": "Purchase date:",
+      "paymentMethod": "Payment method:",
+      "paymentTerms": "Payment terms:",
+      "notes": "Notes:"
+    },
+    "unitLabel": {
+      "floor": "Floor"
     }
   }
 }

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useNewsList } from '@/src/hooks/useNewsList';
@@ -11,6 +11,7 @@ import { useNotifications } from '@/src/hooks/useNotifications';
 import { NewsStatus, NotificationScope } from '@/src/types/news';
 import { updateNews } from '@/src/services/customer-interaction/newService';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 export default function NewsList() {
     const t = useTranslations('News');
@@ -19,18 +20,47 @@ export default function NewsList() {
     const { show } = useNotifications();
     
     const [selectedStatus, setSelectedStatus] = useState<NewsStatus | ''>('');
+    const [pageNo, setPageNo] = useState<number>(0);
+    const [pageSize] = useState<number>(10);
     
     const { newsList, loading, error, refetch } = useNewsList(selectedStatus || undefined);
 
     const headers = [t('title'), t('summary'), t('status'), t('publishDate'), t('endDate'), t('action')];
 
-    const handleAdd = () => {
-        router.push('/customer-interaction/new/newAdd');
+    // Sort news by createdAt desc (newest first)
+    const orderedNews = useMemo(() => {
+        if (!newsList || newsList.length === 0) return [];
+        return newsList.slice().sort((a, b) => {
+            const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return tb - ta; // Descending order (newest first)
+        });
+    }, [newsList]);
+
+    // Paginate the sorted news
+    const paginatedNews = useMemo(() => {
+        const startIndex = pageNo * pageSize;
+        const endIndex = startIndex + pageSize;
+        return orderedNews.slice(startIndex, endIndex);
+    }, [orderedNews, pageNo, pageSize]);
+
+    const totalPages = useMemo(() => {
+        return pageSize > 0 ? Math.ceil(orderedNews.length / pageSize) : 0;
+    }, [orderedNews.length, pageSize]);
+
+    const handlePageChange = (newPage: number) => {
+        setPageNo(newPage);
     };
 
     const handleStatusChange = (item: { name: string; value: string }) => {
         setSelectedStatus(item.value as NewsStatus | '');
+        setPageNo(0); // Reset to first page when filter changes
     };
+
+    const handleAdd = () => {
+        router.push('/customer-interaction/new/newAdd');
+    };
+
 
     const handleEdit = (id: string) => {
         router.push(`/customer-interaction/new/newDetail/${id}`);
@@ -134,8 +164,8 @@ export default function NewsList() {
         }
     };
 
-    // Transform news list to table data format
-    const tableData = newsList.map((news) => ({
+    // Transform paginated news list to table data format
+    const tableData = paginatedNews.map((news) => ({
         newsId: news.id,
         title: news.title,
         summary: news.summary,
@@ -223,7 +253,10 @@ export default function NewsList() {
                             </div>
                             {selectedStatus && (
                                 <button
-                                    onClick={() => setSelectedStatus('')}
+                                    onClick={() => {
+                                        setSelectedStatus('');
+                                        setPageNo(0);
+                                    }}
                                     className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                                 >
                                     {t('removeFilter')}
@@ -234,7 +267,7 @@ export default function NewsList() {
                 </div>
 
                 {/* Table */}
-                {newsList.length === 0 ? (
+                {orderedNews.length === 0 ? (
                     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center text-gray-500">
                         {t('noNews')}
                     </div>
@@ -247,6 +280,11 @@ export default function NewsList() {
                             onEdit={handleEdit}
                             onDelete={handleDelete}
                             onNewsChangeStatusAndTarget={handleOpenChangeStatusTarget}
+                        />
+                        <Pagination
+                            currentPage={pageNo + 1}
+                            totalPages={totalPages}
+                            onPageChange={(page) => handlePageChange(page - 1)}
                         />
                         {changeOpen && (
                             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">

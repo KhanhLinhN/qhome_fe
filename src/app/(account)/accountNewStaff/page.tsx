@@ -74,16 +74,81 @@ export default function AccountNewStaffPage() {
     router.push('/accountList');
   };
 
+  // Validate individual field
+  const validateField = async (field: keyof FormState, value: string) => {
+    switch (field) {
+      case 'username':
+        setUsernameError(null);
+        if (!value.trim()) {
+          setUsernameError(t('validation.username.required'));
+        } else if (/\s/.test(value)) {
+          setUsernameError(t('validation.username.noWhitespace'));
+        } else if (value.length > 40) {
+          setUsernameError(t('validation.username.maxLength'));
+        } else {
+          // Check username tồn tại trong database
+          try {
+            const exists = await checkUsernameExists(value.trim());
+            if (exists) {
+              setUsernameError(t('validation.username.exists'));
+            }
+          } catch (err: any) {
+            // Nếu có lỗi khi check (network, etc.), không hiển thị lỗi
+            console.error('Error checking username:', err);
+          }
+        }
+        break;
+      case 'email':
+        setEmailError(null);
+        if (!value.trim()) {
+          setEmailError(t('validation.email.required'));
+        } else if (/\s/.test(value)) {
+          setEmailError(t('validation.email.noWhitespace'));
+        } else if (value.length > 40) {
+          setEmailError(t('validation.email.maxLength'));
+        } else if (!validateEmailFormat(value)) {
+          setEmailError(t('validation.email.invalid'));
+        } else {
+          // Check email tồn tại trong database
+          try {
+            const exists = await checkEmailExists(value.trim());
+            if (exists) {
+              setEmailError(t('validation.email.exists'));
+            }
+          } catch (err: any) {
+            // Nếu có lỗi khi check (network, etc.), không hiển thị lỗi
+            console.error('Error checking email:', err);
+          }
+        }
+        break;
+      case 'role':
+        setRoleError(null);
+        if (!value) {
+          setRoleError(t('validation.role.required'));
+        }
+        break;
+    }
+  };
+
   const handleChange =
     (field: keyof FormState) =>
     (event: ChangeEvent<HTMLInputElement>) => {
       const value =
         field === 'active' ? event.target.checked : event.target.value;
       setForm((prev) => ({ ...prev, [field]: value }));
+      // Validate field on change
+      if (field === 'username' || field === 'email') {
+        setTimeout(() => {
+          validateField(field, String(value));
+        }, 500); // Debounce 500ms for async checks
+      } else if (field === 'role') {
+        validateField(field, String(value));
+      }
     };
 
   const handleRoleSelect = (roleId: string) => {
     setForm((prev) => ({ ...prev, role: roleId }));
+    validateField('role', roleId);
   };
 
   const resetMessages = () => {

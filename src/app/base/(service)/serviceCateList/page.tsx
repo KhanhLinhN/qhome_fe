@@ -157,6 +157,26 @@ export default function ServiceCategoryListPage() {
     setFormErrors({});
   };
 
+  // Validate individual field
+  const validateField = (fieldName: string, value: string) => {
+    const newErrors = { ...formErrors };
+    
+    switch (fieldName) {
+      case 'name':
+        const name = value.trim();
+        if (!name) {
+          newErrors.name = t('validation.name');
+        } else if (name.length > 40) {
+          newErrors.name = t('validation.nameMax40');
+        } else {
+          delete newErrors.name;
+        }
+        break;
+    }
+    
+    setFormErrors(newErrors);
+  };
+
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -165,6 +185,10 @@ export default function ServiceCategoryListPage() {
       ...prev,
       [name]: value,
     }));
+    // Validate field on change
+    if (name === 'name') {
+      validateField(name, value);
+    }
   };
 
   const handleStatusChange = (item: { name: string; value: string }) => {

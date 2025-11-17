@@ -83,6 +83,36 @@ export default function ServiceCategoryCreatePage() {
     router.push('/base/serviceCateList');
   };
 
+  // Validate individual field
+  const validateField = (fieldName: string, value: string) => {
+    const newErrors = { ...formErrors };
+    
+    switch (fieldName) {
+      case 'name':
+        const name = value.trim();
+        const nameRegex = /^[a-zA-ZÀ-ỹĐđ0-9\s'-]+$/u;
+        if (!name) {
+          newErrors.name = t('validation.name');
+        } else if (name.length > 40) {
+          newErrors.name = t('validation.nameMax40');
+        } else if (!nameRegex.test(name)) {
+          newErrors.name = t('validation.nameNoSpecialChars');
+        } else {
+          delete newErrors.name;
+        }
+        break;
+      case 'code':
+        if (!value.trim()) {
+          newErrors.code = t('validation.code');
+        } else {
+          delete newErrors.code;
+        }
+        break;
+    }
+    
+    setFormErrors(newErrors);
+  };
+
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -91,6 +121,10 @@ export default function ServiceCategoryCreatePage() {
       ...prev,
       [name]: value,
     }));
+    // Validate field on change
+    if (name === 'name' || name === 'code') {
+      validateField(name, value);
+    }
   };
 
   const validate = () => {

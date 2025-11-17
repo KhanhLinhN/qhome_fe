@@ -153,7 +153,16 @@
     "management": "Quản lý",
     "buildings": "Tòa nhà",
     "employees": "Nhân viên",
-    "home": "Trang chủ"
+    "home": "Trang chủ",
+    "buildingManagement": "Quản lý Building",
+    "residentList": "Danh sách cư dân",
+    "approveResidentAccount": "Duyệt tài khoản cư dân",
+    "approveFamilyMember": "Duyệt thành viên gia đình",
+    "unitContracts": "Hợp đồng căn hộ",
+    "importContracts": "Import hợp đồng",
+    "vehicleManagement": "Quản lý phương tiện",
+    "elevatorCard": "Thẻ thang máy",
+    "residentCard": "Thẻ cư dân"
   },
   "Account": {
     "selectBuilding": "Chọn tòa nhà",
@@ -243,6 +252,16 @@
     "messages": {
       "createSuccess": "Tạo tài khoản nhân viên thành công.",
       "createError": "Không thể tạo tài khoản nhân viên. Vui lòng thử lại."
+    },
+    "import": {
+      "fileRequired": "Vui lòng chọn file Excel (.xlsx).",
+      "fileFormatError": "File phải có định dạng .xlsx.",
+      "importError": "Không thể import tài khoản nhân viên. Vui lòng thử lại.",
+      "downloadTemplateError": "Không thể tải file template. Vui lòng thử lại.",
+      "downloadingTemplate": "Đang tải template...",
+      "importing": "Đang import...",
+      "downloadTemplate": "Tải file template",
+      "importStaff": "Import nhân viên"
     }
   },
   "AccountList": {
@@ -1134,6 +1153,7 @@
     "publishAtRequired": "Vui lòng chọn ngày xuất bản",
     "expireAtRequired": "Vui lòng chọn ngày hết hạn",
     "titlePlaceholder": "Nhập tiêu đề tin tức",
+    "enterTitle": "Nhập tiêu đề tin tức",
     "summaryPlaceholder": "Nhập tóm tắt tin tức",
     "enterSummary": "Nhập tóm tắt tin tức",
     "bodyPlaceholder": "Nhập nội dung tin tức",
@@ -1141,6 +1161,7 @@
     "publishDatePlaceholder": "Chọn ngày xuất bản",
     "selectPublishDate": "Chọn ngày xuất bản",
     "expireDatePlaceholder": "Chọn ngày hết hạn",
+    "selectExpireDate": "Chọn ngày hết hạn",
     "imageDescriptionPlaceholder": "Nhập mô tả cho hình ảnh này",
     "addNewNews": "Thêm tin tức mới",
     "selectBuilding": "Chọn tòa nhà",
@@ -1161,6 +1182,7 @@
     "publishAtPlaceholder": "Chọn ngày xuất bản",
     "expireAtPlaceholder": "Chọn ngày hết hạn",
     "scopePlaceholder": "Chọn phạm vi",
+    "selectScope": "Chọn phạm vi",
     "targetRolePlaceholder": "Chọn vai trò mục tiêu",
     "targetRoleAll": "Tất cả",
     "targetRoleAdmin": "Quản trị viên",
@@ -1177,7 +1199,19 @@
     "selectBuildingForExternalNews": "Vui lòng chọn tòa nhà cho tin tức Ngoại bộ",
     "internalNewsTargetRoleRequired": "Vui lòng chọn vai trò mục tiêu cho tin tức Nội bộ",
     "expireDate": "Ngày hết hạn",
-    "viewCount": "Lượt xem"
+    "viewCount": "Lượt xem",
+    "titleRequired": "Vui lòng nhập tiêu đề tin tức",
+    "summaryRequired": "Vui lòng nhập tóm tắt tin tức",
+    "bodyHtmlRequired": "Vui lòng nhập nội dung tin tức",
+    "titleMaxLength": "Tiêu đề không được vượt quá 200 ký tự",
+    "summaryMaxLength": "Tóm tắt không được vượt quá 400 ký tự",
+    "publishAtMustBeFuture": "Ngày xuất bản phải lớn hơn ngày hôm nay",
+    "publishAtInvalid": "Ngày xuất bản phải trước ngày hết hạn",
+    "expireAtInvalid": "Ngày hết hạn phải lớn hơn ngày xuất bản",
+    "maxImagesError": "Chỉ được chọn tối đa 3 ảnh chi tiết",
+    "coverImageRequired": "Vui lòng chọn ảnh bìa",
+    "coverImageMustBeImage": "Ảnh bìa phải là file ảnh",
+    "detailImageMustBeImage": "Ảnh chi tiết phải là file ảnh"
   },
   "AccountDetailRe": {
     "back": "Quay lại danh sách tài khoản",
@@ -1566,6 +1600,33 @@
   "common": {
     "notSet": "Chưa thiết lập",
     "unknown": "Không xác định"
+  },
+  "tableValues": {
+    "unknown": "Không rõ",
+    "notSet": "Chưa thiết lập",
+    "start": "Bắt đầu:",
+    "end": "Kết thúc:",
+    "unlimited": "Không giới hạn",
+    "active": "Đang hiệu lực",
+    "noFormat": "Không rõ định dạng",
+    "primaryFile": "Tệp chính",
+    "viewDownload": "Xem / tải"
+  },
+  "detailLabels": {
+    "contractType": "Loại hợp đồng:",
+    "status": "Trạng thái:",
+    "startDate": "Ngày bắt đầu:",
+    "endDate": "Ngày kết thúc:",
+    "unlimited": "Không giới hạn",
+    "monthlyRent": "Giá thuê / tháng:",
+    "purchasePrice": "Giá mua:",
+    "purchaseDate": "Ngày mua:",
+    "paymentMethod": "Phương thức thanh toán:",
+    "paymentTerms": "Điều khoản thanh toán:",
+    "notes": "Ghi chú:"
+  },
+  "unitLabel": {
+    "floor": "Tầng"
   }
-  }
+}
 }

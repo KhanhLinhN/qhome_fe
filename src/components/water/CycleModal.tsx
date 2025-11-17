@@ -27,37 +27,24 @@ export default function CycleModal({ isOpen, onClose, onSubmit, mode, initialDat
   const [dateErrorFrom, setDateErrorFrom] = useState<string>('');
   const [nameError, setNameError] = useState<string>('');
 
-  // Helpers for dd/mm/yyyy <-> ISO/Date
-  const isoToDdmmyyyy = (isoString: string): string => {
+  // Helper function to convert ISO date to YYYY-MM-DD for DateBox display
+  const formatISOToDate = (isoString: string): string => {
     if (!isoString) return '';
-    const d = new Date(isoString);
-    if (Number.isNaN(d.getTime())) return '';
-    const dd = String(d.getUTCDate()).padStart(2, '0');
-    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const yyyy = d.getUTCFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  };
-  const ddmmyyyyToDate = (text: string): Date | null => {
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(text)) return null;
-    const [d, m, y] = text.split('/').map(Number);
-    const dt = new Date(y, m - 1, d);
-    if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
-    return dt;
-  };
-  const ddmmyyyyToYyyyMmDd = (text: string): string => {
-    const dt = ddmmyyyyToDate(text);
-    if (!dt) return '';
-    const yyyy = String(dt.getFullYear());
-    const mm = String(dt.getMonth() + 1).padStart(2, '0');
-    const dd = String(dt.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    
+    // If already in YYYY-MM-DD format, return as is
+    if (!isoString.includes('T')) {
+      return isoString;
+    }
+    
+    // Extract YYYY-MM-DD from ISO string
+    return isoString.split('T')[0];
   };
 
   useEffect(() => {
     if (mode === 'edit' && initialData) {
       setName(initialData.name);
-      setPeriodFrom(isoToDdmmyyyy(initialData.fromDate || initialData.periodFrom));
-      setPeriodTo(isoToDdmmyyyy(initialData.toDate || initialData.periodTo));
+      setPeriodFrom(formatISOToDate(initialData.fromDate || initialData.periodFrom));
+      setPeriodTo(formatISOToDate(initialData.toDate || initialData.periodTo));
       setDescription(initialData.description || '');
       setDateError('');
     } else {
@@ -72,8 +59,8 @@ export default function CycleModal({ isOpen, onClose, onSubmit, mode, initialDat
   // Validate date range (only for create mode)
   useEffect(() => {
     if (mode === 'create' && periodFrom && periodTo) {
-      const fromDate = ddmmyyyyToDate(periodFrom);
-      const toDate = ddmmyyyyToDate(periodTo);
+      const fromDate = new Date(periodFrom);
+      const toDate = new Date(periodTo);
       if (fromDate > toDate) {
         setDateError('From date cannot be greater than To date');
       } else {
@@ -156,15 +143,15 @@ export default function CycleModal({ isOpen, onClose, onSubmit, mode, initialDat
       if (mode === 'create') {
         await onSubmit({
           name,
-          periodFrom: ddmmyyyyToYyyyMmDd(periodFrom),
-          periodTo: ddmmyyyyToYyyyMmDd(periodTo),
+          periodFrom,
+          periodTo,
           description,
         } as ReadingCycleCreateReq);
       } else {
         await onSubmit({
           name,
-          periodFrom: ddmmyyyyToYyyyMmDd(periodFrom),
-          periodTo: ddmmyyyyToYyyyMmDd(periodTo),
+          periodFrom,
+          periodTo,
           description,
         } as ReadingCycleUpdateReq);
       }
