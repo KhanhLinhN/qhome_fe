@@ -4,11 +4,15 @@ import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import Delete from '@/src/assets/Delete.svg';
 import Edit from '@/src/assets/Edit.svg';
+import EditTable from '@/src/assets/EditTable.svg';
 import DetailField from '@/src/components/base-service/DetailField';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useBuildingDetailPage } from '@/src/hooks/useBuildingDetailPage';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { getUnitsByBuildingId } from '@/src/services/base/buildingService';
+import { Unit } from '@/src/types/unit';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useDeleteBuilding } from '@/src/hooks/useBuildingDelete';
 import FormulaPopup from '@/src/components/common/FormulaPopup';
@@ -16,17 +20,17 @@ import FormulaPopup from '@/src/components/common/FormulaPopup';
 export default function BuildingDetail () {
 
     const { user, hasRole } = useAuth();
-    const t = useTranslations('Building');
+    const t = useTranslations('Building'); 
+    const tUnits = useTranslations('Unit');
     const router = useRouter();
     const params = useParams();
     const buildingId = params.id;
     const { buildingData, loading, error, isSubmitting } = useBuildingDetailPage(buildingId);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const { deleteBuildingById, isLoading: isDeleting } = useDeleteBuilding();
-    
-    useEffect(() => {
-        console.log('buildingData', buildingData);
-    }, [buildingData]);
+    const [units, setUnits] = useState<Unit[]>([]);
+    const [loadingUnits, setLoadingUnits] = useState(false);
+    const [unitsError, setUnitsError] = useState<string | null>(null);
+    const { deleteBuildingById, isLoading: isDeleting } = useDeleteBuilding();    
     
     const handleBack = () => {
         router.push(`/base/building/buildingList`);
