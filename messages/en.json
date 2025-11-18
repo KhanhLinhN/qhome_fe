@@ -370,6 +370,7 @@
   "Popup":{
     "yes": "Yes",
     "no": "No",
+    "close": "Close",
     "deleteProjectT": "Delete project?",
     "deleteProjectC": "Are you sure you want to delete project",
     "saveNewT": "Save new change?",
@@ -789,7 +790,13 @@
     },
     "cancel": "Cancel",
     "save": "Save",
-    "saving": "Saving"
+    "saving": "Saving",
+    "changeStatus": "Change status",
+    "viewItems": "View items",
+    "confirmTicketStatusChange": "Confirm ticket status change",
+    "confirmOptionStatusChange": "Confirm option status change",
+    "confirmComboStatusChange": "Confirm combo status change",
+    "comboItemName": "Combo item name"
   },
   "Unit": {
     "unitCode": "Unit Code",

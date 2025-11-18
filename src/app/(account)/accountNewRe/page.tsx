@@ -293,11 +293,21 @@ export default function AccountNewResidentPage() {
     return null;
   };
 
+  // Validate username format: only letters (no accents), numbers, and @, _, -, .
+  const validateUsernameFormat = (username: string): boolean => {
+    // Only allow: a-z, A-Z, 0-9, @, _, -, .
+    const usernameRegex = /^[a-zA-Z0-9@_\-\.]+$/;
+    return usernameRegex.test(username);
+  };
+
   // Validate username
   const validateUsername = (username: string): string | null => {
     if (username.trim()) {
       if (/\s/.test(username)) {
         return 'Tên đăng nhập không được chứa khoảng trắng.';
+      }
+      if (!validateUsernameFormat(username)) {
+        return 'Tên đăng nhập chỉ được chứa chữ cái không dấu, số và các ký tự @, _, -, .';
       }
       if (username.length > 40) {
         return 'Tên đăng nhập không được vượt quá 40 ký tự.';
