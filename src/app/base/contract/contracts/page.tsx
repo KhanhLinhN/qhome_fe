@@ -12,6 +12,7 @@ import {
   fetchContractDetail,
   fetchContractsByUnit,
   uploadContractFiles,
+  getAllContracts,
 } from '@/src/services/base/contractService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 
@@ -90,6 +91,7 @@ export default function ContractManagementPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [detailUploadError, setDetailUploadError] = useState<string | null>(null);
   const [detailUploading, setDetailUploading] = useState(false);
+  const [generatingContractNumber, setGeneratingContractNumber] = useState(false);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailState, setDetailState] = useState<{
@@ -175,13 +177,13 @@ export default function ContractManagementPage() {
         } else if (typeof value === 'string' && !isValidDate(value)) {
           newErrors.startDate = 'Ngày bắt đầu phải theo định dạng YYYY-MM-DD.';
         } else if (typeof value === 'string' && value.trim()) {
-          // Check if startDate >= today
+          // Check if startDate > today (must be greater than today, not equal)
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const startDate = new Date(value);
           startDate.setHours(0, 0, 0, 0);
-          if (startDate < today) {
-            newErrors.startDate = 'Ngày bắt đầu phải lớn hơn hoặc bằng ngày hôm nay.';
+          if (startDate <= today) {
+            newErrors.startDate = 'Ngày bắt đầu phải lớn hơn ngày hôm nay.';
           } else {
             delete newErrors.startDate;
           }
@@ -213,12 +215,36 @@ export default function ContractManagementPage() {
           delete newErrors.endDate;
         }
         break;
+      case 'purchaseDate':
+        if (state.contractType === 'PURCHASE') {
+          if (!value || (typeof value === 'string' && !value.trim())) {
+            newErrors.purchaseDate = 'Vui lòng nhập ngày mua cho hợp đồng mua.';
+          } else if (typeof value === 'string' && !isValidDate(value)) {
+            newErrors.purchaseDate = 'Ngày mua phải theo định dạng YYYY-MM-DD.';
+          } else if (typeof value === 'string' && value.trim() && state.startDate) {
+            // Check if purchaseDate >= startDate
+            const startDate = new Date(state.startDate);
+            const purchaseDate = new Date(value);
+            startDate.setHours(0, 0, 0, 0);
+            purchaseDate.setHours(0, 0, 0, 0);
+            if (purchaseDate < startDate) {
+              newErrors.purchaseDate = 'Ngày mua phải lớn hơn hoặc bằng ngày bắt đầu.';
+            } else {
+              delete newErrors.purchaseDate;
+            }
+          } else {
+            delete newErrors.purchaseDate;
+          }
+        } else {
+          delete newErrors.purchaseDate;
+        }
+        break;
       case 'monthlyRent':
         if (state.contractType === 'RENTAL') {
           if (value === null || value === undefined) {
             newErrors.monthlyRent = 'Vui lòng nhập giá thuê hàng tháng cho hợp đồng thuê.';
-          } else if (typeof value === 'number' && value < 0) {
-            newErrors.monthlyRent = 'Giá thuê phải lớn hơn hoặc bằng 0.';
+          } else if (typeof value === 'number' && value <= 0) {
+            newErrors.monthlyRent = 'Giá thuê phải lớn hơn 0.';
           } else {
             delete newErrors.monthlyRent;
           }
@@ -230,8 +256,8 @@ export default function ContractManagementPage() {
         if (state.contractType === 'PURCHASE') {
           if (value === null || value === undefined) {
             newErrors.purchasePrice = 'Vui lòng nhập giá mua cho hợp đồng mua.';
-          } else if (typeof value === 'number' && value < 0) {
-            newErrors.purchasePrice = 'Giá mua phải lớn hơn hoặc bằng 0.';
+          } else if (typeof value === 'number' && value <= 0) {
+            newErrors.purchasePrice = 'Giá mua phải lớn hơn 0.';
           } else {
             delete newErrors.purchasePrice;
           }
@@ -260,6 +286,12 @@ export default function ContractManagementPage() {
             delete newErrors.paymentMethod;
           }
         } else {
+          // For PURCHASE, payment method is not required, but if we want to make it required, uncomment below
+          // if (!value || (typeof value === 'string' && !value.trim())) {
+          //   newErrors.paymentMethod = 'Vui lòng chọn phương thức thanh toán.';
+          // } else {
+          //   delete newErrors.paymentMethod;
+          // }
           delete newErrors.paymentMethod;
         }
         break;
@@ -374,7 +406,7 @@ export default function ContractManagementPage() {
     await loadContracts(unitId);
   };
 
-  const handleOpenCreateModal = () => {
+  const handleOpenCreateModal = async () => {
     setCreateError(null);
     setCreateSuccess(null);
     setCreateModalOpen(true);
@@ -385,6 +417,18 @@ export default function ContractManagementPage() {
     setFormErrors({});
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    
+    // Generate contract number
+    setGeneratingContractNumber(true);
+    try {
+      const contractNumber = await generateAutoContractNumber();
+      setFieldValue('contractNumber', contractNumber);
+    } catch (err) {
+      console.error('Failed to generate contract number:', err);
+      // Still allow form to open, user can manually enter
+    } finally {
+      setGeneratingContractNumber(false);
     }
   };
 
@@ -414,6 +458,47 @@ export default function ContractManagementPage() {
   const isValidDate = (value?: string | null) => {
     if (!value) return true;
     return /^\d{4}-\d{2}-\d{2}$/.test(value);
+  };
+
+  // Generate auto contract number: HD-<ddmmyy>-<6 digits>
+  const generateAutoContractNumber = async (): Promise<string> => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    const datePart = `${day}${month}${year}`;
+    
+    // Try to get all contracts to check existing numbers
+    let existingContracts: ContractSummary[] = [];
+    try {
+      // Since we don't have a direct endpoint to get all contracts,
+      // we'll generate and let backend handle uniqueness
+      // If duplicate, backend will throw error and we'll retry with incremented number
+      existingContracts = await getAllContracts();
+    } catch (err) {
+      // If we can't fetch all contracts, we'll still try to generate
+      console.warn('Could not fetch all contracts for uniqueness check:', err);
+    }
+    
+    // Extract existing numbers with same date prefix
+    const prefix = `HD-${datePart}-`;
+    const existingNumbers = existingContracts
+      .map(c => c.contractNumber)
+      .filter((num): num is string => num !== null && num.startsWith(prefix))
+      .map(num => {
+        const suffix = num.replace(prefix, '');
+        const numValue = parseInt(suffix, 10);
+        return isNaN(numValue) ? 0 : numValue;
+      });
+    
+    // Find next available number
+    let nextNumber = 1;
+    if (existingNumbers.length > 0) {
+      const maxNumber = Math.max(...existingNumbers);
+      nextNumber = maxNumber + 1;
+    }
+    
+    return `${prefix}${String(nextNumber).padStart(6, '0')}`;
   };
 
   const handleUploadFilesForDetail = async (files: FileList | null) => {
@@ -461,14 +546,39 @@ export default function ContractManagementPage() {
       errors.startDate = 'Vui lòng chọn ngày bắt đầu hợp đồng.';
     } else if (!isValidDate(formState.startDate)) {
       errors.startDate = 'Ngày bắt đầu phải theo định dạng YYYY-MM-DD.';
+    } else {
+      // Check if startDate > today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const startDate = new Date(formState.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      if (startDate <= today) {
+        errors.startDate = 'Ngày bắt đầu phải lớn hơn ngày hôm nay.';
+      }
     }
 
     if (formState.contractType === 'RENTAL') {
       if (formState.monthlyRent === null || formState.monthlyRent === undefined) {
         errors.monthlyRent = 'Vui lòng nhập giá thuê hàng tháng cho hợp đồng thuê.';
+      } else if (formState.monthlyRent <= 0) {
+        errors.monthlyRent = 'Giá thuê phải lớn hơn 0.';
       }
-      if (formState.endDate && !isValidDate(formState.endDate)) {
+      if (!formState.endDate) {
+        errors.endDate = 'Vui lòng chọn ngày kết thúc hợp đồng.';
+      } else if (!isValidDate(formState.endDate)) {
         errors.endDate = 'Ngày kết thúc phải theo định dạng YYYY-MM-DD.';
+      } else if (formState.startDate) {
+        // Check if endDate > startDate by at least 1 month
+        const startDate = new Date(formState.startDate);
+        const endDate = new Date(formState.endDate);
+        const oneMonthLater = new Date(startDate);
+        oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+        if (endDate <= oneMonthLater) {
+          errors.endDate = 'Ngày kết thúc phải lớn hơn ngày bắt đầu ít nhất 1 tháng.';
+        }
+      }
+      if (!formState.paymentMethod || !formState.paymentMethod.trim()) {
+        errors.paymentMethod = 'Vui lòng chọn phương thức thanh toán.';
       }
     }
 
@@ -478,11 +588,22 @@ export default function ContractManagementPage() {
       }
       if (formState.purchasePrice === null || formState.purchasePrice === undefined) {
         errors.purchasePrice = 'Vui lòng nhập giá mua cho hợp đồng mua.';
+      } else if (formState.purchasePrice <= 0) {
+        errors.purchasePrice = 'Giá mua phải lớn hơn 0.';
       }
       if (!formState.purchaseDate) {
         errors.purchaseDate = 'Vui lòng nhập ngày mua cho hợp đồng mua.';
       } else if (!isValidDate(formState.purchaseDate)) {
         errors.purchaseDate = 'Ngày mua phải theo định dạng YYYY-MM-DD.';
+      } else if (formState.startDate) {
+        // Check if purchaseDate >= startDate
+        const startDate = new Date(formState.startDate);
+        const purchaseDate = new Date(formState.purchaseDate);
+        startDate.setHours(0, 0, 0, 0);
+        purchaseDate.setHours(0, 0, 0, 0);
+        if (purchaseDate < startDate) {
+          errors.purchaseDate = 'Ngày mua phải lớn hơn hoặc bằng ngày bắt đầu.';
+        }
       }
     }
 
@@ -521,7 +642,44 @@ export default function ContractManagementPage() {
         status: 'ACTIVE',
       };
 
-      const contract = await createContract(payload);
+      // Retry logic for unique contract number
+      let attempts = 0;
+      let success = false;
+      let contract: ContractDetail | null = null;
+      
+      while (attempts < 5 && !success) {
+        try {
+          contract = await createContract(payload);
+          success = true;
+        } catch (err: any) {
+          if (err?.response?.status === 409 || 
+              err?.response?.data?.message?.includes('already exists') ||
+              err?.response?.data?.message?.includes('duplicate') ||
+              err?.message?.includes('already exists') ||
+              err?.message?.includes('duplicate')) {
+            // Contract number conflict, regenerate and retry
+            attempts++;
+            if (attempts < 5) {
+              try {
+                const newContractNumber = await generateAutoContractNumber();
+                payload.contractNumber = newContractNumber;
+                setFieldValue('contractNumber', newContractNumber);
+              } catch (genErr) {
+                console.error('Failed to regenerate contract number:', genErr);
+                throw err; // Re-throw original error
+              }
+            } else {
+              throw err; // Max attempts reached
+            }
+          } else {
+            throw err; // Other error, don't retry
+          }
+        }
+      }
+      
+      if (!contract) {
+        throw new Error('Failed to create contract after retries');
+      }
 
       if (createFiles && createFiles.length > 0) {
         try {
@@ -774,8 +932,9 @@ export default function ContractManagementPage() {
                     <select
                       value={formState.unitId}
                       onChange={(event) => setFieldValue('unitId', event.target.value)}
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
+                      className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2] disabled:cursor-not-allowed"
                       required
+                      disabled
                     >
                       <option value="">-- Chọn căn hộ --</option>
                       {unitOptions.map((option) => (
@@ -790,14 +949,19 @@ export default function ContractManagementPage() {
                   </div>
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium text-[#02542D]">Số hợp đồng</label>
-                    <input
-                      type="text"
-                      value={formState.contractNumber}
-                      onChange={(event) => setFieldValue('contractNumber', event.target.value)}
-                      placeholder="Ví dụ: HD-2025-0001"
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
-                      required
-                    />
+                    {generatingContractNumber ? (
+                      <div className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-500">
+                        Đang tạo số hợp đồng...
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={formState.contractNumber}
+                        readOnly
+                        className="rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-[#02542D] shadow-sm cursor-not-allowed"
+                        required
+                      />
+                    )}
                     {formErrors.contractNumber && (
                       <span className="mt-1 text-xs text-red-500">{formErrors.contractNumber}</span>
                     )}
