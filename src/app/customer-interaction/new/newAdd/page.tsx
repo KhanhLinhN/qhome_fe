@@ -188,14 +188,14 @@ export default function NewsAdd() {
                             newErrors.publishAt = t('publishAtInvalid') || 'Ngày xuất bản không hợp lệ';
                         } else if (publishDate <= today) {
                             newErrors.publishAt = t('publishAtMustBeFuture') || 'Ngày xuất bản phải lớn hơn ngày hôm nay';
-                        } else {
-                            // Validate publishAt < expireAt
-                            const expireAt = fieldName === 'publishAt' ? data.expireAt : value;
-                            const publishAt = fieldName === 'publishAt' ? value : data.publishAt;
+                } else {
+                    // Validate publishAt < expireAt
+                    const expireAt = fieldName === 'publishAt' ? data.expireAt : value;
+                    const publishAt = fieldName === 'publishAt' ? value : data.publishAt;
                             if (expireAt && publishAt && publishAt >= expireAt) {
                                 newErrors.publishAt = t('publishAtInvalid') || 'Ngày xuất bản phải nhỏ hơn ngày hết hạn';
-                            } else {
-                                delete newErrors.publishAt;
+                    } else {
+                        delete newErrors.publishAt;
                             }
                         }
                     } catch (err) {
@@ -212,8 +212,8 @@ export default function NewsAdd() {
                     const expireAt = fieldName === 'expireAt' ? value : data.expireAt;
                     if (publishAt && publishAt >= expireAt) {
                         newErrors.expireAt = t('expireAtInvalid') || 'Ngày hết hạn phải lớn hơn ngày xuất bản';
-                    } else {
-                        delete newErrors.expireAt;
+                        } else {
+                            delete newErrors.expireAt;
                     }
                 }
                 break;
@@ -286,7 +286,7 @@ export default function NewsAdd() {
         if (!formData.expireAt || formData.expireAt.trim() === '') {
             newErrors.expireAt = t('expireAtRequired');
         } else if (formData.publishAt && formData.expireAt) {
-            // Validate publishAt < expireAt
+        // Validate publishAt < expireAt
             if (formData.publishAt >= formData.expireAt) {
                 newErrors.expireAt = t('expireAtInvalid') || 'Ngày hết hạn phải lớn hơn ngày xuất bản';
             }

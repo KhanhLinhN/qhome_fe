@@ -49,6 +49,7 @@ const adminSections: NavSection[] = [
     titleKey: "buildingsAndResidents",
     items: [
       {href: "/base/building/buildingList", label: "Quản lý Building", icon: "🏢"},
+      {href: "/base/unit/unitList", label: "Quản lý Unit", icon: "🏠"},
       {href: "/base/residentView", label: "Danh sách cư dân", icon: "👨‍👩‍👧‍👦"},
       {href: "/base/regisresiView", label: "Duyệt tài khoản cư dân", icon: "📝"},
       {href: "/base/household/householdMemberRequests", label: "Duyệt thành viên gia đình", icon: "👪"},

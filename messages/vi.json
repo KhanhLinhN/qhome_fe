@@ -375,6 +375,7 @@
   "Popup": {
   "yes": "Có",
   "no": "Không",
+  "close": "Đóng",
   "deleteProjectT": "Xóa dự án?",
   "deleteProjectC": "Bạn có chắc chắn muốn xóa dự án này không",
   "saveNewT": "Lưu thay đổi mới?",
@@ -789,6 +790,8 @@
       "comboCode": "Mã gói dịch vụ là bắt buộc",
       "comboName": "Tên gói dịch vụ là bắt buộc",
       "comboPrice": "Giá gói dịch vụ phải lớn hơn 0",
+      "comboPriceGreaterThanZero": "Giá gói dịch vụ phải lớn hơn 0",
+      "comboDurationRequired": "Thời lượng gói dịch vụ là bắt buộc",
       "comboItems": "Vui lòng thêm ít nhất một mục cho gói dịch vụ",
       "comboItemCode": "Mã mục trong gói là bắt buộc",
       "comboItemName": "Tên mục trong gói là bắt buộc",
@@ -834,7 +837,13 @@
     },
     "cancel": "Hủy",
     "save": "Lưu",
-    "saving": "Đang lưu"
+    "saving": "Đang lưu",
+    "changeStatus": "Thay đổi trạng thái",
+    "viewItems": "Xem các mục",
+    "confirmTicketStatusChange": "Xác nhận thay đổi trạng thái vé",
+    "confirmOptionStatusChange": "Xác nhận thay đổi trạng thái tùy chọn",
+    "confirmComboStatusChange": "Xác nhận thay đổi trạng thái gói dịch vụ",
+    "comboItemName": "Tên mục trong gói"
   },
   "Unit": {
   "unitCode": "Mã căn hộ",

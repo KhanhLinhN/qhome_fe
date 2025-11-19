@@ -274,8 +274,8 @@ export default function ContractManagementPage() {
   ) => {
     setFormState((prev) => {
       const newState = {
-        ...prev,
-        [field]: value,
+      ...prev,
+      [field]: value,
       };
       // Validate field after state update
       setTimeout(() => {

@@ -37,28 +37,6 @@ export default function BuildingDetail () {
     const [importError, setImportError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     
-    useEffect(() => {
-        console.log('buildingData', buildingData);
-        const loadUnits = async () => {
-            if (!buildingId || typeof buildingId !== 'string') return;
-            
-            try {
-                setLoadingUnits(true);
-                setUnitsError(null);
-                const data = await getUnitsByBuildingId(buildingId);
-                const activeUnits = data.filter(unit => unit.status?.toUpperCase() !== 'INACTIVE');
-                setUnits(activeUnits);
-            } catch (err: any) {
-                console.error('Failed to load units:', err);
-                setUnitsError(err?.message || 'Không thể tải danh sách căn hộ');
-            } finally {
-                setLoadingUnits(false);
-            }
-        };
-
-        loadUnits();
-    }, [buildingId]);
-    
     const handleBack = () => {
         router.push(`/base/building/buildingList`);
     }
