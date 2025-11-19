@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import Delete from '@/src/assets/Delete.svg';
@@ -32,6 +32,10 @@ export default function BuildingDetail () {
     const [loadingUnits, setLoadingUnits] = useState(false);
     const [unitsError, setUnitsError] = useState<string | null>(null);
     const { deleteBuildingById, isLoading: isDeleting } = useDeleteBuilding();    
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState<UnitImportResponse | null>(null);
+    const [importError, setImportError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
     
     const handleBack = () => {
         router.push(`/base/building/buildingList`);
