@@ -12,7 +12,7 @@ import { useBuildingPage } from '@/src/hooks/useBuildingPage';
 import { useAuth } from '@/src/contexts/AuthContext';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { updateBuilding } from '@/src/services/base/buildingService';
-import { downloadBuildingImportTemplate, importBuildings, type BuildingImportResponse } from '@/src/services/base/buildingImportService';
+import { downloadBuildingImportTemplate, importBuildings, exportBuildings, type BuildingImportResponse } from '@/src/services/base/buildingImportService';
 
 
 export default function Home() {
@@ -115,6 +115,34 @@ export default function Home() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const blob = await exportBuildings(false);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `buildings_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setImportError(e?.response?.data?.message || 'Xuất Excel thất bại');
+    }
+  };
+
+  const handleExportWithUnits = async () => {
+    try {
+      const blob = await exportBuildings(true);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `buildings_with_units_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setImportError(e?.response?.data?.message || 'Xuất Excel thất bại');
+    }
+  };
+
   const handlePickFile = () => {
     setImportError(null);
     setImportResult(null);
@@ -197,6 +225,18 @@ export default function Home() {
                   className="px-3 py-2 rounded bg-indigo-600 text-white disabled:opacity-50"
                 >
                   {importing ? 'Đang import...' : 'Chọn file Excel để import'}
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="px-3 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition"
+                >
+                  Xuất Excel (Tòa nhà)
+                </button>
+                <button
+                  onClick={handleExportWithUnits}
+                  className="px-3 py-2 rounded bg-teal-600 text-white hover:bg-teal-700 transition"
+                >
+                  Xuất Excel (Tòa + Căn hộ)
                 </button>
                 <input
                   ref={fileInputRef}
