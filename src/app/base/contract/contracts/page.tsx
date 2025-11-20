@@ -270,19 +270,10 @@ export default function ContractManagementPage() {
         }
         break;
       case 'paymentMethod':
-        if (state.contractType === 'RENTAL') {
-          if (!value || (typeof value === 'string' && !value.trim())) {
-            newErrors.paymentMethod = t('validation.paymentMethodRequired');
-          } else {
-            delete newErrors.paymentMethod;
-          }
+        // Payment method is required for both RENTAL and PURCHASE
+        if (!value || (typeof value === 'string' && !value.trim())) {
+          newErrors.paymentMethod = t('validation.paymentMethodRequired');
         } else {
-          // For PURCHASE, payment method is not required, but if we want to make it required, uncomment below
-          // if (!value || (typeof value === 'string' && !value.trim())) {
-          //   newErrors.paymentMethod = t('validation.paymentMethodRequired');
-          // } else {
-          //   delete newErrors.paymentMethod;
-          // }
           delete newErrors.paymentMethod;
         }
         break;
@@ -414,7 +405,7 @@ export default function ContractManagementPage() {
     // Generate contract number
     setGeneratingContractNumber(true);
     try {
-      const contractNumber = await generateAutoContractNumber();
+      const contractNumber = await generateAutoContractNumber(selectedUnitId);
       setFieldValue('contractNumber', contractNumber);
     } catch (err) {
       console.error('Failed to generate contract number:', err);
@@ -452,8 +443,21 @@ export default function ContractManagementPage() {
     return /^\d{4}-\d{2}-\d{2}$/.test(value);
   };
 
-  // Generate auto contract number: HD-<ddmmyy>-<6 digits>
-  const generateAutoContractNumber = async (): Promise<string> => {
+  // Generate auto contract number: HD<unitCode>-<ddmmyy>
+  const generateAutoContractNumber = async (unitId?: string): Promise<string> => {
+    const targetUnitId = unitId || formState.unitId || selectedUnitId;
+    
+    if (!targetUnitId) {
+      throw new Error('Unit ID is required to generate contract number');
+    }
+    
+    // Find unit code from unitsState
+    const unit = unitsState.data.find(u => u.id === targetUnitId);
+    if (!unit || !unit.code) {
+      throw new Error('Unit code not found');
+    }
+    
+    const unitCode = unit.code.trim();
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -472,25 +476,45 @@ export default function ContractManagementPage() {
       console.warn('Could not fetch all contracts for uniqueness check:', err);
     }
     
-    // Extract existing numbers with same date prefix
-    const prefix = `HD-${datePart}-`;
+    // Extract existing numbers with same prefix (HD<unitCode>-<datePart>)
+    const prefix = `HD${unitCode}-${datePart}`;
     const existingNumbers = existingContracts
       .map(c => c.contractNumber)
-      .filter((num): num is string => num !== null && num.startsWith(prefix))
-      .map(num => {
-        const suffix = num.replace(prefix, '');
-        const numValue = parseInt(suffix, 10);
-        return isNaN(numValue) ? 0 : numValue;
-      });
+      .filter((num): num is string => num !== null && num.startsWith(prefix));
     
-    // Find next available number
-    let nextNumber = 1;
-    if (existingNumbers.length > 0) {
-      const maxNumber = Math.max(...existingNumbers);
-      nextNumber = maxNumber + 1;
+    // If no existing numbers with this prefix, return base format
+    if (existingNumbers.length === 0) {
+      return prefix;
     }
     
-    return `${prefix}${String(nextNumber).padStart(6, '0')}`;
+    // If there are existing numbers, check if base format exists
+    const baseExists = existingNumbers.some(num => num === prefix);
+    if (!baseExists) {
+      return prefix;
+    }
+    
+    // If base exists, add numeric suffix (1, 2, 3, ...)
+    const existingSuffixes = existingNumbers
+      .map(num => {
+        if (num === prefix) return 0; // Base format counts as suffix 0
+        const suffix = num.replace(prefix, '');
+        // Check if suffix is a number (could be like "-1", "-2", etc.)
+        if (suffix.startsWith('-')) {
+          const numValue = parseInt(suffix.slice(1), 10);
+          return isNaN(numValue) ? -1 : numValue;
+        }
+        return -1;
+      })
+      .filter(n => n >= 0);
+    
+    // Find next available suffix
+    let nextSuffix = 1;
+    if (existingSuffixes.length > 0) {
+      const maxSuffix = Math.max(...existingSuffixes);
+      nextSuffix = maxSuffix + 1;
+    }
+    
+    return `${prefix}-${nextSuffix}`;
   };
 
   const handleUploadFilesForDetail = async (files: FileList | null) => {
@@ -597,6 +621,15 @@ export default function ContractManagementPage() {
           errors.purchaseDate = t('validation.purchaseDateAfterStartDate');
         }
       }
+      // Payment method is required for PURCHASE as well
+      if (!formState.paymentMethod || !formState.paymentMethod.trim()) {
+        errors.paymentMethod = t('validation.paymentMethodRequired');
+      }
+    }
+
+    // Validate file upload: not null
+    if (!createFiles || createFiles.length === 0) {
+      errors.files = t('validation.filesRequired');
     }
 
     if (Object.keys(errors).length > 0) {
@@ -626,8 +659,7 @@ export default function ContractManagementPage() {
           formState.contractType === 'RENTAL' ? formState.endDate || null : null,
         purchaseDate:
           formState.contractType === 'PURCHASE' ? formState.purchaseDate || null : null,
-        paymentMethod:
-          formState.contractType === 'PURCHASE' ? null : trimmedPaymentMethod,
+        paymentMethod: trimmedPaymentMethod,
         paymentTerms:
           formState.contractType === 'PURCHASE' ? null : trimmedPaymentTerms,
         notes: formState.notes && formState.notes.trim().length > 0 ? formState.notes.trim() : null,
@@ -653,7 +685,7 @@ export default function ContractManagementPage() {
             attempts++;
             if (attempts < 5) {
               try {
-                const newContractNumber = await generateAutoContractNumber();
+                const newContractNumber = await generateAutoContractNumber(formState.unitId);
                 payload.contractNumber = newContractNumber;
                 setFieldValue('contractNumber', newContractNumber);
               } catch (genErr) {
@@ -1212,7 +1244,6 @@ export default function ContractManagementPage() {
                       value={formState.paymentMethod ?? ''}
                       onChange={(event) => setFieldValue('paymentMethod', event.target.value)}
                       className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
-                      disabled={formState.contractType === 'PURCHASE'}
                     >
                       {PAYMENT_METHOD_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -1220,6 +1251,9 @@ export default function ContractManagementPage() {
                         </option>
                       ))}
                     </select>
+                    {formErrors.paymentMethod && (
+                      <span className="mt-1 text-xs text-red-500">{formErrors.paymentMethod}</span>
+                    )}
                   </div>
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium text-[#02542D]">{t('fields.paymentTerms')}</label>
@@ -1246,16 +1280,29 @@ export default function ContractManagementPage() {
 
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-[#02542D]">
-                    {t('fields.attachmentsOptional')}
+                    {t('fields.attachments')} *
                   </label>
                   <input
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    onChange={(event) => setCreateFiles(event.target.files)}
+                    onChange={(event) => {
+                      setCreateFiles(event.target.files);
+                      // Clear error when files are selected
+                      if (event.target.files && event.target.files.length > 0) {
+                        setFormErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.files;
+                          return next;
+                        });
+                      }
+                    }}
                     className="text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#02542D] hover:file:bg-gray-200"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
+                  {formErrors.files && (
+                    <span className="mt-1 text-xs text-red-500">{formErrors.files}</span>
+                  )}
                   <span className="text-xs text-gray-500">
                     {t('hints.attachments')}
                   </span>

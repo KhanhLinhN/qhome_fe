@@ -1443,7 +1443,8 @@
       "paymentTerms": "Điều khoản thanh toán",
       "notes": "Ghi chú",
       "attachmentsRequired": "Tệp đính kèm hợp đồng (bắt buộc)",
-      "attachmentsOptional": "Tệp đính kèm hợp đồng (tuỳ chọn)"
+      "attachmentsOptional": "Tệp đính kèm hợp đồng (tuỳ chọn)",
+      "attachments": "Tệp đính kèm hợp đồng (bắt buộc)"
     },
     "placeholders": {
       "selectBuilding": "-- Chọn tòa nhà --",

@@ -1394,7 +1394,8 @@
       "paymentTerms": "Payment terms",
       "notes": "Notes",
       "attachmentsRequired": "Contract attachments (required)",
-      "attachmentsOptional": "Contract attachments (optional)"
+      "attachmentsOptional": "Contract attachments (optional)",
+      "attachments": "Contract attachments (required)"
     },
     "placeholders": {
       "selectBuilding": "-- Select building --",
