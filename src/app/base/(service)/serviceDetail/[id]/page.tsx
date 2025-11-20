@@ -605,7 +605,7 @@ export default function ServiceDetailPage() {
                           <Fragment key={combo.id ?? comboId}>
                             <tr className="hover:bg-gray-50">
                               <td className="px-4 py-3 align-top">
-                                <span className="text-gray-400">—</span>
+                                  <span className="text-gray-400">—</span>
                               </td>
                               <td className="px-4 py-3 font-medium text-gray-900">{combo.name ?? '-'}</td>
                               <td className="px-4 py-3 text-gray-600">{combo.code ?? '-'}</td>
