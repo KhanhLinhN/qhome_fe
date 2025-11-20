@@ -1393,7 +1393,8 @@
       "paymentMethod": "Payment method",
       "paymentTerms": "Payment terms",
       "notes": "Notes",
-      "attachmentsRequired": "Contract attachments (required)"
+      "attachmentsRequired": "Contract attachments (required)",
+      "attachmentsOptional": "Contract attachments (optional)"
     },
     "placeholders": {
       "selectBuilding": "-- Select building --",
@@ -1411,14 +1412,16 @@
       "transfer": "Bank transfer",
       "cash": "Cash",
       "eWallet": "E-wallet",
-      "other": "Other"
+      "other": "Other",
+      "selectPlaceholder": "-- Select payment method --"
     },
     "contractTypes": {
       "rental": "Rental (RENTAL)",
       "purchase": "Purchase (PURCHASE)"
     },
     "status": {
-      "activeDefault": "Active (default)"
+      "activeDefault": "Active (default)",
+      "active": "Active"
     },
     "table": {
       "contractNumber": "Contract no.",
@@ -1433,12 +1436,19 @@
       "buildings": "Loading buildings...",
       "units": "Loading units...",
       "contracts": "Loading contracts...",
-      "detail": "Loading contract detail..."
+      "detail": "Loading contract detail...",
+      "generatingContractNumber": "Generating contract number..."
     },
     "empty": {
       "noContracts": "This unit currently has no contracts.",
+      "noActiveContracts": "This unit currently has no active contracts.",
+      "noExpiredContracts": "This unit currently has no expired contracts.",
       "selectToView": "Select a building and a unit to view contracts.",
       "noAttachments": "This contract has no attachments yet. You can upload files here."
+    },
+    "tabs": {
+      "active": "Active Contracts",
+      "expired": "Expired Contracts"
     },
     "detail": {
       "title": "Contract detail",
@@ -1468,18 +1478,23 @@
     },
     "validation": {
       "unitRequired": "Please select a unit before creating a contract.",
+      "contractNumberRequired": "Please enter contract number.",
       "contractTypeRequired": "Please select a contract type.",
       "startDateRequired": "Please select the contract start date.",
-      "startDateInvalid": "Start date is invalid.",
-      "startDateInFuture": "Start date must be today or later.",
+      "startDateInvalid": "Start date must follow YYYY-MM-DD format.",
+      "startDateInFuture": "Start date must be after today.",
       "endDateRequired": "Please select the contract end date.",
-      "endDateInvalid": "End date is invalid.",
+      "endDateInvalid": "End date must follow YYYY-MM-DD format.",
       "endDateMinDiff": "End date must be at least 1 month after start date.",
-      "monthlyRentRequired": "Please enter monthly rent.",
+      "monthlyRentRequired": "Please enter monthly rent for rental contract.",
+      "monthlyRentGreaterThanZero": "Monthly rent must be greater than 0.",
       "paymentMethodRequired": "Please select a payment method.",
       "purchaseHasNoEndDate": "Purchase contracts cannot have an end date.",
       "purchasePriceRequired": "Please enter purchase price for purchase contracts.",
+      "purchasePriceGreaterThanZero": "Purchase price must be greater than 0.",
       "purchaseDateRequired": "Please enter purchase date for purchase contracts.",
+      "purchaseDateInvalid": "Purchase date must follow YYYY-MM-DD format.",
+      "purchaseDateAfterStartDate": "Purchase date must be greater than or equal to start date.",
       "dateFormat": "Date must follow dd/mm/yyyy format.",
       "filesRequired": "Please upload at least one attachment file."
     },
@@ -1487,17 +1502,50 @@
       "loadBuildings": "Unable to load building list.",
       "loadUnits": "Unable to load unit list for this building.",
       "loadContracts": "An error occurred while loading contracts. Please try again.",
-      "createFailed": "Unable to create contract. Please try again."
+      "createFailed": "Unable to create contract. Please try again.",
+      "uploadFilesFailed": "Unable to upload attachment files. Please try again.",
+      "loadContractDetailFailed": "An error occurred while loading contract details. Please try again.",
+      "contractNotFound": "Contract not found.",
+      "createSuccessWithFileError": "Contract created successfully but file upload failed."
     },
     "messages": {
-      "createSuccess": "Contract created successfully."
+      "createSuccess": "Contract created successfully.",
+      "uploadFilesSuccess": "Files uploaded successfully."
     },
     "common": {
       "notSet": "Not set",
       "unknown": "Unknown"
     },
     "hints": {
-      "attachments": "Please upload at least one file (PDF, image...)"
+      "attachments": "You can upload multiple files (PDF, images...) to store with the contract.",
+      "attachmentsRequired": "Please upload at least one file (PDF, image...)"
+    },
+    "tableValues": {
+      "unknown": "Unknown",
+      "notSet": "Not set",
+      "start": "Start:",
+      "end": "End:",
+      "unlimited": "Unlimited",
+      "active": "Active",
+      "noFormat": "Unknown format",
+      "primaryFile": "Primary file",
+      "viewDownload": "View / download"
+    },
+    "detailLabels": {
+      "contractType": "Contract type:",
+      "status": "Status:",
+      "startDate": "Start date:",
+      "endDate": "End date:",
+      "unlimited": "Unlimited",
+      "monthlyRent": "Monthly rent:",
+      "purchasePrice": "Purchase price:",
+      "purchaseDate": "Purchase date:",
+      "paymentMethod": "Payment method:",
+      "paymentTerms": "Payment terms:",
+      "notes": "Notes:"
+    },
+    "unitLabel": {
+      "floor": "Floor"
     }
   }
 }
