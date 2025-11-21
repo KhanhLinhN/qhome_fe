@@ -53,7 +53,7 @@ export default function ProfileViewPage() {
         setProfile(profileRes);
         setAccount(accountRes);
         setStatus(statusRes);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to load profile", err);
         if (!active) return;
         const message =

@@ -33,7 +33,7 @@ export default function UnitDetail () {
                 setLoadingBuilding(true);
                 const building = await getBuilding(unitData.buildingId);
                 setBuildingName(building.name);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error('Failed to load building:', err);
                 setBuildingName('N/A');
             } finally {

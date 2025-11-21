@@ -13,6 +13,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { updateBuilding } from '@/src/services/base/buildingService';
 import { downloadBuildingImportTemplate, importBuildings, exportBuildings, type BuildingImportResponse } from '@/src/services/base/buildingImportService';
+import { getErrorMessage } from '@/src/types/error';
 
 
 export default function Home() {
@@ -39,13 +40,13 @@ export default function Home() {
   } = useBuildingPage()
 
   // Order by createdAt desc (newest first)
-  const ordered = (data?.content || []).slice().sort((a: any, b: any) => {
+  const ordered = (data?.content || []).slice().sort((a: { createdAt?: string }, b: { createdAt?: string }) => {
     const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     return tb - ta;
   });
 
-  const tableData = ordered.map((item: any) => ({
+  const tableData = ordered.map((item: { id: string; code: string; name: string; floorsMax: number; status: string; createdBy?: string; createdAt?: string }) => ({
     buildingId: item.id,      
     buildingCode: item.code,  
     buildingName: item.name,  
@@ -83,7 +84,7 @@ export default function Home() {
     }
     const newStatus = selectedBuildingStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     try {
-      await updateBuilding(selectedBuildingId, { status: newStatus } as any);
+      await updateBuilding(selectedBuildingId, { status: newStatus });
       setConfirmOpen(false);
       setSelectedBuildingId(null);
       setSelectedBuildingStatus(null);
@@ -110,8 +111,8 @@ export default function Home() {
       a.download = 'building_import_template.xlsx';
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e: any) {
-      setImportError(e?.response?.data?.message || 'Tải template thất bại');
+    } catch (e: unknown) {
+      setImportError(getErrorMessage(e, 'Tải template thất bại'));
     }
   };
 
@@ -124,8 +125,8 @@ export default function Home() {
       a.download = `buildings_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e: any) {
-      setImportError(e?.response?.data?.message || 'Xuất Excel thất bại');
+    } catch (e: unknown) {
+      setImportError(getErrorMessage(e, 'Xuất Excel thất bại'));
     }
   };
 
@@ -138,8 +139,8 @@ export default function Home() {
       a.download = `buildings_with_units_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e: any) {
-      setImportError(e?.response?.data?.message || 'Xuất Excel thất bại');
+    } catch (e: unknown) {
+      setImportError(getErrorMessage(e, 'Xuất Excel thất bại'));
     }
   };
 
@@ -158,8 +159,8 @@ export default function Home() {
     try {
       const res = await importBuildings(f);
       setImportResult(res);
-    } catch (e: any) {
-      setImportError(e?.response?.data?.message || 'Import thất bại');
+    } catch (e: unknown) {
+      setImportError(getErrorMessage(e, 'Import thất bại'));
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

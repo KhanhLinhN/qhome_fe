@@ -41,7 +41,7 @@ export default function AssetImageEdit() {
             setAssetData(result);
             setSelectedFiles([]);
             show('Tải lên hình ảnh thành công', 'success');
-        } catch (err: any) {
+        } catch (err: unknown) {
             show('Tải lên hình ảnh thất bại: ' + (err?.message || ''), 'error');
         } finally {
             setUploading(false);
@@ -56,7 +56,7 @@ export default function AssetImageEdit() {
             const result = await deleteAssetImage(assetId, imageUrl);
             setAssetData(result);
             show('Xóa hình ảnh thành công', 'success');
-        } catch (err: any) {
+        } catch (err: unknown) {
             show('Xóa hình ảnh thất bại: ' + (err?.message || ''), 'error');
         } finally {
             setLoading(false);
@@ -69,7 +69,7 @@ export default function AssetImageEdit() {
             const result = await setPrimaryImage(assetId, imageUrl);
             setAssetData(result);
             show('Đặt hình ảnh chính thành công', 'success');
-        } catch (err: any) {
+        } catch (err: unknown) {
             show('Đặt hình ảnh chính thất bại: ' + (err?.message || ''), 'error');
         } finally {
             setLoading(false);

@@ -10,6 +10,7 @@ import {
   rejectVehicleRegistration,
 } from '@/src/services/base/vehicleRegistrationService';
 import { VehicleKind, VehicleRegistration, VehicleRegistrationStatus } from '@/src/types/vehicle';
+import { getErrorMessage } from '@/src/types/error';
 
 const approveIcon = (
   <svg
@@ -93,11 +94,8 @@ export default function VehicleRegistrationPage() {
           getTimestamp(b.requestedAt ?? b.createdAt) - getTimestamp(a.requestedAt ?? a.createdAt),
       );
       setRegistrations(sorted);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ??
-        err?.message ??
-        'Failed to load vehicle registrations';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Failed to load vehicle registrations');
       setError(message);
     } finally {
       setLoading(false);
@@ -172,8 +170,8 @@ export default function VehicleRegistrationPage() {
       setRegistrations((prev) =>
         prev.map((item) => (item.id === updated.id ? updated : item)),
       );
-    } catch (err: any) {
-      const message = err?.response?.data?.message ?? err?.message ?? t('error');
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, t('error'));
       window.alert(message);
     } finally {
       setProcessingId(null);
@@ -195,8 +193,8 @@ export default function VehicleRegistrationPage() {
       setRegistrations((prev) =>
         prev.map((item) => (item.id === updated.id ? updated : item)),
       );
-    } catch (err: any) {
-      const message = err?.response?.data?.message ?? err?.message ?? t('error');
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, t('error'));
       window.alert(message);
     } finally {
       setProcessingId(null);

@@ -17,7 +17,8 @@ import {
     deleteNewsImage, 
     updateNewsImageCaption,
     uploadNewsImageFile,
-    uploadNewsImageFiles
+    uploadNewsImageFiles,
+    FileUploadResponse
 } from '@/src/services/customer-interaction/newService';
 import { NotificationScope, NewsStatus } from '@/src/types/news';
 import { useNotifications } from '@/src/hooks/useNotifications';
@@ -365,7 +366,7 @@ export default function NewsEdit() {
                 try {
                     // Upload files to get URLs
                     let uploadedImageUrls: string[] = [];
-                    let uploadResponses: any[] = [];
+                    let uploadResponses: FileUploadResponse[] = [];
                     if (imagesWithFiles.length > 0) {
                         const files = imagesWithFiles.map(img => img.file!);
                         const ownerId = newsId;
@@ -547,7 +548,7 @@ export default function NewsEdit() {
         setSelectedBuildingId(item.value);
         setFormData((prev) => ({
             ...prev,
-            targetBuildingId: item.value === 'all' ? null as any : item.value,
+            targetBuildingId: item.value === 'all' ? null : item.value,
         }));
     };
 

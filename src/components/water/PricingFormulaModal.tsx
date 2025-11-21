@@ -15,6 +15,7 @@ import DateBox from "@/src/components/customer-interaction/DateBox";
 import Image from "next/image";
 import Edit from "@/src/assets/Edit.svg";
 import Delete from "@/src/assets/Delete.svg";
+import { getErrorMessage } from '@/src/types/error';
 
 type ServiceCode = "WATER" | "ELECTRIC";
 
@@ -110,12 +111,9 @@ export default function PricingFormulaModal({
       setLoading(true);
       const data = await getPricingTiersByService(serviceCode);
       setTiers(data ?? []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to load pricing tiers:", error);
-      show(
-        error?.response?.data?.message || error?.message || "Failed to load pricing tiers",
-        "error"
-      );
+      show(getErrorMessage(error, "Failed to load pricing tiers"), "error");
     } finally {
       setLoading(false);
     }
@@ -159,12 +157,9 @@ export default function PricingFormulaModal({
       show(`Deleted tier #${tier.tierOrder}`, "success");
       await loadTiers();
       onUpdated?.(serviceCode);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete pricing tier:", error);
-      show(
-        error?.response?.data?.message || error?.message || "Failed to delete pricing tier",
-        "error"
-      );
+      show(getErrorMessage(error, "Failed to delete pricing tier"), "error");
     } finally {
       setSaving(false);
     }
@@ -301,12 +296,9 @@ export default function PricingFormulaModal({
       await loadTiers();
       resetForm();
       onUpdated?.(serviceCode);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save pricing tier:", error);
-      show(
-        error?.response?.data?.message || error?.message || "Failed to save pricing tier",
-        "error"
-      );
+      show(getErrorMessage(error, "Failed to save pricing tier"), "error");
     } finally {
       setSaving(false);
     }

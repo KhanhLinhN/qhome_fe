@@ -42,7 +42,6 @@ export interface News {
     createdAt?: string;
     updatedBy?: string;
     updatedAt?: string;
-    stats?: any;
 }
 
 // CreateNewsRequest DTO matching backend

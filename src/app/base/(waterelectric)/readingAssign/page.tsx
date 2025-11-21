@@ -18,6 +18,7 @@ import {
 } from '@/src/services/base/waterService';
 import { getEmployees } from '@/src/services/iam/employeeService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
 import CycleCard from '@/src/components/base-service/CycleCard';
 import AssignmentDetailsModal from '@/src/components/base-service/AssignmentDetailsModal';
 
@@ -170,8 +171,8 @@ export default function WaterAssignPage() {
       setAssignmentProgress(progress);
       setAssignmentMeters(meters);
       setIsDetailsOpen(true);
-    } catch (error: any) {
-      show(error?.message || 'Failed to load assignment details', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to load assignment details'), 'error');
     } finally {
       setLoading(false);
     }
@@ -190,8 +191,8 @@ export default function WaterAssignPage() {
         setIsDetailsOpen(false);
         setSelectedAssignment(null);
       }
-    } catch (error: any) {
-      show(error?.message || 'Failed to delete assignment', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to delete assignment'), 'error');
     }
   };
 
@@ -243,7 +244,7 @@ export default function WaterAssignPage() {
           setCompletingCycleId(cycleInfo.cycle.id);
           await changeReadingCycleStatus(cycleInfo.cycle.id, 'COMPLETED');
           show('Cycle marked as completed. Proceeding with invoice export.', 'success');
-        } catch (err: any) {
+        } catch (err: unknown) {
           const msg = err?.response?.data?.message || err?.message || 'Failed to update cycle status.';
           show(msg, 'error');
           return;
@@ -256,11 +257,8 @@ export default function WaterAssignPage() {
         result.message ||
         `Exported ${result.invoicesCreated} invoices from ${result.totalReadings} readings.`;
       show(successMessage, 'success');
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to export invoices. Please try again.';
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Failed to export invoices. Please try again.');
       show(message, 'error');
     } finally {
       setIsExporting(false);
@@ -277,11 +275,8 @@ export default function WaterAssignPage() {
       show('Assignment marked as completed.', 'success');
       await handleViewAssignment(assignment);
       await loadCyclesWithAssignments();
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to complete assignment. Please try again.';
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Failed to complete assignment. Please try again.');
       show(message, 'error');
     } finally {
       setCompletingAssignmentId(null);
@@ -296,11 +291,8 @@ export default function WaterAssignPage() {
       await changeReadingCycleStatus(cycle.id, 'COMPLETED');
       show('Reading cycle marked as completed.', 'success');
       await loadCyclesWithAssignments();
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to complete cycle. Please try again.';
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Failed to complete cycle. Please try again.');
       show(message, 'error');
     } finally {
       setCompletingCycleId(null);

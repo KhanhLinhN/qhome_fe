@@ -14,6 +14,7 @@ import {
 } from '@/src/services/base/householdService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import { useTranslations } from 'next-intl';
+import { getErrorMessage } from '@/src/types/error';
 
 type UnitWithResidents = Unit & {
   residents: HouseholdMemberDto[];
@@ -96,9 +97,8 @@ export default function ResidentDirectoryPage() {
         );
 
         setBuildings(buildingsWithUnits);
-      } catch (err: any) {
-        const message =
-          err?.response?.data?.message || err?.message || t('error');
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, t('error'));
         setError(message);
       } finally {
         setLoading(false);

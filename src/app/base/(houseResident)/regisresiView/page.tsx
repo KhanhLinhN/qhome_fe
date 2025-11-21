@@ -56,7 +56,7 @@ export default function ResidentAccountApprovalPage() {
     try {
       const data = await fetchPendingAccountRequests();
       setRequests(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
         err?.response?.data?.message || err?.message || t('messages.loadError');
       setError(message);
@@ -119,7 +119,7 @@ export default function ResidentAccountApprovalPage() {
                 name: request.residentName ?? t('fallbacks.unknownResidentName'),
               }),
         );
-      } catch (err: any) {
+      } catch (err: unknown) {
         const message =
           err?.response?.data?.message || err?.message || t('messages.actionError');
         setError(message);

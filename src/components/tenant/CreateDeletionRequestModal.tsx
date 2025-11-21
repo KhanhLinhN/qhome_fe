@@ -47,7 +47,7 @@ export default function CreateDeletionRequestModal({
       alert('✅ Yêu cầu xóa tenant đã được gửi thành công!\nChờ admin phê duyệt.');
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to create deletion request:', err);
       setError(err.response?.data?.message || err.message || 'Có lỗi xảy ra');
     } finally {

@@ -80,7 +80,7 @@ export default function ProfileEditPage() {
           newPassword: "",
           confirmPassword: "",
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to load profile for editing", err);
         if (!active) return;
         const message =
@@ -200,7 +200,7 @@ export default function ProfileEditPage() {
         newPassword: "",
         confirmPassword: "",
       }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to update profile", err);
       const message =
         err?.response?.data?.message ||

@@ -20,6 +20,7 @@ import {
   ReadingCycleDto,
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function ReadingSessionsPage() {
   const { user, hasRole } = useAuth();
@@ -110,8 +111,8 @@ export default function ReadingSessionsPage() {
       setIsStartOpen(false);
       loadSessions();
       loadMyActiveSession();
-    } catch (error: any) {
-      show(error?.message || 'Failed to start session', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to start session'), 'error');
     }
   };
 
@@ -123,8 +124,8 @@ export default function ReadingSessionsPage() {
       show('Session completed successfully', 'success');
       loadSessions();
       loadMyActiveSession();
-    } catch (error: any) {
-      show(error?.message || 'Failed to complete session', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to complete session'), 'error');
     }
   };
 

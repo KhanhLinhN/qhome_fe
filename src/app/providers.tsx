@@ -16,7 +16,7 @@ export default function Providers({
 }: {
   children: React.ReactNode;
   initialLocale: string;
-  initialMessages: Record<string, any>;
+  initialMessages: Record<string, unknown>;
 }) {
   const [locale, setLocale] = React.useState(initialLocale);
   const [messages, setMessages] = React.useState(initialMessages);

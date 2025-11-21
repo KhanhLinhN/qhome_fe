@@ -10,6 +10,7 @@ import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { useServiceCategoryAdd } from '@/src/hooks/useServiceCategoryAdd';
 import { CreateServiceCategoryPayload } from '@/src/types/service';
+import { getErrorMessage } from '@/src/types/error';
 
 type FormState = {
   code: string;
@@ -165,8 +166,8 @@ export default function ServiceCategoryCreatePage() {
     try {
       // Retry up to 5 times if backend rejects code as duplicate by incrementing suffix
       let attempts = 0;
-      let created = null as any;
-      let lastError: any = null;
+      let created: { id?: string } | null = null;
+      let lastError: unknown = null;
       while (attempts < 5) {
         attempts += 1;
         const nextCode = generateCodeFromName(formState.name || '', attempts - 1);
@@ -179,8 +180,8 @@ export default function ServiceCategoryCreatePage() {
           created = await addCategory(payload);
           lastError = null;
           break;
-        } catch (err: any) {
-          const msg = err?.response?.data?.message?.toString() || err?.message?.toString() || '';
+        } catch (err: unknown) {
+          const msg = getErrorMessage(err, '');
           lastError = err;
           if (
             msg.toLowerCase().includes('code') &&

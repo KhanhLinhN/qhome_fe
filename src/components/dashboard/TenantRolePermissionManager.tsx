@@ -60,7 +60,7 @@ export default function TenantRolePermissionManager({ tenant, onBack }: Props) {
       if (uniqueRoles.length > 0 && !selectedRole) {
         setSelectedRole(uniqueRoles[0]);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Failed to load roles:', err);
       console.error('❌ Tenant ID:', tenant.id);
       console.error('❌ Error status:', err?.response?.status);
@@ -107,7 +107,7 @@ export default function TenantRolePermissionManager({ tenant, onBack }: Props) {
       });
       
       setSummary(safeSummary);
-    } catch (err: any) {
+    } catch (err: unknown) {
       show(`Lỗi tải permissions: ${err.message}`, 'error');
       console.error('Failed to load summary:', err);
     } finally {
@@ -119,7 +119,7 @@ export default function TenantRolePermissionManager({ tenant, onBack }: Props) {
     try {
       const data = await getAllPermissions();
       setAllPermissions(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load all permissions:', err);
     }
   };
@@ -135,7 +135,7 @@ export default function TenantRolePermissionManager({ tenant, onBack }: Props) {
       show('Thêm permission thành công', 'success');
       await loadSummary(selectedRole);
       setShowAddModal(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       show(`Lỗi thêm permission: ${err.message}`, 'error');
     }
   };
@@ -154,7 +154,7 @@ export default function TenantRolePermissionManager({ tenant, onBack }: Props) {
       });
       show('Xóa permission thành công', 'success');
       await loadSummary(selectedRole);
-    } catch (err: any) {
+    } catch (err: unknown) {
       show(`Lỗi xóa permission: ${err.message}`, 'error');
     }
   };

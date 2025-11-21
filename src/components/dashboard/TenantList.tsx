@@ -30,7 +30,7 @@
 //         }
         
 //         setTenants(filteredData);
-//       } catch (err: any) {
+//       } catch (err: unknown) {
 //         setError(err?.message || 'Không thể tải danh sách tenant');
 //         console.error('Failed to load tenants:', err);
 //       } finally {
@@ -55,7 +55,7 @@
 //         setLoadingBuildings(tenantId);
 //         const buildingData = await getBuildingsByTenant(tenantId);
 //         setBuildings(prev => ({ ...prev, [tenantId]: buildingData }));
-//       } catch (err: any) {
+//       } catch (err: unknown) {
 //         console.error('Failed to load buildings:', err);
 //       } finally {
 //         setLoadingBuildings(null);

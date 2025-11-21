@@ -239,7 +239,7 @@ export default function NotificationEdit() {
         setSelectedBuildingId(item.value);
         setFormData((prev) => ({
             ...prev,
-            targetBuildingId: item.value === 'all' ? null as any : item.value,
+            targetBuildingId: item.value === 'all' ? null : item.value,
         }));
     };
 

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Topbar from '@/src/components/layout/Topbar';
 import Sidebar from '@/src/components/layout/Sidebar';
 import Delete from '@/src/assets/Delete.svg';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function TenantOwnerHomePage() {
   const { user } = useAuth();
@@ -61,9 +62,10 @@ export default function TenantOwnerHomePage() {
       alert('✅ Đã approve yêu cầu xóa tenant! Hệ thống sẽ bắt đầu xử lý.');
       setShowApproveModal(false);
       loadData(); // Reload to show updated status
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to approve request:', error);
-      alert(`❌ Approve thất bại: ${error?.response?.data?.message || error.message}`);
+      const message = getErrorMessage(error, 'Không thể phê duyệt yêu cầu.');
+      alert(`❌ Approve thất bại: ${message}`);
     } finally {
       setApproving(null);
     }
@@ -284,7 +286,7 @@ export default function TenantOwnerHomePage() {
                             </div>
                             {request.reason && (
                               <p className="text-sm text-slate-600 italic mb-2">
-                                "{request.reason}"
+                                &quot;{request.reason}&quot;
                               </p>
                             )}
                             {request.status === 'REJECTED' && request.rejectionReason && (

@@ -29,7 +29,7 @@ export default function ContractExportPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.response?.data?.message || err?.message || "Không thể xuất PDF");
     } finally {
       setLoading(false);

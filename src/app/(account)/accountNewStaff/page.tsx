@@ -16,6 +16,7 @@ import {
   downloadStaffImportTemplate,
   importStaffAccounts,
 } from '@/src/services/iam/userService';
+import { getErrorMessage } from '@/src/types/error';
 
 type FormState = {
   username: string;
@@ -101,7 +102,7 @@ export default function AccountNewStaffPage() {
             if (exists) {
               setUsernameError(t('validation.username.exists'));
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             // Nếu có lỗi khi check (network, etc.), không hiển thị lỗi
             console.error('Error checking username:', err);
           }
@@ -124,7 +125,7 @@ export default function AccountNewStaffPage() {
             if (exists) {
               setEmailError(t('validation.email.exists'));
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             // Nếu có lỗi khi check (network, etc.), không hiển thị lỗi
             console.error('Error checking email:', err);
           }
@@ -184,9 +185,6 @@ export default function AccountNewStaffPage() {
       isValid = false;
     } else if (/\s/.test(form.username)) {
       setUsernameError(t('validation.username.noWhitespace'));
-      isValid = false;
-    } else if (!validateUsernameFormat(form.username)) {
-      setUsernameError(t('validation.username.invalidFormat') || 'Tên đăng nhập chỉ được chứa chữ cái không dấu, số và các ký tự @, _, -, .');
       isValid = false;
     } else if (form.username.length > 40) {
       setUsernameError(t('validation.username.maxLength'));
@@ -273,31 +271,15 @@ export default function AccountNewStaffPage() {
         role: '',
         active: true,
       });
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        t('messages.createError');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string };
+      const message = getErrorMessage(err, t('messages.createError'));
       setError(message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Show loading while checking auth
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-4 sm:p-8 flex items-center justify-center">
-        <div className="text-slate-600">Loading...</div>
-      </div>
-    );
-  }
-
-  // Don't render if not admin (will redirect to 404)
-  const isAdmin = user?.roles?.some(role => role.toUpperCase() === 'ADMIN') ?? false;
-  if (!user || !isAdmin) {
-    return null;
-  }
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     setImportError(null);
     setImportResult(null);
@@ -362,6 +344,21 @@ export default function AccountNewStaffPage() {
     if (!importResult) return null;
     return `Đã xử lý ${importResult.totalRows} dòng: ${importResult.successCount} thành công, ${importResult.failureCount} thất bại.`;
   }, [importResult]);
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-4 sm:p-8 flex items-center justify-center">
+        <div className="text-slate-600">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render if not admin (will redirect to 404)
+  const isAdmin = user?.roles?.some(role => role.toUpperCase() === 'ADMIN') ?? false;
+  if (!user || !isAdmin) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
@@ -595,5 +592,13 @@ export default function AccountNewStaffPage() {
       </div>
     </div>
   );
+}
+
+function setError(message: string) {
+  throw new Error('Function not implemented.');
+}
+
+function setSuccess(arg0: string) {
+  throw new Error('Function not implemented.');
 }
 

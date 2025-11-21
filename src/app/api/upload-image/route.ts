@@ -47,10 +47,11 @@ export async function POST(request: NextRequest) {
 
         // Return the imgbb response
         return NextResponse.json(imgbbData);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in upload-image API route:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Internal server error';
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
+            { error: errorMessage },
             { status: 500 }
         );
     }

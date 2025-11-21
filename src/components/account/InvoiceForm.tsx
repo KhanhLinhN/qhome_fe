@@ -95,7 +95,7 @@ export default function InvoiceForm({
         </div>
         <div>
           <label className="text-xs text-slate-600">{t("fields.status")}</label>
-          <select className="input" value={status} onChange={e=>setStatus(e.target.value as any)} required>
+          <select className="input" value={status} onChange={e=>setStatus(e.target.value)} required>
             <option>Unpaid</option><option>Paid</option><option>Cancelled</option>
           </select>
         </div>

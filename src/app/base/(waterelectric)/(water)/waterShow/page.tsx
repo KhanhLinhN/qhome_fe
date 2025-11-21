@@ -28,6 +28,7 @@ import {
   ReadingCycleUpdateReq,
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
 import WaterSettingsPopup, { WaterFormula } from '@/src/components/water/WaterSettingsPopup';
 import { useTranslations } from 'next-intl';
 
@@ -238,9 +239,9 @@ export default function WaterShowPage() {
 
       setWaterFormula(formula);
       refresh();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save settings:', error);
-      show(error?.message || 'Failed to save settings', 'error');
+      show(getErrorMessage(error, 'Failed to save settings'), 'error');
     }
   };
 
@@ -272,8 +273,8 @@ export default function WaterShowPage() {
       } else {
         setMeters(metersData);
       }
-    } catch (error: any) {
-      show(error?.message || 'Failed to create meter', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to create meter'), 'error');
     }
   };
 
@@ -295,8 +296,8 @@ export default function WaterShowPage() {
       } else {
         setMeters(metersData);
       }
-    } catch (error: any) {
-      show(error?.message || 'Failed to update meter', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to update meter'), 'error');
     }
   };
 
@@ -316,8 +317,8 @@ export default function WaterShowPage() {
       } else {
         setMeters(metersData);
       }
-    } catch (error: any) {
-      show(error?.message || 'Failed to deactivate meter', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to deactivate meter'), 'error');
     }
   };
 
@@ -337,8 +338,8 @@ export default function WaterShowPage() {
       } else {
         setMeters(metersData);
       }
-    } catch (error: any) {
-      show(error?.message || 'Failed to delete meter', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to delete meter'), 'error');
     }
   };
 

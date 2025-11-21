@@ -6,6 +6,7 @@ import {
 } from '@/src/components/base-service/ServiceFormControls';
 import { createServiceCombo, checkComboCodeExistsGlobally, checkComboItemCodeExistsGlobally, getService } from '@/src/services/asset-maintenance/serviceService';
 import { CreateServiceComboPayload, ServiceComboItemPayload } from '@/src/types/service';
+import { getErrorMessage } from '@/src/types/error';
 
 interface ComboItemFormState {
   id: string;
@@ -380,7 +381,7 @@ function ComboForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) {
             if (exists) {
               fieldErrors.code = 'Mã mục đã tồn tại trong hệ thống';
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error('Error checking combo item code:', err);
           }
         }
@@ -417,7 +418,7 @@ function ComboForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) {
             if (exists) {
               setErrors((prev) => ({ ...prev, code: t('Service.validation.comboCodeExists') || 'Mã gói đã tồn tại trong hệ thống' }));
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error('Error checking combo code:', err);
           }
         }
@@ -515,7 +516,7 @@ function ComboForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) {
         if (exists) {
           nextErrors.code = t('Service.validation.comboCodeExists') || 'Mã gói đã tồn tại trong hệ thống';
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error checking combo code:', err);
       }
     }
@@ -565,7 +566,7 @@ function ComboForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) {
             if (exists) {
               fieldErrors.code = 'Mã mục đã tồn tại trong hệ thống';
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error('Error checking combo item code:', err);
           }
         }
@@ -663,8 +664,10 @@ function ComboForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) {
         try {
           await createServiceCombo(serviceId, payload);
           success = true;
-        } catch (error: any) {
-          if (error?.response?.status === 409 || error?.message?.includes('duplicate') || error?.message?.includes('unique')) {
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          const apiError = error as { response?: { status?: number } };
+          if (apiError?.response?.status === 409 || errorMessage.includes('duplicate') || errorMessage.includes('unique')) {
             // Code conflict, regenerate with suffix and retry
             attempts++;
             if (attempts < 10) {

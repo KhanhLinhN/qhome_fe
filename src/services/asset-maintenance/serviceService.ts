@@ -156,7 +156,7 @@ export async function checkComboCodeExistsGlobally(code: string): Promise<boolea
       allServices = [servicesResponse];
     } else {
       // If response structure is different, try to extract services
-      const data = servicesResponse as any;
+      const data = servicesResponse as { data?: Service[]; services?: Service[] };
       allServices = Array.isArray(data?.data) ? data.data : Array.isArray(data?.services) ? data.services : [];
     }
     
@@ -196,7 +196,7 @@ export async function checkComboItemCodeExistsGlobally(code: string): Promise<bo
       allServices = [servicesResponse];
     } else {
       // If response structure is different, try to extract services
-      const data = servicesResponse as any;
+      const data = servicesResponse as { data?: Service[]; services?: Service[] };
       allServices = Array.isArray(data?.data) ? data.data : Array.isArray(data?.services) ? data.services : [];
     }
     
@@ -208,7 +208,7 @@ export async function checkComboItemCodeExistsGlobally(code: string): Promise<bo
         for (const combo of combos) {
           // Check if combo has items and if any item has the code
           if (combo.items && Array.isArray(combo.items)) {
-            if (combo.items.some((item: any) => item.itemName?.toLowerCase() === code.toLowerCase())) {
+            if (combo.items.some((item: { itemName?: string }) => item.itemName?.toLowerCase() === code.toLowerCase())) {
               return true;
             }
           }
@@ -241,7 +241,7 @@ export async function checkTicketCodeExistsGlobally(code: string): Promise<boole
       allServices = [servicesResponse];
     } else {
       // If response structure is different, try to extract services
-      const data = servicesResponse as any;
+      const data = servicesResponse as { data?: Service[]; services?: Service[] };
       allServices = Array.isArray(data?.data) ? data.data : Array.isArray(data?.services) ? data.services : [];
     }
     
@@ -281,7 +281,7 @@ export async function checkOptionCodeExistsGlobally(code: string): Promise<boole
       allServices = [servicesResponse];
     } else {
       // If response structure is different, try to extract services
-      const data = servicesResponse as any;
+      const data = servicesResponse as { data?: Service[]; services?: Service[] };
       allServices = Array.isArray(data?.data) ? data.data : Array.isArray(data?.services) ? data.services : [];
     }
     

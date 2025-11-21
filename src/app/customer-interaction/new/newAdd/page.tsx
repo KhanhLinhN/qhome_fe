@@ -9,14 +9,15 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { getBuildings, Building } from '@/src/services/base/buildingService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import { useNewAdd } from '@/src/hooks/useNewAdd';
-import { 
-    updateNews, 
-    CreateNewsRequest, 
-    UpdateNewsRequest, 
-    NewsImageDto, 
+import {
+    updateNews,
+    CreateNewsRequest,
+    UpdateNewsRequest,
+    NewsImageDto,
     uploadMultipleNewsImages,
     uploadNewsImageFile,
-    uploadNewsImageFiles
+    uploadNewsImageFiles,
+    FileUploadResponse
 } from '@/src/services/customer-interaction/newService';
 import { NotificationScope, NewsStatus } from '@/src/types/news';
 import { useNotifications } from '@/src/hooks/useNotifications';
@@ -401,7 +402,7 @@ export default function NewsAdd() {
                 try {
                     // Upload files to get URLs
                     let uploadedImageUrls: string[] = [];
-                    let uploadResponses: any[] = [];
+                    let uploadResponses: FileUploadResponse[] = [];
                     if (imagesWithFiles.length > 0) {
                         const files = imagesWithFiles.map(img => img.file!);
                         const ownerId = newsId;
@@ -571,7 +572,7 @@ export default function NewsAdd() {
         }
         setFormData((prev) => ({
             ...prev,
-            targetBuildingId: item.value === 'all' ? null as any : item.value,
+            targetBuildingId: item.value === 'all' ? null : item.value,
         }));
     };
 

@@ -18,6 +18,7 @@ import {
   fetchUserStatus,
   updateStaffAccount,
 } from '@/src/services/iam/userService';
+import { getErrorMessage } from '@/src/types/error';
 
 type FetchState = 'idle' | 'loading' | 'error' | 'success';
 
@@ -110,13 +111,11 @@ export default function AccountEditStaffPage() {
           confirmPassword: '',
         });
         setState('success');
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!active) {
           return;
         }
-        const message =
-          err?.response?.data?.message ||
-          err?.message ||
+          const message = getErrorMessage(err, t('errors.loadFailed'));
           t('errors.loadFailed');
         setError(message);
         setState('error');
@@ -240,11 +239,8 @@ export default function AccountEditStaffPage() {
         confirmPassword: '',
       }));
       setSuccessMessage(t('messages.updateSuccess'));
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        t('messages.updateError');
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, t('messages.updateError'));
       setFormError(message);
     } finally {
       setSubmitting(false);

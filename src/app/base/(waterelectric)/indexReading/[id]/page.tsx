@@ -18,6 +18,7 @@ import {
   MeterReadingDto,
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
 import { getUnit, Unit } from '@/src/services/base/unitService';
 
 interface ReadingData {
@@ -189,9 +190,9 @@ export default function IndexReadingPage() {
       setUnitReadings(initialUnitReadingsData);
       setUnitsData(unitsMap);
       setExistingReadingsByUnit(existingReadingsMap);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load data:', error);
-      show(error?.response?.data?.message || error?.message || 'Failed to load data', 'error');
+      show(getErrorMessage(error, 'Failed to load data'), 'error');
       router.back();
     } finally {
       setLoading(false);
@@ -218,7 +219,7 @@ export default function IndexReadingPage() {
       setSubmitting(true);
 
       // Create readings for all meters that have currIndex
-      const readingPromises: Promise<any>[] = [];
+      const readingPromises: Promise<unknown>[] = [];
       const today = readingDate || new Date().toISOString().split('T')[0];
 
       // Process all readings (both existing meters and units without meters)
@@ -266,9 +267,10 @@ export default function IndexReadingPage() {
             meter = await createMeter(meterReq);
             createdMeters[unitId] = meter; // Cache created meter to avoid duplicates
             console.log(`Created new meter ${meter.id} for unit ${unitId}`);
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error(`Failed to create meter for unit ${unitId}:`, error);
-            show(`Failed to create meter for unit ${unitsData[unitId]?.code || unitId}: ${error?.response?.data?.message || error?.message}`, 'error');
+            const message = getErrorMessage(error, 'Failed to create meter');
+            show(`Failed to create meter for unit ${unitsData[unitId]?.code || unitId}: ${message}`, 'error');
             return null;
           }
         }
@@ -414,15 +416,15 @@ export default function IndexReadingPage() {
           // Reload progress
           const updatedProgress = await getAssignmentProgress(assignmentId);
           setProgress(updatedProgress);
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed to reload data:', error);
           // Don't show error to user if reload fails, just log it
           // The submit was successful, so we don't want to confuse the user
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to submit readings:', error);
-      show(error?.response?.data?.message || error?.message || 'Failed to submit readings', 'error');
+      show(getErrorMessage(error, 'Failed to submit readings'), 'error');
     } finally {
       setSubmitting(false);
     }

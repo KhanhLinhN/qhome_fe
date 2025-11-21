@@ -12,6 +12,7 @@ import {
   type TenantDeletionTargetsStatus,
   TenantDeletionStatus,
 } from '@/src/services/base';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function DeletionRequestDetailPage() {
   const params = useParams();
@@ -64,9 +65,10 @@ export default function DeletionRequestDetailPage() {
       alert('✅ Đã phê duyệt yêu cầu xóa tenant!');
       setShowApproveModal(false);
       await loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to approve:', error);
-      alert(`❌ Lỗi: ${error.response?.data?.message || error.message}`);
+      const message = getErrorMessage(error, 'Không thể phê duyệt yêu cầu.');
+      alert(`❌ Lỗi: ${message}`);
     }
   };
 
@@ -76,9 +78,10 @@ export default function DeletionRequestDetailPage() {
       alert('✅ Đã từ chối yêu cầu xóa tenant!');
       setShowRejectModal(false);
       await loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to reject:', error);
-      alert(`❌ Lỗi: ${error.response?.data?.message || error.message}`);
+      const message = getErrorMessage(error, 'Không thể từ chối yêu cầu.');
+      alert(`❌ Lỗi: ${message}`);
     }
   };
 
@@ -88,9 +91,10 @@ export default function DeletionRequestDetailPage() {
       alert('✅ Đã hoàn thành xóa tenant!');
       setShowCompleteModal(false);
       await loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to complete:', error);
-      alert(`❌ Lỗi: ${error.response?.data?.message || error.message}`);
+      const message = getErrorMessage(error, 'Không thể hoàn thành xóa tenant.');
+      alert(`❌ Lỗi: ${message}`);
     }
   };
 

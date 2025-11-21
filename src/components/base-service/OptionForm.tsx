@@ -8,6 +8,7 @@ import {
 } from '@/src/components/base-service/ServiceFormControls';
 import { createServiceOption, checkOptionCodeExistsGlobally, getService } from '@/src/services/asset-maintenance/serviceService';
 import { CreateServiceOptionPayload } from '@/src/types/service';
+import { getErrorMessage } from '@/src/types/error';
 
 function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) {
   const [formData, setFormData] = useState({
@@ -167,7 +168,7 @@ function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
             if (exists) {
               setErrors((prev) => ({ ...prev, code: t('Service.validation.optionCodeExists') || 'Mã tùy chọn đã tồn tại trong hệ thống' }));
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error('Error checking option code:', err);
           }
         }
@@ -256,7 +257,7 @@ function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
         if (exists) {
           nextErrors.code = t('Service.validation.optionCodeExists') || 'Mã tùy chọn đã tồn tại trong hệ thống';
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error checking option code:', err);
       }
     }
@@ -307,8 +308,10 @@ function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
         try {
           await createServiceOption(serviceId, payload);
           success = true;
-        } catch (error: any) {
-          if (error?.response?.status === 409 || error?.message?.includes('duplicate') || error?.message?.includes('unique')) {
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          const apiError = error as { response?: { status?: number } };
+          if (apiError?.response?.status === 409 || errorMessage.includes('duplicate') || errorMessage.includes('unique')) {
             // Code conflict, regenerate with suffix and retry
             attempts++;
             if (attempts < 10) {

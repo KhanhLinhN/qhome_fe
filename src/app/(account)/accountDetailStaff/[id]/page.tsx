@@ -15,6 +15,7 @@ import {
   fetchUserProfile,
   fetchUserStatus,
 } from '@/src/services/iam/userService';
+import { getErrorMessage } from '@/src/types/error';
 
 type FetchState = 'idle' | 'loading' | 'error' | 'success';
 
@@ -59,14 +60,11 @@ export default function AccountDetailStaffPage() {
         setProfile(profileRes);
         setStatus(statusRes);
         setState('success');
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!active) {
           return;
         }
-        const message =
-          err?.response?.data?.message ||
-          err?.message ||
-          t('errors.loadFailed');
+        const message = getErrorMessage(err, t('errors.loadFailed'));
         setError(message);
         setState('error');
       }

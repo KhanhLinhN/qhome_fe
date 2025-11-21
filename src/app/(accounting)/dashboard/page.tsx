@@ -28,7 +28,7 @@ export default function AccountingDashboard(){
   });
 
   // table
-  const [rows, setRows] = React.useState<any[]>([]);
+  const [rows, setRows] = React.useState<Record<string, unknown>[]>([]);
   const [page, setPage] = React.useState(0);
   const [size] = React.useState(20);
   const [total, setTotal] = React.useState(0);

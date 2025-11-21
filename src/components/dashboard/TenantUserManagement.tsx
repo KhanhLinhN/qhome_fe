@@ -61,7 +61,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       }
       
       setAvailableStaff(validStaff);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Failed to load available staff:', err);
       show(`Lỗi tải danh sách staff: ${err.message}`, 'error');
     } finally {
@@ -75,7 +75,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       const data = await getEmployeesInTenant(tenant.id);
       console.log('👥 Employees in tenant:', data);
       setEmployees(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Failed to load employees:', err);
       show(`Lỗi tải danh sách nhân viên: ${err.message}`, 'error');
     } finally {
@@ -89,7 +89,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       const data = await getAvailableRoles(tenant.id);
       console.log('🔑 Available roles:', data);
       setAvailableRoles(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Failed to load roles:', err);
       show(`Lỗi tải roles: ${err.message}`, 'error');
     } finally {
@@ -130,7 +130,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       // Reload data
       await loadData();
       setShowAssignModal(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       show(`Lỗi: ${err.message}`, 'error');
       console.error('Failed to assign roles:', err);
     }
@@ -150,7 +150,7 @@ export default function TenantUserManagement({ tenant }: Props) {
         // Reload data
         await loadData();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       show(`Lỗi: ${err.message}`, 'error');
       console.error('Failed to remove roles:', err);
     }
@@ -172,7 +172,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       
       show(`Đã xóa ${employee.username} khỏi tenant`, 'success');
       await loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       show(`Lỗi xóa nhân viên: ${err.message}`, 'error');
     }
   };

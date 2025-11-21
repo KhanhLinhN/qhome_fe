@@ -18,7 +18,7 @@ export function useVehicleDetailPage(vehicleId?: string) {
         setError(null);
         const data = await getVehicle(vehicleId);
         setVehicle(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to load vehicle detail:', err);
         setError(err?.message || 'Failed to load vehicle detail');
       } finally {

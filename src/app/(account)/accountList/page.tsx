@@ -18,6 +18,7 @@ import Pagination from '@/src/components/customer-interaction/Pagination';
 import Select from '@/src/components/customer-interaction/Select';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
 const PAGE_SIZE = 10;
 
 type SelectOption = {
@@ -101,12 +102,9 @@ export default function AccountListPage() {
 
         setStaffAccounts(staffRes.map((row) => toAccountRow(row, 'staff')));
         setResidentAccounts(residentRes.map((row) => toAccountRow(row, 'resident')));
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!active) return;
-        const message =
-          err?.response?.data?.message ||
-          err?.message ||
-          t('errors.loadFailed');
+        const message = getErrorMessage(err, t('errors.loadFailed'));
         setError(message);
       } finally {
         if (active) {
@@ -422,11 +420,8 @@ export default function AccountListPage() {
       setSelectedAccountId(null);
       setSelectedAccountType(null);
       setSelectedAccountStatus(null);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể cập nhật trạng thái tài khoản. Vui lòng thử lại.';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, t('errors.loadFailed'));
       show(message, 'error');
       console.error('Error updating account status:', err);
     }

@@ -13,6 +13,7 @@ import {
   MeterReadingReminderDto
 } from '@/src/services/base/meterReminderService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function ShowAssignPage() {
   const router = useRouter();
@@ -64,9 +65,9 @@ export default function ShowAssignPage() {
       setRemindersLoading(true);
       const data = await fetchMeterReadingReminders(includeAll);
       setReminders(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to load reminders:", error);
-      show(error?.response?.data?.message || error?.message || "Không thể tải nhắc nhở", "error");
+      show(getErrorMessage(error, "Không thể tải nhắc nhở"), "error");
     } finally {
       setRemindersLoading(false);
     }
@@ -110,9 +111,9 @@ export default function ShowAssignPage() {
         const firstCycleId = data[0].cycleId;
         setExpandedCycles(new Set([firstCycleId]));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load assignments:', error);
-      show(error?.response?.data?.message || error?.message || 'Failed to load assignments', 'error');
+      show(getErrorMessage(error, 'Failed to load assignments'), 'error');
     } finally {
       setLoading(false);
     }
@@ -143,8 +144,8 @@ export default function ShowAssignPage() {
       show('Assignment completed successfully', 'success');
       // Reload assignments to update the UI
       loadAssignments();
-    } catch (error: any) {
-      show(error?.response?.data?.message || error?.message || 'Failed to complete assignment', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to complete assignment'), 'error');
     }
   };
 

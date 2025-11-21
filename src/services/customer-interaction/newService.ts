@@ -42,6 +42,13 @@ export interface FileUploadResponse {
     uploadedAt?: string;
 }
 
+interface ImgbbResponse {
+    id?: string;
+    delete_url?: string;
+    title?: string;
+    url?: string;
+}
+
 /**
  * News Service - Customer Interaction API
  * Based on NewsController.java and NewsImageController.java
@@ -293,12 +300,13 @@ export async function deleteNewsImage(imageId: string): Promise<void> {
  */
 
 // Helper to map imgbb response to frontend format
-function mapImgbbResponse(imgbbData: any, originalFile: File): FileUploadResponse {
+function mapImgbbResponse(imgbbData: ImgbbResponse, originalFile: File): FileUploadResponse {
+    const fileId = imgbbData.id || imgbbData.delete_url?.split('/').pop();
     return {
-        fileId: imgbbData.id || imgbbData.delete_url?.split('/').pop(),
+        fileId,
         fileName: imgbbData.title || originalFile.name,
         originalFileName: originalFile.name,
-        fileUrl: imgbbData.url,
+        fileUrl: imgbbData.url || '',
         contentType: originalFile.type || 'image/jpeg',
         fileSize: originalFile.size,
         uploadedAt: new Date().toISOString(),

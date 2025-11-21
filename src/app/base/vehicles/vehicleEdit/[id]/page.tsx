@@ -44,7 +44,7 @@ export default function VehicleEditPage() {
     router.push(`/base/vehicles/vehicleDetail/${vehicleId}`);
   };
 
-  const handleChange = (field: keyof Vehicle, value: any) => {
+  const handleChange = (field: keyof Vehicle, value: Vehicle[keyof Vehicle]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -56,9 +56,10 @@ export default function VehicleEditPage() {
       setSaveError(null);
       await updateVehicle(vehicleId, form);
       router.push(`/base/vehicles/vehicleDetail/${vehicleId}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setSaveError(err?.message || t('error'));
+      const errorMessage = err instanceof Error ? err.message : t('error');
+      setSaveError(errorMessage);
     } finally {
       setSaving(false);
     }

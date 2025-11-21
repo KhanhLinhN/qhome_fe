@@ -12,6 +12,7 @@ import {
   ServiceDto,
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
 import Select from '@/src/components/customer-interaction/Select';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import { getEmployeesByRole, EmployeeRoleDto, getEmployeesByRoleNew } from '@/src/services/iam/employeeService';
@@ -301,9 +302,9 @@ export default function AddAssignmentPage() {
       } else {
         show('Failed to create assignment', 'error');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create assignment:', error);
-      show(error?.response?.data?.message || error?.message || 'Failed to create assignment', 'error');
+      show(getErrorMessage(error, 'Failed to create assignment'), 'error');
     } finally {
       setLoading(false);
     }

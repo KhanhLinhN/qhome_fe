@@ -1,4 +1,5 @@
 import axios from "@/src/lib/axios";
+import type { Unit } from "./unitService";
 
 export type Building = {
   id: string;
@@ -73,10 +74,25 @@ export async function deleteBuilding(id: string): Promise<void> {
 /**
  * GET /api/units/building/:buildingId
  */
-export async function getUnitsByBuildingId(buildingId: string): Promise<any[]> {
+export async function getUnitsByBuildingId(buildingId: string): Promise<Unit[]> {
   const response = await axios.get(
     `${BASE_URL}/api/units/building/${buildingId}`,
     { 
+      withCredentials: true 
+    }
+  );
+  return response.data;
+}
+
+/**
+ * GET /api/buildings?tenantId=:tenantId
+ * Lấy danh sách buildings theo tenantId
+ */
+export async function getBuildingsByTenant(tenantId: string): Promise<Building[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/buildings`,
+    { 
+      params: { tenantId },
       withCredentials: true 
     }
   );

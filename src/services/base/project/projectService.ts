@@ -25,7 +25,7 @@ const TOKEN_REQUEST_BODY = {
 
 export class ProjectService {
     async getProjectList(): Promise<Project[]> {
-        let url = `${process.env.NEXT_PUBLIC_BASE_PROJECT_APT_URL}tenants`;
+        const url = `${process.env.NEXT_PUBLIC_BASE_PROJECT_APT_URL}tenants`;
         
         try {
             const tokenResponse = await fetch('http://localhost:8088/api/test/generate-token', {

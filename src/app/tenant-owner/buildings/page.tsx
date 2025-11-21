@@ -4,6 +4,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import Topbar from '@/src/components/layout/Topbar';
 import Sidebar from '@/src/components/layout/Sidebar';
 import axios from '@/src/lib/axios';
+import { getErrorMessage } from '@/src/types/error';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
@@ -86,9 +87,10 @@ export default function TenantOwnerBuildingsPage() {
       );
       alert(`✅ Đã hoàn tất xóa building "${buildingName}"!`);
       loadDeletingBuildings(); // Reload
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to complete deletion:', error);
-      alert(`❌ Hoàn tất xóa thất bại: ${error?.response?.data?.message || error.message}`);
+      const message = getErrorMessage(error, 'Không thể hoàn tất xóa building.');
+      alert(`❌ Hoàn tất xóa thất bại: ${message}`);
     } finally {
       setCompleting(null);
     }

@@ -12,6 +12,7 @@ import { NewsStatus, NotificationScope } from '@/src/types/news';
 import { updateNews } from '@/src/services/customer-interaction/newService';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import Pagination from '@/src/components/customer-interaction/Pagination';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function NewsList() {
     const t = useTranslations('News');
@@ -142,9 +143,9 @@ export default function NewsList() {
             show(t('updated'), 'success');
             await refetch();
             handleCloseChange();
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error('Failed to update news status/target', e);
-            show(t('errorUpdate'), 'error');
+            show(getErrorMessage(e, t('errorUpdate')), 'error');
             setChanging(false);
         }
     };

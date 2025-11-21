@@ -24,6 +24,7 @@ import { useResidentUnits } from '@/src/hooks/useResidentUnits';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import { createHousehold } from '@/src/services/base/householdService';
+import { getErrorMessage } from '@/src/types/error';
 
 type FetchState = 'idle' | 'loading' | 'error' | 'success';
 
@@ -112,14 +113,11 @@ export default function AccountEditResidentPage() {
           confirmPassword: '',
         });
         setState('success');
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!active) {
           return;
         }
-        const message =
-          err?.response?.data?.message ||
-          err?.message ||
-          t('errors.loadFailed');
+          const message = getErrorMessage(err, t('errors.loadFailed'));
         setError(message);
         setState('error');
       }
@@ -232,11 +230,8 @@ export default function AccountEditResidentPage() {
         confirmPassword: '',
       }));
       setSuccessMessage(t('messages.updateSuccess'));
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        t('messages.updateError');
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, t('messages.updateError'));
       setError(message);
     } finally {
       setSubmitting(false);
@@ -262,9 +257,8 @@ export default function AccountEditResidentPage() {
       setLoadingBuildings(true);
       const data = await getBuildings();
       setBuildings(data);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message || err?.message || t('errors.loadBuildingsFailed');
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, t('errors.loadBuildingsFailed'));
       setAssignmentError(message);
     } finally {
       setLoadingBuildings(false);
@@ -282,9 +276,8 @@ export default function AccountEditResidentPage() {
         setLoadingAvailableUnits(true);
         const data = await getUnitsByBuilding(buildingId);
         setAvailableUnits(data);
-      } catch (err: any) {
-        const message =
-          err?.response?.data?.message || err?.message || t('errors.loadUnitsFailed');
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, t('errors.loadUnitsFailed'));
         setAssignmentError(message);
       } finally {
         setLoadingAvailableUnits(false);

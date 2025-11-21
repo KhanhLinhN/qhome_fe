@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { downloadUnitImportTemplate, importUnits, UnitImportResponse } from "@/src/services/base/unitImportService";
+import { getErrorMessage } from "@/src/types/error";
 
 export default function UnitImportPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -25,8 +26,8 @@ export default function UnitImportPage() {
       a.download = "unit_import_template.xlsx";
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || "Tải template thất bại");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Tải template thất bại"));
     }
   };
 
@@ -38,8 +39,8 @@ export default function UnitImportPage() {
     try {
       const res = await importUnits(file);
       setResult(res);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || "Import thất bại");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Import thất bại"));
     } finally {
       setLoading(false);
     }

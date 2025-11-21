@@ -18,6 +18,7 @@ import {
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import CycleModal from '@/src/components/water/CycleModal';
+import { getErrorMessage } from '@/src/types/error';
 import StatusChangeModal from '@/src/components/water/StatusChangeModal';
 
 export default function ReadingCyclesPage() {
@@ -80,8 +81,8 @@ export default function ReadingCyclesPage() {
       show('Reading cycle created successfully', 'success');
       setIsCreateOpen(false);
       loadCycles();
-    } catch (error: any) {
-      show(error?.message || 'Failed to create reading cycle', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to create reading cycle'), 'error');
     }
   };
 
@@ -92,8 +93,8 @@ export default function ReadingCyclesPage() {
       setIsEditOpen(false);
       setSelectedCycle(null);
       loadCycles();
-    } catch (error: any) {
-      show(error?.message || 'Failed to update reading cycle', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to update reading cycle'), 'error');
     }
   };
 
@@ -104,8 +105,8 @@ export default function ReadingCyclesPage() {
       setIsStatusChangeOpen(false);
       setCycleForStatusChange(null);
       loadCycles();
-    } catch (error: any) {
-      show(error?.message || 'Failed to update status', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to update status'), 'error');
     }
   };
 
@@ -121,8 +122,8 @@ export default function ReadingCyclesPage() {
       await deleteReadingCycle(cycleId);
       show('Reading cycle deleted successfully', 'success');
       loadCycles();
-    } catch (error: any) {
-      show(error?.message || 'Failed to delete reading cycle', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to delete reading cycle'), 'error');
     }
   };
 

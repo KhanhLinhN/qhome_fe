@@ -33,7 +33,7 @@ export async function exportContractPdf(
       withCredentials: true,
     });
     return res.data as Blob;
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Try to extract server message from Blob
     const data = err?.response?.data;
     if (data instanceof Blob) {

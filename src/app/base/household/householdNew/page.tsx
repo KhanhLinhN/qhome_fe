@@ -9,6 +9,7 @@ import {
   createHousehold,
   type CreateHouseholdPayload,
 } from '@/src/services/base/householdService';
+import { getErrorMessage } from '@/src/types/error';
 
 const KIND_OPTIONS: { value: CreateHouseholdPayload['kind']; label: string }[] = [
   { value: 'OWNER', label: 'Chủ sở hữu (OWNER)' },
@@ -60,9 +61,8 @@ export default function HouseholdNewPage() {
       try {
         const data = await getBuildings();
         setBuildingsState({ data, loading: false, error: null });
-      } catch (err: any) {
-        const message =
-          err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, 'Không thể tải danh sách tòa nhà.');
         setBuildingsState({ data: [], loading: false, error: message });
       }
     };
@@ -70,7 +70,7 @@ export default function HouseholdNewPage() {
     void loadBuildings();
   }, []);
 
-  const handleSelectBuilding = async (buildingId: string) {
+  const handleSelectBuilding = async (buildingId: string) => {
     setSelectedBuildingId(buildingId);
     setSelectedUnitId('');
 
@@ -83,11 +83,8 @@ export default function HouseholdNewPage() {
     try {
       const data = await getUnitsByBuilding(buildingId);
       setUnitsState({ data, loading: false, error: null });
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể tải danh sách căn hộ của tòa nhà này.';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Không thể tải danh sách căn hộ của tòa nhà này.');
       setUnitsState({ data: [], loading: false, error: message });
     }
   };
@@ -149,11 +146,8 @@ export default function HouseholdNewPage() {
           router.push(`/base/household/householdDetail/${response.id}`);
         }, 800);
       }
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể tạo hộ gia đình. Vui lòng thử lại.';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Không thể tạo hộ gia đình. Vui lòng thử lại.');
       setSubmitError(message);
     } finally {
       setSubmitting(false);

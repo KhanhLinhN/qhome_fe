@@ -111,7 +111,7 @@ export function useResidentUnits(residentId?: string) {
       });
 
       setAssignments(Array.from(deduped.values()));
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
         err?.response?.data?.message || err?.message || 'Không thể tải danh sách căn hộ của cư dân.';
       setError(message);

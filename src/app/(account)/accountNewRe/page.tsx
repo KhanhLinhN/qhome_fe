@@ -28,6 +28,7 @@ import { getBuildings, type Building } from '@/src/services/base/buildingService
 import { checkEmailExists } from '@/src/services/iam/userService';
 import Select from '@/src/components/customer-interaction/Select';
 import DateBox from '@/src/components/customer-interaction/DateBox';
+import { getErrorMessage, type ApiError } from '@/src/types/error';
 
 type ManualFormState = {
   householdId: string;
@@ -152,7 +153,7 @@ export default function AccountNewResidentPage() {
       try {
         const data = await getBuildings();
         setBuildings(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         const message =
           err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
         setBuildingsError(message);
@@ -186,7 +187,7 @@ export default function AccountNewResidentPage() {
     try {
       const data = await getUnitsByBuilding(buildingId);
       setUnits(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
         err?.response?.data?.message || err?.message || 'Không thể tải danh sách căn hộ.';
       setUnitsError(message);
@@ -384,9 +385,8 @@ export default function AccountNewResidentPage() {
         return;
       }
       setContractDetailState({ data: detail, loading: false, error: null });
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message || error?.message || 'Không thể tải chi tiết hợp đồng.';
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Không thể tải chi tiết hợp đồng.');
       setContractDetailState({ data: null, loading: false, error: message });
     }
   };
@@ -455,7 +455,7 @@ export default function AccountNewResidentPage() {
           errors.email = 'Email đã tồn tại trong hệ thống.';
           isValid = false;
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         // If there's an error checking (network, etc.), log but don't block submit
         console.error('Error checking email:', err);
       }
@@ -519,7 +519,7 @@ export default function AccountNewResidentPage() {
       try {
         const unit = await getUnit(unitId);
         setUnitInfo(unit);
-      } catch (unitErr: any) {
+      } catch (unitErr: unknown) {
         console.error('Không thể tải thông tin căn hộ', unitErr);
       }
 
@@ -533,12 +533,9 @@ export default function AccountNewResidentPage() {
           return;
         }
         setContractInfo(activeContract);
-      } catch (contractErr: any) {
+      } catch (contractErr: unknown) {
         console.error('Không thể tải hợp đồng của căn hộ:', contractErr);
-        const message =
-          contractErr?.response?.data?.message ||
-          contractErr?.message ||
-          'Không thể tải hợp đồng của căn hộ.';
+        const message = getErrorMessage(contractErr, 'Không thể tải hợp đồng của căn hộ.');
         setContractError(message);
         setUnitSelectionError('Không thể tải thông tin hợp đồng. Vui lòng thử lại.');
         return;
@@ -553,11 +550,10 @@ export default function AccountNewResidentPage() {
       if (activeContract) {
         await attemptCreateHousehold(unitId, activeContract);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Không thể tải thông tin hộ gia đình theo căn hộ:', err);
-      setHouseholdError(
-        err?.response?.data?.message || err?.message || 'Không thể tải thông tin hộ gia đình.',
-      );
+      const message = getErrorMessage(err, 'Không thể tải thông tin hộ gia đình.');
+      setHouseholdError(message);
     } finally {
       setHouseholdLoading(false);
     }
@@ -612,12 +608,9 @@ export default function AccountNewResidentPage() {
       });
       applyHouseholdInfo(created, contract);
       setManualSuccess('Đã tạo hộ gia đình mới cho căn hộ.');
-    } catch (createErr: any) {
+    } catch (createErr: unknown) {
       console.error('Không thể tự động tạo hộ gia đình:', createErr);
-      const message =
-        createErr?.response?.data?.message ||
-        createErr?.message ||
-        'Không thể tạo hộ gia đình cho căn hộ này.';
+      const message = getErrorMessage(createErr, 'Không thể tạo hộ gia đình cho căn hộ này.');
       setUnitSelectionError(message);
     }
   };
@@ -670,11 +663,8 @@ export default function AccountNewResidentPage() {
       setHouseholdInfo(null);
       setUnitInfo(null);
       setHouseholdError(null);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể tạo tài khoản cư dân. Vui lòng thử lại.';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Không thể tạo tài khoản cư dân. Vui lòng thử lại.');
       setManualError(message);
     } finally {
       setManualSubmitting(false);
@@ -687,11 +677,8 @@ export default function AccountNewResidentPage() {
       setRequestError(null);
       const data = await fetchPendingAccountRequests();
       setPendingRequests(data);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể tải danh sách yêu cầu tạo tài khoản.';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Không thể tải danh sách yêu cầu tạo tài khoản.');
       setRequestError(message);
     } finally {
       setLoadingRequests(false);
@@ -748,7 +735,6 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
     let rejectionReason: string | undefined;
 
     if (!approve) {
-      // eslint-disable-next-line no-alert
       const reason =
         window.prompt('Nhập lý do từ chối (bắt buộc):', DEFAULT_ACCOUNT_REJECTION_REASON) ??
         DEFAULT_ACCOUNT_REJECTION_REASON;
@@ -766,11 +752,8 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
         rejectionReason,
       });
       setPendingRequests((prev) => prev.filter((item) => item.id !== requestId));
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể xử lý yêu cầu. Vui lòng thử lại.';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Không thể xử lý yêu cầu. Vui lòng thử lại.');
       setRequestError(message);
     } finally {
       setRequestActionState((prev) => ({ ...prev, [requestId]: false }));

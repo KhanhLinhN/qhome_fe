@@ -81,7 +81,7 @@ export default function SupplierEdit() {
             await editSupplier(supplierId, formData);
             show('Cập nhật nhà cung cấp thành công', 'success');
             router.push(`/asset-maintain/supplier/supplierDetail/${supplierId}`);
-        } catch (err: any) {
+        } catch (err: unknown) {
             show('Cập nhật nhà cung cấp thất bại: ' + (err?.message || ''), 'error');
         }
     };

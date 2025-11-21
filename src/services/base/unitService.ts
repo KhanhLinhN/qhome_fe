@@ -69,11 +69,12 @@ export async function createUnit(data: Partial<Unit>): Promise<Unit> {
       { withCredentials: true }
     );
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as { response?: { status?: number; data?: unknown }; message?: string };
     console.error("Create unit error:", {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
+      status: apiError.response?.status,
+      data: apiError.response?.data,
+      message: apiError.message
     });
     throw error;
   }

@@ -25,8 +25,8 @@ export default function BuildingImportPage() {
       a.download = "building_import_template.xlsx";
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || "Tải template thất bại");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Tải template thất bại"));
     }
   };
 
@@ -38,8 +38,8 @@ export default function BuildingImportPage() {
     try {
       const res = await importBuildings(file);
       setResult(res);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || "Import thất bại");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Import thất bại"));
     } finally {
       setLoading(false);
     }

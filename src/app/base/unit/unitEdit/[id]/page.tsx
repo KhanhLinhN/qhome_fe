@@ -77,7 +77,7 @@ export default function UnitEdit() {
                 const building = await getBuilding(unitData.buildingId);
                 setBuildingName(building.name);
                 setBuildingCode(building.code);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error('Failed to load building:', err);
                 setBuildingName('N/A');
             } finally {

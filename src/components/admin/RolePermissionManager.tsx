@@ -181,7 +181,7 @@ export default function RolePermissionManager() {
                   try {
                     await handleRemovePermission(code);
                     show('Permission removed successfully', 'success');
-                  } catch (err: any) {
+                  } catch (err: unknown) {
                     show(`Error: ${err.message}`, 'error');
                   }
                 }}
@@ -200,7 +200,7 @@ export default function RolePermissionManager() {
             try {
               await handleAddPermission(code);
               show('Permission added successfully', 'success');
-            } catch (err: any) {
+            } catch (err: unknown) {
               show(`Error: ${err.message}`, 'error');
             }
           }}
@@ -215,12 +215,17 @@ export default function RolePermissionManager() {
  * Component: PermissionGroups
  * Group permissions by service prefix
  */
+interface Permission {
+  code: string;
+  description?: string;
+}
+
 function PermissionGroups({ 
   permissions, 
   isEditMode = false,
   onRemove 
 }: { 
-  permissions: any[]; 
+  permissions: Permission[]; 
   isEditMode?: boolean;
   onRemove?: (code: string) => void;
 }) {
@@ -232,7 +237,7 @@ function PermissionGroups({
     }
     acc[prefix].push(perm);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, Permission[]>);
 
   const serviceNames: Record<string, string> = {
     tenant: '🏢 Tenant Management',
@@ -251,13 +256,13 @@ function PermissionGroups({
 
   return (
     <div className="space-y-4">
-      {(Object.entries(grouped) as [string, any[]][]).map(([service, perms]) => (
+      {(Object.entries(grouped) as [string, Permission[]][]).map(([service, perms]) => (
         <div key={service} className="border border-slate-200 rounded-lg overflow-hidden">
           <div className="bg-slate-100 px-3 py-2 font-medium text-slate-700 text-sm">
             {serviceNames[service] || service.toUpperCase()}
           </div>
           <div className="p-3 space-y-1">
-            {perms.map((perm: any) => (
+            {perms.map((perm: Permission) => (
               <div
                 key={perm.code}
                 className="flex items-start gap-2 py-1.5 px-2 hover:bg-slate-50 rounded group"
@@ -295,6 +300,11 @@ function PermissionGroups({
  * Component: AddPermissionModal
  * Modal to select permissions to add to role
  */
+interface PermissionWithCode {
+  code: string;
+  description?: string;
+}
+
 function AddPermissionModal({
   allPermissions,
   currentPermissions,
@@ -302,7 +312,7 @@ function AddPermissionModal({
   onClose,
 }: {
   allPermissions: string[];
-  currentPermissions: any[];
+  currentPermissions: PermissionWithCode[];
   onAdd: (code: string) => Promise<void>;
   onClose: () => void;
 }) {

@@ -12,6 +12,7 @@ import { NotificationType, NotificationScope } from '@/src/types/notification';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import Pagination from '@/src/components/customer-interaction/Pagination';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function NotificationList() {
     const t = useTranslations('Noti');
@@ -156,9 +157,9 @@ export default function NotificationList() {
             show('Cập nhật phạm vi thành công!', 'success');
             await refetch();
             handleCloseChange();
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error('Failed to update notification scope', e);
-            show('Có lỗi xảy ra khi cập nhật phạm vi!', 'error');
+            show(getErrorMessage(e, 'Có lỗi xảy ra khi cập nhật phạm vi!'), 'error');
             setChanging(false);
         }
     };
@@ -268,7 +269,7 @@ export default function NotificationList() {
                 {/* Table */}
                 {orderedNotifications.length === 0 ? (
                     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center text-gray-500">
-                        Chưa có thông báo nào. Nhấn "Thêm thông báo" để tạo mới.
+                        Chưa có thông báo nào. Nhấn &quot;Thêm thông báo&quot; để tạo mới.
                     </div>
                 ) : (
                     <>

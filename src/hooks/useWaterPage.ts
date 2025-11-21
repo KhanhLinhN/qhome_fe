@@ -74,7 +74,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
         const unitsData = await getUnitsByBuilding(buildingId);
         const activeUnits = unitsData.filter(u => u.status?.toUpperCase() !== 'INACTIVE');
         setUnits(activeUnits);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(err?.message || 'Failed to load apartments');
         console.error('Failed to load units:', err);
       } finally {
@@ -99,7 +99,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
           ? metersData.filter(m => m.serviceId === serviceId)
           : metersData;
         setMeters(waterMeters);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(err?.message || 'Failed to load meters');
         console.error('Failed to load meters:', err);
       } finally {
@@ -140,7 +140,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       const cycleData = await getReadingCycleById(cycleId);
       setCycle(cycleData);
       return cycleData;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Failed to load cycle');
       console.error('Failed to load cycle:', err);
       throw err;
@@ -157,7 +157,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       const assignmentsData = await getAssignmentsByCycle(cycleId);
       setAssignments(assignmentsData);
       return assignmentsData;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Failed to load assignments');
       console.error('Failed to load assignments:', err);
       throw err;
@@ -174,7 +174,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       const assignmentsData = await getMyActiveAssignments();
       setAssignments(assignmentsData);
       return assignmentsData;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Failed to load my assignments');
       console.error('Failed to load my assignments:', err);
       throw err;
@@ -198,7 +198,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
         setMeters(waterMeters);
       }
       return reading;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Failed to create meter reading');
       console.error('Failed to create meter reading:', err);
       throw err;
@@ -215,7 +215,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       const cycleData = await createReadingCycle(req);
       setCycle(cycleData);
       return cycleData;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Failed to create cycle');
       console.error('Failed to create cycle:', err);
       throw err;
@@ -232,7 +232,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       const cycleData = await updateReadingCycle(cycleId, req);
       setCycle(cycleData);
       return cycleData;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Failed to update cycle');
       console.error('Failed to update cycle:', err);
       throw err;
@@ -252,7 +252,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
         await loadAssignments(req.cycleId);
       }
       return assignment;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Failed to create assignment');
       console.error('Failed to create assignment:', err);
       throw err;
@@ -280,7 +280,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
             const waterMeters = metersData.filter(m => m.serviceId === serviceId);
             setMeters(waterMeters);
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           setError(err?.message || 'Failed to refresh data');
         } finally {
           setLoading(false);

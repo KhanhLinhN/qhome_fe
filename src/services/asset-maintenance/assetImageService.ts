@@ -10,7 +10,7 @@ export interface AssetResponse {
   status?: string;
   images?: string[];
   primaryImage?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export async function uploadAssetImages(

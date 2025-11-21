@@ -17,6 +17,7 @@ import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useDeleteBuilding } from '@/src/hooks/useBuildingDelete';
 import FormulaPopup from '@/src/components/common/FormulaPopup';
 import { downloadUnitImportTemplate, importUnits, exportUnits, type UnitImportResponse } from '@/src/services/base/unitImportService';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function BuildingDetail () {
 
@@ -72,8 +73,8 @@ export default function BuildingDetail () {
             a.download = "unit_import_template.xlsx";
             a.click();
             URL.revokeObjectURL(url);
-        } catch (e: any) {
-            setImportError(e?.response?.data?.message || "Tải template thất bại");
+        } catch (e: unknown) {
+            setImportError(getErrorMessage(e, "Tải template thất bại"));
         }
     };
 
@@ -87,8 +88,8 @@ export default function BuildingDetail () {
             a.download = `units_export_${buildingData?.code || buildingId}_${new Date().toISOString().split('T')[0]}.xlsx`;
             a.click();
             URL.revokeObjectURL(url);
-        } catch (e: any) {
-            setImportError(e?.response?.data?.message || "Xuất Excel thất bại");
+        } catch (e: unknown) {
+            setImportError(getErrorMessage(e, "Xuất Excel thất bại"));
         }
     };
 
@@ -107,8 +108,8 @@ export default function BuildingDetail () {
         try {
             const res = await importUnits(f);
             setImportResult(res);
-        } catch (e: any) {
-            setImportError(e?.response?.data?.message || "Import thất bại");
+        } catch (e: unknown) {
+            setImportError(getErrorMessage(e, "Import thất bại"));
         } finally {
             setImporting(false);
             if (fileInputRef.current) fileInputRef.current.value = '';

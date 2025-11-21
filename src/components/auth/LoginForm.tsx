@@ -6,6 +6,7 @@ import {useNotifications} from "@/src/hooks/useNotifications";
 import {useAuth} from "@/src/contexts/AuthContext";
 import {login} from "@/src/services/iam";
 import {getRedirectPathByRole} from "@/src/utils/roleRedirect";
+import { getErrorMessage } from '@/src/types/error';
 
 export default function LoginForm(){
   const t = useTranslations();
@@ -80,15 +81,16 @@ export default function LoginForm(){
         router.push(redirectPath);
       // }, 500);
       
-    } catch (e:any) {
+    } catch (e: unknown) {
       // Hiển thị message cho user
       let errorMessage = t("Login.error");
+      const apiError = e as { response?: { status?: number; data?: { message?: string } }; code?: string; message?: string };
       
-      if (e?.response?.status === 401) {
-        errorMessage = e?.response?.data?.message || "Sai tài khoản hoặc mật khẩu";
-      } else if (e?.response?.status === 400) {
-        errorMessage = e?.response?.data?.message || "Thông tin đăng nhập không hợp lệ";
-      } else if (e?.code === 'ERR_NETWORK' || e?.message?.includes('Network')) {
+      if (apiError?.response?.status === 401) {
+        errorMessage = apiError.response.data?.message || "Sai tài khoản hoặc mật khẩu";
+      } else if (apiError?.response?.status === 400) {
+        errorMessage = apiError.response.data?.message || "Thông tin đăng nhập không hợp lệ";
+      } else if (apiError?.code === 'ERR_NETWORK' || apiError?.message?.includes('Network')) {
         errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra backend đang chạy.";
       }
       

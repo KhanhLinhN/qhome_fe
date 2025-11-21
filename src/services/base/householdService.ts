@@ -87,7 +87,7 @@ export async function fetchCurrentHouseholdByUnit(unitId: string): Promise<House
       { withCredentials: true },
     );
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
       return null;
     }

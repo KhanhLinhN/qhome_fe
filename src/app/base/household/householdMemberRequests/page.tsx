@@ -44,7 +44,7 @@ export default function HouseholdMemberRequestsPage() {
     try {
       const data = await fetchPendingHouseholdMemberRequests();
       setRequests(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
         err?.response?.data?.message || err?.message || 'Không thể tải danh sách yêu cầu.';
       setError(message);
@@ -67,7 +67,7 @@ export default function HouseholdMemberRequestsPage() {
       await decideHouseholdMemberRequest(id, { approve: true });
       setRequests((prev) => prev.filter((item) => item.id !== id));
       setSuccess('Đã chấp nhận yêu cầu và thêm thành viên vào hộ gia đình.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
         err?.response?.data?.message || err?.message || 'Không thể duyệt yêu cầu. Vui lòng thử lại.';
       setError(message);
@@ -107,7 +107,7 @@ export default function HouseholdMemberRequestsPage() {
       setRequests((prev) => prev.filter((item) => item.id !== id));
       setSuccess('Đã từ chối yêu cầu thành công.');
       cancelReject();
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
         err?.response?.data?.message || err?.message || 'Không thể từ chối yêu cầu. Vui lòng thử lại.';
       setError(message);

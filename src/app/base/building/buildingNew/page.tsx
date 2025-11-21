@@ -109,7 +109,7 @@ export default function BuildingAdd () {
         try {
             const res = await fetch(`https://provinces.open-api.vn/api/p/${cityCode}?depth=2`);
             const data = await res.json();
-            return Array.isArray(data?.districts) ? data.districts.map((d: any) => ({ code: d.code, name: d.name })) : [];
+            return Array.isArray(data?.districts) ? data.districts.map((d: { code: string; name: string }) => ({ code: d.code, name: d.name })) : [];
         } catch {
             return [];
         }
@@ -119,7 +119,7 @@ export default function BuildingAdd () {
         try {
             const res = await fetch(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`);
             const data = await res.json();
-            return Array.isArray(data?.wards) ? data.wards.map((w: any) => ({ code: w.code, name: w.name })) : [];
+            return Array.isArray(data?.wards) ? data.wards.map((w: { code: string; name: string }) => ({ code: w.code, name: w.name })) : [];
         } catch {
             return [];
         }
@@ -221,7 +221,12 @@ export default function BuildingAdd () {
             try {
                 const res = await fetch(`https://provinces.open-api.vn/api/p/${selectedCity}?depth=2`);
                 const data = await res.json();
-                const list: District[] = Array.isArray(data?.districts) ? data.districts.map((d: any) => ({ code: d.code, name: d.name })) : [];
+                const list: District[] = Array.isArray(data?.districts)
+                    ? data.districts.map((d: { code: string; name: string }) => ({
+                          code: d.code,
+                          name: d.name,
+                      }))
+                    : [];
                 setDistricts(list);
             } catch (_e) {
                 setDistricts([]);
@@ -239,7 +244,12 @@ export default function BuildingAdd () {
             try {
                 const res = await fetch(`https://provinces.open-api.vn/api/d/${selectedDistrict}?depth=2`);
                 const data = await res.json();
-                const list: Ward[] = Array.isArray(data?.wards) ? data.wards.map((w: any) => ({ code: w.code, name: w.name })) : [];
+                const list: Ward[] = Array.isArray(data?.wards)
+                    ? data.wards.map((w: { code: string; name: string }) => ({
+                          code: w.code,
+                          name: w.name,
+                      }))
+                    : [];
                 setWards(list);
             } catch (_e) {
                 setWards([]);

@@ -29,7 +29,7 @@ export function useRolePermissions() {
         setError(null);
         const data = await getAllRoles();
         setRoles(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(err?.message || 'Failed to load roles');
         console.error('Failed to load roles:', err);
       } finally {
@@ -49,7 +49,7 @@ export function useRolePermissions() {
       setError(null);
       const data = await getPermissionsByRole(roleName);
       setPermissions(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Failed to load permissions');
       console.error(`Failed to load permissions for role ${roleName}:`, err);
       setPermissions([]);
@@ -66,7 +66,7 @@ export function useRolePermissions() {
       await addPermissionToRole(selectedRole, permissionCode);
       // Reload permissions
       await handleSelectRole(selectedRole);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Failed to add permission');
       throw err;
     }
@@ -80,7 +80,7 @@ export function useRolePermissions() {
       await removePermissionFromRole(selectedRole, permissionCode);
       // Reload permissions
       await handleSelectRole(selectedRole);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Failed to remove permission');
       throw err;
     }

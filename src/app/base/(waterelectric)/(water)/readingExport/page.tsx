@@ -9,6 +9,7 @@ import {
   MeterReadingImportResponse,
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function ReadingExportPage() {
   const { user } = useAuth();
@@ -53,8 +54,8 @@ export default function ReadingExportPage() {
       const result = await exportReadingsByCycle(cycleId);
       setExportResults(prev => new Map(prev).set(cycleId, result));
       show(`Export completed: ${result.totalReadings} readings, ${result.invoicesCreated} invoices created`, 'success');
-    } catch (error: any) {
-      show(error?.message || 'Failed to export readings', 'error');
+    } catch (error: unknown) {
+      show(getErrorMessage(error, 'Failed to export readings'), 'error');
     } finally {
       setExporting(null);
     }

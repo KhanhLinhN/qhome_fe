@@ -6,6 +6,7 @@ import Topbar from '@/src/components/layout/Topbar';
 import Sidebar from '@/src/components/layout/Sidebar';
 import axios from '@/src/lib/axios';
 import Delete from '@/src/assets/Delete.svg';
+import { getErrorMessage } from '@/src/types/error';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 const IAM_URL = process.env.NEXT_PUBLIC_IAM_URL || 'http://localhost:8088';
@@ -99,9 +100,10 @@ export default function TenantOwnerEmployeesPage() {
       );
       alert(`✅ Đã gỡ bỏ "${username}" khỏi tenant!`);
       loadData(); // Reload
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to unassign employee:', error);
-      alert(`❌ Gỡ bỏ thất bại: ${error?.response?.data?.message || error.message}`);
+      const message = getErrorMessage(error, 'Không thể gỡ bỏ nhân viên.');
+      alert(`❌ Gỡ bỏ thất bại: ${message}`);
     } finally {
       setUnassigning(null);
     }
@@ -123,9 +125,10 @@ export default function TenantOwnerEmployeesPage() {
       );
       alert(`✅ Đã gỡ bỏ tất cả ${employees.length} nhân viên khỏi tenant!`);
       loadData(); // Reload
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to unassign all employees:', error);
-      alert(`❌ Gỡ bỏ thất bại: ${error?.response?.data?.message || error.message}`);
+      const message = getErrorMessage(error, 'Không thể gỡ bỏ tất cả nhân viên.');
+      alert(`❌ Gỡ bỏ thất bại: ${message}`);
     } finally {
       setUnassigning(null);
     }

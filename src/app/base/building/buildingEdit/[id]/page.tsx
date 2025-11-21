@@ -89,11 +89,34 @@ export default function BuildingEdit() {
             return wn===target || wn.includes(target) || target.includes(wn);
         });
     };
+    interface ProvinceEntry {
+        code: string;
+        name: string;
+    }
+
+    const mapDistricts = (entries: ProvinceEntry[]): District[] =>
+        entries.map(({ code, name }) => ({ code: parseInt(code), name }));
+
     const fetchDistrictsOfCity = async (code: string): Promise<District[]> => {
-        try { const res = await fetch(`https://provinces.open-api.vn/api/p/${code}?depth=2`); const data = await res.json(); return Array.isArray(data?.districts)? data.districts.map((d:any)=>({code:d.code,name:d.name})) : []; } catch { return []; }
+        try {
+            const res = await fetch(`https://provinces.open-api.vn/api/p/${code}?depth=2`);
+            const data = await res.json();
+            const districts = Array.isArray(data?.districts) ? mapDistricts(data.districts) : [];
+            return districts;
+        } catch {
+            return [];
+        }
     };
+
     const fetchWardsOfDistrict = async (code: string): Promise<Ward[]> => {
-        try { const res = await fetch(`https://provinces.open-api.vn/api/d/${code}?depth=2`); const data = await res.json(); return Array.isArray(data?.wards)? data.wards.map((w:any)=>({code:w.code,name:w.name})) : []; } catch { return []; }
+        try {
+            const res = await fetch(`https://provinces.open-api.vn/api/d/${code}?depth=2`);
+            const data = await res.json();
+            const wards = Array.isArray(data?.wards) ? mapDistricts(data.wards) : [];
+            return wards;
+        } catch {
+            return [];
+        }
     };
 
     // Load cities on mount

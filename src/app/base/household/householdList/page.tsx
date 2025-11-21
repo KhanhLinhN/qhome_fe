@@ -63,7 +63,7 @@ export default function HouseholdListPage() {
       try {
         const data = await getBuildings();
         setBuildingsState({ data, loading: false, error: null });
-      } catch (err: any) {
+      } catch (err: unknown) {
         const message =
           err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
         setBuildingsState({ data: [], loading: false, error: message });
@@ -87,7 +87,7 @@ export default function HouseholdListPage() {
     try {
       const data = await getUnitsByBuilding(buildingId);
       setUnitsState({ data, loading: false, error: null });
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
         err?.response?.data?.message ||
         err?.message ||
@@ -107,7 +107,7 @@ export default function HouseholdListPage() {
     try {
       const data = await fetchHouseholdsByUnit(unitId);
       setHouseholdsState({ data, loading: false, error: null });
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
         err?.response?.data?.message ||
         err?.message ||

@@ -79,9 +79,9 @@ export default function ElectricBillingTab({ formulaVersion }: ElectricBillingTa
         setExpandedCycles(new Set([filteredCycles[0].id]));
         await loadBillingDataForCycle(filteredCycles[0].id);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load cycles:', error);
-      show(error?.response?.data?.message || error?.message || 'Failed to load cycles', 'error');
+      show(getErrorMessage(error, 'Failed to load cycles'), 'error');
     } finally {
       setLoading(false);
       setIsInitialLoad(false);
@@ -194,9 +194,9 @@ export default function ElectricBillingTab({ formulaVersion }: ElectricBillingTa
         ...prev,
         [cycleId]: buildingsMap,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Failed to load billing data for cycle ${cycleId}:`, error);
-      show(error?.response?.data?.message || error?.message || 'Failed to load billing data', 'error');
+      show(getErrorMessage(error, 'Failed to load billing data'), 'error');
     } finally {
       setLoading(false);
     }
@@ -206,9 +206,9 @@ export default function ElectricBillingTab({ formulaVersion }: ElectricBillingTa
     try {
       const tiers = await getPricingTiersByService('ELECTRIC');
       setPricingTiers(tiers ?? []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load pricing tiers:', error);
-      show(error?.response?.data?.message || error?.message || 'Failed to load pricing tiers', 'error');
+      show(getErrorMessage(error, 'Failed to load pricing tiers'), 'error');
       setPricingTiers([]);
     }
   };
@@ -310,9 +310,9 @@ export default function ElectricBillingTab({ formulaVersion }: ElectricBillingTa
     try {
       const response: MeterReadingImportResponse = await exportReadingsByCycle(cycleId);
       show(`Exported ${response.totalReadings} readings. ${response.invoicesCreated} invoices created.`, 'success');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to export invoice:', error);
-      show(error?.response?.data?.message || error?.message || 'Failed to export invoice', 'error');
+      show(getErrorMessage(error, 'Failed to export invoice'), 'error');
     }
   };
 

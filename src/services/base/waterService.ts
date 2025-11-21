@@ -194,7 +194,7 @@ export async function getAllReadingCycles(): Promise<ReadingCycleDto[]> {
   );
   const data = response.data;
   // Map periodFrom/periodTo to fromDate/toDate for backward compatibility
-  return data.map((cycle: any) => ({
+  return data.map((cycle: { periodFrom?: string; periodTo?: string; [key: string]: unknown }) => ({
     ...cycle,
     fromDate: cycle.periodFrom,
     toDate: cycle.periodTo,
@@ -222,7 +222,7 @@ export async function getReadingCyclesByStatus(status: ReadingCycleStatus): Prom
   );
   const data = response.data;
   // Map periodFrom/periodTo to fromDate/toDate for backward compatibility
-  return data.map((cycle: any) => ({
+  return data.map((cycle: { periodFrom?: string; periodTo?: string; [key: string]: unknown }) => ({
     ...cycle,
     fromDate: cycle.periodFrom,
     toDate: cycle.periodTo,
@@ -239,7 +239,7 @@ export async function getReadingCyclesByPeriod(fromDate: string, toDate: string)
   );
   const data = response.data;
   // Map periodFrom/periodTo to fromDate/toDate for backward compatibility
-  return data.map((cycle: any) => ({
+  return data.map((cycle: { periodFrom?: string; periodTo?: string; [key: string]: unknown }) => ({
     ...cycle,
     fromDate: cycle.periodFrom,
     toDate: cycle.periodTo,
@@ -274,7 +274,7 @@ export async function updateReadingCycle(
   req: ReadingCycleUpdateReq
 ): Promise<ReadingCycleDto> {
   // Map fromDate/toDate to periodFrom/periodTo if provided
-  const requestBody: any = {};
+  const requestBody: Record<string, unknown> = {};
   if (req.name !== undefined) requestBody.name = req.name;
   if (req.periodFrom !== undefined) requestBody.periodFrom = req.periodFrom;
   else if (req.fromDate !== undefined) requestBody.periodFrom = req.fromDate;
@@ -417,10 +417,11 @@ export async function createMeterReading(req: MeterReadingCreateReq): Promise<Me
     );
     console.log("Meter reading created successfully:", response.data);
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to create meter reading:", error);
     console.error("Request was:", req);
-    console.error("Error response:", error?.response?.data);
+    const apiError = error as { response?: { data?: unknown } };
+    console.error("Error response:", apiError?.response?.data);
     throw error;
   }
 }
@@ -460,7 +461,7 @@ export async function getMeterReadingsByCycleAndAssignmentAndUnit(
   unitId: string,
   assignmentId?: string
 ): Promise<MeterReadingDto[]> {
-  const params: any = { cycleId, unitId };
+  const params: Record<string, string> = { cycleId, unitId };
   if (assignmentId) {
     params.assignmentId = assignmentId;
   }

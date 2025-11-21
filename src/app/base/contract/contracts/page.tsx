@@ -16,6 +16,7 @@ import {
   getAllContracts,
 } from '@/src/services/base/contractService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
+import { getErrorMessage, type ApiError } from '@/src/types/error';
 
 type AsyncState<T> = {
   data: T;
@@ -306,15 +307,14 @@ export default function ContractManagementPage() {
       try {
         const data = await getBuildings();
         setBuildingsState({ data, loading: false, error: null });
-      } catch (err: any) {
-      const message =
-        err?.response?.data?.message || err?.message || t('errors.loadBuildings');
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, t('errors.loadBuildings'));
         setBuildingsState({ data: [], loading: false, error: message });
       }
     };
 
     void loadBuildings();
-  }, []);
+  }, [t]);
 
   const buildingOptions = useMemo(
     () =>
@@ -349,11 +349,8 @@ export default function ContractManagementPage() {
     try {
       const data = await getUnitsByBuilding(buildingId);
       setUnitsState({ data, loading: false, error: null });
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        t('errors.loadUnits');
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, t('errors.loadUnits'));
       setUnitsState({ data: [], loading: false, error: message });
     }
   };
@@ -363,8 +360,9 @@ export default function ContractManagementPage() {
     try {
       const data = await fetchContractsByUnit(unitId);
       setContractsState({ data, loading: false, error: null });
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      if (apiError?.response?.data || (apiError as { response?: { status?: number } }).response?.status === 404) {
         setContractsState({ data: [], loading: false, error: null });
         return;
       }
@@ -532,11 +530,8 @@ export default function ContractManagementPage() {
       if (detailFileInputRef.current) {
         detailFileInputRef.current.value = '';
       }
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        t('errors.uploadFilesFailed');
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, t('errors.uploadFilesFailed'));
       setDetailUploadError(message);
     } finally {
       setDetailUploading(false);
@@ -675,12 +670,12 @@ export default function ContractManagementPage() {
         try {
           contract = await createContract(payload);
           success = true;
-        } catch (err: any) {
-          if (err?.response?.status === 409 || 
-              err?.response?.data?.message?.includes('already exists') ||
-              err?.response?.data?.message?.includes('duplicate') ||
-              err?.message?.includes('already exists') ||
-              err?.message?.includes('duplicate')) {
+        } catch (err: unknown) {
+          const apiError = err as ApiError;
+          const errorMessage = getErrorMessage(err, '');
+          if ((apiError?.response as { status?: number })?.status === 409 || 
+              errorMessage.includes('already exists') ||
+              errorMessage.includes('duplicate')) {
             // Contract number conflict, regenerate and retry
             attempts++;
             if (attempts < 5) {
@@ -708,11 +703,8 @@ export default function ContractManagementPage() {
       if (createFiles && createFiles.length > 0) {
         try {
           await uploadContractFiles(contract.id, createFiles);
-        } catch (fileError: any) {
-          const message =
-            fileError?.response?.data?.message ||
-            fileError?.message ||
-            t('errors.createSuccessWithFileError');
+        } catch (fileError: unknown) {
+          const message = getErrorMessage(fileError, t('errors.createSuccessWithFileError'));
           setCreateError(message);
         }
       }
@@ -721,11 +713,8 @@ export default function ContractManagementPage() {
       await loadContracts(payload.unitId);
       resetCreateForm();
       setCreateModalOpen(false);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        t('errors.createFailed');
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, t('errors.createFailed'));
       setCreateError(message);
     } finally {
       setCreateSubmitting(false);
@@ -747,8 +736,9 @@ export default function ContractManagementPage() {
         return;
       }
       setDetailState({ data: detail, loading: false, error: null });
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      if ((apiError?.response as { status?: number })?.status === 404) {
         setDetailState({
           data: null,
           loading: false,
