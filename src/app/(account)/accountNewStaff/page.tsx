@@ -326,11 +326,8 @@ export default function AccountNewStaffPage() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể tải file template. Vui lòng thử lại.';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Không thể tải file template. Vui lòng thử lại.')
       setImportError(message);
     } finally {
       setDownloadingTemplate(false);
