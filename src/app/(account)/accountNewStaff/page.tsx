@@ -197,7 +197,7 @@ export default function AccountNewStaffPage() {
           setUsernameError(t('validation.username.exists'));
           isValid = false;
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Nếu có lỗi khi check (network, etc.), vẫn cho phép submit và để backend xử lý
         console.error('Error checking username:', err);
       }
@@ -225,7 +225,7 @@ export default function AccountNewStaffPage() {
           setEmailError(t('validation.email.exists'));
           isValid = false;
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Nếu có lỗi khi check (network, etc.), vẫn cho phép submit và để backend xử lý
         console.error('Error checking email:', err);
       }
@@ -305,11 +305,8 @@ export default function AccountNewStaffPage() {
       setImporting(true);
       const result = await importStaffAccounts(importFile);
       setImportResult(result);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể import tài khoản nhân viên. Vui lòng thử lại.';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err,'Không thể import tài khoản nhân viên. Vui lòng thử lại.');
       setImportError(message);
     } finally {
       setImporting(false);
