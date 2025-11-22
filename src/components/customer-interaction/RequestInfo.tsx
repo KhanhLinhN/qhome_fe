@@ -28,14 +28,19 @@ const RequestInfoAndContext = ({ value, contextTitle, contextContextTitle, conte
                             value={value.requestCode}
                             isHighlighted={true}
                         />
-                        {/* <RequestInfoItem
-                            title={t('projectCode')}
-                            value={value.requestCode}
+                        <RequestInfoItem
+                            title={t('type')}
+                            value={value.type ?? ''}
                             isHighlighted={false}
-                        /> */}
+                        />
                         <RequestInfoItem
                             title={t('residentName')}
                             value={value.residentName}
+                            isHighlighted={false}
+                        />
+                        <RequestInfoItem
+                            title={t('total')}
+                            value={value.fee != null ? value.fee.toString() : ''}
                             isHighlighted={false}
                         />
                         <RequestInfoItem

@@ -20,26 +20,100 @@ export default function Home() {
       pageNo,
       totalPages,
       statusCounts,
+      allRequestsList,
       handleFilterChange,
-      handleSearch,
-      handleClear,
       handlePageChange,
+      handleStatusChange,
+      handleClear,
   } = useRequests();
 
-  const tableData = data?.content.map(item => ({
+  const [activeStatus, setActiveStatus] = useState<string>('');
+  const PAGE_SIZE = 10;
+
+  // Override handleClear to also reset activeStatus
+  const handleClearWithStatus = () => {
+    setActiveStatus('');
+    handleClear();
+  };
+
+  // Filter data first, then sort, then paginate if using allRequestsList
+  const { filteredTableData, filteredTotalPages } = useMemo(() => {
+    // Use full list if available (when getAllRequests was used), otherwise use data.content (when backend filter was used)
+    const sourceData = allRequestsList || data?.content || [];
+    
+    let filtered = [...sourceData];
+    
+    // Only filter Done when using allRequestsList (frontend pagination)
+    // When backend filter is used, backend already handles status filtering
+    if (activeStatus === '' && allRequestsList) {
+      // Filter Done when showing "All" tab with full list
+      filtered = filtered.filter(item => item.status !== 'Done');
+    }
+    // Note: When backend filter is used and activeStatus === '', backend still returns all including Done
+    // We need to filter Done in this case too, but it will affect pagination
+    
+    // Apply search filter if search term exists (frontend filtering)
+    if (filters.search && filters.search.trim() !== '') {
+      const searchTerm = filters.search.toLowerCase().trim();
+      filtered = filtered.filter(item => 
+        (item.title?.toLowerCase().includes(searchTerm) || 
+         item.requestCode?.toLowerCase().includes(searchTerm))
+      );
+    }
+    
+    // Sort by createdAt descending (newest first)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA; // Descending order (newest first)
+    });
+    
+    // Only paginate if using allRequestsList (frontend pagination)
+    if (allRequestsList) {
+      const totalFiltered = filtered.length;
+      const totalPagesAfterFilter = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+      const startIndex = pageNo * PAGE_SIZE;
+      const endIndex = startIndex + PAGE_SIZE;
+      const paginatedData = filtered.slice(startIndex, endIndex);
+      
+      return {
+        filteredTableData: paginatedData,
+        filteredTotalPages: totalPagesAfterFilter
+      };
+    } else {
+      // When backend pagination, filter Done if needed (but this affects current page only)
+      if (activeStatus === '') {
+        filtered = filtered.filter(item => item.status !== 'Done');
+      }
+      return {
+        filteredTableData: filtered,
+        filteredTotalPages: totalPages
+      };
+    }
+  }, [allRequestsList, data?.content, activeStatus, filters.search, pageNo, totalPages]);
+
+  const tableData = filteredTableData.map(item => ({
       id: item.id,
       requestCode: item.requestCode,
       residentName: item.residentName,
       title: item.title,
       status: item.status,
       createdAt: item.createdAt.slice(0, 10).replace(/-/g, '/'), // Format to YYYY/MM/DD
-  })) || [];
+  }));
+
+  // Use filtered totalPages when using allRequestsList (frontend pagination), otherwise use backend totalPages
+  const displayTotalPages = allRequestsList ? filteredTotalPages : Math.max(totalPages, 1);
   
   const tabData = useMemo(() => {
     const counts = statusCounts || {}; 
     
+    // Calculate total manually to ensure it includes New, Pending, Processing, and Done
+    const calculatedTotal = (counts.New || 0) + (counts.Pending || 0) + (counts.Processing || 0) + (counts.Done || 0);
+    const totalCount = counts.total || calculatedTotal;
+    
     return [
-        { title: t('totalRequests'), count: counts.total || 0, status: '' },
+        { title: t('totalRequests'), count: totalCount, status: '' },
+        { title: 'New', count: counts.New || 0, status: 'New' },
         { title: 'Pending', count: counts.Pending || 0, status: 'Pending' },
         { title: 'Processing', count: counts.Processing || 0, status: 'Processing' },
         { title: 'Done', count: counts.Done || 0, status: 'Done' },
@@ -84,22 +158,28 @@ export default function Home() {
               <FilterForm
                 filters={filters}
                 onFilterChange={handleFilterChange}
-                onSearch={handleSearch}
-                onClear={handleClear}
+                onClear={handleClearWithStatus}
               ></FilterForm>
               <StatusTabs 
                   tabList={tabData}
                   type={t("requests")}
+                  onStatusChange={(status) => {
+                    setActiveStatus(status);
+                    handleStatusChange(status);
+                  }}
+                  activeStatus={activeStatus}
               ></StatusTabs>
               <Table 
                   data={tableData} 
                   headers={headers}
               ></Table>
-              <Pagination
-                  currentPage={pageNo}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-              />
+              {displayTotalPages > 1 && (
+                  <Pagination
+                      currentPage={pageNo + 1}
+                      totalPages={displayTotalPages}
+                      onPageChange={(newPage) => handlePageChange(newPage - 1)}
+                  />
+              )}
           </div>
       </div>
     </div>

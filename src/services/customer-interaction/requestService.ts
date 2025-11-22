@@ -10,9 +10,11 @@ export interface GetRequestsParams {
   pageNo?: number;
   dateFrom?: string;
   dateTo?: string;
+  search?: string;
 }
 
 export interface StatusCounts {
+    New?: number;
     Pending?: number;
     Processing?: number;
     Done?: number; 
@@ -29,6 +31,27 @@ export interface Page<Request> {
 }
 
 export class RequestService {
+    async getAllRequests(): Promise<Request[]> {
+        const url = `${process.env.NEXT_PUBLIC_CUSTOMER_INTERACTION_API_URL}/requests/all`;
+        console.log('Get all requests URL:', url);
+
+        try {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result: Request[] = await response.json();
+            console.log('Fetched all requests:', result);
+            return result;
+
+        } catch (error) {
+            console.error('An error occurred while fetching all requests:', error);
+            throw error;
+        }
+    }
+
     async getRequestList(params: GetRequestsParams = {}): Promise<Page<Request>> {
         const query = new URLSearchParams();
 
@@ -92,6 +115,31 @@ export class RequestService {
 
         } catch (error) {
             console.error('An error occurred while fetching request counts:', error);
+            throw error;
+        }
+    }
+
+    async updateFee(requestId: string, fee: number): Promise<Request> {
+        const url = `${process.env.NEXT_PUBLIC_CUSTOMER_INTERACTION_API_URL}/requests/${requestId}/fee`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ fee }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result: Request = await response.json();
+            return result;
+
+        } catch (error) {
+            console.error('An error occurred while updating fee:', error);
             throw error;
         }
     }

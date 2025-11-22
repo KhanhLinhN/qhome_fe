@@ -9,4 +9,7 @@ export interface Request {
     status: string;
     createdAt: string;
     updatedAt: string;
+    type?: string;
+    fee?: number;
+    repairedDate?: string;
 }
