@@ -19,7 +19,11 @@ import {
   getServiceOptions,
   getServiceTickets,
   getServiceAvailabilities,
+  updateServiceComboStatus,
+  updateServiceOptionStatus,
+  updateServiceTicketStatus,
 } from '@/src/services/asset-maintenance/serviceService';
+import PopupConfirm from '@/src/components/common/PopupComfirm';
 import {
   ServicePricingType,
   ServiceCombo,
@@ -126,7 +130,15 @@ export default function ServiceDetailPage() {
   const [isComboExpanded, setIsComboExpanded] = useState<boolean>(true);
   const [isOptionExpanded, setIsOptionExpanded] = useState<boolean>(true);
   const [isTicketExpanded, setIsTicketExpanded] = useState<boolean>(true);
-  const [expandedCombos, setExpandedCombos] = useState<Record<string, boolean>>({});
+  
+  // Popup states
+  const [statusPopupOpen, setStatusPopupOpen] = useState<boolean>(false);
+  const [statusTargetId, setStatusTargetId] = useState<string | null>(null);
+  const [statusTargetType, setStatusTargetType] = useState<'combo' | 'option' | 'ticket' | null>(null);
+  const [statusTargetNew, setStatusTargetNew] = useState<boolean | null>(null);
+  const [comboItemsPopupOpen, setComboItemsPopupOpen] = useState<boolean>(false);
+  const [selectedComboItems, setSelectedComboItems] = useState<ServiceComboItemDto[]>([]);
+  const [selectedComboName, setSelectedComboName] = useState<string>('');
 
   const serviceIdValue = Array.isArray(serviceId) ? serviceId[0] : (serviceId as string) ?? '';
 
@@ -149,14 +161,6 @@ export default function ServiceDetailPage() {
       const comboData = await getServiceCombos(serviceIdValue);
       const typedCombos = (comboData ?? []) as ComboWithItems[];
       setCombos(typedCombos);
-      setExpandedCombos((prev) => {
-        const next: Record<string, boolean> = {};
-        typedCombos.forEach((combo) => {
-          if (!combo.id) return;
-          next[combo.id] = prev[combo.id] ?? false;
-        });
-        return next;
-      });
     } catch (err) {
       console.error('Failed to load service combos', err);
     } finally {
@@ -211,11 +215,55 @@ export default function ServiceDetailPage() {
     fetchAvailabilities();
   }, [serviceIdValue, fetchCombos, fetchOptions, fetchTickets, fetchAvailabilities]);
 
-  const toggleComboDetail = (comboId: string) => {
-    setExpandedCombos((prev) => ({
-      ...prev,
-      [comboId]: !prev[comboId],
-    }));
+  const handleOpenChangeStatus = (id: string, type: 'combo' | 'option' | 'ticket', currentStatus: boolean) => {
+    setStatusTargetId(id);
+    setStatusTargetType(type);
+    setStatusTargetNew(!currentStatus);
+    setStatusPopupOpen(true);
+  };
+
+  const handleCloseStatusPopup = () => {
+    setStatusPopupOpen(false);
+    setStatusTargetId(null);
+    setStatusTargetType(null);
+    setStatusTargetNew(null);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusTargetId || !statusTargetType || statusTargetNew === null) return;
+    
+    try {
+      if (statusTargetType === 'combo') {
+        await updateServiceComboStatus(statusTargetId, statusTargetNew);
+        show(t('Service.notifications.comboStatusUpdated'), 'success');
+        await fetchCombos();
+      } else if (statusTargetType === 'option') {
+        await updateServiceOptionStatus(statusTargetId, statusTargetNew);
+        show(t('Service.notifications.optionStatusUpdated'), 'success');
+        await fetchOptions();
+      } else if (statusTargetType === 'ticket') {
+        await updateServiceTicketStatus(statusTargetId, statusTargetNew);
+        show(t('Service.notifications.ticketStatusUpdated'), 'success');
+        await fetchTickets();
+      }
+    } catch (err) {
+      console.error('Failed to update status', err);
+      show(t('Service.error'), 'error');
+    } finally {
+      handleCloseStatusPopup();
+    }
+  };
+
+  const handleOpenComboItems = (combo: ComboWithItems) => {
+    setSelectedComboItems(combo.items ?? []);
+    setSelectedComboName(combo.name ?? '');
+    setComboItemsPopupOpen(true);
+  };
+
+  const handleCloseComboItemsPopup = () => {
+    setComboItemsPopupOpen(false);
+    setSelectedComboItems([]);
+    setSelectedComboName('');
   };
 
   const handleBack = () => {
@@ -553,29 +601,11 @@ export default function ServiceDetailPage() {
                     <tbody className="divide-y divide-gray-200">
                       {combos.map((combo, index) => {
                         const comboId = combo.id ?? `combo-${index}`;
-                        const isRowExpanded = !!expandedCombos[comboId];
-                        const comboItems = combo.items ?? [];
                         return (
                           <Fragment key={combo.id ?? comboId}>
                             <tr className="hover:bg-gray-50">
                               <td className="px-4 py-3 align-top">
-                                {combo.id ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleComboDetail(comboId)}
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
-                                  >
-                                    <Image
-                                      src={DropdownArrow}
-                                      alt="Toggle"
-                                      width={14}
-                                      height={14}
-                                      className={`transition-transform ${isRowExpanded ? "rotate-180" : ""}`}
-                                    />
-                                  </button>
-                                ) : (
                                   <span className="text-gray-400">—</span>
-                                )}
                               </td>
                               <td className="px-4 py-3 font-medium text-gray-900">{combo.name ?? '-'}</td>
                               <td className="px-4 py-3 text-gray-600">{combo.code ?? '-'}</td>
@@ -593,6 +623,39 @@ export default function ServiceDetailPage() {
                                 <div className="flex space-x-2 justify-center">
                                   <button
                                     type="button"
+                                    onClick={() => handleOpenChangeStatus(combo.id!, 'combo', combo.isActive ?? false)}
+                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition"
+                                    title={t('Service.changeStatus')}
+                                  >
+                                    <svg 
+                                      xmlns="http://www.w3.org/2000/svg" 
+                                      viewBox="0 0 16 16" 
+                                      height="16" 
+                                      width="16"
+                                      fill="currentColor"
+                                      className="text-gray-700"
+                                    >
+                                      <g fill="none" fillRule="nonzero">
+                                        <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                                        <path fill="currentColor" d="M13.333333333333332 9.333333333333332a1 1 0 0 1 0.09599999999999999 1.9953333333333332L13.333333333333332 11.333333333333332H5.080666666666667l0.96 0.96a1 1 0 0 1 -1.3386666666666667 1.4826666666666668l-0.076 -0.06866666666666665 -2.5526666666666666 -2.5533333333333332c-0.6493333333333333 -0.6493333333333333 -0.22666666666666668 -1.7446666666666666 0.6606666666666666 -1.8166666666666667l0.09333333333333334 -0.004H13.333333333333332ZM9.959999999999999 2.293333333333333a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.5526666666666666 2.5533333333333332c0.6493333333333333 0.6493333333333333 0.22666666666666668 1.7446666666666666 -0.6606666666666666 1.8166666666666667l-0.09333333333333334 0.004H2.6666666666666665a1 1 0 0 1 -0.09599999999999999 -1.9953333333333332L2.6666666666666665 4.666666666666666h8.252666666666666l-0.96 -0.96a1 1 0 0 1 0 -1.4133333333333333Z" strokeWidth="0.6667"></path>
+                                      </g>
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenComboItems(combo)}
+                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-green-500 hover:bg-green-600 transition text-white"
+                                    title={t('Service.viewItems')}
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" height="16" width="16" fill="currentColor">
+                                      <g fill="none" fillRule="evenodd">
+                                        <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                                        <path fill="currentColor" d="M8 2.6666666666666665C6.1419999999999995 2.6666666666666665 4.491333333333333 3.504666666666666 3.316 4.542 2.7266666666666666 5.062666666666667 2.2399999999999998 5.6466666666666665 1.8973333333333333 6.229333333333333 1.5599999999999998 6.800666666666666 1.3333333333333333 7.42 1.3333333333333333 8c0 0.58 0.22666666666666668 1.1993333333333331 0.564 1.7706666666666666 0.3426666666666667 0.582 0.8286666666666667 1.1666666666666665 1.4186666666666667 1.6873333333333334C4.491333333333333 12.495333333333331 6.142666666666667 13.333333333333332 8 13.333333333333332c1.8579999999999999 0 3.5086666666666666 -0.8379999999999999 4.683999999999999 -1.8753333333333333 0.59 -0.5206666666666666 1.076 -1.1053333333333333 1.4186666666666667 -1.6873333333333334C14.44 9.199333333333332 14.666666666666666 8.579999999999998 14.666666666666666 8c0 -0.58 -0.22666666666666668 -1.1993333333333331 -0.564 -1.7706666666666666 -0.3426666666666667 -0.582 -0.8286666666666667 -1.1666666666666665 -1.4186666666666667 -1.6873333333333334C11.508666666666667 3.504666666666666 9.857333333333333 2.6666666666666665 8 2.6666666666666665Zm1.3333333333333333 5.333333333333333c0.24 0 0.4646666666666666 -0.06333333333333332 0.6593333333333333 -0.174A2 2 0 1 1 8.173333333333332 6.006666666666666 1.3333333333333333 1.3333333333333333 0 0 0 9.333333333333332 8Z" strokeWidth="0.6667"></path>
+                                      </g>
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
                                     onClick={() => handleEditCombo(combo.id)}
                                     className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
                                   >
@@ -608,58 +671,6 @@ export default function ServiceDetailPage() {
                                 </div>
                               </td>
                             </tr>
-                            {combo.id && isRowExpanded && (
-                              <tr>
-                                <td colSpan={6} className="px-4 pb-6">
-                                  <div className="mt-2 rounded-lg">
-                                    {comboItems.length > 0 ? (
-                                      <div className="mt-4 overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                          <thead className="bg-white border border-gray-200">
-                                            <tr>
-                                              <th className="px-4 py-3 text-left font-medium text-gray-600">
-                                                {t('Service.comboName')}
-                                              </th>
-                                              <th className="px-4 py-3 text-left font-medium text-gray-600">
-                                                {t('Service.comboItemPrice')}
-                                              </th>
-                                              <th className="px-4 py-3 text-left font-medium text-gray-600">
-                                                {t('Service.comboItemQuantity')}
-                                              </th>
-                                              <th className="px-4 py-3 text-left font-medium text-gray-600">
-                                                {t('Service.comboItemNote')}
-                                              </th>
-                                            </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-gray-200 bg-white">
-                                            {comboItems.map((item, itemIndex) => (
-                                              <tr key={item.id ?? `${comboId}-item-${itemIndex}`}>
-                                                <td className="px-4 py-3 text-gray-700">
-                                                  {item.itemName ?? '-'}
-                                                </td>
-                                                <td className="px-4 py-3 text-gray-700">
-                                                  {item.itemPrice ?? '-'}
-                                                </td>
-                                                <td className="px-4 py-3 text-gray-700">
-                                                  {item.quantity != null ? item.quantity : '-'}
-                                                </td>
-                                                <td className="px-4 py-3 text-gray-700">
-                                                  {item.note ?? '-'}
-                                                </td>
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    ) : (
-                                      <div className="mt-4 text-sm text-gray-500">
-                                        {t('Service.comboItemNoItems')}
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
                           </Fragment>
                         );
                       })}
@@ -723,6 +734,26 @@ export default function ServiceDetailPage() {
                           </span>
                         </div>
                         <div className="flex space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenChangeStatus(option.id!, 'option', option.isActive ?? false)}
+                            className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition"
+                            title={t('Service.changeStatus')}
+                          >
+                            <svg 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              viewBox="0 0 16 16" 
+                              height="16" 
+                              width="16"
+                              fill="currentColor"
+                              className="text-gray-700"
+                            >
+                              <g fill="none" fillRule="nonzero">
+                                <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                                <path fill="currentColor" d="M13.333333333333332 9.333333333333332a1 1 0 0 1 0.09599999999999999 1.9953333333333332L13.333333333333332 11.333333333333332H5.080666666666667l0.96 0.96a1 1 0 0 1 -1.3386666666666667 1.4826666666666668l-0.076 -0.06866666666666665 -2.5526666666666666 -2.5533333333333332c-0.6493333333333333 -0.6493333333333333 -0.22666666666666668 -1.7446666666666666 0.6606666666666666 -1.8166666666666667l0.09333333333333334 -0.004H13.333333333333332ZM9.959999999999999 2.293333333333333a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.5526666666666666 2.5533333333333332c0.6493333333333333 0.6493333333333333 0.22666666666666668 1.7446666666666666 -0.6606666666666666 1.8166666666666667l-0.09333333333333334 0.004H2.6666666666666665a1 1 0 0 1 -0.09599999999999999 -1.9953333333333332L2.6666666666666665 4.666666666666666h8.252666666666666l-0.96 -0.96a1 1 0 0 1 0 -1.4133333333333333Z" strokeWidth="0.6667"></path>
+                              </g>
+                            </svg>
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleEditOption(option.id)}
@@ -831,6 +862,26 @@ export default function ServiceDetailPage() {
                             <div className="flex space-x-2 justify-center">
                               <button
                                 type="button"
+                                onClick={() => handleOpenChangeStatus(ticket.id!, 'ticket', ticket.isActive ?? false)}
+                                className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition"
+                                title={t('Service.changeStatus')}
+                              >
+                                <svg 
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  viewBox="0 0 16 16" 
+                                  height="16" 
+                                  width="16"
+                                  fill="currentColor"
+                                  className="text-gray-700"
+                                >
+                                  <g fill="none" fillRule="nonzero">
+                                    <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                                    <path fill="currentColor" d="M13.333333333333332 9.333333333333332a1 1 0 0 1 0.09599999999999999 1.9953333333333332L13.333333333333332 11.333333333333332H5.080666666666667l0.96 0.96a1 1 0 0 1 -1.3386666666666667 1.4826666666666668l-0.076 -0.06866666666666665 -2.5526666666666666 -2.5533333333333332c-0.6493333333333333 -0.6493333333333333 -0.22666666666666668 -1.7446666666666666 0.6606666666666666 -1.8166666666666667l0.09333333333333334 -0.004H13.333333333333332ZM9.959999999999999 2.293333333333333a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.5526666666666666 2.5533333333333332c0.6493333333333333 0.6493333333333333 0.22666666666666668 1.7446666666666666 -0.6606666666666666 1.8166666666666667l-0.09333333333333334 0.004H2.6666666666666665a1 1 0 0 1 -0.09599999999999999 -1.9953333333333332L2.6666666666666665 4.666666666666666h8.252666666666666l-0.96 -0.96a1 1 0 0 1 0 -1.4133333333333333Z" strokeWidth="0.6667"></path>
+                                  </g>
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => handleEditTicket(ticket.id)}
                                 className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
                               >
@@ -859,6 +910,96 @@ export default function ServiceDetailPage() {
           )}
         </section>
       </div>
+
+      {/* Status Change Popup */}
+      <PopupConfirm
+        isOpen={statusPopupOpen}
+        onClose={handleCloseStatusPopup}
+        onConfirm={handleConfirmStatusChange}
+        popupTitle={t('Service.changeStatus')}
+        popupContext={
+          statusTargetType === 'combo'
+            ? t('Service.confirmComboStatusChange', {
+                status: statusTargetNew ? t('Service.active') : t('Service.inactive'),
+              })
+            : statusTargetType === 'option'
+            ? t('Service.confirmOptionStatusChange', {
+                status: statusTargetNew ? t('Service.active') : t('Service.inactive'),
+              })
+            : t('Service.confirmTicketStatusChange', {
+                status: statusTargetNew ? t('Service.active') : t('Service.inactive'),
+              })
+        }
+      />
+
+      {/* Combo Items Popup */}
+      {comboItemsPopupOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-[#E7E4E8CC]/80 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 relative border-[#E7E7E7] border-[1px] max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[20px] font-semibold text-[#739559]">
+                {t('Service.comboItems')} - {selectedComboName}
+              </h2>
+              <button
+                onClick={handleCloseComboItemsPopup}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                title={t('Popup.close')}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-gray-600">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            {selectedComboItems.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-100 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">
+                        {t('Service.comboItemName')}
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">
+                        {t('Service.comboItemPrice')}
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">
+                        {t('Service.comboItemDuration')}
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">
+                        {t('Service.comboItemQuantity')}
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">
+                        {t('Service.comboItemNote')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {selectedComboItems.map((item, itemIndex) => (
+                      <tr key={item.id ?? `item-${itemIndex}`} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-gray-700">{item.itemName ?? '-'}</td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {item.itemPrice != null ? formatCurrency(item.itemPrice) : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {item.itemDurationMinutes != null ? `${item.itemDurationMinutes} phút` : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {item.quantity != null ? item.quantity : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">{item.note ?? '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 py-4">
+                {t('Service.comboItemNoItems')}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

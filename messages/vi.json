@@ -376,6 +376,7 @@
   "Popup": {
   "yes": "Có",
   "no": "Không",
+  "close": "Đóng",
   "deleteProjectT": "Xóa dự án?",
   "deleteProjectC": "Bạn có chắc chắn muốn xóa dự án này không",
   "saveNewT": "Lưu thay đổi mới?",
@@ -793,6 +794,8 @@
       "comboCode": "Mã gói dịch vụ là bắt buộc",
       "comboName": "Tên gói dịch vụ là bắt buộc",
       "comboPrice": "Giá gói dịch vụ phải lớn hơn 0",
+      "comboPriceGreaterThanZero": "Giá gói dịch vụ phải lớn hơn 0",
+      "comboDurationRequired": "Thời lượng gói dịch vụ là bắt buộc",
       "comboItems": "Vui lòng thêm ít nhất một mục cho gói dịch vụ",
       "comboItemCode": "Mã mục trong gói là bắt buộc",
       "comboItemName": "Tên mục trong gói là bắt buộc",
@@ -838,7 +841,13 @@
     },
     "cancel": "Hủy",
     "save": "Lưu",
-    "saving": "Đang lưu"
+    "saving": "Đang lưu",
+    "changeStatus": "Thay đổi trạng thái",
+    "viewItems": "Xem các mục",
+    "confirmTicketStatusChange": "Xác nhận thay đổi trạng thái vé",
+    "confirmOptionStatusChange": "Xác nhận thay đổi trạng thái tùy chọn",
+    "confirmComboStatusChange": "Xác nhận thay đổi trạng thái gói dịch vụ",
+    "comboItemName": "Tên mục trong gói"
   },
   "Unit": {
   "unitCode": "Mã căn hộ",
@@ -1407,5 +1416,190 @@
     "external": "Ngoại bộ",
     "internal": "Nội bộ",
     "selectScope": "Chọn phạm vi"
+  },
+  "Contracts": {
+    "title": "Quản lý hợp đồng căn hộ",
+    "subtitle": "Tạo mới và theo dõi các hợp đồng thuê/mua của từng căn hộ trong dự án.",
+    "buttons": {
+      "addContract": "+ Thêm hợp đồng",
+      "cancel": "Hủy",
+      "create": "Tạo hợp đồng",
+      "creating": "Đang tạo...",
+      "view": "Xem",
+      "uploadAttachment": "Tải tệp đính kèm",
+      "uploading": "Đang tải lên...",
+      "viewOrDownload": "Xem / tải",
+      "downloadHere": "Bấm vào đây để tải xuống",
+      "close": "Đóng"
+    },
+    "fields": {
+      "building": "Tòa nhà",
+      "unit": "Căn hộ",
+      "contractNumber": "Số hợp đồng",
+      "contractType": "Loại hợp đồng",
+      "status": "Trạng thái",
+      "startDate": "Ngày bắt đầu",
+      "endDate": "Ngày kết thúc",
+      "purchaseDate": "Ngày mua",
+      "monthlyRent": "Giá thuê / tháng",
+      "purchasePrice": "Giá mua",
+      "paymentMethod": "Phương thức thanh toán",
+      "paymentTerms": "Điều khoản thanh toán",
+      "notes": "Ghi chú",
+      "attachmentsRequired": "Tệp đính kèm hợp đồng (bắt buộc)",
+      "attachmentsOptional": "Tệp đính kèm hợp đồng (tuỳ chọn)",
+      "attachments": "Tệp đính kèm hợp đồng (bắt buộc)"
+    },
+    "placeholders": {
+      "selectBuilding": "-- Chọn tòa nhà --",
+      "selectUnit": "-- Chọn căn hộ --",
+      "selectBuildingFirst": "Chọn tòa nhà trước",
+      "ddmmyyyy": "YYYY-MM-DD",
+      "contractNumber": "Ví dụ: HD-2025-0001",
+      "monthlyRent": "Ví dụ: 12000000",
+      "purchasePrice": "Ví dụ: 2500000000",
+      "selectPaymentMethod": "-- Chọn phương thức --",
+      "paymentTerms": "Ví dụ: trả theo quý...",
+      "notes": "Thông tin bổ sung về hợp đồng..."
+    },
+    "paymentMethods": {
+      "transfer": "Chuyển khoản",
+      "cash": "Tiền mặt",
+      "eWallet": "Ví điện tử",
+      "other": "Khác",
+      "selectPlaceholder": "-- Chọn phương thức --"
+    },
+    "contractTypes": {
+      "rental": "Thuê (RENTAL)",
+      "purchase": "Mua (PURCHASE)"
+    },
+    "status": {
+      "activeDefault": "Đang hiệu lực (mặc định)",
+      "active": "Đang hiệu lực"
+    },
+    "table": {
+      "contractNumber": "Số hợp đồng",
+      "type": "Loại",
+      "validity": "Hiệu lực",
+      "status": "Trạng thái",
+      "detail": "Chi tiết",
+      "start": "Bắt đầu",
+      "end": "Kết thúc"
+    },
+    "loading": {
+      "buildings": "Đang tải danh sách tòa nhà...",
+      "units": "Đang tải danh sách căn hộ...",
+      "contracts": "Đang tải danh sách hợp đồng...",
+      "detail": "Đang tải chi tiết hợp đồng...",
+      "generatingContractNumber": "Đang tạo số hợp đồng..."
+    },
+    "empty": {
+      "noContracts": "Căn hộ này hiện không có hợp đồng.",
+      "noActiveContracts": "Căn hộ này hiện không có hợp đồng còn hạn.",
+      "noExpiredContracts": "Căn hộ này hiện không có hợp đồng đã hết hạn.",
+      "selectToView": "Chọn tòa nhà và căn hộ để xem danh sách hợp đồng.",
+      "noAttachments": "Hợp đồng chưa có tệp đính kèm. Bạn có thể tải tệp ngay tại đây."
+    },
+    "tabs": {
+      "active": "Hợp đồng còn hạn",
+      "expired": "Hợp đồng đã hết hạn"
+    },
+    "detail": {
+      "title": "Chi tiết hợp đồng",
+      "contractNumber": "Số hợp đồng",
+      "type": "Loại hợp đồng",
+      "status": "Trạng thái",
+      "start": "Ngày bắt đầu",
+      "end": "Ngày kết thúc",
+      "unlimited": "Không giới hạn",
+      "monthlyRent": "Giá thuê / tháng",
+      "purchasePrice": "Giá mua",
+      "purchaseDate": "Ngày mua",
+      "paymentMethod": "Phương thức thanh toán",
+      "paymentTerms": "Điều khoản thanh toán",
+      "notes": "Ghi chú",
+      "attachments": "Tệp đính kèm",
+      "unnamedFile": "Tệp không tên",
+      "unknownType": "Không rõ định dạng",
+      "unknownSize": "Kích thước không rõ",
+      "primaryFile": "Tệp chính",
+      "contractImageAlt": "Hình ảnh hợp đồng",
+      "cannotDisplayPdf": "Không thể hiển thị PDF."
+    },
+    "create": {
+      "title": "Thêm hợp đồng mới",
+      "subtitle": "Nhập thông tin hợp đồng thuê hoặc mua cho căn hộ được chọn."
+    },
+    "validation": {
+      "unitRequired": "Vui lòng chọn căn hộ trước khi tạo hợp đồng.",
+      "contractNumberRequired": "Vui lòng nhập số hợp đồng.",
+      "contractTypeRequired": "Vui lòng chọn loại hợp đồng.",
+      "startDateRequired": "Vui lòng chọn ngày bắt đầu hợp đồng.",
+      "startDateInvalid": "Ngày bắt đầu phải theo định dạng YYYY-MM-DD.",
+      "startDateInFuture": "Ngày bắt đầu phải lớn hơn ngày hôm nay.",
+      "endDateRequired": "Vui lòng chọn ngày kết thúc hợp đồng.",
+      "endDateInvalid": "Ngày kết thúc phải theo định dạng YYYY-MM-DD.",
+      "endDateMinDiff": "Ngày kết thúc phải lớn hơn ngày bắt đầu ít nhất 1 tháng.",
+      "monthlyRentRequired": "Vui lòng nhập giá thuê hàng tháng cho hợp đồng thuê.",
+      "monthlyRentGreaterThanZero": "Giá thuê phải lớn hơn 0.",
+      "paymentMethodRequired": "Vui lòng chọn phương thức thanh toán.",
+      "purchaseHasNoEndDate": "Hợp đồng mua không thể có ngày kết thúc.",
+      "purchasePriceRequired": "Vui lòng nhập giá mua cho hợp đồng mua.",
+      "purchasePriceGreaterThanZero": "Giá mua phải lớn hơn 0.",
+      "purchaseDateRequired": "Vui lòng nhập ngày mua cho hợp đồng mua.",
+      "purchaseDateInvalid": "Ngày mua phải theo định dạng YYYY-MM-DD.",
+      "purchaseDateAfterStartDate": "Ngày mua phải lớn hơn hoặc bằng ngày bắt đầu.",
+      "dateFormat": "Ngày phải theo định dạng dd/mm/yyyy.",
+      "filesRequired": "Vui lòng tải lên ít nhất 1 tệp đính kèm."
+    },
+    "errors": {
+      "loadBuildings": "Không thể tải danh sách tòa nhà.",
+      "loadUnits": "Không thể tải danh sách căn hộ của tòa nhà này.",
+      "loadContracts": "Đã xảy ra lỗi khi tải hợp đồng. Vui lòng thử lại.",
+      "createFailed": "Không thể tạo hợp đồng. Vui lòng thử lại.",
+      "uploadFilesFailed": "Không thể tải tệp đính kèm. Vui lòng thử lại.",
+      "loadContractDetailFailed": "Đã xảy ra lỗi khi tải chi tiết hợp đồng. Vui lòng thử lại.",
+      "contractNotFound": "Không tìm thấy hợp đồng.",
+      "createSuccessWithFileError": "Tạo hợp đồng thành công nhưng tải tệp đính kèm thất bại."
+    },
+    "messages": {
+      "createSuccess": "Đã tạo hợp đồng thành công.",
+      "uploadFilesSuccess": "Tệp đính kèm đã được tải lên thành công."
+    },
+    "common": {
+      "notSet": "Chưa thiết lập",
+      "unknown": "Không xác định"
+    },
+    "hints": {
+      "attachments": "Có thể tải nhiều tệp (PDF, ảnh...) để lưu trữ cùng hợp đồng.",
+      "attachmentsRequired": "Vui lòng tải lên ít nhất 1 tệp (PDF, ảnh...)"
+    },
+    "tableValues": {
+      "unknown": "Không rõ",
+      "notSet": "Chưa thiết lập",
+      "start": "Bắt đầu:",
+      "end": "Kết thúc:",
+      "unlimited": "Không giới hạn",
+      "active": "Đang hiệu lực",
+      "noFormat": "Không rõ định dạng",
+      "primaryFile": "Tệp chính",
+      "viewDownload": "Xem / tải"
+    },
+    "detailLabels": {
+      "contractType": "Loại hợp đồng:",
+      "status": "Trạng thái:",
+      "startDate": "Ngày bắt đầu:",
+      "endDate": "Ngày kết thúc:",
+      "unlimited": "Không giới hạn",
+      "monthlyRent": "Giá thuê / tháng:",
+      "purchasePrice": "Giá mua:",
+      "purchaseDate": "Ngày mua:",
+      "paymentMethod": "Phương thức thanh toán:",
+      "paymentTerms": "Điều khoản thanh toán:",
+      "notes": "Ghi chú:"
+    },
+    "unitLabel": {
+      "floor": "Tầng"
+    }
   }
 }

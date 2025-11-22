@@ -232,15 +232,24 @@ export default function BuildingEdit() {
         router.back();
     };
 
+    // Helper: validate building name (required, max 40, no special chars, allow spaces)
+    const validateBuildingName = (value: string): string | undefined => {
+        const trimmed = (value ?? '').trim();
+        if (!trimmed) return t('nameError');
+        if (trimmed.length > 40) return t('nameMaxError') || 'Tên tòa nhà không được vượt quá 40 ký tự';
+        // Allow letters (including Vietnamese), digits and spaces only
+        const nameRegex = /^[a-zA-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐđ0-9\s]+$/;
+        if (!nameRegex.test(trimmed)) return t('nameSpecialCharError') || 'Tên tòa nhà không được chứa ký tự đặc biệt';
+        return undefined;
+    };
+
     const validateField = (fieldName: string, value: string | number) => {
         const newErrors = { ...errors };
         
         switch (fieldName) {
             case 'name': {
-                const trimmed = String(value||'').trim();
-                if (!trimmed) newErrors.name = t('nameError');
-                else if (trimmed.length>40) newErrors.name = t('nameMaxError') || 'Tên tòa nhà không được vượt quá 40 ký tự';
-                else delete newErrors.name;
+                const msg = validateBuildingName(String(value ?? ''));
+                if (msg) newErrors.name = msg; else delete newErrors.name;
                 break;
             }
             case 'addressDetail': {
@@ -255,9 +264,8 @@ export default function BuildingEdit() {
 
     const validateAllFields = () => {
         const newErrors: { name?: string; city?: string; district?: string; ward?: string; addressDetail?: string } = {};
-        const trimmedName = String(formData.name||'').trim();
-        if (!trimmedName) newErrors.name = t('nameError');
-        else if (trimmedName.length>40) newErrors.name = t('nameMaxError') || 'Tên tòa nhà không được vượt quá 40 ký tự';
+        const nameMsg = validateBuildingName(String(formData.name ?? ''));
+        if (nameMsg) newErrors.name = nameMsg;
         if (!selectedCity) newErrors.city = t('cityRequired') || 'Vui lòng chọn thành phố';
         if (!selectedDistrict) newErrors.district = t('districtRequired') || 'Vui lòng chọn quận/huyện';
         if (!selectedWard) newErrors.ward = t('wardRequired') || 'Vui lòng chọn phường/xã';
@@ -486,7 +494,7 @@ export default function BuildingEdit() {
                             {errors.addressDetail && <span className="text-xs text-red-500 mt-1">{errors.addressDetail}</span>}
                         </div>
                     </div>
- 
+
                 </div>
 
                 <div className="flex justify-center mt-8 space-x-4">

@@ -1,5 +1,5 @@
 "use client";
-import React, {useState} from "react";
+import React, {useState, useMemo} from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {usePathname} from "next/navigation";
@@ -49,6 +49,7 @@ const adminSections: NavSection[] = [
     titleKey: "buildingsAndResidents",
     items: [
       {href: "/base/building/buildingList", label: "Quản lý Building", icon: "🏢"},
+      {href: "/base/unit/unitList", label: "Quản lý Unit", icon: "🏠"},
       {href: "/base/residentView", label: "Danh sách cư dân", icon: "👨‍👩‍👧‍👦"},
       {href: "/base/regisresiView", label: "Duyệt tài khoản cư dân", icon: "📝"},
       {href: "/base/household/householdMemberRequests", label: "Duyệt thành viên gia đình", icon: "👪"},
@@ -155,7 +156,6 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
   const pathname = usePathname();
   const {user} = useAuth();
   const t = useTranslations('Sidebar');
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const normalizedRoles = user?.roles?.map(role => role.toLowerCase()) ?? [];
 
@@ -169,6 +169,16 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
       : variant;
 
   const sections = menuConfig[resolvedVariant];
+
+  // Initialize all sections as collapsed (closed) by default
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
+    return new Set(sections.map(section => section.titleKey));
+  });
+
+  // Update collapsed sections when variant changes (reset to all closed)
+  React.useEffect(() => {
+    setCollapsedSections(new Set(sections.map(section => section.titleKey)));
+  }, [resolvedVariant]);
 
   const toggleSection = (sectionKey: string) => {
     setCollapsedSections(prev => {

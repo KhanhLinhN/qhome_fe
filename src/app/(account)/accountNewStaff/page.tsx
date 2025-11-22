@@ -74,6 +74,13 @@ export default function AccountNewStaffPage() {
     router.push('/accountList');
   };
 
+  // Validate username format: only letters (no accents), numbers, and @, _, -, .
+  const validateUsernameFormat = (username: string): boolean => {
+    // Only allow: a-z, A-Z, 0-9, @, _, -, .
+    const usernameRegex = /^[a-zA-Z0-9@_\-\.]+$/;
+    return usernameRegex.test(username);
+  };
+
   // Validate individual field
   const validateField = async (field: keyof FormState, value: string) => {
     switch (field) {
@@ -83,6 +90,8 @@ export default function AccountNewStaffPage() {
           setUsernameError(t('validation.username.required'));
         } else if (/\s/.test(value)) {
           setUsernameError(t('validation.username.noWhitespace'));
+        } else if (!validateUsernameFormat(value)) {
+          setUsernameError(t('validation.username.invalidFormat') || 'Tên đăng nhập chỉ được chứa chữ cái không dấu, số và các ký tự @, _, -, .');
         } else if (value.length > 40) {
           setUsernameError(t('validation.username.maxLength'));
         } else {
@@ -175,6 +184,9 @@ export default function AccountNewStaffPage() {
       isValid = false;
     } else if (/\s/.test(form.username)) {
       setUsernameError(t('validation.username.noWhitespace'));
+      isValid = false;
+    } else if (!validateUsernameFormat(form.username)) {
+      setUsernameError(t('validation.username.invalidFormat') || 'Tên đăng nhập chỉ được chứa chữ cái không dấu, số và các ký tự @, _, -, .');
       isValid = false;
     } else if (form.username.length > 40) {
       setUsernameError(t('validation.username.maxLength'));

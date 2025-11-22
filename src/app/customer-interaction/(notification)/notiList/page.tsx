@@ -375,7 +375,7 @@ export default function NotificationList() {
                                         </button>
                                     </div>
                                 </div>
-                            </div>
+                        </div>
                         )}
                     </>
                 )}

@@ -270,7 +270,7 @@ export default function ServiceTypeCreatePage() {
               show={show}
             />
           )}
-          {typeParam === 'option-group' && (
+          {/* {typeParam === 'option-group' && (
             <OptionGroupForm
               serviceId={serviceId}
               onSuccess={handleSuccess}
@@ -278,7 +278,7 @@ export default function ServiceTypeCreatePage() {
               t={t}
               show={show}
             />
-          )}
+          )} */}
           {typeParam === 'ticket' && (
             <TicketForm
               serviceId={serviceId}
