@@ -24,11 +24,12 @@ import {
   fetchContractDetail,
 } from '@/src/services/base/contractService';
 import { getUnit, getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
-import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
 import { checkEmailExists } from '@/src/services/iam/userService';
 import Select from '@/src/components/customer-interaction/Select';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import { getErrorMessage, type ApiError } from '@/src/types/error';
+import { Building } from '@/src/types/building';
 
 type ManualFormState = {
   householdId: string;
@@ -154,8 +155,7 @@ export default function AccountNewResidentPage() {
         const data = await getBuildings();
         setBuildings(data);
       } catch (err: unknown) {
-        const message =
-          err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+        const message = getErrorMessage(err, 'Không thể tải danh sách tòa nhà.');
         setBuildingsError(message);
       } finally {
         setBuildingsLoading(false);
@@ -188,8 +188,7 @@ export default function AccountNewResidentPage() {
       const data = await getUnitsByBuilding(buildingId);
       setUnits(data);
     } catch (err: unknown) {
-      const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải danh sách căn hộ.';
+      const message = getErrorMessage(err, 'Không thể tải danh sách căn hộ.');
       setUnitsError(message);
     } finally {
       setUnitsLoading(false);

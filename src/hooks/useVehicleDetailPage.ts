@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Vehicle } from '@/src/types/vehicle';
 import { getVehicle } from '@/src/services/base/vehicleService';
+import { getErrorMessage } from '../types/error';
 
 export function useVehicleDetailPage(vehicleId?: string) {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
@@ -20,7 +21,7 @@ export function useVehicleDetailPage(vehicleId?: string) {
         setVehicle(data);
       } catch (err: unknown) {
         console.error('Failed to load vehicle detail:', err);
-        setError(err?.message || 'Failed to load vehicle detail');
+        setError(getErrorMessage(err) || 'Failed to load vehicle detail');
       } finally {
         setLoading(false);
       }

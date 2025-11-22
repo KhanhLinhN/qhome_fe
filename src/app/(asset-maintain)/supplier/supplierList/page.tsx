@@ -72,7 +72,8 @@ export default function SupplierListPage() {
           <Table 
             data={tableData} 
             headers={headers}
-            // onRowClick={handleRowClick}
+            type="supplier"
+            onRowClick={handleRowClick}
           />
           <Pagination
             currentPage={pageNo + 1}

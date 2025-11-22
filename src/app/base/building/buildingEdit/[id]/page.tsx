@@ -219,7 +219,7 @@ export default function BuildingEdit() {
                 address: buildingData.address ?? '',
                 totalApartmentsAll: buildingData.totalApartmentsAll ?? 0,
                 totalApartmentsActive: buildingData.totalApartmentsActive ?? 0,
-                status: buildingData.status ?? 'ACTIVE',
+                status: buildingData.status?.toString() ?? 'ACTIVE',
             });
             // Prefill address selects from stored address string: "detail, road, ward, district, city"
             const parts = (buildingData.address || '').split(',').map(s=>s.trim()).filter(Boolean);

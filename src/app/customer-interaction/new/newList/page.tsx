@@ -10,9 +10,10 @@ import Select from '@/src/components/customer-interaction/Select';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { NewsStatus, NotificationScope } from '@/src/types/news';
 import { updateNews } from '@/src/services/customer-interaction/newService';
-import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
 import Pagination from '@/src/components/customer-interaction/Pagination';
 import { getErrorMessage } from '@/src/types/error';
+import { Building } from '@/src/types/building';
 
 export default function NewsList() {
     const t = useTranslations('News');

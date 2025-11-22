@@ -24,6 +24,7 @@ import {
   getMyActiveAssignments,
 } from '@/src/services/base/waterService';
 import { getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
+import { getErrorMessage } from '../types/error';
 
 export interface WaterReadingData {
   unit: Unit;
@@ -75,7 +76,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
         const activeUnits = unitsData.filter(u => u.status?.toUpperCase() !== 'INACTIVE');
         setUnits(activeUnits);
       } catch (err: unknown) {
-        setError(err?.message || 'Failed to load apartments');
+        setError(getErrorMessage(err) || 'Failed to load apartments');
         console.error('Failed to load units:', err);
       } finally {
         setLoading(false);
@@ -100,7 +101,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
           : metersData;
         setMeters(waterMeters);
       } catch (err: unknown) {
-        setError(err?.message || 'Failed to load meters');
+        setError(getErrorMessage(err) || 'Failed to load meters');
         console.error('Failed to load meters:', err);
       } finally {
         setLoading(false);
@@ -141,7 +142,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       setCycle(cycleData);
       return cycleData;
     } catch (err: unknown) {
-      setError(err?.message || 'Failed to load cycle');
+      setError(getErrorMessage(err) || 'Failed to load cycle');
       console.error('Failed to load cycle:', err);
       throw err;
     } finally {
@@ -158,7 +159,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       setAssignments(assignmentsData);
       return assignmentsData;
     } catch (err: unknown) {
-      setError(err?.message || 'Failed to load assignments');
+      setError(getErrorMessage(err) || 'Failed to load assignments');
       console.error('Failed to load assignments:', err);
       throw err;
     } finally {
@@ -175,7 +176,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       setAssignments(assignmentsData);
       return assignmentsData;
     } catch (err: unknown) {
-      setError(err?.message || 'Failed to load my assignments');
+      setError(getErrorMessage(err) || 'Failed to load my assignments');
       console.error('Failed to load my assignments:', err);
       throw err;
     } finally {
@@ -199,7 +200,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       }
       return reading;
     } catch (err: unknown) {
-      setError(err?.message || 'Failed to create meter reading');
+      setError(getErrorMessage(err) || 'Failed to create meter reading');
       console.error('Failed to create meter reading:', err);
       throw err;
     } finally {
@@ -216,7 +217,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       setCycle(cycleData);
       return cycleData;
     } catch (err: unknown) {
-      setError(err?.message || 'Failed to create cycle');
+      setError(getErrorMessage(err) || 'Failed to create cycle');
       console.error('Failed to create cycle:', err);
       throw err;
     } finally {
@@ -233,7 +234,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       setCycle(cycleData);
       return cycleData;
     } catch (err: unknown) {
-      setError(err?.message || 'Failed to update cycle');
+      setError(getErrorMessage(err) || 'Failed to update cycle');
       console.error('Failed to update cycle:', err);
       throw err;
     } finally {
@@ -253,7 +254,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
       }
       return assignment;
     } catch (err: unknown) {
-      setError(err?.message || 'Failed to create assignment');
+      setError(getErrorMessage(err) || 'Failed to create assignment');
       console.error('Failed to create assignment:', err);
       throw err;
     } finally {
@@ -281,7 +282,7 @@ export function useWaterPage(options: UseWaterPageOptions = {}) {
             setMeters(waterMeters);
           }
         } catch (err: unknown) {
-          setError(err?.message || 'Failed to refresh data');
+          setError(getErrorMessage(err) || 'Failed to refresh data');
         } finally {
           setLoading(false);
         }

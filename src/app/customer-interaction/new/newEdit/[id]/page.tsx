@@ -7,9 +7,10 @@ import Select from '@/src/components/customer-interaction/Select';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { getBuildings, Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import { useNewEdit } from '@/src/hooks/useNewEdit';
+import { Building } from '@/src/types/building';
 import { 
     UpdateNewsRequest, 
     NewsImageDto, 

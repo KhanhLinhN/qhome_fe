@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { downloadBuildingImportTemplate, importBuildings, BuildingImportResponse } from "@/src/services/base/buildingImportService";
+import { getErrorMessage } from "@/src/types/error";
 
 export default function BuildingImportPage() {
   const [file, setFile] = useState<File | null>(null);

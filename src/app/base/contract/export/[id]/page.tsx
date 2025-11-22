@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { exportContractPdf, type BuyerRequest } from "@/src/services/datadocs/pdfService";
+import { getErrorMessage } from "@/src/types/error";
 
 export default function ContractExportPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,7 +31,7 @@ export default function ContractExportPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err: unknown) {
-      setError(err?.response?.data?.message || err?.message || "Không thể xuất PDF");
+      setError( getErrorMessage(err) || "Không thể xuất PDF");
     } finally {
       setLoading(false);
     }

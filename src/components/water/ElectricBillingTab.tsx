@@ -16,6 +16,7 @@ import {
   PricingTierDto,
   getPricingTiersByService,
 } from '@/src/services/finance/pricingTierService';
+import { getErrorMessage } from '@/src/types/error';
 
 type Building = {
   id: string;

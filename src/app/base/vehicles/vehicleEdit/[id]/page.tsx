@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Vehicle, VehicleKind } from '@/src/types/vehicle';
 import { useVehicleDetailPage } from '../../../../../hooks/useVehicleDetailPage';
 import { updateVehicle } from '@/src/services/base/vehicleService';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function VehicleEditPage() {
   const t = useTranslations('Vehicle');
@@ -58,7 +59,7 @@ export default function VehicleEditPage() {
       router.push(`/base/vehicles/vehicleDetail/${vehicleId}`);
     } catch (err: unknown) {
       console.error(err);
-      const errorMessage = err instanceof Error ? err.message : t('error');
+      const errorMessage = err ? getErrorMessage(err) : t('error');
       setSaveError(errorMessage);
     } finally {
       setSaving(false);

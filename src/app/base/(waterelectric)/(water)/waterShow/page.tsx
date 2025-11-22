@@ -2,10 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { getBuildings, Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
 import Select from '@/src/components/customer-interaction/Select';
 import { useWaterPage } from '@/src/hooks/useWaterPage';
+import { Building } from '@/src/types/building';
 import { 
   getMetersByBuilding, 
   MeterDto,
@@ -680,7 +681,7 @@ function MeterModal({ isOpen, onClose, units, onSubmit, mode, initialData }: Met
   useEffect(() => {
     if (mode === 'edit' && initialData) {
       setMeterCode(initialData.meterCode);
-      setMeterType(initialData.meterType);
+      setMeterType(initialData.meterType || '');
       setLocation(initialData.location || '');
       setUnitId(initialData.unitId);
     } else {

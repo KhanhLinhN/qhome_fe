@@ -7,6 +7,7 @@ import Sidebar from '@/src/components/layout/Sidebar';
 import axios from '@/src/lib/axios';
 import Delete from '@/src/assets/Delete.svg';
 import { getErrorMessage } from '@/src/types/error';
+import type { TenantDeletionRequest } from '@/src/services/base/tenantDeletionService';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 const IAM_URL = process.env.NEXT_PUBLIC_IAM_URL || 'http://localhost:8088';
@@ -60,13 +61,13 @@ export default function TenantOwnerEmployeesPage() {
 
       // Load deletion status
       try {
-        const statusResponse = await axios.get<TenantDeletionTargetsStatus>(
+        const statusResponse = await axios.get<TenantDeletionRequest[]>(
           `${BASE_URL}/api/tenant-deletions/my-requests`,
           { withCredentials: true }
         );
         if (statusResponse.data && statusResponse.data.length > 0) {
           // Get the first APPROVED request's status
-          const approvedRequest = statusResponse.data.find(r => r.status === 'APPROVED');
+          const approvedRequest = statusResponse.data.find((r: TenantDeletionRequest) => r.status === 'APPROVED');
           if (approvedRequest) {
             const targetsResponse = await axios.get<TenantDeletionTargetsStatus>(
               `${BASE_URL}/api/tenant-deletions/${approvedRequest.id}/targets-status`,

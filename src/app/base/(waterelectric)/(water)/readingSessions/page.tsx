@@ -1,7 +1,8 @@
 'use client'
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { getBuildings, Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
+import { Building } from '@/src/types/building';
 import Select from '@/src/components/customer-interaction/Select';
 import {
   startMeterReadingSession,
@@ -364,7 +365,7 @@ function StartSessionModal({ isOpen, onClose, onSubmit, assignments }: StartSess
               options={assignments.filter(a => a.status !== 'COMPLETED')}
               value={assignmentId}
               onSelect={(a) => setAssignmentId(a.id)}
-              renderItem={(a) => `Assignment - Floors: ${a.floors.join(', ')}`}
+              renderItem={(a) => `Assignment - Floors: ${a.floors ? a.floors.join(', ') : ''}`}
               getValue={(a) => a.id}
               placeholder="Select assignment"
             />

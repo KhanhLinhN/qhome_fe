@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import DropdownArrow from '@/src/assets/DropdownArrow.svg';
-import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
+import type { Building } from '@/src/types/building';
 import {
   fetchCurrentHouseholdByUnit,
   fetchHouseholdMembersByHousehold,
@@ -124,7 +125,7 @@ export default function ResidentDirectoryPage() {
     if (selectedUnitId !== 'all') {
       const unitExists = buildings
         .find((building) => building.id === selectedBuildingId)
-        ?.units.some((unit) => unit.id === selectedUnitId);
+        ?.units.some((unit: UnitWithResidents) => unit.id === selectedUnitId);
 
       if (!unitExists) {
         setSelectedUnitId('all');
@@ -151,7 +152,7 @@ export default function ResidentDirectoryPage() {
         building.id === buildingId
           ? {
               ...building,
-              units: building.units.map((unit) =>
+              units: building.units.map((unit: UnitWithResidents) =>
                 unit.id === unitId
                   ? {
                       ...unit,
@@ -175,7 +176,7 @@ export default function ResidentDirectoryPage() {
       .map((building) => {
         const buildingMatch = normalize(`${building.name ?? ''} ${building.code ?? ''}`).includes(query);
 
-        const filteredUnits = building.units.filter((unit) =>
+        const filteredUnits = building.units.filter((unit: UnitWithResidents) =>
           normalize(`${unit.name ?? ''} ${unit.code ?? ''}`).includes(query),
         );
 
@@ -202,8 +203,8 @@ export default function ResidentDirectoryPage() {
     const result: ResidentWithContext[] = [];
 
     buildings.forEach((building) => {
-      building.units.forEach((unit) => {
-        unit.residents.forEach((resident) => {
+      building.units.forEach((unit: UnitWithResidents) => {
+        unit.residents.forEach((resident: HouseholdMemberDto) => {
           result.push({
             ...resident,
             buildingId: building.id,
@@ -395,7 +396,7 @@ export default function ResidentDirectoryPage() {
 
                           {building.isExpanded && building.units.length > 0 && (
                             <div className="space-y-1 px-3 py-2">
-                              {building.units.map((unit) => (
+                              {building.units.map((unit: UnitWithResidents) => (
                                 <button
                                   key={unit.id}
                                   type="button"

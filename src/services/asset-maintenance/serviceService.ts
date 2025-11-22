@@ -133,7 +133,7 @@ export async function checkComboCodeExists(
 ): Promise<boolean> {
   try {
     const combos = await getServiceCombos(serviceId);
-    return combos.some((combo) => combo.code.toLowerCase() === code.toLowerCase());
+    return combos.some((combo) => combo.code?.toLowerCase() === code.toLowerCase());
   } catch (error) {
     console.error('Error checking combo code:', error);
     return false;
@@ -207,8 +207,9 @@ export async function checkComboItemCodeExistsGlobally(code: string): Promise<bo
         const combos = await getServiceCombos(service.id);
         for (const combo of combos) {
           // Check if combo has items and if any item has the code
-          if (combo.items && Array.isArray(combo.items)) {
-            if (combo.items.some((item: { itemName?: string }) => item.itemName?.toLowerCase() === code.toLowerCase())) {
+          const comboWithItems = combo as ServiceCombo & { items?: Array<{ itemName?: string }> };
+          if (comboWithItems.items && Array.isArray(comboWithItems.items)) {
+            if (comboWithItems.items.some((item) => item.itemName?.toLowerCase() === code.toLowerCase())) {
               return true;
             }
           }

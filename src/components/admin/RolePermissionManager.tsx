@@ -2,7 +2,8 @@
 import React from 'react';
 import { useRolePermissions } from '@/src/hooks/useRolePermissions';
 import { useNotifications } from '@/src/hooks/useNotifications';
-import { getAllPermissions, Permission } from '@/src/services/iam';
+import { getAllPermissions } from '@/src/services/iam';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function RolePermissionManager() {
   const { show } = useNotifications();
@@ -121,7 +122,7 @@ export default function RolePermissionManager() {
                     // Load all permissions when entering edit mode
                     getAllPermissions()
                       .then(setAllPermissions)
-                      .catch(err => show(`Failed to load permissions: ${err.message}`, 'error'));
+                      .catch(err => show(`Failed to load permissions: ${getErrorMessage(err)}`, 'error'));
                   }
                 }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
@@ -182,7 +183,7 @@ export default function RolePermissionManager() {
                     await handleRemovePermission(code);
                     show('Permission removed successfully', 'success');
                   } catch (err: unknown) {
-                    show(`Error: ${err.message}`, 'error');
+                    show(`Error: ${getErrorMessage(err)}`, 'error');
                   }
                 }}
               />
@@ -201,7 +202,7 @@ export default function RolePermissionManager() {
               await handleAddPermission(code);
               show('Permission added successfully', 'success');
             } catch (err: unknown) {
-              show(`Error: ${err.message}`, 'error');
+              show(`Error: ${getErrorMessage(err)}`, 'error');
             }
           }}
           onClose={() => setShowAddModal(false)}

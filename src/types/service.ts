@@ -83,6 +83,17 @@ export interface ServiceAvailability {
   createdAt?: string;
 }
 
+export interface ServiceComboItem {
+  id?: string;
+  itemName?: string;
+  itemDescription?: string;
+  itemPrice?: number | null;
+  itemDurationMinutes?: number | null;
+  quantity?: number;
+  note?: string;
+  sortOrder?: number | null;
+}
+
 export interface ServiceCombo {
   id: string;
   code?: string;
@@ -90,6 +101,7 @@ export interface ServiceCombo {
   price?: number | null;
   isActive?: boolean;
   sortOrder?: number | null;
+  items?: ServiceComboItem[];
 }
 
 export interface Service {

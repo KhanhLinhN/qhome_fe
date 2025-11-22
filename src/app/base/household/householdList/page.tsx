@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
+import { Building } from '@/src/types/building';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import {
   fetchHouseholdsByUnit,
   type HouseholdDto,
 } from '@/src/services/base/householdService';
+import { getErrorMessage } from '@/src/types/error';
 
 type AsyncState<T> = {
   data: T;
@@ -64,8 +66,7 @@ export default function HouseholdListPage() {
         const data = await getBuildings();
         setBuildingsState({ data, loading: false, error: null });
       } catch (err: unknown) {
-        const message =
-          err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+        const message = getErrorMessage(err, 'Không thể tải danh sách tòa nhà.');
         setBuildingsState({ data: [], loading: false, error: message });
       }
     };
@@ -88,10 +89,7 @@ export default function HouseholdListPage() {
       const data = await getUnitsByBuilding(buildingId);
       setUnitsState({ data, loading: false, error: null });
     } catch (err: unknown) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể tải danh sách căn hộ của tòa nhà này.';
+      const message = getErrorMessage(err, 'Không thể tải danh sách căn hộ của tòa nhà này.');
       setUnitsState({ data: [], loading: false, error: message });
     }
   };
@@ -108,10 +106,7 @@ export default function HouseholdListPage() {
       const data = await fetchHouseholdsByUnit(unitId);
       setHouseholdsState({ data, loading: false, error: null });
     } catch (err: unknown) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Không thể tải danh sách hộ gia đình của căn hộ.';
+      const message = getErrorMessage(err, 'Không thể tải danh sách hộ gia đình của căn hộ.');
       setHouseholdsState({ data: [], loading: false, error: message });
     }
   };

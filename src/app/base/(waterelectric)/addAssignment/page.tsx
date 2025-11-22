@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { getBuildings, Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
+import { Building } from '@/src/types/building';
 import {
   getAllReadingCycles,
   getAllServices,

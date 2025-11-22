@@ -7,7 +7,8 @@ import Select from '@/src/components/customer-interaction/Select';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { getBuildings, Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
+import { Building } from '@/src/types/building';
 import { useNotificationAdd } from '@/src/hooks/useNotificationAdd';
 import { 
     CreateNotificationRequest, 

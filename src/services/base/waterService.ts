@@ -3,7 +3,7 @@ import axios from "@/src/lib/axios";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
 // Types for Reading Cycle
-export type ReadingCycleStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED';
+export type ReadingCycleStatus = 'ALL' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' | 'ACTIVE' | 'CANCELLED';
 
 export interface ReadingCycleDto {
   id: string;
@@ -134,6 +134,8 @@ export interface MeterReadingAssignmentDto {
   progressPercentage?: number; // Progress percentage for this assignment
   createdAt: string;
   updatedAt?: string;
+  status?: string;
+  floors?: string[];
 }
 
 export interface MeterReadingAssignmentCreateReq {

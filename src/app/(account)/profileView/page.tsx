@@ -11,6 +11,7 @@ import {
   UserProfileInfo,
   UserStatusInfo,
 } from "@/src/services/iam/userService";
+import { getErrorMessage } from "@/src/types/error";
 
 export default function ProfileViewPage() {
   const { user, isLoading, logout } = useAuth();
@@ -56,10 +57,7 @@ export default function ProfileViewPage() {
       } catch (err: unknown) {
         console.error("Failed to load profile", err);
         if (!active) return;
-        const message =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Không thể tải thông tin hồ sơ. Vui lòng thử lại sau.";
+        const message = getErrorMessage(err, "Không thể tải thông tin hồ sơ. Vui lòng thử lại sau.");
         setError(message);
       } finally {
         if (active) {

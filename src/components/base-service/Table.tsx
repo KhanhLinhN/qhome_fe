@@ -8,13 +8,17 @@ import Delete from '@/src/assets/Delete.svg';
 import { useNotifications } from '@/src/hooks/useNotifications';
 
 interface TableItemProps {
+    id?: string;
     projectId?: string;
     projectCode?: string;
     projectName?: string;
+    name?: string;
     address?: string;
     contact?: string;
+    contactPerson?: string;
+    phone?: string;
     email?: string,
-    status?: string;
+    status?: 'INACTIVE' | 'ACTIVE' | boolean | string,
     createBy?: string,
     createdAt?: string;
     buildingId?: string;
@@ -64,15 +68,22 @@ interface TableProps {
     onServiceCategoryStatusChange?: (categoryId: string) => void;
     onNewsChangeStatusAndTarget?: (newsId: string) => void;
     onNotificationChangeScope?: (notificationId: string) => void;
+    onRowClick?: (rowId: string) => void;
 }
 
-const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildingStatusChange, onServiceCategoryStatusChange, onNewsChangeStatusAndTarget, onNotificationChangeScope }: TableProps) => {
+const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildingStatusChange, onServiceCategoryStatusChange, onNewsChangeStatusAndTarget, onNotificationChangeScope, onRowClick }: TableProps) => {
     const t = useTranslations('Table');
     const tProject = useTranslations('Project');
     const tBuilding = useTranslations('Building');
     const tService = useTranslations('Service');
     const tServiceCategory = useTranslations('ServiceCategory');
     const { show } = useNotifications();
+
+    const handleRowClick = (rowId?: string) => {
+        if (onRowClick && rowId) {
+            onRowClick(rowId);
+        }
+    };
 
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
@@ -192,6 +203,37 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                 ? 'border-b border-solid border-[#CDCDCD]'
                                 : 'border-b-0';
                             
+                            if(type === "supplier"){
+                                return (
+                                    <tr
+                                        key={item.id ?? `supplier-${index}`}
+                                        className={`${rowClass} ${borderClass} cursor-pointer`}
+                                        onClick={() => handleRowClick(item.id)}
+                                    >
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold text-center">
+                                            {item.name || '-'}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold">
+                                            {item.type || '-'}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">
+                                            {item.contactPerson || '-'}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">
+                                            {item.phone || '-'}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">
+                                            {item.email || '-'}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">
+                                            {item.status || '-'}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">
+                                            {formatDate(item.createdAt || '')}
+                                        </td>
+                                    </tr>
+                                );
+                            }
                             if(type === "building"){
                                 return (
                                     <tr 
@@ -205,11 +247,11 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold truncate">{item.buildingName}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold">
                                             <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                                (item.status || '').toUpperCase() === 'ACTIVE'
+                                                (item.status || '').toString().toUpperCase() === 'ACTIVE'
                                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                                     : 'bg-gray-50 text-gray-700 border border-gray-200'
                                             }`}>
-                                                {(item.status || '').toUpperCase() === 'ACTIVE' ? tBuilding('active') : tBuilding('inactive')}
+                                                {(item.status || '').toString().toUpperCase() === 'ACTIVE' ? tBuilding('active') : tBuilding('inactive')}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center font-semibold text-[#024023]">{item.createdAt}</td>
@@ -559,8 +601,8 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                         </td>
                                         <td className="px-4 py-3 text-[14px] text-gray-700 text-left max-w-sm truncate">{item.summary}</td>
                                         <td className="px-4 py-3 text-center">
-                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(item.status || '')}`}>
-                                                {getStatusLabel(item.status || '')}
+                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(item.status?.toString() || '')}`}>
+                                                {getStatusLabel(item.status?.toString() || '')}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-center text-[14px] text-gray-700">{formatDate(item.publishAt || '')}</td>

@@ -10,6 +10,8 @@ import {
   getAllPermissions,
 } from '@/src/services/iam';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
+import { error } from 'console';
 
 type Props = {
   tenant: Tenant;
@@ -63,15 +65,15 @@ export default function TenantRolePermissionManager({ tenant, onBack }: Props) {
     } catch (err: unknown) {
       console.error('❌ Failed to load roles:', err);
       console.error('❌ Tenant ID:', tenant.id);
-      console.error('❌ Error status:', err?.response?.status);
-      console.error('❌ Error message:', err?.response?.data);
+      console.error('❌ Error status:', getErrorMessage(err));
+      console.error('❌ Error message:', getErrorMessage(err));
       
-      // Check if 403 - permission denied
-      if (err?.response?.status === 403) {
-        show('Bạn không có quyền xem roles của tenant này', 'error');
-      } else {
-        show(`Lỗi tải roles: ${err.message}`, 'error');
-      }
+      // // Check if 403 - permission denied
+      // if (err?.response?.status === 403) {
+      //   show('Bạn không có quyền xem roles của tenant này', 'error');
+      // } else {
+      //   show(`Lỗi tải roles: ${getErrorMessage(err)}`, 'error');
+      // }
       
       // Set empty array so UI shows gracefully
       setRoles([]);
@@ -108,7 +110,7 @@ export default function TenantRolePermissionManager({ tenant, onBack }: Props) {
       
       setSummary(safeSummary);
     } catch (err: unknown) {
-      show(`Lỗi tải permissions: ${err.message}`, 'error');
+      show(`Lỗi tải permissions: ${getErrorMessage(err)}`, 'error');
       console.error('Failed to load summary:', err);
     } finally {
       setLoadingSummary(false);
@@ -136,7 +138,7 @@ export default function TenantRolePermissionManager({ tenant, onBack }: Props) {
       await loadSummary(selectedRole);
       setShowAddModal(false);
     } catch (err: unknown) {
-      show(`Lỗi thêm permission: ${err.message}`, 'error');
+      show(`Lỗi thêm permission: ${getErrorMessage(err)}`, 'error');
     }
   };
 
@@ -155,7 +157,7 @@ export default function TenantRolePermissionManager({ tenant, onBack }: Props) {
       show('Xóa permission thành công', 'success');
       await loadSummary(selectedRole);
     } catch (err: unknown) {
-      show(`Lỗi xóa permission: ${err.message}`, 'error');
+      show(`Lỗi xóa permission: ${getErrorMessage(err)}`, 'error');
     }
   };
 
@@ -289,9 +291,9 @@ export default function TenantRolePermissionManager({ tenant, onBack }: Props) {
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">
                     {summary.grantedPermissions?.length || 0} granted
-                    {(summary.deniedPermissions?.length || 0) > 0 && `, ${summary.deniedPermissions.length} denied`}
-                    {(summary.effectivePermissions?.length || 0) > 0 && `, ${summary.effectivePermissions.length} effective`}
-                    {(summary.inheritedFromGlobal?.length || 0) > 0 && `, ${summary.inheritedFromGlobal.length} inherited`}
+                    {(summary.deniedPermissions?.length || 0) > 0 && `, ${summary.deniedPermissions?.length} denied`}
+                    {(summary.effectivePermissions?.length || 0) > 0 && `, ${summary.effectivePermissions?.length} effective`}
+                    {(summary.inheritedFromGlobal?.length || 0) > 0 && `, ${summary.inheritedFromGlobal?.length} inherited`}
                   </p>
                 </div>
                 <div className="flex gap-2">

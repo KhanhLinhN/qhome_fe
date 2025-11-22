@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
-import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { Building } from '@/src/types/building';
+import { getBuildings } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import {
   ContractDetail,

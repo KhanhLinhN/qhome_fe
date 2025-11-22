@@ -9,6 +9,7 @@ import {
   approveAccountRequest,
   fetchPendingAccountRequests,
 } from '@/src/services/base/residentAccountService';
+import { getErrorMessage } from '@/src/types/error';
 
 const approveIcon = (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Check-2-Fill--Streamline-Mingcute-Fill" height="16" width="16">
@@ -57,8 +58,7 @@ export default function ResidentAccountApprovalPage() {
       const data = await fetchPendingAccountRequests();
       setRequests(data);
     } catch (err: unknown) {
-      const message =
-        err?.response?.data?.message || err?.message || t('messages.loadError');
+      const message = getErrorMessage(err, t('messages.loadError'));
       setError(message);
     } finally {
       setLoading(false);
@@ -120,8 +120,7 @@ export default function ResidentAccountApprovalPage() {
               }),
         );
       } catch (err: unknown) {
-        const message =
-          err?.response?.data?.message || err?.message || t('messages.actionError');
+        const message = getErrorMessage(err, t('messages.actionError'));
         setError(message);
       } finally {
         updateProcessing(request.id, false);

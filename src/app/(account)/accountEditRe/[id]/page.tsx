@@ -21,10 +21,11 @@ import {
   updateUserPassword,
 } from '@/src/services/iam/userService';
 import { useResidentUnits } from '@/src/hooks/useResidentUnits';
-import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import { createHousehold } from '@/src/services/base/householdService';
 import { getErrorMessage } from '@/src/types/error';
+import { Building } from '@/src/types/building';
 
 type FetchState = 'idle' | 'loading' | 'error' | 'success';
 

@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { uploadAssetImages, deleteAssetImage, setPrimaryImage, getAssetImageUrl, AssetResponse } from '@/src/services/asset-maintenance/assetImageService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function AssetImageEdit() {
     const t = useTranslations('AssetImage'); 
@@ -42,7 +43,7 @@ export default function AssetImageEdit() {
             setSelectedFiles([]);
             show('Tải lên hình ảnh thành công', 'success');
         } catch (err: unknown) {
-            show('Tải lên hình ảnh thất bại: ' + (err?.message || ''), 'error');
+            show('Tải lên hình ảnh thất bại: ' + (getErrorMessage(err) || ''), 'error');
         } finally {
             setUploading(false);
         }
@@ -57,7 +58,7 @@ export default function AssetImageEdit() {
             setAssetData(result);
             show('Xóa hình ảnh thành công', 'success');
         } catch (err: unknown) {
-            show('Xóa hình ảnh thất bại: ' + (err?.message || ''), 'error');
+            show('Xóa hình ảnh thất bại: ' + (getErrorMessage(err) || ''), 'error');
         } finally {
             setLoading(false);
         }
@@ -70,7 +71,7 @@ export default function AssetImageEdit() {
             setAssetData(result);
             show('Đặt hình ảnh chính thành công', 'success');
         } catch (err: unknown) {
-            show('Đặt hình ảnh chính thất bại: ' + (err?.message || ''), 'error');
+            show('Đặt hình ảnh chính thất bại: ' + (getErrorMessage(err) || ''), 'error');
         } finally {
             setLoading(false);
         }

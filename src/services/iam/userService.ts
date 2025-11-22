@@ -224,11 +224,11 @@ export async function createResidentAccount(
         withCredentials: true,
       });
       throw new Error('Email đã tồn tại.');
-    } catch (err: unknown) {
-      const status = err?.response?.status;
-      if (status && status !== 404) {
+    } catch (err) {
+      // const status = err?.status;
+      // if (status && status !== 404) {
         throw err;
-      }
+      // }
     }
   }
 
@@ -258,10 +258,10 @@ export async function checkUsernameExists(username: string): Promise<boolean> {
       { withCredentials: true }
     );
     return true; // Username tồn tại (status 200)
-  } catch (err: unknown) {
-    if (err?.response?.status === 404) {
-      return false; // Username chưa tồn tại
-    }
+  } catch (err) {
+    // if (err?.response?.status === 404) {
+    //   return false; // Username chưa tồn tại
+    // }
     // Nếu có lỗi khác (network, 500, etc.), throw lại để xử lý ở nơi gọi
     throw err;
   }
@@ -279,10 +279,10 @@ export async function checkEmailExists(email: string): Promise<boolean> {
       { withCredentials: true }
     );
     return true; // Email tồn tại (status 200)
-  } catch (err: unknown) {
-    if (err?.response?.status === 404) {
-      return false; // Email chưa tồn tại
-    }
+  } catch (err) {
+    // if (err?.response?.status === 404) {
+    //   return false; // Email chưa tồn tại
+    // }
     // Nếu có lỗi khác (network, 500, etc.), throw lại để xử lý ở nơi gọi
     throw err;
   }

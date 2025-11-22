@@ -11,6 +11,7 @@ import {
   Role, 
   Permission 
 } from '@/src/services/iam';
+import { getErrorMessage } from '../types/error';
 
 export function useRolePermissions() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -30,7 +31,7 @@ export function useRolePermissions() {
         const data = await getAllRoles();
         setRoles(data);
       } catch (err: unknown) {
-        setError(err?.message || 'Failed to load roles');
+        setError(getErrorMessage(err) || 'Failed to load roles');
         console.error('Failed to load roles:', err);
       } finally {
         setLoadingRoles(false);
@@ -50,7 +51,7 @@ export function useRolePermissions() {
       const data = await getPermissionsByRole(roleName);
       setPermissions(data);
     } catch (err: unknown) {
-      setError(err?.message || 'Failed to load permissions');
+      setError(getErrorMessage(err) || 'Failed to load permissions');
       console.error(`Failed to load permissions for role ${roleName}:`, err);
       setPermissions([]);
     } finally {
@@ -67,7 +68,7 @@ export function useRolePermissions() {
       // Reload permissions
       await handleSelectRole(selectedRole);
     } catch (err: unknown) {
-      setError(err?.message || 'Failed to add permission');
+      setError(getErrorMessage(err) || 'Failed to add permission');
       throw err;
     }
   }, [selectedRole, handleSelectRole]);
@@ -81,7 +82,7 @@ export function useRolePermissions() {
       // Reload permissions
       await handleSelectRole(selectedRole);
     } catch (err: unknown) {
-      setError(err?.message || 'Failed to remove permission');
+      setError(getErrorMessage(err) || 'Failed to remove permission');
       throw err;
     }
   }, [selectedRole, handleSelectRole]);

@@ -31,7 +31,7 @@
         
 //         setTenants(filteredData);
 //       } catch (err: unknown) {
-//         setError(err?.message || 'Không thể tải danh sách tenant');
+//         setError(getErrorMessage(err) || 'Không thể tải danh sách tenant');
 //         console.error('Failed to load tenants:', err);
 //       } finally {
 //         setLoading(false);

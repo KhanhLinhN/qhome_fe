@@ -1,7 +1,7 @@
 // import Image from "next/image";
 // import {useTranslations} from 'next-intl';
 
-// export default function Home() {
+export default function Home() {
 //   // Access the translation function for the 'HomePage' namespace
 //   const t = useTranslations('HomePage');
 
@@ -104,4 +104,4 @@
 //       </footer>
 //     </div>
 //   );
-// }
+}

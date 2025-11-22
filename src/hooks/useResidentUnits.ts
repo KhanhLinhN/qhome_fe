@@ -7,6 +7,7 @@ import {
   fetchHouseholdMembersByResident,
 } from '@/src/services/base/householdService';
 import { getUnit } from '@/src/services/base/unitService';
+import { getErrorMessage } from '../types/error';
 
 export interface ResidentUnitAssignment {
   memberId: string;
@@ -112,8 +113,7 @@ export function useResidentUnits(residentId?: string) {
 
       setAssignments(Array.from(deduped.values()));
     } catch (err: unknown) {
-      const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải danh sách căn hộ của cư dân.';
+      const message = getErrorMessage(err, 'Không thể tải danh sách căn hộ của cư dân.');
       setError(message);
     } finally {
       setLoading(false);

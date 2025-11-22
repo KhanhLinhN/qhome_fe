@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { createDeletionRequest, type CreateDeletionReq } from '@/src/services/base';
 import Delete from '@/src/assets/Delete.svg';
+import { getErrorMessage } from '@/src/types/error';
 
 type Props = {
   tenantId: string;
@@ -48,8 +49,8 @@ export default function CreateDeletionRequestModal({
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      console.error('Failed to create deletion request:', err);
-      setError(err.response?.data?.message || err.message || 'Có lỗi xảy ra');
+      // console.error('Failed to create deletion request:', err);
+      setError( getErrorMessage(err) || 'Có lỗi xảy ra');
     } finally {
       setIsSubmitting(false);
     }

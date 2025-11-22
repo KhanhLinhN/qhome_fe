@@ -205,8 +205,8 @@ export default function SupplierDetail() {
                 isOpen={isPopupOpen}
                 onClose={handleClosePopup}
                 onConfirm={handleConfirmDelete}
-                title="Xác nhận xóa"
-                message="Bạn có chắc chắn muốn xóa nhà cung cấp này?"
+                popupTitle="Xác nhận xóa"
+                popupContext="Bạn có chắc chắn muốn xóa nhà cung cấp này?"
             />
         </div>
     );

@@ -1,15 +1,6 @@
 import axios from "@/src/lib/axios";
 import type { Unit } from "./unitService";
-
-export type Building = {
-  id: string;
-  code: string;
-  name: string;
-  address: string;
-  floorsMax: number;
-  totalApartmentsAll: number;
-  totalApartmentsActive: number;
-};
+import type { Building } from "@/src/types/building";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 

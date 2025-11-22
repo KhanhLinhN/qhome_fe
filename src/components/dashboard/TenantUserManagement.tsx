@@ -13,6 +13,7 @@ import {
 } from '@/src/services/iam';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import AssignRolesModal from './AssignRolesModal';
+import { getErrorMessage } from '@/src/types/error';
 
 type Props = {
   tenant: Tenant;
@@ -63,7 +64,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       setAvailableStaff(validStaff);
     } catch (err: unknown) {
       console.error('❌ Failed to load available staff:', err);
-      show(`Lỗi tải danh sách staff: ${err.message}`, 'error');
+      show(`Lỗi tải danh sách staff: ${getErrorMessage(err)}`, 'error');
     } finally {
       setLoadingStaff(false);
     }
@@ -77,7 +78,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       setEmployees(data);
     } catch (err: unknown) {
       console.error('❌ Failed to load employees:', err);
-      show(`Lỗi tải danh sách nhân viên: ${err.message}`, 'error');
+      show(`Lỗi tải danh sách nhân viên: ${getErrorMessage(err)}`, 'error');
     } finally {
       setLoadingEmployees(false);
     }
@@ -91,7 +92,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       setAvailableRoles(data);
     } catch (err: unknown) {
       console.error('❌ Failed to load roles:', err);
-      show(`Lỗi tải roles: ${err.message}`, 'error');
+      show(`Lỗi tải roles: ${getErrorMessage(err)}`, 'error');
     } finally {
       setLoadingRoles(false);
     }
@@ -131,7 +132,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       await loadData();
       setShowAssignModal(false);
     } catch (err: unknown) {
-      show(`Lỗi: ${err.message}`, 'error');
+      show(`Lỗi: ${getErrorMessage(err)}`, 'error');
       console.error('Failed to assign roles:', err);
     }
   };
@@ -151,7 +152,7 @@ export default function TenantUserManagement({ tenant }: Props) {
         await loadData();
       }
     } catch (err: unknown) {
-      show(`Lỗi: ${err.message}`, 'error');
+      show(`Lỗi: ${getErrorMessage(err)}`, 'error');
       console.error('Failed to remove roles:', err);
     }
   };
@@ -173,7 +174,7 @@ export default function TenantUserManagement({ tenant }: Props) {
       show(`Đã xóa ${employee.username} khỏi tenant`, 'success');
       await loadData();
     } catch (err: unknown) {
-      show(`Lỗi xóa nhân viên: ${err.message}`, 'error');
+      show(`Lỗi xóa nhân viên: ${getErrorMessage(err)}`, 'error');
     }
   };
 

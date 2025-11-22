@@ -9,6 +9,7 @@ import { useSupplierDetailPage } from '@/src/hooks/useSupplierDetailPage';
 import { UpdateSupplierRequest } from '@/src/services/asset-maintenance/supplierService';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { getErrorMessage } from '@/src/types/error';
 
 export default function SupplierEdit() {
     const { user, hasRole } = useAuth();
@@ -82,7 +83,7 @@ export default function SupplierEdit() {
             show('Cập nhật nhà cung cấp thành công', 'success');
             router.push(`/asset-maintain/supplier/supplierDetail/${supplierId}`);
         } catch (err: unknown) {
-            show('Cập nhật nhà cung cấp thất bại: ' + (err?.message || ''), 'error');
+            show('Cập nhật nhà cung cấp thất bại: ' + (getErrorMessage(err) || ''), 'error');
         }
     };
 

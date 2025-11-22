@@ -6,8 +6,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { getNewsDetail } from '@/src/services/customer-interaction/newService';
 import { News } from '@/src/types/news';
 import { useNotifications } from '@/src/hooks/useNotifications';
-import { getBuilding, Building } from '@/src/services/base/buildingService';
+import { getBuilding } from '@/src/services/base/buildingService';
 import { useTranslations } from 'next-intl';
+import { Building } from '@/src/types/building';
 
 export default function NewsDetail() {
     const router = useRouter();

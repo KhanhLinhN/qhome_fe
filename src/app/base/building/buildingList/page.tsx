@@ -14,7 +14,7 @@ import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { updateBuilding } from '@/src/services/base/buildingService';
 import { downloadBuildingImportTemplate, importBuildings, exportBuildings, type BuildingImportResponse } from '@/src/services/base/buildingImportService';
 import { getErrorMessage } from '@/src/types/error';
-
+import { Building } from '@/src/types/building';
 
 export default function Home() {
   const { user, hasRole } = useAuth();
@@ -40,17 +40,17 @@ export default function Home() {
   } = useBuildingPage()
 
   // Order by createdAt desc (newest first)
-  const ordered = (data?.content || []).slice().sort((a: { createdAt?: string }, b: { createdAt?: string }) => {
+  const ordered = (data?.content || []).slice().sort((a: Building, b: Building) => {
     const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     return tb - ta;
   });
 
-  const tableData = ordered.map((item: { id: string; code: string; name: string; floorsMax: number; status: string; createdBy?: string; createdAt?: string }) => ({
-    buildingId: item.id,      
-    buildingCode: item.code,  
-    buildingName: item.name,  
-    floors: item.floorsMax,  
+  const tableData = ordered.map((item: Building) => ({
+    buildingId: item.id,
+    buildingCode: item.code,
+    buildingName: item.name,
+    floors: item.floorsMax,
     status: item.status,
     createBy: item.createdBy,
     createdAt: item.createdAt?.slice(0, 10).replace(/-/g, '/')
@@ -68,7 +68,7 @@ export default function Home() {
   // Change building status with confirmation
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
-  const [selectedBuildingStatus, setSelectedBuildingStatus] = useState<string | null>(null);
+  const [selectedBuildingStatus, setSelectedBuildingStatus] = useState<string | boolean | null>(null);
 
   const onBuildingStatusChange = (buildingId: string) => {
     const row = tableData.find(r => r.buildingId === buildingId);

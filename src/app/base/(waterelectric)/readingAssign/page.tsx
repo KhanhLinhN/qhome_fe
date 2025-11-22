@@ -245,7 +245,7 @@ export default function WaterAssignPage() {
           await changeReadingCycleStatus(cycleInfo.cycle.id, 'COMPLETED');
           show('Cycle marked as completed. Proceeding with invoice export.', 'success');
         } catch (err: unknown) {
-          const msg = err?.response?.data?.message || err?.message || 'Failed to update cycle status.';
+          const msg = getErrorMessage(err) || 'Failed to update cycle status.';
           show(msg, 'error');
           return;
         } finally {

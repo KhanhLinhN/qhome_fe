@@ -11,7 +11,8 @@ import { useNotifications } from '@/src/hooks/useNotifications';
 import { NotificationType, NotificationScope } from '@/src/types/notification';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import Pagination from '@/src/components/customer-interaction/Pagination';
-import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
+import { Building } from '@/src/types/building';
 import { getErrorMessage } from '@/src/types/error';
 
 export default function NotificationList() {

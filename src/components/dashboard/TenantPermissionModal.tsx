@@ -70,7 +70,7 @@ export default function TenantPermissionModal({ tenant, onClose }: Props) {
           >
             👥 User Management
           </button>
-          <button
+          {/* <button
             onClick={() => setViewMode('permissions')}
             className={`flex-1 px-6 py-3 font-medium transition ${
               viewMode === 'permissions'
@@ -79,7 +79,7 @@ export default function TenantPermissionModal({ tenant, onClose }: Props) {
             }`}
           >
             🔑 Role Permissions
-          </button>
+          </button> */}
         </div>
 
         {/* Content */}

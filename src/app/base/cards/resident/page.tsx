@@ -10,6 +10,7 @@ import {
   fetchResidentCardRegistration,
   fetchResidentCardRegistrations,
 } from '@/src/services/card';
+import { getErrorMessage } from '@/src/types/error';
 
 const statusOptions = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -130,8 +131,8 @@ export default function ResidentCardAdminPage() {
       );
     } catch (err: unknown) {
       console.error('Failed to submit decision', err);
-      if (err instanceof Error && err.message) {
-        alert(err.message);
+      if (err && getErrorMessage(err)) {
+        alert(getErrorMessage(err));
       } else {
         alert('Không thể thực hiện hành động. Vui lòng thử lại.');
       }

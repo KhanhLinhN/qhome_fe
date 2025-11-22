@@ -9,7 +9,7 @@
 // import Arrow from '@/src/assets/Arrow.svg';
 // import Image from 'next/image';
 
-// export default function Home() {
+export default function Home() {
 //   const t = useTranslations('customer-interaction.Request');
 //   const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('assignee'), t('dateCreated'), t('priority'), t('status')];
 //   let isDetail = true;
@@ -46,4 +46,4 @@
 //         </div>
 //       </div>
 //     )
-// };
+};

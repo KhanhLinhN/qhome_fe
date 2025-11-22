@@ -33,17 +33,17 @@ export async function exportContractPdf(
       withCredentials: true,
     });
     return res.data as Blob;
-  } catch (err: unknown) {
+  } catch (err) {
     // Try to extract server message from Blob
-    const data = err?.response?.data;
-    if (data instanceof Blob) {
-      try {
-        const text = await data.text();
-        throw new Error(text || "Yêu cầu xuất PDF thất bại");
-      } catch {
+    // const data = err?.response?.data;
+    // if (data instanceof Blob) {
+    //   try {
+    //     const text = await data.text();
+    //     throw new Error(text || "Yêu cầu xuất PDF thất bại");
+    //   } catch {
         throw new Error("Yêu cầu xuất PDF thất bại");
-      }
-    }
-    throw err;
+    //   }
+    // }
+    // throw err;
   }
 }

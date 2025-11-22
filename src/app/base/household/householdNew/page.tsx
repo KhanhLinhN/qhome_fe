@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
-import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
+import { Building } from '@/src/types/building';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import {
   createHousehold,

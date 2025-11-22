@@ -15,6 +15,7 @@ import {
   UserAccountInfo,
   UserProfileInfo,
 } from "@/src/services/iam/userService";
+import { getErrorMessage } from "@/src/types/error";
 
 type FormState = {
   username: string;
@@ -83,10 +84,7 @@ export default function ProfileEditPage() {
       } catch (err: unknown) {
         console.error("Failed to load profile for editing", err);
         if (!active) return;
-        const message =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Không thể tải dữ liệu hồ sơ để chỉnh sửa.";
+        const message = getErrorMessage(err, "Không thể tải dữ liệu hồ sơ để chỉnh sửa.");
         setError(message);
       } finally {
         if (active) {
@@ -202,10 +200,7 @@ export default function ProfileEditPage() {
       }));
     } catch (err: unknown) {
       console.error("Failed to update profile", err);
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Cập nhật hồ sơ thất bại. Vui lòng thử lại sau.";
+      const message = getErrorMessage(err, "Cập nhật hồ sơ thất bại. Vui lòng thử lại sau.");
       setError(message);
     } finally {
       setSubmitting(false);

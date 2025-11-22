@@ -49,13 +49,15 @@ export default function UserPermissionDetailPage() {
     }
   };
 
+  const effectivePermissions = summary?.effectivePermissions ?? [];
+
   // Group permissions by service
   const groupedPermissions = React.useMemo(() => {
-    if (!employee?.allPermissions) return {};
+    if (effectivePermissions.length === 0) return {};
     
     const groups: Record<string, string[]> = {};
     
-    employee.allPermissions.forEach(permission => {
+    effectivePermissions.forEach((permission: string) => {
       const servicePrefix = permission.split('.')[0] || 'other';
       if (!groups[servicePrefix]) {
         groups[servicePrefix] = [];
@@ -64,7 +66,7 @@ export default function UserPermissionDetailPage() {
     });
     
     return groups;
-  }, [employee]);
+  }, [effectivePermissions]);
 
   // Filter permissions by search
   const filteredGroups = React.useMemo(() => {
@@ -72,7 +74,7 @@ export default function UserPermissionDetailPage() {
     
     const filtered: Record<string, string[]> = {};
     Object.entries(groupedPermissions).forEach(([service, perms]) => {
-      const matchingPerms = perms.filter(p => 
+      const matchingPerms = perms.filter((p: string) => 
         p.toLowerCase().includes(searchQuery.toLowerCase())
       );
       if (matchingPerms.length > 0) {
@@ -83,7 +85,7 @@ export default function UserPermissionDetailPage() {
     return filtered;
   }, [groupedPermissions, searchQuery]);
 
-  const totalPermissions = employee?.allPermissions?.length || 0;
+  const totalPermissions = employee?.totalPermissions ?? effectivePermissions.length;
   const filteredCount = Object.values(filteredGroups).flat().length;
 
   if (loading) {
@@ -282,7 +284,7 @@ export default function UserPermissionDetailPage() {
         <div className="mt-6 flex justify-end">
         <button
           onClick={() => {
-            const permissions = employee?.allPermissions || [];
+            const permissions = effectivePermissions;
             const csv = [
               ['Permission', 'Service'],
               ...permissions.map(p => [p, p.split('.')[0]])
@@ -296,7 +298,7 @@ export default function UserPermissionDetailPage() {
             a.click();
             URL.revokeObjectURL(url);
           }}
-          disabled={!employee || !employee.allPermissions || employee.allPermissions.length === 0}
+          disabled={!employee || effectivePermissions.length === 0}
           className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 transition font-medium flex items-center gap-2"
         >
           📥 Export to CSV

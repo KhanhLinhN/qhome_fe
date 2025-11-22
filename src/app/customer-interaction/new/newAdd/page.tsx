@@ -6,7 +6,8 @@ import DetailField from '@/src/components/base-service/DetailField';
 import Select from '@/src/components/customer-interaction/Select';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { getBuildings, Building } from '@/src/services/base/buildingService';
+import { getBuildings } from '@/src/services/base/buildingService';
+import { Building } from '@/src/types/building';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import { useNewAdd } from '@/src/hooks/useNewAdd';
 import {

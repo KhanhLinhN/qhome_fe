@@ -7,7 +7,7 @@ import InvoiceTable from "@/src/components/account/InvoiceTable";
 import NotifyPreviewDialog from "@/src/components/account/NotifyPreviewDialog";
 import { CatalogApi } from "@/src/services/finance";
 import { InvoiceApi } from "@/src/services/finance";
-import { Building, BillingCycle, NotificationTemplate, NotificationChannel, PreviewItem } from "@/src/types/domain";
+import { Building, BillingCycle, NotificationTemplate, NotificationChannel, PreviewItem, InvoiceRow } from "@/src/types/domain";
 import { useNotifications } from "@/src/hooks/useNotifications";
 import { useAuth } from "@/src/contexts/AuthContext";
 
@@ -179,7 +179,7 @@ export default function AccountingDashboard(){
 
         {/* Table */}
         <InvoiceTable
-          rows={rows}
+          rows={rows as InvoiceRow[]}
           page={page} size={size} total={total}
           onPageChange={p=>setPage(p)}
           selected={selected} onSelectChange={setSelected}
