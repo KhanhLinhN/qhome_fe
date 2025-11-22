@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import Delete from '@/src/assets/Delete.svg';
@@ -13,6 +13,15 @@ import { useBuildingDetailPage } from '@/src/hooks/useBuildingDetailPage';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getUnitsByBuildingId } from '@/src/services/base/buildingService';
 import { Unit } from '@/src/types/unit';
+import {
+  ServiceDto,
+  createMeter,
+  getAllServices,
+  downloadMeterImportTemplate,
+  importMeters,
+  exportMeters,
+  type MeterImportResponse,
+} from '@/src/services/base/waterService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useDeleteBuilding } from '@/src/hooks/useBuildingDelete';
 import FormulaPopup from '@/src/components/common/FormulaPopup';
@@ -31,11 +40,80 @@ export default function BuildingDetail () {
     const [units, setUnits] = useState<Unit[]>([]);
     const [loadingUnits, setLoadingUnits] = useState(false);
     const [unitsError, setUnitsError] = useState<string | null>(null);
+    const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
     const { deleteBuildingById, isLoading: isDeleting } = useDeleteBuilding();    
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState<UnitImportResponse | null>(null);
     const [importError, setImportError] = useState<string | null>(null);
+    const [services, setServices] = useState<ServiceDto[]>([]);
+    const [meterFormVisible, setMeterFormVisible] = useState(false);
+    const [meterForm, setMeterForm] = useState({
+        unitId: '',
+        serviceId: '',
+        installedAt: '',
+    });
+    const [meterStatus, setMeterStatus] = useState<string | null>(null);
+    const [creatingMeter, setCreatingMeter] = useState(false);
+    const [meterImporting, setMeterImporting] = useState(false);
+    const [meterImportResult, setMeterImportResult] = useState<MeterImportResponse | null>(null);
+    const [meterImportError, setMeterImportError] = useState<string | null>(null);
+    const meterFileInputRef = useRef<HTMLInputElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const meterDateInputRef = useRef<HTMLInputElement | null>(null);
+    
+    useEffect(() => {
+        console.log('buildingData', buildingData);
+        const loadUnits = async () => {
+            if (!buildingId || typeof buildingId !== 'string') return;
+            
+            try {
+                setLoadingUnits(true);
+                setUnitsError(null);
+                const data = await getUnitsByBuildingId(buildingId);
+                const activeUnits = data.filter(unit => unit.status?.toUpperCase() !== 'INACTIVE');
+                setUnits(activeUnits);
+            } catch (err: any) {
+                console.error('Failed to load units:', err);
+                setUnitsError(err?.message || 'Không thể tải danh sách căn hộ');
+            } finally {
+                setLoadingUnits(false);
+            }
+        };
+
+        const loadServices = async () => {
+            try {
+                const data = await getAllServices();
+                setServices(data.filter(service => service.active));
+            } catch (err) {
+                console.error('Failed to load services:', err);
+            }
+        };
+
+        loadUnits();
+        loadServices();
+    }, [buildingId]);
+
+    const floorOptions = useMemo(() => {
+        const uniqueFloors = Array.from(new Set(units.map(unit => unit.floor?.toString()).filter(Boolean)));
+        return uniqueFloors.sort((a, b) => {
+            const na = Number(a);
+            const nb = Number(b);
+            if (Number.isNaN(na) || Number.isNaN(nb)) {
+                return a.localeCompare(b);
+            }
+            return na - nb;
+        });
+    }, [units]);
+
+    const filteredUnits = selectedFloor
+        ? units.filter(unit => unit.floor?.toString() === selectedFloor)
+        : units;
+
+    useEffect(() => {
+        if (selectedFloor && !floorOptions.includes(selectedFloor)) {
+            setSelectedFloor(null);
+        }
+    }, [floorOptions, selectedFloor]);
     
     const handleBack = () => {
         router.push(`/base/building/buildingList`);
@@ -112,6 +190,65 @@ export default function BuildingDetail () {
         } finally {
             setImporting(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const onDownloadMeterTemplate = async () => {
+        try {
+            const blob = await downloadMeterImportTemplate();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `meter_import_template.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e: any) {
+            setMeterImportError(e?.response?.data?.message || "Tải template công tơ thất bại");
+        }
+    };
+
+    const onPickMeterFile = () => {
+        setMeterImportError(null);
+        setMeterImportResult(null);
+        meterFileInputRef.current?.click();
+    };
+
+    const onMeterFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setMeterImporting(true);
+        setMeterImportError(null);
+        setMeterImportResult(null);
+        try {
+            const result = await importMeters(file);
+            setMeterImportResult(result);
+        } catch (err: any) {
+            setMeterImportError(err?.response?.data?.message || 'Import công tơ thất bại');
+        } finally {
+            setMeterImporting(false);
+            if (meterFileInputRef.current) meterFileInputRef.current.value = '';
+        }
+    };
+
+    const openMeterDatePicker = () => {
+        const input = meterDateInputRef.current;
+        if (!input) return;
+        input.showPicker?.();
+        input.focus();
+    };
+
+    const onExportMeters = async () => {
+        if (!buildingId || typeof buildingId !== 'string') return;
+        try {
+            const blob = await exportMeters(buildingId);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `meters_export_${buildingData?.code || buildingId}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err: any) {
+            setMeterImportError(err?.response?.data?.message || 'Xuất Excel công tơ thất bại');
         }
     };
 
@@ -264,15 +401,190 @@ export default function BuildingDetail () {
                                 </svg>
                                 {tUnits('addUnit')}
                             </button>
+                            <button
+                                onClick={() => {
+                                    setMeterStatus(null);
+                                    setMeterFormVisible(prev => !prev);
+                                }}
+                                className="px-4 py-2 bg-[#1f8b4e] text-white rounded-lg hover:bg-[#166333] transition text-sm flex items-center gap-2 shadow-sm"
+                            >
+                                <span className="text-sm font-semibold">Thêm công tơ</span>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {buildingData?.code ? (
-                    <div className="text-sm text-gray-600 mb-4">
-                        Vui lòng điền cột <b>buildingCode</b> = <span className="font-mono">{buildingData?.code}</span> trong file Excel.
+                {meterFormVisible && (
+                    <div className="border-b pb-4 mb-6">
+                        <form
+                            onSubmit={async (e) => {
+                                e.preventDefault();
+                                setMeterStatus(null);
+                                if (!meterForm.unitId || !meterForm.serviceId) {
+                                    setMeterStatus('Vui lòng chọn căn hộ và dịch vụ');
+                                    return;
+                                }
+                                setCreatingMeter(true);
+                                try {
+                                    await createMeter({
+                                        unitId: meterForm.unitId,
+                                        serviceId: meterForm.serviceId,
+                                        installedAt: meterForm.installedAt || undefined,
+                                    });
+                                    setMeterStatus('Thêm công tơ thành công');
+                                    setMeterForm({
+                                        unitId: meterForm.unitId,
+                                        serviceId: meterForm.serviceId,
+                                        installedAt: '',
+                                    });
+                                } catch (err: any) {
+                                    console.error('Failed to create meter:', err);
+                                    setMeterStatus(err?.response?.data?.message || 'Không thể tạo công tơ');
+                                } finally {
+                                    setCreatingMeter(false);
+                                }
+                            }}
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                                <label className="text-sm text-gray-600">
+                                    Căn hộ
+                                    <select
+                                        value={meterForm.unitId}
+                                        onChange={(e) => setMeterForm(prev => ({ ...prev, unitId: e.target.value }))}
+                                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                    >
+                                        <option value="">-- Chọn căn hộ --</option>
+                                        {units.map(unit => (
+                                            <option key={unit.id} value={unit.id}>
+                                                {unit.code}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <label className="text-sm text-gray-600">
+                                    Dịch vụ
+                                    <select
+                                        value={meterForm.serviceId}
+                                        onChange={(e) => setMeterForm(prev => ({ ...prev, serviceId: e.target.value }))}
+                                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                    >
+                                        <option value="">-- Chọn dịch vụ --</option>
+                                        {services.map(service => (
+                                            <option key={service.id} value={service.id}>
+                                                {service.name} ({service.code})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                <div className="text-sm text-gray-600">
+                                    <span className="block mb-1">Ngày lắp đặt (tùy chọn)</span>
+                                    <div className="relative">
+                                        <input
+                                            ref={meterDateInputRef}
+                                            type="date"
+                                            value={meterForm.installedAt}
+                                            onChange={(e) => setMeterForm(prev => ({ ...prev, installedAt: e.target.value }))}
+                                            className="absolute inset-0 opacity-0 pointer-events-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={openMeterDatePicker}
+                                            className="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-left bg-white"
+                                        >
+                                            {meterForm.installedAt || 'mm/dd/yyyy'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                                <div className="flex flex-wrap gap-3 mb-3">
+                                    <button
+                                        type="button"
+                                        onClick={onDownloadMeterTemplate}
+                                        className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200 transition text-sm"
+                                    >
+                                        Tải template import công tơ
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={onPickMeterFile}
+                                        disabled={meterImporting}
+                                        className="px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                                    >
+                                        {meterImporting ? 'Đang import...' : 'Chọn file Excel công tơ'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={onExportMeters}
+                                        className="px-3 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition text-sm"
+                                    >
+                                        Xuất Excel công tơ
+                                    </button>
+                                    <input
+                                        ref={meterFileInputRef}
+                                        type="file"
+                                        accept=".xlsx"
+                                        className="hidden"
+                                        onChange={onMeterFileChange}
+                                    />
+                                </div>
+                                {meterImportResult && (
+                                    <div className="bg-green-50 border border-green-100 text-sm text-green-800 rounded-lg p-3 mb-3">
+                                        <div>
+                                            Đã xử lý {meterImportResult.totalRows} dòng: 
+                                            <strong className="ml-1">{meterImportResult.successCount} thành công</strong>, 
+                                            <strong className="ml-1">{meterImportResult.errorCount} lỗi</strong>
+                                        </div>
+                                        {meterImportResult.rows.length > 0 && (
+                                            <div className="mt-2 text-xs text-gray-700">
+                                                {meterImportResult.rows
+                                                    .filter(r => !r.success)
+                                                    .map(r => (
+                                                        <div key={r.rowNumber}>
+                                                            Dòng {r.rowNumber}: {r.message}
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {meterImportError && (
+                                    <div className="text-sm text-red-600 mb-3">{meterImportError}</div>
+                                )}
+                            {meterStatus && (
+                                <div className="text-sm text-green-600 mb-3">{meterStatus}</div>
+                            )}
+                            <div className="flex gap-3">
+                                <button
+                                    type="submit"
+                                    disabled={creatingMeter}
+                                    className="px-4 py-2 bg-[#02542D] text-white rounded-lg text-sm hover:bg-[#024428] transition"
+                                >
+                                    {creatingMeter ? 'Đang tạo...' : 'Lưu công tơ'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setMeterFormVisible(false)}
+                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
+                                >
+                                    Hủy
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                ) : null}
+                )}
+
+                {buildingData?.code && (
+                    <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 rounded-lg p-4 text-sm space-y-1">
+                        <div className="font-semibold text-base text-yellow-900">Hướng dẫn template import công tơ</div>
+                        <div>
+                            Vui lòng để cột <b>buildingCode</b> = <span className="font-mono">{buildingData?.code}</span> để tải đúng công tơ của tòa này.
+                        </div>
+                        <div>Giữ nguyên tên cột <b>unitCode</b>, <b>serviceCode</b>, <b>installedAt</b> và không đổi định dạng.</div>
+                        <div>Mỗi template có sẵn bảng <b>Available services</b> ở dưới cùng giúp bạn chọn mã dịch vụ hợp lệ.</div>
+                    </div>
+                )}
 
                 {importError && <div className="text-red-600 mb-3">{importError}</div>}
                 {importResult && (
@@ -315,6 +627,31 @@ export default function BuildingDetail () {
                     <div className="text-center py-8 text-gray-500">{tUnits('noUnit')}</div>
                 ) : (
                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        {floorOptions.length > 0 && (
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-4 py-3 border-b border-gray-200">
+                                <div className="text-sm text-gray-600">
+                                    Hiện {filteredUnits.length} trên tổng {units.length} căn hộ
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <label htmlFor="floorFilter" className="font-medium text-gray-700">
+                                        Chọn tầng
+                                    </label>
+                                    <select
+                                        id="floorFilter"
+                                        value={selectedFloor ?? ''}
+                                        onChange={(e) => setSelectedFloor(e.target.value || null)}
+                                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                                    >
+                                        <option value="">Tất cả tầng</option>
+                                        {floorOptions.map(floor => (
+                                            <option key={floor} value={floor}>
+                                                {floor}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
                         <table className="w-full text-sm">
                             <thead className="bg-gray-100 border-b border-gray-200">
                                 <tr>
@@ -327,7 +664,7 @@ export default function BuildingDetail () {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {units.map((unit) => (
+                                {filteredUnits.map((unit) => (
                                     <tr key={unit.id} className="hover:bg-gray-50">
                                         <td className="px-4 py-3">
                                             <span className="font-medium text-[#739559]">{unit.code}</span>

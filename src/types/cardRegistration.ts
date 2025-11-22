@@ -32,6 +32,7 @@ export interface CardRegistrationFilter {
 export interface CardRegistrationDecisionPayload {
   decision: "APPROVE" | "REJECT";
   note?: string;
+  issueMessage?: string;
 }
 
 

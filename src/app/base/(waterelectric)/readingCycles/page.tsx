@@ -1,12 +1,12 @@
 'use client'
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/src/contexts/AuthContext';
-import DateBox from '@/src/components/customer-interaction/DateBox';
 import Edit from '@/src/assets/Edit.svg';
 import Delete from '@/src/assets/Delete.svg';
 import {
   getAllReadingCycles,
+  getAllServices,
   createReadingCycle,
   updateReadingCycle,
   changeReadingCycleStatus,
@@ -15,6 +15,7 @@ import {
   ReadingCycleStatus,
   ReadingCycleCreateReq,
   ReadingCycleUpdateReq,
+  ServiceDto,
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import CycleModal from '@/src/components/water/CycleModal';
@@ -32,34 +33,81 @@ export default function ReadingCyclesPage() {
   const [selectedCycle, setSelectedCycle] = useState<ReadingCycleDto | null>(null);
   const [cycleForStatusChange, setCycleForStatusChange] = useState<ReadingCycleDto | null>(null);
   const [statusFilter, setStatusFilter] = useState<ReadingCycleStatus | 'ALL'>('ALL');
-  const [dateFrom, setDateFrom] = useState<string>('');
-  const [dateTo, setDateTo] = useState<string>('');
+  const [serviceFilter, setServiceFilter] = useState<string>('ALL');
+  const [services, setServices] = useState<ServiceDto[]>([]);
+  const [monthFilter, setMonthFilter] = useState('ALL');
 
   // Load cycles on mount
   useEffect(() => {
     loadCycles();
+    loadServices();
   }, []);
 
-  // Filter cycles
-  useEffect(() => {
-    let filtered = cycles;
+  const loadServices = async () => {
+    try {
+      const data = await getAllServices();
+      setServices(data.filter((service) => service.requiresMeter));
+    } catch (error) {
+      console.error('Failed to load services:', error);
+    }
+  };
 
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter(c => c.status === statusFilter);
+  const getCycleMonth = (cycle: ReadingCycleDto) => {
+    const source = cycle.periodFrom || cycle.fromDate || cycle.createdAt;
+    if (!source) {
+      return null;
+    }
+    return source.slice(0, 7);
+  };
+
+  const matchesFilters = (cycle: ReadingCycleDto) => {
+    if (statusFilter !== 'ALL' && cycle.status !== statusFilter) {
+      return false;
     }
 
-    if (dateFrom && dateTo) {
-      filtered = filtered.filter(c => {
-        const from = new Date(c.fromDate || c.periodFrom);
-        const to = new Date(c.toDate || c.periodTo);
-        const filterFrom = new Date(dateFrom);
-        const filterTo = new Date(dateTo);
-        return (from >= filterFrom && from <= filterTo) || (to >= filterFrom && to <= filterTo);
+    if (serviceFilter !== 'ALL') {
+      const matchesCodeOrId =
+        (cycle.serviceId && cycle.serviceId === serviceFilter) ||
+        (cycle.serviceCode && cycle.serviceCode === serviceFilter);
+      const matchesName = cycle.serviceName?.toLowerCase().includes(serviceFilter.toLowerCase());
+      if (!matchesCodeOrId && !matchesName) {
+        return false;
+      }
+    }
+
+    if (monthFilter !== 'ALL') {
+      const cycleMonth = getCycleMonth(cycle);
+      if (cycleMonth !== monthFilter) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const monthOptions = useMemo(() => {
+    const months = new Set<string>();
+    cycles.forEach((cycle) => {
+      const month = getCycleMonth(cycle);
+      if (month) {
+        months.add(month);
+      }
+    });
+    return Array.from(months)
+      .sort((a, b) => b.localeCompare(a))
+      .map((value) => {
+        const [yearPart, monthPart] = value.split('-');
+        return {
+          value,
+          label: `${monthPart}/${yearPart}`,
+        };
       });
-    }
+  }, [cycles]);
 
+  useEffect(() => {
+    const filtered = cycles.filter(matchesFilters);
     setFilteredCycles(filtered);
-  }, [cycles, statusFilter, dateFrom, dateTo]);
+  }, [cycles, statusFilter, serviceFilter, monthFilter]);
 
   const loadCycles = async () => {
     try {
@@ -145,7 +193,7 @@ export default function ReadingCyclesPage() {
 
       {/* Filters */}
       <div className="bg-white p-6 rounded-xl mb-6">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4 items-end">
           <div>
             <label className="block text-sm font-medium text-[#02542D] mb-2">Status</label>
             <select
@@ -161,20 +209,46 @@ export default function ReadingCyclesPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#02542D] mb-2">From Date</label>
-            <DateBox
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              placeholderText="Select from date"
-            />
+            <label className="block text-sm font-medium text-[#02542D] mb-2">Service</label>
+            <select
+              value={serviceFilter}
+              onChange={(e) => setServiceFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
+            >
+              <option value="ALL">All</option>
+              {services.map((service) => (
+                <option key={service.code} value={service.code}>
+                  {service.name} ({service.code})
+                </option>
+              ))}
+            </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#02542D] mb-2">To Date</label>
-            <DateBox
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              placeholderText="Select to date"
-            />
+            <label className="block text-sm font-medium text-[#02542D] mb-2">Month</label>
+            <select
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
+            >
+              <option value="ALL">All months</option>
+              {monthOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={() => {
+                setStatusFilter('ALL');
+                setServiceFilter('ALL');
+                setMonthFilter('ALL');
+              }}
+              className="text-sm text-[#02542D] font-semibold hover:underline"
+            >
+              Reset filters
+            </button>
           </div>
         </div>
       </div>
@@ -198,7 +272,12 @@ export default function ReadingCyclesPage() {
               <tbody>
                 {filteredCycles.map((cycle) => (
                   <tr key={cycle.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-4 py-3 text-[#024023] font-semibold">{cycle.name}</td>
+                    <td className="px-4 py-3 text-[#024023] font-semibold">
+                      <div>{cycle.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {cycle.serviceName || cycle.serviceCode || 'Không rõ dịch vụ'}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-center text-[#024023] font-semibold">
                       {new Date(cycle.fromDate || cycle.periodFrom).toLocaleDateString()}
                     </td>

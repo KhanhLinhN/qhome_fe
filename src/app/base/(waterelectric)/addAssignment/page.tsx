@@ -87,6 +87,21 @@ export default function AddAssignmentPage() {
     loadData();
   }, [show]);
 
+  const buildingParam = searchParams.get('buildingId') || '';
+  const serviceParam = searchParams.get('serviceId') || '';
+
+  useEffect(() => {
+    if (buildingParam && buildings.some((building) => building.id === buildingParam)) {
+      setSelectedBuildingId(buildingParam);
+    }
+  }, [buildingParam, buildings]);
+
+  useEffect(() => {
+    if (serviceParam && services.some((service) => service.id === serviceParam)) {
+      setSelectedServiceId(serviceParam);
+    }
+  }, [serviceParam, services]);
+
   // Auto-fill dates when cycle is selected
   useEffect(() => {
     if (selectedCycleId) {

@@ -40,5 +40,6 @@ export interface VehicleRegistrationFilter {
 
 export interface VehicleRegistrationDecisionPayload {
   note?: string;
+  issueMessage?: string;
 }
 

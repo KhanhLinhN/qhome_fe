@@ -14,11 +14,15 @@ const basePath = `${CARD_SERVICE_BASE_URL}/api/elevator-card`;
 export async function fetchElevatorCardRegistrations(
   filter?: CardRegistrationFilter
 ): Promise<CardRegistration[]> {
+  const params: Record<string, string> = {};
+  if (filter?.status) params.status = filter.status;
+  if (filter?.paymentStatus) params.paymentStatus = filter.paymentStatus;
+
   const response = await axios.get(`${basePath}/admin/registrations`, {
-    params: filter,
+    params,
     withCredentials: true,
   });
-  return response.data;
+  return Array.isArray(response.data) ? response.data : [];
 }
 
 export async function fetchElevatorCardRegistration(
