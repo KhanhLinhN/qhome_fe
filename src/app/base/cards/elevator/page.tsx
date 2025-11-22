@@ -15,7 +15,8 @@ const statusOptions = [
   { value: '', label: 'Tất cả trạng thái' },
   { value: 'READY_FOR_PAYMENT', label: 'Chờ thanh toán' },
   { value: 'PAYMENT_PENDING', label: 'Đang thanh toán' },
-  { value: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
+  { value: 'PENDING', label: 'Chờ duyệt' },
+  { value: 'APPROVED', label: 'Đã duyệt' },
   { value: 'COMPLETED', label: 'Đã hoàn tất' },
   { value: 'REJECTED', label: 'Đã từ chối' },
 ];
@@ -101,10 +102,8 @@ export default function ElevatorCardAdminPage() {
 
   const canDecide = useMemo(() => {
     if (!selected) return false;
-    return (
-      selected.status === 'PENDING_APPROVAL' &&
-      selected.paymentStatus === 'PAID'
-    );
+    const canApproveStatus = selected.status === 'PENDING' || selected.status === 'READY_FOR_PAYMENT';
+    return canApproveStatus && selected.paymentStatus === 'PAID';
   }, [selected]);
 
   const handleDecision = async (decision: 'APPROVE' | 'REJECT') => {

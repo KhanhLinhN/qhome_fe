@@ -12,14 +12,18 @@ const CARD_SERVICE_BASE_URL =
 export async function fetchVehicleRegistrationRequests(
   filter?: VehicleRegistrationFilter
 ): Promise<VehicleRegistrationRequest[]> {
+  const params: Record<string, string> = {};
+  if (filter?.status) params.status = filter.status;
+  if (filter?.paymentStatus) params.paymentStatus = filter.paymentStatus;
+
   const response = await axios.get(
     `${CARD_SERVICE_BASE_URL}/api/register-service/admin/vehicle-registrations`,
     {
-      params: filter,
+      params,
       withCredentials: true,
     }
   );
-  return response.data;
+  return Array.isArray(response.data) ? response.data : [];
 }
 
 export async function fetchVehicleRegistrationRequest(

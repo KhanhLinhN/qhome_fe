@@ -15,10 +15,29 @@ export interface ReadingCycleDto {
   createdBy: string;
   createdAt: string;
   updatedAt?: string;
+  serviceId?: string;
+  serviceCode?: string;
+  serviceName?: string;
   // Keep these for backward compatibility
   fromDate?: string;
   toDate?: string;
-  serviceId?: string;
+}
+
+export interface ReadingCycleUnassignedFloorDto {
+  buildingId?: string;
+  buildingCode?: string;
+  buildingName?: string;
+  floor: number | null;
+  unitCodes: string[];
+}
+
+export interface ReadingCycleUnassignedInfoDto {
+  cycleId: string;
+  serviceId: string;
+  totalUnassigned: number;
+  floors: ReadingCycleUnassignedFloorDto[];
+  message: string;
+  missingMeterUnits?: UnitWithoutMeterDto[];
 }
 
 export interface ReadingCycleCreateReq {
@@ -47,15 +66,17 @@ export interface ReadingCycleUpdateReq {
 export interface MeterDto {
   id: string;
   unitId: string;
+  buildingId?: string;
+  buildingCode?: string;
   unitCode?: string;
   floor?: number;
   serviceId: string;
   serviceCode?: string;
   serviceName?: string;
   meterCode: string;
-  meterType?: string;
-  location?: string;
   active: boolean;
+  installedAt?: string;
+  removedAt?: string;
   lastReading?: number;
   lastReadingDate?: string;
   createdAt: string;
@@ -65,9 +86,39 @@ export interface MeterDto {
 export interface MeterCreateReq {
   unitId: string;
   serviceId: string;
-  meterCode: string;
-  meterType: string;
-  location?: string;
+  meterCode?: string;
+  installedAt?: string;
+}
+
+export interface MeterFilterParams {
+  buildingId?: string;
+  serviceId?: string;
+  unitId?: string;
+  active?: boolean;
+}
+
+export async function getMeters(params?: MeterFilterParams): Promise<MeterDto[]> {
+  const response = await axios.get(
+    `${BASE_URL}/api/meters`,
+    {
+      params,
+      withCredentials: true,
+    }
+  );
+  return response.data;
+}
+
+export interface MeterImportRowResult {
+  rowNumber: number;
+  success: boolean;
+  message: string;
+}
+
+export interface MeterImportResponse {
+  totalRows: number;
+  successCount: number;
+  errorCount: number;
+  rows: MeterImportRowResult[];
 }
 
 // Types for Meter Reading
@@ -213,6 +264,14 @@ export async function getReadingCycleById(cycleId: string): Promise<ReadingCycle
     fromDate: data.periodFrom,
     toDate: data.periodTo,
   };
+}
+
+export async function getCycleUnassignedInfo(cycleId: string): Promise<ReadingCycleUnassignedInfoDto> {
+  const response = await axios.get(
+    `${BASE_URL}/api/reading-cycles/${cycleId}/unassigned`,
+    { withCredentials: true }
+  );
+  return response.data;
 }
 
 export async function getReadingCyclesByStatus(status: ReadingCycleStatus): Promise<ReadingCycleDto[]> {
@@ -380,6 +439,81 @@ export async function createMeter(req: MeterCreateReq): Promise<MeterDto> {
     { withCredentials: true }
   );
   return response.data;
+}
+
+export async function downloadMeterImportTemplate(): Promise<Blob> {
+  const response = await axios.get(
+    `${BASE_URL}/api/meters/import/template`,
+    { responseType: 'blob', withCredentials: true }
+  );
+  return response.data as Blob;
+}
+
+export async function importMeters(file: File): Promise<MeterImportResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await axios.post(
+    `${BASE_URL}/api/meters/import`,
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      withCredentials: true,
+    }
+  );
+  return response.data;
+}
+
+export interface UnitWithoutMeterDto {
+  unitId: string;
+  unitCode: string;
+  floor?: number;
+  buildingId?: string;
+  buildingCode?: string;
+  buildingName?: string;
+  serviceId: string;
+  serviceCode?: string;
+  serviceName?: string;
+}
+
+export async function getUnitsWithoutMeter(serviceId: string, buildingId?: string): Promise<UnitWithoutMeterDto[]> {
+  const params: Record<string, string> = { serviceId };
+  if (buildingId) {
+    params.buildingId = buildingId;
+  }
+  const response = await axios.get(
+    `${BASE_URL}/api/meters/missing`,
+    {
+      params,
+      withCredentials: true,
+    }
+  );
+  return response.data;
+}
+
+export async function createMissingMeters(serviceId: string, buildingId?: string): Promise<MeterDto[]> {
+  const params: Record<string, string> = { serviceId };
+  if (buildingId) {
+    params.buildingId = buildingId;
+  }
+  const response = await axios.post(
+    `${BASE_URL}/api/meters/missing`,
+    null,
+    {
+      params,
+      withCredentials: true,
+    }
+  );
+  return response.data;
+}
+
+export async function exportMeters(buildingId?: string): Promise<Blob> {
+  const params: Record<string, string> = {};
+  if (buildingId) params.buildingId = buildingId;
+  const response = await axios.get(
+    `${BASE_URL}/api/meters/export`,
+    { params, responseType: 'blob', withCredentials: true }
+  );
+  return response.data as Blob;
 }
 
 export async function updateMeter(meterId: string, req: Partial<MeterCreateReq>): Promise<MeterDto> {
@@ -629,22 +763,6 @@ export interface MeterReadingImportResponse {
   message: string;
 }
 
-// Billing Cycle Types
-export interface BillingCycleDto {
-  id: string;
-  name: string;
-  periodFrom: string;
-  periodTo: string;
-  status: string;
-}
-
-export interface CreateBillingCycleRequest {
-  name: string;
-  periodFrom: string;
-  periodTo: string;
-  status?: string;
-}
-
 // Meter Reading Session API
 export async function startMeterReadingSession(
   req: MeterReadingSessionCreateReq
@@ -720,56 +838,6 @@ export async function exportReadingsByCycle(cycleId: string): Promise<MeterReadi
     `${BASE_URL}/api/meter-readings/export/cycle/${cycleId}`,
     null,
     { withCredentials: true }
-  );
-  return response.data;
-}
-
-// Billing Cycle API
-export async function loadBillingPeriod(year: number): Promise<BillingCycleDto[]> {
-  const response = await axios.get(
-    `${BASE_URL}/api/billing-cycles/loadPeriod`,
-    { 
-      params: { year },
-      withCredentials: true 
-    }
-  );
-  return response.data;
-}
-
-export async function getBillingCyclesByPeriod(
-  startDate: string,
-  endDate: string
-): Promise<BillingCycleDto[]> {
-  const response = await axios.get(
-    `${BASE_URL}/api/billing-cycles`,
-    {
-      params: { startDate, endDate },
-      withCredentials: true
-    }
-  );
-  return response.data;
-}
-
-export async function createBillingCycle(req: CreateBillingCycleRequest): Promise<BillingCycleDto> {
-  const response = await axios.post(
-    `${BASE_URL}/api/billing-cycles`,
-    req,
-    { withCredentials: true }
-  );
-  return response.data;
-}
-
-export async function updateBillingCycleStatus(
-  cycleId: string,
-  status: string
-): Promise<BillingCycleDto> {
-  const response = await axios.put(
-    `${BASE_URL}/api/billing-cycles/${cycleId}/status`,
-    null,
-    {
-      params: { status },
-      withCredentials: true
-    }
   );
   return response.data;
 }

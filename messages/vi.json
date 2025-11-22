@@ -151,6 +151,7 @@
     "tickets": "Ticket",
     "taskList": "Danh sách nhiệm vụ",
     "management": "Quản lý",
+    "assetManagement": "Quản lý tài sản",
     "buildings": "Tòa nhà",
     "employees": "Nhân viên",
     "home": "Trang chủ"
@@ -608,6 +609,9 @@
   "editBuildingConfirm": "Bạn có chắc chắn muốn chỉnh sửa tòa nhà này không",
   "editBuildingSuccess": "Tòa nhà đã được chỉnh sửa thành công",
   "editBuildingError": "Có lỗi xảy ra khi chỉnh sửa tòa nhà",
+    "confirmChangeStatusTitle": "Xác nhận thay đổi trạng thái",
+    "confirmActivateBuilding": "Bạn có chắc chắn muốn kích hoạt tòa nhà này không?",
+    "confirmDeactivateBuilding": "Bạn có chắc chắn muốn vô hiệu hoá tòa nhà này không?",
   "editBuildingReturn": "Quay lại danh sách tòa nhà",
   "editBuildingDetail": "Quay lại chi tiết tòa nhà",
   "editBuildingDelete": "Xóa tòa nhà"

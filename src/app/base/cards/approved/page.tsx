@@ -1,0 +1,277 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import {
+  fetchApprovedCards,
+  type CardRegistrationSummaryDto,
+} from '@/src/services/card/cardRegistrationQueryService';
+import { getBuildings, type Building } from '@/src/services/base/buildingService';
+import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
+
+export default function ApprovedCardsAdminPage() {
+  const [cards, setCards] = useState<CardRegistrationSummaryDto[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
+  const [selectedUnitId, setSelectedUnitId] = useState<string>('');
+  const [selectedCardType, setSelectedCardType] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadBuildings = async () => {
+      try {
+        const data = await getBuildings();
+        setBuildings(data);
+      } catch (err) {
+        console.error('Failed to load buildings', err);
+      }
+    };
+    loadBuildings();
+  }, []);
+
+  useEffect(() => {
+    if (selectedBuildingId) {
+      const loadUnits = async () => {
+        try {
+          const data = await getUnitsByBuilding(selectedBuildingId);
+          setUnits(data);
+        } catch (err) {
+          console.error('Failed to load units', err);
+          setUnits([]);
+        }
+      };
+      loadUnits();
+    } else {
+      setUnits([]);
+      setSelectedUnitId('');
+    }
+  }, [selectedBuildingId]);
+
+  const loadCards = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetchApprovedCards(
+        selectedBuildingId || undefined,
+        selectedUnitId || undefined
+      );
+      setCards(response.data);
+    } catch (err: any) {
+      console.error('Failed to load approved cards', err);
+      setError(err?.response?.data?.message || 'Không thể tải danh sách thẻ đã duyệt');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedBuildingId, selectedUnitId]);
+
+  useEffect(() => {
+    loadCards();
+  }, [loadCards]);
+
+  const getCardTypeLabel = (cardType: string) => {
+    switch (cardType) {
+      case 'RESIDENT_CARD':
+        return 'Thẻ cư dân';
+      case 'ELEVATOR_CARD':
+        return 'Thẻ thang máy';
+      case 'VEHICLE_CARD':
+        return 'Thẻ xe';
+      default:
+        return cardType;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return 'bg-green-50 text-green-700';
+      case 'COMPLETED':
+        return 'bg-blue-50 text-blue-700';
+      default:
+        return 'bg-gray-50 text-gray-700';
+    }
+  };
+
+  const getPaymentStatusColor = (paymentStatus: string) => {
+    switch (paymentStatus) {
+      case 'PAID':
+        return 'bg-emerald-50 text-emerald-700';
+      case 'PAYMENT_PENDING':
+        return 'bg-yellow-50 text-yellow-700';
+      case 'UNPAID':
+        return 'bg-red-50 text-red-700';
+      default:
+        return 'bg-gray-50 text-gray-700';
+    }
+  };
+
+  const filteredCards = selectedCardType
+    ? cards.filter((card) => card.cardType === selectedCardType)
+    : cards;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-[#02542D]">
+          Quản lý thẻ đã duyệt
+        </h1>
+        <button
+          type="button"
+          onClick={loadCards}
+          className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024428] transition-colors"
+        >
+          Làm mới
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 border border-gray-100">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end mb-6">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Loại thẻ
+            </label>
+            <select
+              value={selectedCardType}
+              onChange={(e) => setSelectedCardType(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
+            >
+              <option value="">Tất cả loại thẻ</option>
+              <option value="RESIDENT_CARD">Thẻ cư dân</option>
+              <option value="ELEVATOR_CARD">Thẻ thang máy</option>
+              <option value="VEHICLE_CARD">Thẻ xe</option>
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tòa nhà
+            </label>
+            <select
+              value={selectedBuildingId}
+              onChange={(e) => {
+                setSelectedBuildingId(e.target.value);
+                setSelectedUnitId('');
+              }}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
+            >
+              <option value="">Tất cả tòa nhà</option>
+              {buildings.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.code ? `${b.code} - ` : ''}{b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Căn hộ/Phòng
+            </label>
+            <select
+              value={selectedUnitId}
+              onChange={(e) => setSelectedUnitId(e.target.value)}
+              disabled={!selectedBuildingId}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E] disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">Tất cả căn hộ</option>
+              {units.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.code}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#02542D]" />
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-600 py-12">{error}</div>
+        ) : filteredCards.length === 0 ? (
+          <div className="text-center text-gray-500 py-12">
+            Không có thẻ đã duyệt nào phù hợp.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Loại thẻ
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Tên hiển thị
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Căn hộ
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Tòa nhà
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Trạng thái
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Thanh toán
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Ngày duyệt
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200 text-sm">
+                {filteredCards.map((card) => (
+                  <tr key={card.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {getCardTypeLabel(card.cardType)}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {card.displayName || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {card.apartmentNumber || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {card.buildingName || '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(
+                          card.status
+                        )}`}
+                      >
+                        {card.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getPaymentStatusColor(
+                          card.paymentStatus
+                        )}`}
+                      >
+                        {card.paymentStatus}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {card.approvedAt
+                        ? new Date(card.approvedAt).toLocaleString('vi-VN')
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {filteredCards.length > 0 && (
+          <div className="mt-4 text-sm text-gray-600">
+            Hiển thị: <strong>{filteredCards.length}</strong> / <strong>{cards.length}</strong> thẻ đã duyệt
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

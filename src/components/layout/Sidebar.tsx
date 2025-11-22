@@ -56,6 +56,14 @@ const adminSections: NavSection[] = [
       {href: "/base/vehicles/vehicleAll", label: "Quản lý phương tiện", icon: "🚗"},
       {href: "/base/cards/elevator", label: "Thẻ thang máy", icon: "🛗"},
       {href: "/base/cards/resident", label: "Thẻ cư dân", icon: "🔑"},
+      {href: "/base/cards/approved", label: "Thẻ đã duyệt", icon: "✅"},
+    ],
+  },
+  {
+    titleKey: "assetManagement",
+    items: [
+      {href: "/base/asset-management", labelKey: undefined, label: "Quản lý tài sản", icon: "🏘️"},
+      {href: "/base/meter-management", labelKey: undefined, label: "Quản lý meter", icon: "⚙️"},
     ],
   },
   {
@@ -177,7 +185,7 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
   return (
     <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen">
       <nav className="p-3 space-y-6 overflow-y-auto flex-1">
-        {sections.map(section => {
+        {sections.map((section) => {
           const isCollapsed = collapsedSections.has(section.titleKey);
           return (
             <div key={section.titleKey} className="space-y-2">
@@ -196,7 +204,7 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
               </button>
               {!isCollapsed && (
                 <div className="space-y-1">
-                  {section.items.map(item => {
+                  {section.items.map((item: NavItem) => {
                     const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                     return (
                       <Link

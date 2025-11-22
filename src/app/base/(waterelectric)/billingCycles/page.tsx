@@ -1,75 +1,481 @@
-'use client'
-import React, { useState } from 'react';
-import { useAuth } from '@/src/contexts/AuthContext';
-import WaterBillingTab from '@/src/components/water/WaterBillingTab';
-import ElectricBillingTab from '@/src/components/water/ElectricBillingTab';
-import PricingFormulaModal from '@/src/components/water/PricingFormulaModal';
+'use client';
 
-type ServiceCode = 'WATER' | 'ELECTRIC';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import {
+  BillingCycleDto,
+  BuildingInvoiceSummaryDto,
+  InvoiceDto,
+  MissingReadingCycleDto,
+  loadBillingPeriod,
+  loadBillingCycleBuildingSummary,
+  loadMissingReadingCycles,
+  loadBuildingInvoices,
+  syncMissingBillingCycles,
+} from '@/src/services/finance/billingCycleService';
+import { getAllServices, ServiceDto } from '@/src/services/base/waterService';
+import { useNotifications } from '@/src/hooks/useNotifications';
+
+const STATUS_BADGES: Record<string, string> = {
+  OPEN: 'bg-blue-100 text-blue-700',
+  IN_PROGRESS: 'bg-yellow-100 text-yellow-700',
+  COMPLETED: 'bg-green-100 text-green-700',
+  CLOSED: 'bg-gray-100 text-gray-700',
+};
 
 export default function BillingCyclesPage() {
-  const { user } = useAuth();
-  
-  const [activeTab, setActiveTab] = useState<ServiceCode>('WATER');
-  const [showFormulaModal, setShowFormulaModal] = useState(false);
-  const [formulaVersion, setFormulaVersion] = useState<{ WATER: number; ELECTRIC: number }>({ WATER: 0, ELECTRIC: 0 });
+  const { show } = useNotifications();
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [cycles, setCycles] = useState<BillingCycleDto[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expandedCycle, setExpandedCycle] = useState<string | null>(null);
+  const [syncingMissing, setSyncingMissing] = useState(false);
+  const [syncMissingResult, setSyncMissingResult] = useState<string | null>(null);
+  const [missingReadingCycles, setMissingReadingCycles] = useState<MissingReadingCycleDto[]>([]);
+  const [loadingMissingCycles, setLoadingMissingCycles] = useState(false);
+  const [services, setServices] = useState<ServiceDto[]>([]);
+  const [serviceFilter, setServiceFilter] = useState('ALL');
+  const [monthFilter, setMonthFilter] = useState('ALL');
+  const [detailCycle, setDetailCycle] = useState<BillingCycleDto | null>(null);
+  const [buildingSummaries, setBuildingSummaries] = useState<BuildingInvoiceSummaryDto[]>([]);
+  const [loadingBuildingSummaries, setLoadingBuildingSummaries] = useState(false);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [buildingInvoices, setBuildingInvoices] = useState<InvoiceDto[]>([]);
+  const [loadingBuildingInvoices, setLoadingBuildingInvoices] = useState(false);
 
-  const handleFormulaUpdated = (serviceCode: ServiceCode) => {
-    setFormulaVersion(prev => ({
-      ...prev,
-      [serviceCode]: prev[serviceCode] + 1,
-    }));
+  useEffect(() => {
+    loadCycles();
+    loadMissingCycles();
+  }, [year]);
+
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  const handleBuildingSelect = React.useCallback(
+    async (buildingId: string | null) => {
+      setSelectedBuildingId(buildingId);
+      if (!buildingId || !detailCycle) {
+        setBuildingInvoices([]);
+        return;
+      }
+
+      setLoadingBuildingInvoices(true);
+      try {
+        const invoices = await loadBuildingInvoices(detailCycle.id, buildingId);
+        setBuildingInvoices(invoices);
+      } finally {
+        setLoadingBuildingInvoices(false);
+      }
+    },
+    [detailCycle]
+  );
+
+  useEffect(() => {
+    if (!detailCycle) {
+      setBuildingSummaries([]);
+      setBuildingInvoices([]);
+      setSelectedBuildingId(null);
+      return;
+    }
+
+    const fetchSummaries = async () => {
+      setLoadingBuildingSummaries(true);
+      try {
+        const data = await loadBillingCycleBuildingSummary(detailCycle.id);
+        setBuildingSummaries(data);
+        if (data.length > 0) {
+          handleBuildingSelect(data[0].buildingId ?? null);
+        }
+      } finally {
+        setLoadingBuildingSummaries(false);
+      }
+    };
+
+    fetchSummaries();
+  }, [detailCycle, handleBuildingSelect]);
+
+  const loadCycles = async () => {
+    try {
+      setLoading(true);
+      const data = await loadBillingPeriod(year);
+      setCycles(data);
+      setExpandedCycle(data.length ? data[0].id : null);
+    } catch (error: any) {
+      console.error('Failed to load billing cycles:', error);
+      show(error?.response?.data?.message || error?.message || 'Không thể tải billing cycles', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const loadMissingCycles = async () => {
+    try {
+      setLoadingMissingCycles(true);
+      const data = await loadMissingReadingCycles();
+      setMissingReadingCycles(data);
+    } catch (error: any) {
+      console.error('Failed to load missing billing cycles', error);
+      show(error?.response?.data?.message || error?.message || 'Không thể tải chu kỳ đọc thiếu', 'error');
+    } finally {
+      setLoadingMissingCycles(false);
+    }
+  };
+
+  const loadServices = async () => {
+    try {
+      const allServices = await getAllServices();
+      setServices(allServices);
+    } catch (error) {
+      console.error('Failed to load services for filter', error);
+    }
+  };
+
+  const monthOptions = useMemo(() => {
+    const monthSet = new Set<string>();
+    [...cycles, ...missingReadingCycles].forEach((cycle) => {
+      if (cycle.periodFrom) {
+        monthSet.add(cycle.periodFrom.slice(0, 7));
+      }
+    });
+
+    return Array.from(monthSet)
+      .sort((a, b) => b.localeCompare(a))
+      .map((value) => {
+        const [yearPart, monthPart] = value.split('-');
+        return {
+          value,
+          label: `${monthPart}/${yearPart}`,
+        };
+      });
+  }, [cycles, missingReadingCycles]);
+
+  const matchesFilters = (
+    periodFrom: string | undefined,
+    serviceCode?: string | null,
+    cycleName?: string
+  ) => {
+    const normalizedMonth = periodFrom ? periodFrom.slice(0, 7) : null;
+
+    if (serviceFilter !== 'ALL') {
+      const normalizedFilter = serviceFilter.toLowerCase();
+      const matchesCode = serviceCode?.toLowerCase() === normalizedFilter;
+      const matchesName = cycleName?.toLowerCase().includes(normalizedFilter);
+      if (!matchesCode && !matchesName) {
+        return false;
+      }
+    }
+
+    if (monthFilter !== 'ALL' && normalizedMonth !== monthFilter) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const filteredCycles = useMemo(
+    () => cycles.filter((cycle) => matchesFilters(cycle.periodFrom, cycle.serviceCode, cycle.name)),
+    [cycles, serviceFilter, monthFilter]
+  );
+
+  const filteredMissingCycles = useMemo(
+    () => missingReadingCycles.filter((cycle) => matchesFilters(cycle.periodFrom, cycle.serviceCode, cycle.name)),
+    [missingReadingCycles, serviceFilter, monthFilter]
+  );
 
   return (
     <div className="px-[41px] py-12">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[#02542D]">Billing Cycles</h1>
-        <button
-          onClick={() => setShowFormulaModal(true)}
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-        >
-          View Công Thức Tính
-        </button>
+        <div>
+          <p className="text-xs uppercase tracking-wide text-gray-500">Quản lý tài chính</p>
+          <h1 className="text-3xl font-semibold text-[#02542D]">Billing Cycles</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="border border-gray-200 rounded-md px-3 py-2 flex items-center gap-2">
+            <span className="text-xs text-gray-500">Năm</span>
+            <input
+              type="number"
+              min={2000}
+              max={2100}
+              value={year}
+              onChange={(event) =>
+                setYear(Number(event.target.value) || new Date().getFullYear())
+              }
+              className="w-16 text-sm font-semibold text-[#02542D] bg-transparent outline-none"
+            />
+          </div>
+          <button
+            onClick={() => loadCycles()}
+            className="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#0c793f] transition-colors text-sm leading-none whitespace-nowrap"
+          >
+            Làm mới
+          </button>
+          <button
+            onClick={async () => {
+              setSyncingMissing(true);
+            try {
+              const created = await syncMissingBillingCycles();
+              const msg =
+                created.length > 0
+                  ? `Đã tạo thêm ${created.length} billing cycle`
+                  : 'Không có chu kỳ nào cần tạo';
+              setSyncMissingResult(msg);
+              show('Đồng bộ chu kỳ đọc thành công', 'success');
+              await loadCycles();
+              await loadMissingCycles();
+            } catch (error: any) {
+              console.error('Sync missing billing cycles failed', error);
+              show(
+                error?.response?.data?.message || error?.message || 'Đồng bộ chu kỳ thất bại',
+                'error'
+              );
+            } finally {
+              setSyncingMissing(false);
+            }
+            }}
+            disabled={syncingMissing}
+            className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors disabled:opacity-60 text-sm leading-none whitespace-nowrap"
+          >
+            {syncingMissing ? 'Đang tạo...' : 'Tạo billing thiếu'}
+          </button>
+          <Link
+            href="/base/billingCycles/manage"
+            className="px-4 py-2 border border-[#02542D] text-[#02542D] rounded-md text-sm font-semibold hover:bg-[#f2fff6]"
+          >
+            Quản lý chi tiết
+          </Link>
+        </div>
+      </div>
+      <div className="mb-6 grid grid-cols-3 gap-3 items-end">
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">Dịch vụ</label>
+          <select
+            value={serviceFilter}
+            onChange={(event) => setServiceFilter(event.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
+          >
+            <option value="ALL">Tất cả dịch vụ</option>
+            {services.map((service) => (
+              <option key={service.code} value={service.code}>
+                {service.name} ({service.code})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">Tháng</label>
+          <select
+            value={monthFilter}
+            onChange={(event) => setMonthFilter(event.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
+          >
+            <option value="ALL">Tất cả tháng</option>
+            {monthOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={() => {
+              setServiceFilter('ALL');
+              setMonthFilter('ALL');
+            }}
+            className="text-sm text-[#02542D] font-semibold hover:underline"
+          >
+            Xóa bộ lọc
+          </button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="mb-6 flex gap-2 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('WATER')}
-          className={`px-6 py-2 font-medium transition-colors ${
-            activeTab === 'WATER'
-              ? 'text-[#02542D] border-b-2 border-[#02542D]'
-              : 'text-gray-600 hover:text-[#02542D]'
-          }`}
-        >
-          Water
-        </button>
-        <button
-          onClick={() => setActiveTab('ELECTRIC')}
-          className={`px-6 py-2 font-medium transition-colors ${
-            activeTab === 'ELECTRIC'
-              ? 'text-[#02542D] border-b-2 border-[#02542D]'
-              : 'text-gray-600 hover:text-[#02542D]'
-          }`}
-        >
-          Electric
-        </button>
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <div className="text-sm text-gray-600">
+          Có {filteredCycles.length} billing cycles trong năm {year}
+        </div>
+        {syncMissingResult && (
+          <div className="rounded-md bg-[#f0fdf4] border border-[#c6f6d5] text-[#0f5132] px-4 py-2 text-sm">
+            {syncMissingResult}
+          </div>
+        )}
+            <div className="rounded-xl border border-dashed border-[#d1e7dd] bg-[#f7fcf6] p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-[#0f5132]">Chu kỳ đọc chưa có billing</div>
+            <span className="text-xs text-[#0f5132]">
+              {filteredMissingCycles.length} chu kỳ
+            </span>
+          </div>
+          {loadingMissingCycles ? (
+            <div className="text-sm text-[#0f5132]">Đang lấy dữ liệu...</div>
+          ) : filteredMissingCycles.length === 0 ? (
+            <div className="text-sm text-[#0f5132]">Tất cả chu kỳ đã có billing</div>
+          ) : (
+            <ul className="space-y-2 text-sm text-[#0f5132]">
+              {filteredMissingCycles.map((cycle) => (
+                <li key={cycle.id} className="border border-[#cfe2ff] rounded-lg p-3 bg-white/70">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">{cycle.name}</span>
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0f5132] bg-[#d1e7dd]">
+                      {cycle.status}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    {cycle.serviceName || cycle.serviceCode || 'Unknown service'}
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    {new Date(cycle.periodFrom).toLocaleDateString()} — {new Date(cycle.periodTo).toLocaleDateString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {loading ? (
+          <div className="py-6 text-center text-gray-500">Đang tải...</div>
+        ) : filteredCycles.length === 0 ? (
+          <div className="py-6 text-center text-gray-500">Không tìm thấy billing cycle</div>
+        ) : (
+          <div className="space-y-3">
+            {filteredCycles.map((cycle) => {
+              const badgeClass = STATUS_BADGES[cycle.status] ?? STATUS_BADGES.OPEN;
+              const isExpanded = expandedCycle === cycle.id;
+              return (
+                <div key={cycle.id} className="border border-gray-200 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setExpandedCycle(isExpanded ? null : cycle.id)}
+                    className="w-full px-4 py-3 bg-gray-50 flex items-center justify-between text-left"
+                  >
+                    <div>
+                      <div className="text-lg font-semibold text-[#024023]">{cycle.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(cycle.periodFrom).toLocaleDateString()} – {new Date(cycle.periodTo).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <span className={`px-3 py-1 rounded text-xs font-medium ${badgeClass}`}>{cycle.status}</span>
+                  </button>
+                  {isExpanded && (
+                    <div className="px-4 py-3 bg-white space-y-1 text-sm text-gray-700">
+                      <div>ID billing: {cycle.id}</div>
+                      <div>Chu kỳ đọc liên quan: {cycle.externalCycleId ?? '—'}</div>
+                      <div className="text-xs text-gray-500">Trạng thái: {cycle.status}</div>
+                    </div>
+                  )}
+                  <div className="px-4 py-3 bg-gray-50 flex justify-end">
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDetailCycle(cycle);
+                      }}
+                      className="px-3 py-1 rounded-md bg-white border border-[#d1e7dd] text-[#02542D] text-sm font-semibold hover:bg-[#f0f5f0]"
+                    >
+                      View details
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      {/* Tab Content */}
-      {activeTab === 'WATER' ? (
-        <WaterBillingTab formulaVersion={formulaVersion.WATER} />
-      ) : (
-        <ElectricBillingTab formulaVersion={formulaVersion.ELECTRIC} />
-      )}
-
-      {showFormulaModal && (
-        <PricingFormulaModal
-          serviceCode={activeTab}
-          onClose={() => setShowFormulaModal(false)}
-          onUpdated={handleFormulaUpdated}
-        />
+      {detailCycle && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-xl shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-[#02542D]">Billing Cycle detail</h3>
+              <button
+                onClick={() => setDetailCycle(null)}
+                className="text-sm text-gray-500 hover:text-[#02542D]"
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-3 text-sm text-gray-700">
+              <div>
+                <span className="font-semibold">Name:</span> {detailCycle.name}
+              </div>
+              <div>
+                <span className="font-semibold">Status:</span> {detailCycle.status}
+              </div>
+              <div>
+                <span className="font-semibold">Service:</span>{' '}
+                {detailCycle.serviceName || detailCycle.serviceCode || '–'}
+              </div>
+              <div>
+                <span className="font-semibold">Period:</span>{' '}
+                {new Date(detailCycle.periodFrom).toLocaleDateString()} –{' '}
+                {new Date(detailCycle.periodTo).toLocaleDateString()}
+              </div>
+              <div>
+                <span className="font-semibold">External cycle:</span>{' '}
+                {detailCycle.externalCycleId ?? '–'}
+              </div>
+              <div>
+                <span className="font-semibold">Billing ID:</span> {detailCycle.id}
+              </div>
+              <div className="mt-4">
+                <h4 className="text-base font-semibold text-[#02542D] mb-2">Summary theo tòa</h4>
+                {loadingBuildingSummaries ? (
+                  <p className="text-xs text-gray-500">Đang lấy số liệu...</p>
+                ) : buildingSummaries.length === 0 ? (
+                  <p className="text-xs text-gray-500">Không tìm thấy hóa đơn nào phân theo tòa</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {buildingSummaries.map((summary) => (
+                      <button
+                        key={`${summary.buildingId}-${summary.status}`}
+                        onClick={() => handleBuildingSelect(summary.buildingId)}
+                        className={`border rounded-lg p-2 text-left text-xs transition ${
+                          selectedBuildingId === summary.buildingId
+                            ? 'border-[#02542D] bg-[#e6f7eb]'
+                            : 'border-gray-200 bg-white hover:border-[#739559]'
+                        }`}
+                      >
+                        <div className="font-semibold text-[#02542D]">
+                          Tòa {summary.buildingId?.slice(0, 8) ?? 'Chưa rõ'}
+                        </div>
+                        <div className="text-gray-500">
+                          Trạng thái: {summary.status}
+                        </div>
+                        <div className="text-gray-500">
+                          {summary.invoiceCount} hóa đơn · {summary.totalAmount?.toLocaleString('vi-VN') ?? 0} VNĐ
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="mt-4">
+                <h4 className="text-base font-semibold text-[#02542D] mb-2">Danh sách hóa đơn</h4>
+                {loadingBuildingInvoices ? (
+                  <p className="text-xs text-gray-500">Đang tải hóa đơn...</p>
+                ) : buildingInvoices.length === 0 ? (
+                  <p className="text-xs text-gray-500">Chưa có hóa đơn cho tòa này</p>
+                ) : (
+                  <div className="space-y-2 text-xs text-gray-600">
+                    {buildingInvoices.map((invoice) => (
+                      <div
+                        key={invoice.id}
+                        className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50"
+                      >
+                        <div className="font-semibold text-sm text-[#02542D]">
+                          {invoice.code} · {invoice.status}
+                        </div>
+                        <div className="text-gray-500">
+                          {invoice.payerUnitId ? `Căn: ${invoice.payerUnitId}` : 'Không xác định căn'}
+                        </div>
+                        <div className="text-gray-500">
+                          {invoice.totalAmount?.toLocaleString('vi-VN')} VNĐ · Due:{' '}
+                          {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '–'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
