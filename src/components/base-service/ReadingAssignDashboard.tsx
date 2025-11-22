@@ -23,6 +23,7 @@ import { getEmployees } from '@/src/services/iam/employeeService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import CycleCard from '@/src/components/base-service/CycleCard';
 import AssignmentDetailsModal from '@/src/components/base-service/AssignmentDetailsModal';
+import CycleDetailsModal from '@/src/components/base-service/CycleDetailsModal';
 
 const getCycleReferenceDate = (cycle: ReadingCycleDto): Date | null => {
   const source = cycle.periodFrom || cycle.fromDate || cycle.periodTo || cycle.toDate;
@@ -75,9 +76,12 @@ export default function ReadingAssignDashboard({
   const [assignmentProgress, setAssignmentProgress] = useState<AssignmentProgressDto | null>(null);
   const [assignmentMeters, setAssignmentMeters] = useState<MeterDto[]>([]);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedCycle, setSelectedCycle] = useState<CycleWithAssignments | null>(null);
+  const [isCycleDetailsOpen, setIsCycleDetailsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [completingAssignmentId, setCompletingAssignmentId] = useState<string | null>(null);
   const [completingCycleId, setCompletingCycleId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [activeUnassignedModal, setActiveUnassignedModal] = useState<{
     cycle: ReadingCycleDto;
     info: ReadingCycleUnassignedInfoDto;
@@ -186,9 +190,16 @@ export default function ReadingAssignDashboard({
     loadCyclesWithAssignments();
   }, [normalizedServiceCode]);
 
+  const filteredCycles = useMemo(() => {
+    if (statusFilter === 'ALL') {
+      return cyclesWithAssignments;
+    }
+    return cyclesWithAssignments.filter(({ cycle }) => cycle.status === statusFilter);
+  }, [cyclesWithAssignments, statusFilter]);
+
   const serviceCycleGroups = useMemo<ServiceCycleGroup[]>(() => {
     const groups = new Map<string, ServiceCycleGroup>();
-    for (const cycleInfo of cyclesWithAssignments) {
+    for (const cycleInfo of filteredCycles) {
       const serviceKey = cycleInfo.cycle.serviceId ?? 'unknown-service';
       const existing = groups.get(serviceKey);
       if (existing) {
@@ -203,7 +214,7 @@ export default function ReadingAssignDashboard({
       });
     }
     return Array.from(groups.values());
-  }, [cyclesWithAssignments]);
+  }, [filteredCycles]);
 
   const loadCyclesWithAssignments = async () => {
     try {
@@ -306,11 +317,7 @@ export default function ReadingAssignDashboard({
         })
       );
 
-      const activeCycles = cyclesData.filter(({ cycle }) =>
-        cycle.status === 'IN_PROGRESS' || cycle.status === 'OPEN'
-      );
-
-      setCyclesWithAssignments(activeCycles);
+      setCyclesWithAssignments(cyclesData);
     } catch (error) {
       console.error('Failed to load cycles:', error);
       show('Failed to load cycles', 'error');
@@ -366,13 +373,21 @@ export default function ReadingAssignDashboard({
     setAssignmentMeters([]);
   };
 
-  const handleExportInvoices = async (assignment: MeterReadingAssignmentDto) => {
-    if (!assignment.cycleId) {
-      show('Cannot export invoices: cycle information is missing.', 'error');
-      return;
+  const handleViewCycle = (cycle: ReadingCycleDto) => {
+    const cycleInfo = cyclesWithAssignments.find((item) => item.cycle.id === cycle.id);
+    if (cycleInfo) {
+      setSelectedCycle(cycleInfo);
+      setIsCycleDetailsOpen(true);
     }
+  };
 
-    const cycleInfo = cyclesWithAssignments.find((item) => item.cycle.id === assignment.cycleId);
+  const handleCloseCycleModal = () => {
+    setIsCycleDetailsOpen(false);
+    setSelectedCycle(null);
+  };
+
+  const handleExportInvoices = async (cycle: ReadingCycleDto) => {
+    const cycleInfo = cyclesWithAssignments.find((item) => item.cycle.id === cycle.id);
     if (!cycleInfo) {
       show('Unable to locate cycle in current view. Please refresh the page.', 'error');
       return;
@@ -404,7 +419,7 @@ export default function ReadingAssignDashboard({
           setCompletingCycleId(null);
         }
       }
-      const result: MeterReadingImportResponse = await exportMeterReadingsByCycle(assignment.cycleId);
+      const result: MeterReadingImportResponse = await exportMeterReadingsByCycle(cycle.id);
       const successMessage =
         result.message ||
         `Exported ${result.invoicesCreated} invoices from ${result.totalReadings} readings.`;
@@ -469,7 +484,24 @@ export default function ReadingAssignDashboard({
             {serviceLabel ? `${serviceLabel} - Assignment Management` : 'Assignment Management'}
           </h1>
         </div>
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-3 flex-wrap items-center">
+          <div className="flex items-center gap-2">
+            <label htmlFor="statusFilter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Lọc theo trạng thái:
+            </label>
+            <select
+              id="statusFilter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#02542D] focus:border-transparent"
+            >
+              <option value="ALL">Tất cả</option>
+              <option value="OPEN">OPEN</option>
+              <option value="IN_PROGRESS">IN_PROGRESS</option>
+              <option value="COMPLETED">COMPLETED</option>
+              <option value="CLOSED">CLOSED</option>
+            </select>
+          </div>
           {serviceLabel && (
             <Link
               href="/base/readingAssign"
@@ -543,6 +575,7 @@ export default function ReadingAssignDashboard({
                         isCompleting={completingCycleId === cycle.id}
                         onAddAssignment={handleAddAssignment}
                         onViewUnassigned={handleOpenUnassignedModal}
+                        onViewCycle={handleViewCycle}
                         assignmentBlockedReason={assignmentBlockedReason}
                       />
                     );
@@ -560,11 +593,24 @@ export default function ReadingAssignDashboard({
         progress={assignmentProgress}
         meters={assignmentMeters}
         onClose={handleCloseModal}
-        onExport={handleExportInvoices}
-        isExporting={isExporting}
         onComplete={handleCompleteAssignment}
         isCompleting={Boolean(completingAssignmentId && selectedAssignment?.id === completingAssignmentId)}
       />
+      {selectedCycle && (
+        <CycleDetailsModal
+          isOpen={isCycleDetailsOpen}
+          cycle={selectedCycle.cycle}
+          assignments={selectedCycle.assignments}
+          unassignedInfo={selectedCycle.unassignedInfo}
+          allAssignmentsCompleted={selectedCycle.allAssignmentsCompleted}
+          canCompleteCycle={selectedCycle.canCompleteCycle}
+          onClose={handleCloseCycleModal}
+          onExport={handleExportInvoices}
+          isExporting={isExporting}
+          onCompleteCycle={handleCompleteCycle}
+          isCompleting={completingCycleId === selectedCycle.cycle.id}
+        />
+      )}
       {activeUnassignedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="max-w-4xl w-full rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
@@ -641,5 +687,6 @@ export default function ReadingAssignDashboard({
     </div>
   );
 }
+
 
 

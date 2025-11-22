@@ -5,15 +5,13 @@ import Link from 'next/link';
 import {
   BillingCycleDto,
   BuildingInvoiceSummaryDto,
-  InvoiceDto,
   MissingReadingCycleDto,
   loadBillingPeriod,
   loadBillingCycleBuildingSummary,
   loadMissingReadingCycles,
-  loadBuildingInvoices,
   syncMissingBillingCycles,
 } from '@/src/services/finance/billingCycleService';
-import { getAllServices, ServiceDto } from '@/src/services/base/waterService';
+import { getAllServices, ServiceDto, getReadingCycleById, ReadingCycleDto } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 
 const STATUS_BADGES: Record<string, string> = {
@@ -39,9 +37,8 @@ export default function BillingCyclesPage() {
   const [detailCycle, setDetailCycle] = useState<BillingCycleDto | null>(null);
   const [buildingSummaries, setBuildingSummaries] = useState<BuildingInvoiceSummaryDto[]>([]);
   const [loadingBuildingSummaries, setLoadingBuildingSummaries] = useState(false);
-  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
-  const [buildingInvoices, setBuildingInvoices] = useState<InvoiceDto[]>([]);
-  const [loadingBuildingInvoices, setLoadingBuildingInvoices] = useState(false);
+  const [readingCycleName, setReadingCycleName] = useState<string | null>(null);
+  const [readingCycleServiceCode, setReadingCycleServiceCode] = useState<string | null>(null);
 
   useEffect(() => {
     loadCycles();
@@ -52,48 +49,99 @@ export default function BillingCyclesPage() {
     loadServices();
   }, []);
 
-  const handleBuildingSelect = React.useCallback(
-    async (buildingId: string | null) => {
-      setSelectedBuildingId(buildingId);
-      if (!buildingId || !detailCycle) {
-        setBuildingInvoices([]);
-        return;
-      }
+  // Tính toán thống kê từ buildingSummaries
+  const cycleStats = useMemo(() => {
+    if (!buildingSummaries.length) {
+      return {
+        totalInvoices: 0,
+        totalAmount: 0,
+        paidInvoices: 0,
+        paidAmount: 0,
+        publishedInvoices: 0,
+        publishedAmount: 0,
+        voidInvoices: 0,
+        voidAmount: 0,
+      };
+    }
 
-      setLoadingBuildingInvoices(true);
-      try {
-        const invoices = await loadBuildingInvoices(detailCycle.id, buildingId);
-        setBuildingInvoices(invoices);
-      } finally {
-        setLoadingBuildingInvoices(false);
+    let totalInvoices = 0;
+    let totalAmount = 0;
+    let paidInvoices = 0;
+    let paidAmount = 0;
+    let publishedInvoices = 0;
+    let publishedAmount = 0;
+    let voidInvoices = 0;
+    let voidAmount = 0;
+
+    buildingSummaries.forEach((summary) => {
+      const count = summary.invoiceCount || 0;
+      const amount = summary.totalAmount || 0;
+      
+      totalInvoices += count;
+      totalAmount += amount;
+
+      if (summary.status === 'PAID') {
+        paidInvoices += count;
+        paidAmount += amount;
+      } else if (summary.status === 'PUBLISHED') {
+        publishedInvoices += count;
+        publishedAmount += amount;
+      } else if (summary.status === 'VOID') {
+        voidInvoices += count;
+        voidAmount += amount;
       }
-    },
-    [detailCycle]
-  );
+    });
+
+    return {
+      totalInvoices,
+      totalAmount,
+      paidInvoices,
+      paidAmount,
+      publishedInvoices,
+      publishedAmount,
+      voidInvoices,
+      voidAmount,
+    };
+  }, [buildingSummaries]);
 
   useEffect(() => {
     if (!detailCycle) {
       setBuildingSummaries([]);
-      setBuildingInvoices([]);
-      setSelectedBuildingId(null);
+      setReadingCycleName(null);
+      setReadingCycleServiceCode(null);
       return;
     }
+
+    const fetchReadingCycle = async () => {
+      if (detailCycle.externalCycleId) {
+        try {
+          const readingCycle = await getReadingCycleById(detailCycle.externalCycleId);
+          setReadingCycleName(readingCycle.name || detailCycle.externalCycleId || null);
+          setReadingCycleServiceCode(readingCycle.serviceCode || null);
+        } catch (error) {
+          console.error('Failed to load reading cycle:', error);
+          setReadingCycleName(detailCycle.externalCycleId);
+          setReadingCycleServiceCode(null);
+        }
+      } else {
+        setReadingCycleName(null);
+        setReadingCycleServiceCode(null);
+      }
+    };
 
     const fetchSummaries = async () => {
       setLoadingBuildingSummaries(true);
       try {
         const data = await loadBillingCycleBuildingSummary(detailCycle.id);
         setBuildingSummaries(data);
-        if (data.length > 0) {
-          handleBuildingSelect(data[0].buildingId ?? null);
-        }
       } finally {
         setLoadingBuildingSummaries(false);
       }
     };
 
+    fetchReadingCycle();
     fetchSummaries();
-  }, [detailCycle, handleBuildingSelect]);
+  }, [detailCycle]);
 
   const loadCycles = async () => {
     try {
@@ -379,94 +427,127 @@ export default function BillingCyclesPage() {
         )}
       </div>
       {detailCycle && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-xl shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-[#02542D]">Billing Cycle detail</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-[#02542D]">Thống kê Billing Cycle</h3>
               <button
                 onClick={() => setDetailCycle(null)}
-                className="text-sm text-gray-500 hover:text-[#02542D]"
+                className="text-gray-500 hover:text-[#02542D] transition-colors"
               >
-                Close
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" height="20" width="20">
+                  <path fill="currentColor" d="M8 9.414l3.536 3.536a1 1 0 0 0 1.414-1.414L9.414 8l3.536-3.536a1 1 0 0 0-1.414-1.414L8 6.586 4.464 3.05a1 1 0 0 0-1.414 1.414L6.586 8l-3.536 3.536a1 1 0 0 0 1.414 1.414L8 9.414z"/>
+                </svg>
               </button>
             </div>
-            <div className="space-y-3 text-sm text-gray-700">
-              <div>
-                <span className="font-semibold">Name:</span> {detailCycle.name}
+
+            <div className="space-y-6">
+              {/* Thông tin cycle */}
+              <div className="border-b border-gray-200 pb-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">Tên:</span>
+                    <div className="font-semibold text-[#02542D]">{detailCycle.name}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Trạng thái:</span>
+                    <div className="font-semibold">
+                      <span className={`px-2 py-1 rounded text-xs ${STATUS_BADGES[detailCycle.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {detailCycle.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Dịch vụ:</span>
+                    <div className="font-semibold text-[#02542D]">
+                      {detailCycle.serviceName || detailCycle.serviceCode || '–'}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Chu kỳ:</span>
+                    <div className="font-semibold text-[#02542D]">
+                      {new Date(detailCycle.periodFrom).toLocaleDateString()} – {new Date(detailCycle.periodTo).toLocaleDateString()}
+                    </div>
+                  </div>
+                  {readingCycleName && (
+                    <div className="col-span-2">
+                      <span className="text-gray-500">Chu kỳ đọc:</span>
+                      <div className="font-semibold text-[#02542D]">
+                        {readingCycleName}{readingCycleServiceCode ? ` - ${readingCycleServiceCode}` : ''}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Thống kê tổng quan */}
               <div>
-                <span className="font-semibold">Status:</span> {detailCycle.status}
-              </div>
-              <div>
-                <span className="font-semibold">Service:</span>{' '}
-                {detailCycle.serviceName || detailCycle.serviceCode || '–'}
-              </div>
-              <div>
-                <span className="font-semibold">Period:</span>{' '}
-                {new Date(detailCycle.periodFrom).toLocaleDateString()} –{' '}
-                {new Date(detailCycle.periodTo).toLocaleDateString()}
-              </div>
-              <div>
-                <span className="font-semibold">External cycle:</span>{' '}
-                {detailCycle.externalCycleId ?? '–'}
-              </div>
-              <div>
-                <span className="font-semibold">Billing ID:</span> {detailCycle.id}
-              </div>
-              <div className="mt-4">
-                <h4 className="text-base font-semibold text-[#02542D] mb-2">Summary theo tòa</h4>
+                <h4 className="text-base font-semibold text-[#02542D] mb-4">Thống kê tổng quan</h4>
                 {loadingBuildingSummaries ? (
-                  <p className="text-xs text-gray-500">Đang lấy số liệu...</p>
-                ) : buildingSummaries.length === 0 ? (
-                  <p className="text-xs text-gray-500">Không tìm thấy hóa đơn nào phân theo tòa</p>
+                  <div className="text-sm text-gray-500">Đang tải thống kê...</div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {buildingSummaries.map((summary) => (
-                      <button
-                        key={`${summary.buildingId}-${summary.status}`}
-                        onClick={() => handleBuildingSelect(summary.buildingId)}
-                        className={`border rounded-lg p-2 text-left text-xs transition ${
-                          selectedBuildingId === summary.buildingId
-                            ? 'border-[#02542D] bg-[#e6f7eb]'
-                            : 'border-gray-200 bg-white hover:border-[#739559]'
-                        }`}
-                      >
-                        <div className="font-semibold text-[#02542D]">
-                          Tòa {summary.buildingId?.slice(0, 8) ?? 'Chưa rõ'}
-                        </div>
-                        <div className="text-gray-500">
-                          Trạng thái: {summary.status}
-                        </div>
-                        <div className="text-gray-500">
-                          {summary.invoiceCount} hóa đơn · {summary.totalAmount?.toLocaleString('vi-VN') ?? 0} VNĐ
-                        </div>
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="text-xs text-blue-600 mb-1">Tổng số hóa đơn</div>
+                      <div className="text-2xl font-bold text-blue-700">{cycleStats.totalInvoices}</div>
+                      <div className="text-xs text-blue-600 mt-1">
+                        {cycleStats.totalAmount.toLocaleString('vi-VN')} VNĐ
+                      </div>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="text-xs text-green-600 mb-1">Đã thanh toán (PAID)</div>
+                      <div className="text-2xl font-bold text-green-700">{cycleStats.paidInvoices}</div>
+                      <div className="text-xs text-green-600 mt-1">
+                        {cycleStats.paidAmount.toLocaleString('vi-VN')} VNĐ
+                      </div>
+                    </div>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <div className="text-xs text-yellow-600 mb-1">Chưa thanh toán (PUBLISHED)</div>
+                      <div className="text-2xl font-bold text-yellow-700">{cycleStats.publishedInvoices}</div>
+                      <div className="text-xs text-yellow-600 mt-1">
+                        {cycleStats.publishedAmount.toLocaleString('vi-VN')} VNĐ
+                      </div>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="text-xs text-red-600 mb-1">Đã hủy (VOID)</div>
+                      <div className="text-2xl font-bold text-red-700">{cycleStats.voidInvoices}</div>
+                      <div className="text-xs text-red-600 mt-1">
+                        {cycleStats.voidAmount.toLocaleString('vi-VN')} VNĐ
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
-              <div className="mt-4">
-                <h4 className="text-base font-semibold text-[#02542D] mb-2">Danh sách hóa đơn</h4>
-                {loadingBuildingInvoices ? (
-                  <p className="text-xs text-gray-500">Đang tải hóa đơn...</p>
-                ) : buildingInvoices.length === 0 ? (
-                  <p className="text-xs text-gray-500">Chưa có hóa đơn cho tòa này</p>
+
+              {/* Summary theo tòa */}
+              <div>
+                <h4 className="text-base font-semibold text-[#02542D] mb-4">Tổng hợp theo tòa nhà</h4>
+                {loadingBuildingSummaries ? (
+                  <div className="text-sm text-gray-500">Đang tải dữ liệu...</div>
+                ) : buildingSummaries.length === 0 ? (
+                  <div className="text-sm text-gray-500">Không có dữ liệu</div>
                 ) : (
-                  <div className="space-y-2 text-xs text-gray-600">
-                    {buildingInvoices.map((invoice) => (
+                  <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+                    {buildingSummaries.map((summary) => (
                       <div
-                        key={invoice.id}
-                        className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50"
+                        key={`${summary.buildingId}-${summary.status}`}
+                        className="border border-gray-200 rounded-lg p-3 bg-gray-50"
                       >
                         <div className="font-semibold text-sm text-[#02542D]">
-                          {invoice.code} · {invoice.status}
+                          {summary.buildingName || summary.buildingCode || summary.buildingId?.slice(0, 8) || 'Tòa chưa rõ'}
                         </div>
-                        <div className="text-gray-500">
-                          {invoice.payerUnitId ? `Căn: ${invoice.payerUnitId}` : 'Không xác định căn'}
+                        <div className="text-xs text-gray-500 mt-1">
+                          <span className={`px-2 py-0.5 rounded ${
+                            summary.status === 'PAID' ? 'bg-green-100 text-green-700' :
+                            summary.status === 'PUBLISHED' ? 'bg-yellow-100 text-yellow-700' :
+                            summary.status === 'VOID' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {summary.status}
+                          </span>
                         </div>
-                        <div className="text-gray-500">
-                          {invoice.totalAmount?.toLocaleString('vi-VN')} VNĐ · Due:{' '}
-                          {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '–'}
+                        <div className="text-xs text-gray-600 mt-2">
+                          {summary.invoiceCount} hóa đơn · {summary.totalAmount?.toLocaleString('vi-VN') ?? 0} VNĐ
                         </div>
                       </div>
                     ))}

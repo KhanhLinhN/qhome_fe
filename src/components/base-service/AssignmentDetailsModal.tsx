@@ -11,8 +11,6 @@ interface AssignmentDetailsModalProps {
   progress: AssignmentProgressDto | null;
   meters: MeterDto[];
   onClose: () => void;
-  onExport?: (assignment: MeterReadingAssignmentDto) => void;
-  isExporting?: boolean;
   onComplete?: (assignment: MeterReadingAssignmentDto) => void;
   isCompleting?: boolean;
 }
@@ -23,8 +21,6 @@ const AssignmentDetailsModal = ({
   progress,
   meters,
   onClose,
-  onExport,
-  isExporting = false,
   onComplete,
   isCompleting = false,
 }: AssignmentDetailsModalProps) => {
@@ -124,7 +120,6 @@ const AssignmentDetailsModal = ({
               : 0;
             const remaining = totalUnits - filledCount;
             const allDone = totalUnits > 0 && remaining === 0;
-            const canExport = allDone && !!assignment.cycleId;
             const canComplete = allDone && !assignment.completedAt;
             
             return (
@@ -169,8 +164,8 @@ const AssignmentDetailsModal = ({
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-gray-600">
                       {allDone
-                        ? 'All units have been read. You can mark the assignment completed and export invoices for this cycle.'
-                        : 'Complete all meter readings before completing the assignment or exporting invoices.'}
+                        ? 'All units have been read. You can mark the assignment completed.'
+                        : 'Complete all meter readings before completing the assignment.'}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                       <button
@@ -187,17 +182,6 @@ const AssignmentDetailsModal = ({
                           : isCompleting
                             ? 'Completing...'
                             : 'Mark Completed'}
-                      </button>
-                      <button
-                        onClick={() => canExport && onExport?.(assignment)}
-                        disabled={!canExport || isExporting}
-                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                          canExport
-                            ? 'bg-[#02542D] text-white hover:bg-[#024428]'
-                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        } ${isExporting ? 'opacity-70 cursor-wait' : ''}`}
-                      >
-                        {isExporting ? 'Exporting...' : 'Export Invoices'}
                       </button>
                     </div>
                   </div>
