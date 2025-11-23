@@ -20,6 +20,7 @@ interface CycleCardProps {
   unassignedInfo?: ReadingCycleUnassignedInfoDto;
   onAddAssignment?: (cycle: ReadingCycleDto) => void;
   onViewUnassigned?: (cycle: ReadingCycleDto, info: ReadingCycleUnassignedInfoDto) => void;
+  onViewCycle?: (cycle: ReadingCycleDto) => void;
   assignmentBlockedReason?: string;
 }
 
@@ -36,6 +37,7 @@ const CycleCard = ({
   unassignedInfo,
   onAddAssignment,
   onViewUnassigned,
+  onViewCycle,
   assignmentBlockedReason,
 }: CycleCardProps) => {
   const router = useRouter();
@@ -152,38 +154,19 @@ const CycleCard = ({
         </div>
 
         {/* Actions */}
-        {cycle.status === 'IN_PROGRESS' && (
-          <div className="flex items-center gap-2 ml-4">
-            <button
-              onClick={(e) => {
-                handleAddAssignmentClick(e);
-              }}
-              className={`px-4 py-2 text-white rounded-md transition-colors ${
-                assignmentAllowed ? 'bg-[#02542D] hover:bg-[#024428]' : 'bg-gray-300 cursor-not-allowed'
-              }`}
-              disabled={!assignmentAllowed}
-              aria-disabled={!assignmentAllowed}
-            >
-              Add Assignment
-            </button>
+        <div className="flex items-center gap-2 ml-4">
+          {onViewCycle && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (canCompleteCycle) {
-                  onCompleteCycle?.(cycle);
-                }
+                onViewCycle(cycle);
               }}
-              disabled={!canCompleteCycle || isCompleting}
-              className={`px-4 py-2 rounded-md text-white transition-colors ${
-                canCompleteCycle
-                  ? 'bg-blue-600 hover:bg-blue-500'
-                  : 'bg-gray-300 cursor-not-allowed'
-              } ${isCompleting ? 'opacity-70 cursor-wait' : ''}`}
+              className="px-4 py-2 text-white bg-[#02542D] hover:bg-[#024428] rounded-md transition-colors"
             >
-              {isCompleting ? 'Completing...' : 'Mark Cycle Completed'}
+              View Cycle
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {assignmentBlockedReason && (
           <div className="px-4 pb-2 text-xs text-red-600">{assignmentBlockedReason}</div>

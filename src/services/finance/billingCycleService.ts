@@ -146,3 +146,33 @@ export async function loadBuildingInvoices(
   return response.data as InvoiceDto[];
 }
 
+export async function exportBillingCycleToExcel(
+  cycleId: string,
+  params?: {
+    serviceCode?: string;
+    month?: string;
+    buildingId?: string;
+  }
+): Promise<Blob> {
+  const queryParams: Record<string, string> = {};
+  if (params?.serviceCode) {
+    queryParams.serviceCode = params.serviceCode;
+  }
+  if (params?.month) {
+    queryParams.month = params.month;
+  }
+  if (params?.buildingId) {
+    queryParams.buildingId = params.buildingId;
+  }
+
+  const response = await axios.get(
+    `${BASE_URL}/api/billing-cycles/${cycleId}/export`,
+    {
+      params: queryParams,
+      responseType: 'blob',
+      withCredentials: true,
+    }
+  );
+  return response.data as Blob;
+}
+

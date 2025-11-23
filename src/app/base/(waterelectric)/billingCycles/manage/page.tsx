@@ -10,15 +10,21 @@ import {
   loadBillingCycleBuildingSummary,
   loadBillingPeriod,
   loadBuildingInvoices,
+  exportBillingCycleToExcel,
 } from '@/src/services/finance/billingCycleService';
 import { getAllServices, ServiceDto } from '@/src/services/base/waterService';
 import { getBuildings, Building } from '@/src/services/base/buildingService';
+import { getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
 
 const STATUS_BADGES: Record<string, string> = {
   OPEN: 'bg-blue-100 text-blue-700',
   IN_PROGRESS: 'bg-yellow-100 text-yellow-700',
   COMPLETED: 'bg-green-100 text-green-700',
   CLOSED: 'bg-gray-100 text-gray-700',
+  PUBLISHED: 'bg-blue-100 text-blue-700',
+  PAID: 'bg-green-100 text-green-700',
+  VOID: 'bg-red-100 text-red-700',
+  DRAFT: 'bg-gray-100 text-gray-700',
 };
 
 export default function BillingCycleManagePage() {
@@ -37,6 +43,12 @@ export default function BillingCycleManagePage() {
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [allBuildings, setAllBuildings] = useState<Building[]>([]);
   const [selectedBuildingFilter, setSelectedBuildingFilter] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [loadingUnits, setLoadingUnits] = useState(false);
+  const [selectedFloorFilter, setSelectedFloorFilter] = useState<number | null>(null);
+  const [unitNamesMap, setUnitNamesMap] = useState<Record<string, Unit>>({});
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>('ALL');
 
   useEffect(() => {
     loadCycles();
@@ -210,6 +222,48 @@ export default function BillingCycleManagePage() {
     fetchInvoices();
   }, [selectedCycle, selectedBuildingId, show]);
 
+  // Load units khi selectedBuildingFilter thay đổi
+  useEffect(() => {
+    if (!selectedBuildingFilter) {
+      setUnits([]);
+      setUnitNamesMap({});
+      setSelectedFloorFilter(null);
+      return;
+    }
+
+    const fetchUnits = async () => {
+      setLoadingUnits(true);
+      try {
+        const buildingUnits = await getUnitsByBuilding(selectedBuildingFilter);
+        setUnits(buildingUnits);
+        
+        const map: Record<string, Unit> = {};
+        buildingUnits.forEach(unit => {
+          map[unit.id] = unit;
+        });
+        setUnitNamesMap(map);
+      } catch (error) {
+        console.error('Failed to load units', error);
+        show('Không thể tải danh sách căn hộ', 'error');
+      } finally {
+        setLoadingUnits(false);
+      }
+    };
+
+    fetchUnits();
+  }, [selectedBuildingFilter, show]);
+
+  // Tạo danh sách tầng từ units
+  const floorOptions = useMemo(() => {
+    const floorSet = new Set<number>();
+    units.forEach(unit => {
+      if (unit.floor != null) {
+        floorSet.add(unit.floor);
+      }
+    });
+    return Array.from(floorSet).sort((a, b) => a - b);
+  }, [units]);
+
   // Filter building summaries theo selectedBuildingFilter
   const filteredBuildingSummaries = useMemo(() => {
     if (!selectedBuildingFilter) {
@@ -218,6 +272,27 @@ export default function BillingCycleManagePage() {
     return buildingSummaries.filter(summary => summary.buildingId === selectedBuildingFilter);
   }, [buildingSummaries, selectedBuildingFilter]);
 
+  // Filter invoices theo floor và status
+  const filteredBuildingInvoices = useMemo(() => {
+    let filtered = buildingInvoices;
+
+    // Filter theo status
+    if (invoiceStatusFilter !== 'ALL') {
+      filtered = filtered.filter(invoice => invoice.status === invoiceStatusFilter);
+    }
+
+    // Filter theo floor
+    if (selectedFloorFilter) {
+      filtered = filtered.filter(invoice => {
+        if (!invoice.payerUnitId) return false;
+        const unit = unitNamesMap[invoice.payerUnitId];
+        return unit && unit.floor === selectedFloorFilter;
+      });
+    }
+
+    return filtered;
+  }, [buildingInvoices, selectedFloorFilter, invoiceStatusFilter, unitNamesMap]);
+
   const totalStats = useMemo(() => {
     const count = filteredBuildingSummaries.length;
     const totalAmount = filteredBuildingSummaries
@@ -225,6 +300,49 @@ export default function BillingCycleManagePage() {
       .reduce((sum, value) => sum + (value ?? 0), 0);
     return { count, totalAmount };
   }, [filteredBuildingSummaries]);
+
+  const handleExportExcel = async () => {
+    if (!selectedCycle) {
+      show('Vui lòng chọn một billing cycle', 'error');
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const params: {
+        serviceCode?: string;
+        month?: string;
+        buildingId?: string;
+      } = {};
+
+      if (serviceFilter !== 'ALL') {
+        params.serviceCode = serviceFilter;
+      }
+      if (monthFilter !== 'ALL') {
+        params.month = monthFilter;
+      }
+      if (selectedBuildingFilter) {
+        params.buildingId = selectedBuildingFilter;
+      }
+
+      const blob = await exportBillingCycleToExcel(selectedCycle.id, params);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.download = `billing_cycle_${selectedCycle.name.replace(/\s+/g, '_')}_${dateStr}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      show('Xuất Excel thành công', 'success');
+    } catch (error: any) {
+      console.error('Export Excel failed', error);
+      show(error?.response?.data?.message || 'Xuất Excel thất bại', 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="px-[41px] py-12 space-y-6">
@@ -259,9 +377,26 @@ export default function BillingCycleManagePage() {
         >
           Làm mới
         </button>
+        <button
+          onClick={handleExportExcel}
+          disabled={!selectedCycle || exporting}
+          className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm flex items-center gap-2"
+        >
+          {exporting ? (
+            <>
+              <span className="animate-spin">⏳</span>
+              <span>Đang xuất...</span>
+            </>
+          ) : (
+            <>
+              <span>📥</span>
+              <span>Xuất Excel</span>
+            </>
+          )}
+        </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-5 gap-3">
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1">Dịch vụ</label>
           <select
@@ -296,7 +431,10 @@ export default function BillingCycleManagePage() {
           <label className="block text-xs font-semibold text-gray-500 mb-1">Tòa nhà</label>
           <select
             value={selectedBuildingFilter ?? ''}
-            onChange={(event) => setSelectedBuildingFilter(event.target.value || null)}
+            onChange={(event) => {
+              setSelectedBuildingFilter(event.target.value || null);
+              setSelectedFloorFilter(null);
+            }}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
           >
             <option value="">Tất cả tòa nhà</option>
@@ -305,6 +443,35 @@ export default function BillingCycleManagePage() {
                 {building.code} - {building.name}
               </option>
             ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">Tầng</label>
+          <select
+            value={selectedFloorFilter ?? ''}
+            onChange={(event) => setSelectedFloorFilter(event.target.value ? Number(event.target.value) : null)}
+            disabled={!selectedBuildingFilter || loadingUnits || floorOptions.length === 0}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559] disabled:bg-gray-100 disabled:cursor-not-allowed"
+          >
+            <option value="">Tất cả tầng</option>
+            {floorOptions.map((floor) => (
+              <option key={floor} value={floor}>
+                Tầng {floor}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">Trạng thái hóa đơn</label>
+          <select
+            value={invoiceStatusFilter}
+            onChange={(event) => setInvoiceStatusFilter(event.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
+          >
+            <option value="ALL">Tất cả trạng thái</option>
+            <option value="PUBLISHED">PUBLISHED</option>
+            <option value="PAID">PAID</option>
+            <option value="VOID">VOID</option>
           </select>
         </div>
       </div>
@@ -367,11 +534,17 @@ export default function BillingCycleManagePage() {
         </div>
         {loadingInvoices ? (
           <div className="text-sm text-gray-500">Đang tải hóa đơn...</div>
-        ) : buildingInvoices.length === 0 ? (
-          <div className="text-sm text-gray-500">Chưa có hóa đơn cho tòa được chọn</div>
+        ) : filteredBuildingInvoices.length === 0 ? (
+          <div className="text-sm text-gray-500">
+            {selectedFloorFilter 
+              ? `Chưa có hóa đơn cho tầng ${selectedFloorFilter} của tòa được chọn`
+              : 'Chưa có hóa đơn cho tòa được chọn'}
+          </div>
         ) : (
           <div className="space-y-3">
-            {buildingInvoices.map((invoice) => (
+            {filteredBuildingInvoices.map((invoice) => {
+              const unit = invoice.payerUnitId ? unitNamesMap[invoice.payerUnitId] : null;
+              return (
               <div key={invoice.id} className="border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -384,6 +557,12 @@ export default function BillingCycleManagePage() {
                         {invoice.status}
                       </span>
                     </div>
+                    {unit && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Căn: {unit.name || unit.code || invoice.payerUnitId} 
+                        {unit.floor != null && ` · Tầng ${unit.floor}`}
+                      </div>
+                    )}
                   </div>
                   <div className="text-sm font-semibold text-[#02542D]">
                     {invoice.totalAmount?.toLocaleString('vi-VN')} VNĐ
@@ -393,7 +572,8 @@ export default function BillingCycleManagePage() {
                   Due: {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '–'}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
