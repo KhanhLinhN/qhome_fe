@@ -30,60 +30,6 @@ const paymentStatusOptions = [
   { value: 'PAID', label: 'Đã thanh toán' },
 ];
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  PENDING: {
-    label: 'Chờ duyệt',
-    className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  },
-  READY_FOR_PAYMENT: {
-    label: 'Chờ thanh toán',
-    className: 'bg-orange-50 text-orange-700 border-orange-200',
-  },
-  PAYMENT_PENDING: {
-    label: 'Đang thanh toán',
-    className: 'bg-blue-50 text-blue-700 border-blue-200',
-  },
-  APPROVED: {
-    label: 'Đã duyệt',
-    className: 'bg-green-50 text-green-700 border-green-200',
-  },
-  COMPLETED: {
-    label: 'Đã hoàn tất',
-    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  },
-  REJECTED: {
-    label: 'Đã từ chối',
-    className: 'bg-red-50 text-red-600 border-red-200',
-  },
-  CANCELLED: {
-    label: 'Đã hủy',
-    className: 'bg-slate-50 text-slate-600 border-slate-200',
-  },
-};
-
-const paymentStatusConfig: Record<string, { label: string; className: string }> = {
-  UNPAID: {
-    label: 'Chưa thanh toán',
-    className: 'bg-red-50 text-red-700 border-red-200',
-  },
-  PAYMENT_PENDING: {
-    label: 'Đang thanh toán',
-    className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  },
-  PAYMENT_APPROVAL: {
-    label: 'Đang chờ xác nhận',
-    className: 'bg-blue-50 text-blue-700 border-blue-200',
-  },
-  PAID: {
-    label: 'Đã thanh toán',
-    className: 'bg-green-50 text-green-700 border-green-200',
-  },
-};
-
-const requestTypeConfig: Record<string, string> = {
-  NEW_CARD: 'Thẻ mới',
-  RENEWAL: 'Gia hạn',
-};
 
 export default function ResidentCardAdminPage() {
   const t = useTranslations('ResidentCards');
@@ -104,6 +50,61 @@ export default function ResidentCardAdminPage() {
     { value: 'PAYMENT_PENDING', label: t('paymentStatuses.paymentPending') },
     { value: 'PAID', label: t('paymentStatuses.paid') },
   ];
+
+  const statusConfig: Record<string, { label: string; className: string }> = {
+    PENDING: {
+      label: t('statusLabels.pending'),
+      className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    },
+    READY_FOR_PAYMENT: {
+      label: t('statusLabels.readyForPayment'),
+      className: 'bg-orange-50 text-orange-700 border-orange-200',
+    },
+    PAYMENT_PENDING: {
+      label: t('statusLabels.paymentPending'),
+      className: 'bg-blue-50 text-blue-700 border-blue-200',
+    },
+    APPROVED: {
+      label: t('statusLabels.approved'),
+      className: 'bg-green-50 text-green-700 border-green-200',
+    },
+    COMPLETED: {
+      label: t('statusLabels.completed'),
+      className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    },
+    REJECTED: {
+      label: t('statusLabels.rejected'),
+      className: 'bg-red-50 text-red-600 border-red-200',
+    },
+    CANCELLED: {
+      label: t('statusLabels.cancelled'),
+      className: 'bg-slate-50 text-slate-600 border-slate-200',
+    },
+  };
+
+  const paymentStatusConfig: Record<string, { label: string; className: string }> = {
+    UNPAID: {
+      label: t('paymentStatusLabels.unpaid'),
+      className: 'bg-red-50 text-red-700 border-red-200',
+    },
+    PAYMENT_PENDING: {
+      label: t('paymentStatusLabels.paymentPending'),
+      className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    },
+    PAYMENT_APPROVAL: {
+      label: t('paymentStatusLabels.paymentApproval'),
+      className: 'bg-blue-50 text-blue-700 border-blue-200',
+    },
+    PAID: {
+      label: t('paymentStatusLabels.paid'),
+      className: 'bg-green-50 text-green-700 border-green-200',
+    },
+  };
+
+  const requestTypeConfig: Record<string, string> = {
+    NEW_CARD: t('requestTypes.newCard'),
+    RENEWAL: t('requestTypes.renewal'),
+  };
   const [registrations, setRegistrations] = useState<CardRegistration[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<CardRegistration | null>(null);
@@ -418,16 +419,16 @@ export default function ResidentCardAdminPage() {
                 <DetailRow label={t('detail.citizenId')} value={selected.citizenId} />
                 <DetailRow label={t('detail.phoneNumber')} value={selected.phoneNumber} />
                 <DetailRow
-                  label="Loại yêu cầu"
-                  value={requestTypeConfig[selected.requestType] ?? selected.requestType}
+                  label={t('detail.requestType')}
+                  value={selected.requestType ? (requestTypeConfig[selected.requestType] ?? selected.requestType) : '—'}
                 />
-                <DetailRow label="Ghi chú" value={selected.note} />
+                <DetailRow label={t('detail.note')} value={selected.note} />
                 <DetailRow 
-                  label="Trạng thái" 
+                  label={t('detail.status')} 
                   value={statusConfig[selected.status]?.label ?? selected.status} 
                 />
                 <DetailRow
-                  label="Trạng thái thanh toán"
+                  label={t('detail.paymentStatus')}
                   value={paymentStatusConfig[selected.paymentStatus]?.label ?? selected.paymentStatus}
                 />
                 <DetailRow

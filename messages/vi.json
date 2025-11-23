@@ -2075,6 +2075,16 @@
       "elevator": "Thẻ thang máy",
       "vehicle": "Thẻ xe"
     },
+    "status": {
+      "approved": "Đã duyệt",
+      "completed": "Đã hoàn tất"
+    },
+    "paymentStatus": {
+      "paid": "Đã thanh toán",
+      "paymentPending": "Đang thanh toán",
+      "paymentApproval": "Đang chờ xác nhận",
+      "unpaid": "Chưa thanh toán"
+    },
     "table": {
       "cardType": "Loại thẻ",
       "displayName": "Tên hiển thị",
@@ -2117,6 +2127,25 @@
       "unpaid": "Chưa thanh toán",
       "paymentPending": "Đang thanh toán",
       "paid": "Đã thanh toán"
+    },
+    "statusLabels": {
+      "pending": "Chờ duyệt",
+      "readyForPayment": "Chờ thanh toán",
+      "paymentPending": "Đang thanh toán",
+      "approved": "Đã duyệt",
+      "completed": "Đã hoàn tất",
+      "rejected": "Đã từ chối",
+      "cancelled": "Đã hủy"
+    },
+    "paymentStatusLabels": {
+      "unpaid": "Chưa thanh toán",
+      "paymentPending": "Đang thanh toán",
+      "paymentApproval": "Đang chờ xác nhận",
+      "paid": "Đã thanh toán"
+    },
+    "requestTypes": {
+      "newCard": "Thẻ mới",
+      "renewal": "Gia hạn"
     },
     "table": {
       "resident": "Cư dân",
@@ -2187,6 +2216,25 @@
       "unpaid": "Chưa thanh toán",
       "paymentPending": "Đang thanh toán",
       "paid": "Đã thanh toán"
+    },
+    "statusLabels": {
+      "pending": "Chờ duyệt",
+      "readyForPayment": "Chờ thanh toán",
+      "paymentPending": "Đang thanh toán",
+      "approved": "Đã duyệt",
+      "completed": "Đã hoàn tất",
+      "rejected": "Đã từ chối",
+      "cancelled": "Đã hủy"
+    },
+    "paymentStatusLabels": {
+      "unpaid": "Chưa thanh toán",
+      "paymentPending": "Đang thanh toán",
+      "paymentApproval": "Đang chờ xác nhận",
+      "paid": "Đã thanh toán"
+    },
+    "requestTypes": {
+      "newCard": "Thẻ mới",
+      "renewal": "Gia hạn"
     },
     "table": {
       "resident": "Cư dân",

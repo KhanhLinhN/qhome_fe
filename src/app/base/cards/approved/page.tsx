@@ -87,9 +87,9 @@ export default function ApprovedCardsAdminPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return 'Đã duyệt';
+        return t('status.approved');
       case 'COMPLETED':
-        return 'Đã hoàn tất';
+        return t('status.completed');
       default:
         return status;
     }
@@ -109,13 +109,13 @@ export default function ApprovedCardsAdminPage() {
   const getPaymentStatusLabel = (paymentStatus: string) => {
     switch (paymentStatus) {
       case 'PAID':
-        return 'Đã thanh toán';
+        return t('paymentStatus.paid');
       case 'PAYMENT_PENDING':
-        return 'Đang thanh toán';
+        return t('paymentStatus.paymentPending');
       case 'PAYMENT_APPROVAL':
-        return 'Đang chờ xác nhận';
+        return t('paymentStatus.paymentApproval');
       case 'UNPAID':
-        return 'Chưa thanh toán';
+        return t('paymentStatus.unpaid');
       default:
         return paymentStatus;
     }
