@@ -86,6 +86,7 @@ const adminSections: NavSection[] = [
       // {href: "/base/showAssign", labelKey: "assignmentList", icon: "📋"},
       // {href: "/base/waterShow", labelKey: "waterMonitoring", icon: "💧"},
       {href: "/base/billingCycles", labelKey: "billingCycles", icon: "💡"},
+      {href: "/base/finance/invoices", label: "Quản lý Thu Chi", icon: "💰"},
     ],
   },
   {
