@@ -28,12 +28,13 @@ export default function BuildingEdit() {
     const { buildingData, loading, error, isSubmitting, editBuilding } =
         useBuildingDetailPage(buildingId);
 
-    const [formData, setFormData] = useState<Partial<Building> & { status: string }>({
+    const [formData, setFormData] = useState<Partial<Building> & { status: string; numberOfFloors: number | null }>({
         address: '',
         totalApartmentsAll: 0,
         totalApartmentsActive: 0,
         status: '',
         name: '',
+        numberOfFloors: null,
     });
 
     const [errors, setErrors] = useState<{
@@ -197,6 +198,7 @@ export default function BuildingEdit() {
                 totalApartmentsAll: buildingData.totalApartmentsAll ?? 0,
                 totalApartmentsActive: buildingData.totalApartmentsActive ?? 0,
                 status: buildingData.status ?? 'ACTIVE',
+                numberOfFloors: buildingData.floorsMax ?? null,
             });
             // Prefill address selects from stored address string: "detail, road, ward, district, city"
             const parts = (buildingData.address || '').split(',').map(s=>s.trim()).filter(Boolean);
@@ -322,13 +324,16 @@ export default function BuildingEdit() {
         const composedAddress = [addressDetail.trim(), road.trim(), wardName.trim(), districtName.trim(), cityName.trim()].filter(Boolean).join(', ');
 
         try {
-            const payload: Partial<Building> = {
+            const payload: any = {
                 name: (formData.name||'').trim(),
                 address: composedAddress,
                 totalApartmentsAll: formData.totalApartmentsAll,
                 totalApartmentsActive: formData.totalApartmentsActive,
                 status: formData.status,
             };
+            if (formData.numberOfFloors !== null && formData.numberOfFloors !== undefined) {
+                payload.numberOfFloors = formData.numberOfFloors;
+            }
             await editBuilding(buildingId, payload);
             show('Cập nhật tòa nhà thành công!', 'success');
             router.push(`/base/building/buildingDetail/${buildingId}`);
@@ -420,6 +425,23 @@ export default function BuildingEdit() {
                         onChange={handleChange}
                         error={errors.name}
                     />
+
+                    <div className="flex flex-col">
+                        <label className="text-md font-bold text-[#02542D] mb-1">
+                            Số tầng
+                        </label>
+                        <input
+                            type="number"
+                            min="1"
+                            value={formData.numberOfFloors ?? ''}
+                            onChange={(e) => {
+                                const value = e.target.value ? parseInt(e.target.value) : null;
+                                setFormData(prev => ({ ...prev, numberOfFloors: value }));
+                            }}
+                            placeholder="Nhập số tầng (tùy chọn)"
+                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:border-emerald-500 focus:ring-emerald-100"
+                        />
+                    </div>
                     
                     {/* Address structured selectors */}
                     <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">

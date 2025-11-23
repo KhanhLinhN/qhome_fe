@@ -337,11 +337,11 @@ export default function BuildingDetail () {
                         value={buildingData?.address ?? ""} 
                         readonly={true}
                     />
-                    {/* <DetailField 
-                        label={t('floors')}
-                        value={buildingData?.floorsMax.toString() ?? ""} 
+                    <DetailField 
+                        label="Số tầng"
+                        value={buildingData?.floorsMax?.toString() ?? ""} 
                         readonly={true}
-                    /> */}
+                    />
 
                     {/* <DetailField 
                         label={t('createAt')}

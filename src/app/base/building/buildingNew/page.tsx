@@ -39,7 +39,7 @@ export default function BuildingAdd () {
 
     const { addBuilding, loading, error, isSubmitting } = useBuildingAdd();
 
-    const [formData, setFormData] = useState<Partial<Building> & { totalApartmentsAllStr: string; status: string }>({
+    const [formData, setFormData] = useState<Partial<Building> & { totalApartmentsAllStr: string; status: string; numberOfFloors: number | null }>({
         code: '',
         name: '',
         address: '',
@@ -47,6 +47,7 @@ export default function BuildingAdd () {
         totalApartmentsActive: 0,
         totalApartmentsAllStr: '0',
         status: 'ACTIVE',
+        numberOfFloors: null,
     });
 
     // Address pieces
@@ -383,7 +384,10 @@ export default function BuildingAdd () {
         try {
             const { totalApartmentsAllStr, ...buildingData } = formData;
             // Ensure composed address used
-            const payload = { ...buildingData, address: composed };
+            const payload: any = { ...buildingData, address: composed };
+            if (payload.numberOfFloors !== null && payload.numberOfFloors !== undefined) {
+                payload.numberOfFloors = payload.numberOfFloors;
+            }
             await addBuilding(payload);
             show(t('success'), 'success');
             router.push(`/base/building/buildingList`);
@@ -510,6 +514,23 @@ export default function BuildingAdd () {
                         readonly={false}
                         error={errors.name}
                     />
+
+                    <div className="flex flex-col">
+                        <label className="text-md font-bold text-[#02542D] mb-1">
+                            Số tầng
+                        </label>
+                        <input
+                            type="number"
+                            min="1"
+                            value={formData.numberOfFloors ?? ''}
+                            onChange={(e) => {
+                                const value = e.target.value ? parseInt(e.target.value) : null;
+                                setFormData(prev => ({ ...prev, numberOfFloors: value }));
+                            }}
+                            placeholder="Nhập số tầng (tùy chọn)"
+                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:border-emerald-500 focus:ring-emerald-100"
+                        />
+                    </div>
 
                     {/* <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
