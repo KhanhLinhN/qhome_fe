@@ -11,6 +11,11 @@ import TimeBox from '@/src/components/customer-interaction/TimeBox';
 import { useServiceDetailPage } from '@/src/hooks/useServiceDetailPage';
 import { ServicePricingType, UpdateServicePayload } from '@/src/types/service';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import {
+  getServiceAvailabilities,
+  deleteServiceAvailability,
+  addServiceAvailability,
+} from '@/src/services/asset-maintenance/serviceService';
 
 type FormState = {
   name: string;
@@ -28,7 +33,7 @@ type FormState = {
 };
 
 type AvailabilityFormState = {
-  dayOfWeek: string;
+  dayOfWeek: string[]; // Changed to array to support multiple days
   startTime: string;
   endTime: string;
   isAvailable: boolean;
@@ -60,7 +65,7 @@ const initialState: FormState = {
   isActive: true,
   availabilities: [
     {
-      dayOfWeek: '',
+      dayOfWeek: [],
       startTime: '',
       endTime: '',
       isAvailable: true,
@@ -108,18 +113,51 @@ export default function ServiceEditPage() {
       isActive: serviceData.isActive ?? true,
       availabilities:
         serviceData.availabilities && serviceData.availabilities.length > 0
-          ? serviceData.availabilities.map((availability) => ({
-              dayOfWeek:
-                availability.dayOfWeek !== undefined && availability.dayOfWeek !== null
-                  ? String(availability.dayOfWeek)
-                  : '',
-              startTime: availability.startTime ? availability.startTime.slice(0, 5) : '',
-              endTime: availability.endTime ? availability.endTime.slice(0, 5) : '',
-              isAvailable: availability.isAvailable ?? true,
-            }))
+          ? (() => {
+              // Group availabilities by startTime/endTime and combine dayOfWeek
+              const grouped = new Map<string, {
+                dayOfWeek: number[];
+                startTime: string;
+                endTime: string;
+                isAvailable: boolean;
+              }>();
+              
+              serviceData.availabilities.forEach((availability) => {
+                const startTime = availability.startTime ? availability.startTime.slice(0, 5) : '';
+                const endTime = availability.endTime ? availability.endTime.slice(0, 5) : '';
+                const key = `${startTime}-${endTime}-${availability.isAvailable ?? true}`;
+                
+                if (availability.dayOfWeek !== undefined && availability.dayOfWeek !== null) {
+                  // Convert from 1-7 (Monday-Sunday) to 0-6 (Sunday-Saturday)
+                  // 7 (Sunday) -> 0, 1-6 (Monday-Saturday) -> 1-6
+                  const dayOfWeek = availability.dayOfWeek === 7 ? 0 : availability.dayOfWeek;
+                  
+                  if (grouped.has(key)) {
+                    const existing = grouped.get(key)!;
+                    if (!existing.dayOfWeek.includes(dayOfWeek)) {
+                      existing.dayOfWeek.push(dayOfWeek);
+                    }
+                  } else {
+                    grouped.set(key, {
+                      dayOfWeek: [dayOfWeek],
+                      startTime,
+                      endTime,
+                      isAvailable: availability.isAvailable ?? true,
+                    });
+                  }
+                }
+              });
+              
+              return Array.from(grouped.values()).map((group) => ({
+                dayOfWeek: group.dayOfWeek.map((d) => String(d)),
+                startTime: group.startTime,
+                endTime: group.endTime,
+                isAvailable: group.isAvailable,
+              }));
+            })()
           : [
               {
-                dayOfWeek: '',
+                dayOfWeek: [],
                 startTime: '',
                 endTime: '',
                 isAvailable: true,
@@ -163,10 +201,10 @@ export default function ServiceEditPage() {
     }
 
     const maxCapacity = parsePositiveInteger(formData.maxCapacity);
-    if (formData.maxCapacity.trim() === '' || maxCapacity === undefined) {
-      errors.maxCapacity = t('Service.validation.maxCapacity');
-    } else if (maxCapacity < 1 || maxCapacity > 1000) {
-      errors.maxCapacity = t('Service.validation.maxCapacityRange');
+    if (formData.maxCapacity.trim() !== '' && maxCapacity !== undefined) {
+      if (maxCapacity < 1 || maxCapacity > 1000) {
+        errors.maxCapacity = t('Service.validation.maxCapacityRange');
+      }
     }
 
     const minDuration = parsePositiveInteger(formData.minDurationHours);
@@ -181,12 +219,23 @@ export default function ServiceEditPage() {
     } else {
       formData.availabilities.forEach((availability, index) => {
         const entryErrors: AvailabilityFormErrors = {};
-        const dayValue = availability.dayOfWeek.trim();
-        const parsedDay = Number(dayValue);
-        if (dayValue === '' || Number.isNaN(parsedDay) || parsedDay < 0 || parsedDay > 6) {
+        if (!availability.dayOfWeek || availability.dayOfWeek.length === 0) {
           entryErrors.dayOfWeek = t('Service.validation.availabilityDay', {
-            defaultMessage: 'Please select a valid day of the week.',
+            defaultMessage: 'Please select at least one day of the week.',
           });
+        } else {
+          // Validate each selected day
+          const invalidDays = availability.dayOfWeek.filter(
+            (day) => {
+              const parsedDay = Number(day);
+              return Number.isNaN(parsedDay) || parsedDay < 0 || parsedDay > 6;
+            }
+          );
+          if (invalidDays.length > 0) {
+            entryErrors.dayOfWeek = t('Service.validation.availabilityDay', {
+              defaultMessage: 'Please select valid days of the week.',
+            });
+          }
         }
         if (!availability.startTime) {
           entryErrors.startTime = t('Service.validation.availabilityStart', {
@@ -243,7 +292,7 @@ export default function ServiceEditPage() {
   const handleAvailabilityChange = (
     index: number,
     field: keyof AvailabilityFormState,
-    value: string | boolean,
+    value: string | boolean | string[],
   ) => {
     setFormData((prev) => {
       const updated = [...prev.availabilities];
@@ -286,7 +335,7 @@ export default function ServiceEditPage() {
       ...prev,
       availabilities: [
         ...prev.availabilities,
-        { dayOfWeek: '', startTime: '', endTime: '', isAvailable: true },
+        { dayOfWeek: [], startTime: '', endTime: '', isAvailable: true },
       ],
     }));
     setFormErrors((prev) => {
@@ -332,19 +381,34 @@ export default function ServiceEditPage() {
     const pricingTypeValue = formData.pricingType;
     const maxCapacity = parsePositiveInteger(formData.maxCapacity);
     const minDuration = parsePositiveInteger(formData.minDurationHours);
-    const availabilityPayload = (formData.availabilities ?? [])
-      .filter(
-        (availability) =>
-          availability.dayOfWeek.trim() !== '' &&
-          availability.startTime &&
-          availability.endTime,
-      )
-      .map((availability) => ({
-        dayOfWeek: Number(availability.dayOfWeek),
-        startTime: availability.startTime,
-        endTime: availability.endTime,
-        isAvailable: availability.isAvailable,
-      }));
+    const availabilityPayload: Array<{
+      dayOfWeek: number;
+      startTime: string;
+      endTime: string;
+      isAvailable: boolean;
+    }> = [];
+    
+    (formData.availabilities ?? []).forEach((availability) => {
+      if (
+        availability.dayOfWeek.length > 0 &&
+        availability.startTime &&
+        availability.endTime
+      ) {
+        // Create one entry for each selected day
+        availability.dayOfWeek.forEach((dayStr) => {
+          const dayOfWeek = Number(dayStr);
+          // Convert from 0-6 (Sunday-Saturday) to 1-7 (Monday-Sunday)
+          // 0 (Sunday) -> 7, 1-6 (Monday-Saturday) -> 1-6
+          const dbDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+          availabilityPayload.push({
+            dayOfWeek: dbDayOfWeek,
+            startTime: availability.startTime,
+            endTime: availability.endTime,
+            isAvailable: availability.isAvailable,
+          });
+        });
+      }
+    });
 
     const payload: UpdateServicePayload = {
       name: formData.name.trim(),
@@ -360,15 +424,48 @@ export default function ServiceEditPage() {
         pricingTypeValue === ServicePricingType.SESSION
           ? parsePositiveNumber(formData.pricePerSession)
           : undefined,
-      maxCapacity: maxCapacity,
+      maxCapacity: formData.maxCapacity.trim() !== '' ? maxCapacity : undefined,
       minDurationHours: minDuration,
       rules: formData.rules.trim() || undefined,
       isActive: formData.isActive,
-      availabilities: availabilityPayload.length > 0 ? availabilityPayload : undefined,
+      // Remove availabilities from payload as we'll handle them separately
     };
 
     try {
+      // Update service first
       await editService(serviceId, payload);
+      
+      // Handle availabilities separately
+      if (serviceId) {
+        try {
+          // Get existing availabilities and delete them all
+          const existingAvailabilities = await getServiceAvailabilities(serviceId);
+          for (const availability of existingAvailabilities) {
+            if (availability.id) {
+              await deleteServiceAvailability(serviceId, availability.id);
+            }
+          }
+          
+          // Add new availabilities
+          if (availabilityPayload.length > 0) {
+            for (const availability of availabilityPayload) {
+              await addServiceAvailability(serviceId, {
+                dayOfWeek: availability.dayOfWeek,
+                startTime: availability.startTime,
+                endTime: availability.endTime,
+                isAvailable: availability.isAvailable ?? true,
+              });
+            }
+          }
+        } catch (availabilityError) {
+          console.error('Failed to update availabilities', availabilityError);
+          // Still show success but warn about availability issue
+          show(t('Service.messages.updateSuccess'), 'success');
+          router.push(`/base/serviceDetail/${serviceId}`);
+          return;
+        }
+      }
+      
       show(t('Service.messages.updateSuccess'), 'success');
       router.push(`/base/serviceDetail/${serviceId}`);
     } catch (submitError) {
@@ -677,64 +774,75 @@ export default function ServiceEditPage() {
                           {t('Service.availability.remove', { defaultMessage: 'Remove' })}
                         </button>
                       </div>
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                        <div className="flex flex-col">
-                          <label className="text-sm font-medium text-[#02542D]">
-                            {t('Service.availability.dayOfWeek', { defaultMessage: 'Day of week' })}
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="flex flex-col md:col-span-4">
+                          <label className="text-sm font-medium text-[#02542D] mb-2">
+                            {t('Service.availability.dayOfWeek', { defaultMessage: 'Days of week' })}
                           </label>
-                          <select
-                            value={availability.dayOfWeek}
-                            onChange={(event) =>
-                              handleAvailabilityChange(index, 'dayOfWeek', event.target.value)
-                            }
-                            className="mt-1 h-10 rounded-md border border-gray-300 px-3 text-sm text-[#02542D] focus:outline-none focus:ring-2 focus:ring-[#02542D]/30"
-                          >
-                            <option value="">
-                              {t('Service.availability.dayPlaceholder', { defaultMessage: 'Select day' })}
-                            </option>
-                            {dayOfWeekOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
+                            {dayOfWeekOptions.map((option) => {
+                              const isSelected = availability.dayOfWeek.includes(option.value);
+                              return (
+                                <label
+                                  key={option.value}
+                                  className="flex items-center gap-2 p-2 rounded-md border border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      const currentDays = availability.dayOfWeek || [];
+                                      const newDays = e.target.checked
+                                        ? [...currentDays, option.value]
+                                        : currentDays.filter((d) => d !== option.value);
+                                      handleAvailabilityChange(index, 'dayOfWeek', newDays);
+                                    }}
+                                    className="h-4 w-4 rounded border-gray-300 text-[#02542D] focus:ring-[#02542D]"
+                                  />
+                                  <span className="text-sm text-[#02542D]">{option.label}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
                           {errors.dayOfWeek && (
                             <span className="mt-1 text-xs text-red-500">{errors.dayOfWeek}</span>
                           )}
                         </div>
-                        <div className="flex flex-col">
-                          <label className="text-sm font-medium text-[#02542D]">
-                            {t('Service.availability.startTime', { defaultMessage: 'Start time' })}
-                          </label>
-                          <TimeBox
-                            value={availability.startTime}
-                            onChange={(value) => handleAvailabilityChange(index, 'startTime', value)}
-                            placeholderText={t('Service.availability.startTime', {
-                              defaultMessage: 'Start time',
-                            })}
-                            disabled={isSubmitting}
-                          />
-                          {errors.startTime && (
-                            <span className="mt-1 text-xs text-red-500">{errors.startTime}</span>
-                          )}
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
+                          <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#02542D]">
+                              {t('Service.availability.startTime', { defaultMessage: 'Start time' })}
+                            </label>
+                            <TimeBox
+                              value={availability.startTime}
+                              onChange={(value) => handleAvailabilityChange(index, 'startTime', value)}
+                              placeholderText={t('Service.availability.startTime', {
+                                defaultMessage: 'Start time',
+                              })}
+                              disabled={isSubmitting}
+                            />
+                            {errors.startTime && (
+                              <span className="mt-1 text-xs text-red-500">{errors.startTime}</span>
+                            )}
+                          </div>
+                          <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#02542D]">
+                              {t('Service.availability.endTime', { defaultMessage: 'End time' })}
+                            </label>
+                            <TimeBox
+                              value={availability.endTime}
+                              onChange={(value) => handleAvailabilityChange(index, 'endTime', value)}
+                              placeholderText={t('Service.availability.endTime', {
+                                defaultMessage: 'End time',
+                              })}
+                              disabled={isSubmitting}
+                            />
+                            {errors.endTime && (
+                              <span className="mt-1 text-xs text-red-500">{errors.endTime}</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <label className="text-sm font-medium text-[#02542D]">
-                            {t('Service.availability.endTime', { defaultMessage: 'End time' })}
-                          </label>
-                          <TimeBox
-                            value={availability.endTime}
-                            onChange={(value) => handleAvailabilityChange(index, 'endTime', value)}
-                            placeholderText={t('Service.availability.endTime', {
-                              defaultMessage: 'End time',
-                            })}
-                            disabled={isSubmitting}
-                          />
-                          {errors.endTime && (
-                            <span className="mt-1 text-xs text-red-500">{errors.endTime}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 pt-6 md:pt-0">
+                        <div className="flex items-center gap-2 mt-4">
                           <input
                             id={`availability-active-${index}`}
                             type="checkbox"

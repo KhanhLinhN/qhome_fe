@@ -511,7 +511,7 @@ export default function BuildingAdd () {
                         error={errors.name}
                     />
 
-                    <div className={`flex flex-col mb-4 col-span-1`}>
+                    {/* <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
                             {tProject('status')}
                         </label>
@@ -526,7 +526,7 @@ export default function BuildingAdd () {
                             getValue={(item) => item.value}
                             placeholder={tProject('status')}
                         />
-                    </div>
+                    </div> */}
 
                     {/* Address structured selectors */}
                     <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -94,7 +94,7 @@ const adminSections: NavSection[] = [
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
       {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
-      {href: "/customer-interaction/requestTicket", labelKey: "tickets", icon: "🎫"},
+      // {href: "/customer-interaction/requestTicket", labelKey: "tickets", icon: "🎫"},
     ],
   },
 ];
@@ -170,15 +170,58 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
 
   const sections = menuConfig[resolvedVariant];
 
-  // Initialize all sections as collapsed (closed) by default
+  // Helper function to check if a pathname matches an item
+  const isItemActive = (item: NavItem, currentPath: string): boolean => {
+    return currentPath === item.href || currentPath.startsWith(`${item.href}/`);
+  };
+
+  // Helper function to find sections that should be open (contain active items)
+  const getOpenSections = (sections: NavSection[], currentPath: string): Set<string> => {
+    const openSections = new Set<string>();
+    sections.forEach(section => {
+      const hasActiveItem = section.items.some(item => isItemActive(item, currentPath));
+      if (hasActiveItem) {
+        openSections.add(section.titleKey);
+      }
+    });
+    return openSections;
+  };
+
+  // Initialize sections: all collapsed except those containing active items
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
-    return new Set(sections.map(section => section.titleKey));
+    const allSections = new Set(sections.map(section => section.titleKey));
+    const openSections = getOpenSections(sections, pathname);
+    // Remove open sections from collapsed set
+    openSections.forEach(key => allSections.delete(key));
+    return allSections;
   });
 
-  // Update collapsed sections when variant changes (reset to all closed)
+  // Track previous variant to detect variant changes
+  const prevVariantRef = React.useRef(resolvedVariant);
+
+  // Update collapsed sections when variant or pathname changes
   React.useEffect(() => {
-    setCollapsedSections(new Set(sections.map(section => section.titleKey)));
-  }, [resolvedVariant]);
+    const variantChanged = prevVariantRef.current !== resolvedVariant;
+    prevVariantRef.current = resolvedVariant;
+
+    if (variantChanged) {
+      // When variant changes, reset all sections and open only those with active items
+      const allSections = new Set(sections.map(section => section.titleKey));
+      const openSections = getOpenSections(sections, pathname);
+      openSections.forEach(key => allSections.delete(key));
+      setCollapsedSections(allSections);
+    } else {
+      // When only pathname changes, ensure sections with active items are open
+      // but keep other open sections as they are
+      setCollapsedSections(prev => {
+        const newSet = new Set(prev);
+        const openSections = getOpenSections(sections, pathname);
+        // Remove sections with active items from collapsed set (open them)
+        openSections.forEach(key => newSet.delete(key));
+        return newSet;
+      });
+    }
+  }, [resolvedVariant, pathname, sections]);
 
   const toggleSection = (sectionKey: string) => {
     setCollapsedSections(prev => {
@@ -193,8 +236,8 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
   };
 
   return (
-    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen">
-      <nav className="p-3 space-y-6 overflow-y-auto flex-1">
+    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen max-h-screen overflow-hidden">
+      <nav className="p-3 space-y-6 overflow-y-auto overflow-x-hidden flex-1 min-h-0 max-h-full">
         {sections.map((section) => {
           const isCollapsed = collapsedSections.has(section.titleKey);
           return (

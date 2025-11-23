@@ -20,6 +20,7 @@ import {
 import { useNotifications } from '@/src/hooks/useNotifications';
 import CycleModal from '@/src/components/water/CycleModal';
 import StatusChangeModal from '@/src/components/water/StatusChangeModal';
+import PopupConfirm from '@/src/components/common/PopupComfirm';
 
 export default function ReadingCyclesPage() {
   const { user, hasRole } = useAuth();
@@ -36,6 +37,8 @@ export default function ReadingCyclesPage() {
   const [serviceFilter, setServiceFilter] = useState<string>('ALL');
   const [services, setServices] = useState<ServiceDto[]>([]);
   const [monthFilter, setMonthFilter] = useState('ALL');
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [cycleToDelete, setCycleToDelete] = useState<string | null>(null);
 
   // Load cycles on mount
   useEffect(() => {
@@ -172,19 +175,32 @@ export default function ReadingCyclesPage() {
   };
 
   const handleOpenStatusChange = (cycle: ReadingCycleDto) => {
+    // Chỉ cho phép đổi trạng thái nếu là tháng hiện tại
+    if (!isCurrentMonth(cycle)) {
+      show('Chỉ có thể đổi trạng thái cycle cùng tháng hiện tại', 'error');
+      return;
+    }
     setCycleForStatusChange(cycle);
     setIsStatusChangeOpen(true);
   };
 
-  const handleDelete = async (cycleId: string) => {
-    if (!confirm('Are you sure you want to delete this reading cycle?')) return;
+  const handleDeleteClick = (cycleId: string) => {
+    setCycleToDelete(cycleId);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!cycleToDelete) return;
 
     try {
-      await deleteReadingCycle(cycleId);
+      await deleteReadingCycle(cycleToDelete);
       show('Reading cycle deleted successfully', 'success');
       loadCycles();
     } catch (error: any) {
       show(error?.message || 'Failed to delete reading cycle', 'error');
+    } finally {
+      setIsDeleteConfirmOpen(false);
+      setCycleToDelete(null);
     }
   };
 
@@ -360,7 +376,7 @@ export default function ReadingCyclesPage() {
                           />
                         </button>
                         <button
-                          onClick={() => handleDelete(cycle.id)}
+                          onClick={() => handleDeleteClick(cycle.id)}
                           className="p-2 rounded-lg bg-red-500 hover:bg-[#991b1b] transition duration-150"
                         >
                           <Image 
@@ -433,6 +449,19 @@ export default function ReadingCyclesPage() {
           onStatusChange={handleStatusChange}
         />
       )}
+
+      {/* Delete Confirm Popup */}
+      <PopupConfirm
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => {
+          setIsDeleteConfirmOpen(false);
+          setCycleToDelete(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        popupTitle="Xác nhận xóa"
+        popupContext="Bạn có chắc chắn muốn xóa reading cycle này không?"
+        isDanger={true}
+      />
     </div>
   );
 }

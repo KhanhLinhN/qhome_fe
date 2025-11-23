@@ -16,8 +16,8 @@ export default function RequestDetailPage() {
     const params = useParams();
 
     const requestId = params.id
-    const { requestData, logData, loading, error, addLog, isSubmitting } = useRequestDetails(requestId);
-    const isUnactive = requestData?.status === 'Done'
+    const { requestData, logData, loading, error, addLog, updateFee, acceptOrDenyRequest, isSubmitting } = useRequestDetails(requestId);
+    const isUnactive = requestData?.status === 'Done' || requestData?.status === 'Pending';
 
     const handleBack = () => {
         router.back(); // Navigate to the previous page
@@ -25,6 +25,11 @@ export default function RequestDetailPage() {
 
     const handleSaveLog = async (data: LogUpdateData) => {
         try {
+            // If repairCost is provided, update fee first
+            if (data.repairCost !== undefined && data.repairCost !== null) {
+                await updateFee(data.repairCost);
+            }
+            // Then create the log
             await addLog(data);
         } catch (err) {
           console.error("Save failed:", err);
@@ -74,6 +79,7 @@ export default function RequestDetailPage() {
                 <RequestLogUpdate
                   initialStatusValue={requestData.status ?? 'Processing'}
                   onSave={handleSaveLog}
+                  onAcceptDeny={acceptOrDenyRequest}
                   unactive={false}
                   isSubmitting={isSubmitting}
                 />

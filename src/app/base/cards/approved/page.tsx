@@ -106,9 +106,19 @@ export default function ApprovedCardsAdminPage() {
     }
   };
 
-  const filteredCards = selectedCardType
-    ? cards.filter((card) => card.cardType === selectedCardType)
-    : cards;
+  const filteredCards = cards
+    .filter((card) => {
+      // Loại bỏ các card có status inactive
+      const status = card.status?.toUpperCase();
+      return status !== 'INACTIVE';
+    })
+    .filter((card) => {
+      // Filter theo loại thẻ nếu có chọn
+      if (selectedCardType) {
+        return card.cardType === selectedCardType;
+      }
+      return true;
+    });
 
   return (
     <div className="space-y-6">

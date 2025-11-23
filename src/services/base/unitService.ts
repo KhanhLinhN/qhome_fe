@@ -103,6 +103,22 @@ export async function deleteUnit(id: string): Promise<void> {
 }
 
 /**
+ * PATCH /api/units/:id/status
+ * Updates unit status (similar to buildings)
+ */
+export async function updateUnitStatus(id: string, status: string): Promise<void> {
+  const response = await axios.patch(
+    `${BASE_URL}/api/units/${id}/status`,
+    null,
+    { 
+      params: { status },
+      withCredentials: true 
+    }
+  );
+  return response.data;
+}
+
+/**
  * GET /api/units/check-code?code=:code&buildingId=:buildingId
  */
 export async function checkUnitCodeExists(code: string, buildingId: string): Promise<boolean> {

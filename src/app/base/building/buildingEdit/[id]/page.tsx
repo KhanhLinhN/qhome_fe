@@ -394,7 +394,7 @@ export default function BuildingEdit() {
                         placeholder={t('buildingCode')}
                     />
 
-                    <div className={`flex flex-col mb-4 col-span-1`}>
+                    {/* <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">
                             {tProject('status')}
                         </label>
@@ -409,7 +409,7 @@ export default function BuildingEdit() {
                             getValue={(item) => item.value}
                             placeholder={tProject('status')}
                         />
-                    </div>
+                    </div> */}
 
                     <DetailField
                         label={t('buildingName')}
