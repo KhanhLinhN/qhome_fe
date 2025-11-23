@@ -19,14 +19,70 @@ const statusOptions = [
   { value: 'APPROVED', label: 'Đã duyệt' },
   { value: 'COMPLETED', label: 'Đã hoàn tất' },
   { value: 'REJECTED', label: 'Đã từ chối' },
+  { value: 'CANCELLED', label: 'Đã hủy' },
 ];
 
 const paymentStatusOptions = [
-  { value: '', label: 'Tất cả thanh toán' },
+  { value: '', label: 'Tất cả trạng thái' },
   { value: 'UNPAID', label: 'Chưa thanh toán' },
   { value: 'PAYMENT_PENDING', label: 'Đang thanh toán' },
   { value: 'PAID', label: 'Đã thanh toán' },
 ];
+
+const statusConfig: Record<string, { label: string; className: string }> = {
+  PENDING: {
+    label: 'Chờ duyệt',
+    className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  },
+  READY_FOR_PAYMENT: {
+    label: 'Chờ thanh toán',
+    className: 'bg-orange-50 text-orange-700 border-orange-200',
+  },
+  PAYMENT_PENDING: {
+    label: 'Đang thanh toán',
+    className: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  APPROVED: {
+    label: 'Đã duyệt',
+    className: 'bg-green-50 text-green-700 border-green-200',
+  },
+  COMPLETED: {
+    label: 'Đã hoàn tất',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  REJECTED: {
+    label: 'Đã từ chối',
+    className: 'bg-red-50 text-red-600 border-red-200',
+  },
+  CANCELLED: {
+    label: 'Đã hủy',
+    className: 'bg-slate-50 text-slate-600 border-slate-200',
+  },
+};
+
+const paymentStatusConfig: Record<string, { label: string; className: string }> = {
+  UNPAID: {
+    label: 'Chưa thanh toán',
+    className: 'bg-red-50 text-red-700 border-red-200',
+  },
+  PAYMENT_PENDING: {
+    label: 'Đang thanh toán',
+    className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  },
+  PAYMENT_APPROVAL: {
+    label: 'Đang chờ xác nhận',
+    className: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  PAID: {
+    label: 'Đã thanh toán',
+    className: 'bg-green-50 text-green-700 border-green-200',
+  },
+};
+
+const requestTypeConfig: Record<string, string> = {
+  NEW_CARD: 'Thẻ mới',
+  RENEWAL: 'Gia hạn',
+};
 
 export default function ElevatorCardAdminPage() {
   const [registrations, setRegistrations] = useState<CardRegistration[]>([]);
@@ -256,14 +312,34 @@ export default function ElevatorCardAdminPage() {
                           : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                          {item.status}
-                        </span>
+                        {(() => {
+                          const statusStyle = statusConfig[item.status] ?? {
+                            label: item.status,
+                            className: 'bg-gray-100 text-gray-700 border-gray-200',
+                          };
+                          return (
+                            <span
+                              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusStyle.className}`}
+                            >
+                              {statusStyle.label}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                          {item.paymentStatus}
-                        </span>
+                        {(() => {
+                          const paymentStyle = paymentStatusConfig[item.paymentStatus] ?? {
+                            label: item.paymentStatus,
+                            className: 'bg-gray-50 text-gray-700 border-gray-200',
+                          };
+                          return (
+                            <span
+                              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${paymentStyle.className}`}
+                            >
+                              {paymentStyle.label}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -324,13 +400,16 @@ export default function ElevatorCardAdminPage() {
                 <DetailRow label="Số điện thoại" value={selected.phoneNumber} />
                 <DetailRow
                   label="Loại yêu cầu"
-                  value={selected.requestType}
+                  value={requestTypeConfig[selected.requestType] ?? selected.requestType}
                 />
                 <DetailRow label="Ghi chú" value={selected.note} />
-                <DetailRow label="Trạng thái" value={selected.status} />
+                <DetailRow 
+                  label="Trạng thái" 
+                  value={statusConfig[selected.status]?.label ?? selected.status} 
+                />
                 <DetailRow
                   label="Trạng thái thanh toán"
-                  value={selected.paymentStatus}
+                  value={paymentStatusConfig[selected.paymentStatus]?.label ?? selected.paymentStatus}
                 />
                 <DetailRow
                   label="Số tiền"

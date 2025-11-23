@@ -82,6 +82,17 @@ export default function ApprovedCardsAdminPage() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return 'Đã duyệt';
+      case 'COMPLETED':
+        return 'Đã hoàn tất';
+      default:
+        return status;
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'APPROVED':
@@ -93,12 +104,29 @@ export default function ApprovedCardsAdminPage() {
     }
   };
 
+  const getPaymentStatusLabel = (paymentStatus: string) => {
+    switch (paymentStatus) {
+      case 'PAID':
+        return 'Đã thanh toán';
+      case 'PAYMENT_PENDING':
+        return 'Đang thanh toán';
+      case 'PAYMENT_APPROVAL':
+        return 'Đang chờ xác nhận';
+      case 'UNPAID':
+        return 'Chưa thanh toán';
+      default:
+        return paymentStatus;
+    }
+  };
+
   const getPaymentStatusColor = (paymentStatus: string) => {
     switch (paymentStatus) {
       case 'PAID':
         return 'bg-emerald-50 text-emerald-700';
       case 'PAYMENT_PENDING':
         return 'bg-yellow-50 text-yellow-700';
+      case 'PAYMENT_APPROVAL':
+        return 'bg-blue-50 text-blue-700';
       case 'UNPAID':
         return 'bg-red-50 text-red-700';
       default:
@@ -241,7 +269,7 @@ export default function ApprovedCardsAdminPage() {
                           card.status
                         )}`}
                       >
-                        {card.status}
+                        {getStatusLabel(card.status)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -250,7 +278,7 @@ export default function ApprovedCardsAdminPage() {
                           card.paymentStatus
                         )}`}
                       >
-                        {card.paymentStatus}
+                        {getPaymentStatusLabel(card.paymentStatus)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-700">

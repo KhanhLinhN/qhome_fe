@@ -16,3 +16,10 @@ export async function fetchResidentById(residentId: string): Promise<ResidentSum
   return response.data;
 }
 
+export async function fetchResidentByUserId(userId: string): Promise<ResidentSummary> {
+  const response = await axios.get<ResidentSummary>(`${BASE_URL}/api/residents/by-user/${userId}`, {
+    withCredentials: true,
+  });
+  return response.data;
+}
+
