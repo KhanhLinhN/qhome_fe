@@ -332,11 +332,8 @@ export default function AccountNewResidentPage() {
     
     const age = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
     
-    if (age < 0) {
-      return 'Ngày sinh không thể trong tương lai.';
-    }
-    if (age === 0) {
-      return 'Tuổi phải lớn hơn 0.';
+    if (age <= 18) {
+      return 'Tuổi phải lớn hơn 18.';
     }
     if (age >= 200) {
       return 'Tuổi phải nhỏ hơn 200.';

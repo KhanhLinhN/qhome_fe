@@ -12,6 +12,8 @@ import { Page, Service, ServiceCategory } from '@/src/types/service';
 import {
   deleteServiceCategory,
   getServices,
+  updateServiceCategoryStatus,
+  updateService,
 } from '@/src/services/asset-maintenance/serviceService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 
@@ -239,9 +241,16 @@ export default function ServiceCategoryListPage() {
     if (!selectedCategory || isSubmitting) return;
     if (!validate()) return;
 
+    // Đảm bảo code luôn có giá trị hợp lệ
+    const categoryCode = selectedCategory.code?.trim() || formState.code.trim();
+    if (!categoryCode) {
+      show(t('messages.updateError'), 'error');
+      return;
+    }
+
     try {
       await updateCategory(selectedCategory.id, {
-        code: formState.code.trim(),
+        code: categoryCode,
         name: formState.name.trim(),
         description: formState.description.trim() || undefined,
         sortOrder: formState.sortOrder
@@ -424,9 +433,28 @@ export default function ServiceCategoryListPage() {
         onConfirm={async () => {
           if (!statusTargetId || statusTargetNew === null) return;
           try {
-            await updateCategory(statusTargetId, { isActive: statusTargetNew });
+            await updateServiceCategoryStatus(statusTargetId, statusTargetNew);
+            
+            // Nếu change status category thành inactive, thì cũng change status của tất cả services trong category đó thành inactive
+            if (statusTargetNew === false) {
+              const servicesInCategory = services.filter(
+                (service) => (service.categoryId ?? service.category?.id) === statusTargetId
+              );
+              
+              // Update status của tất cả services trong category thành inactive
+              await Promise.all(
+                servicesInCategory.map((service) =>
+                  updateService(service.id, { isActive: false }).catch((err) => {
+                    console.error(`Failed to update service ${service.id}:`, err);
+                    // Continue với các services khác nếu một service fail
+                  })
+                )
+              );
+            }
+            
             show(t('messages.updateSuccess'), 'success');
             await refetch();
+            await fetchServices();
           } catch (err) {
             console.error('Failed to change status for service category', err);
             show(t('messages.updateError'), 'error');

@@ -6,9 +6,10 @@ interface DateBoxProps {
     value: string;
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     placeholderText?: string;
+    min?: string;
 };
 
-const DateBox = ({ value, onChange, placeholderText } : DateBoxProps) => { 
+const DateBox = ({ value, onChange, placeholderText, min } : DateBoxProps) => { 
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleIconClick = () => {
@@ -23,7 +24,8 @@ const DateBox = ({ value, onChange, placeholderText } : DateBoxProps) => {
                 className="text-[#38A169] w-full flex-grow h-full bg-transparent hide-date-icon focus:ring-0 focus:outline-none pl-3 pr-2" 
                 value={value}
                 onChange={onChange}
-                data-placeholder={placeholderText} 
+                data-placeholder={placeholderText}
+                min={min}
             />
             <Image
                 src={CalendarIcon}

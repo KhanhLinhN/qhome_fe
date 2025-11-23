@@ -8,7 +8,7 @@ export default function NotFoundPage() {
   const router = useRouter();
 
   const handleBack = () => {
-    router.push('/');
+    router.push('/dashboard');
   };
 
   return (

@@ -9,8 +9,21 @@ export interface ResidentSummary {
   email?: string | null;
 }
 
-export async function fetchResidentById(residentId: string): Promise<ResidentSummary> {
-  const response = await axios.get<ResidentSummary>(`${BASE_URL}/api/residents/${residentId}`, {
+export interface ResidentDto {
+  id: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  nationalId: string | null;
+  dob: string | null;
+  status: string;
+  userId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchResidentByIdForAdmin(residentId: string): Promise<ResidentDto> {
+  const response = await axios.get<ResidentDto>(`${BASE_URL}/api/residents/by-user/${residentId}`, {
     withCredentials: true,
   });
   return response.data;

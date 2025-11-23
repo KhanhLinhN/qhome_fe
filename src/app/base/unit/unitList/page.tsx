@@ -9,11 +9,14 @@ import { useRouter } from 'next/navigation';
 import EditTable from '@/src/assets/EditTable.svg';
 import { useUnitPage } from '@/src/hooks/useUnitPage';
 import { Unit } from '@/src/types/unit';
+import { updateUnitStatus } from '@/src/services/base/unitService';
+import PopupConfirm from '@/src/components/common/PopupComfirm';
 
 type UnitWithContext = Unit & {
   buildingId: string;
   buildingName?: string | null;
   buildingCode?: string | null;
+  buildingStatus?: string | null;
 };
 
 const normalizeText = (value?: string | null) => value?.toLowerCase().trim() ?? '';
@@ -28,6 +31,12 @@ export default function UnitListPage() {
   const [unitSearch, setUnitSearch] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  // Change unit status with confirmation
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedUnitStatus, setSelectedUnitStatus] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const unitsWithContext = useMemo<UnitWithContext[]>(() => {
     const result: UnitWithContext[] = [];
 
@@ -38,6 +47,7 @@ export default function UnitListPage() {
           buildingId: building.id,
           buildingName: building.name,
           buildingCode: building.code,
+          buildingStatus: building.status,
         });
       });
     });
@@ -111,6 +121,46 @@ export default function UnitListPage() {
 
   const handleSelectBuilding = (buildingId: string) => {
     setSelectedBuildingId(buildingId);
+  };
+
+  const onUnitStatusChange = (unitId: string) => {
+    const unit = unitsToDisplay.find(u => u.id === unitId);
+    setSelectedUnitId(unitId);
+    setSelectedUnitStatus(unit?.status ?? null);
+    setConfirmOpen(true);
+    setErrorMessage(null);
+  };
+
+  const handleConfirmChange = async () => {
+    if (!selectedUnitId || !selectedUnitStatus) {
+      setConfirmOpen(false);
+      return;
+    }
+    const newStatus = selectedUnitStatus?.toUpperCase() === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    try {
+      await updateUnitStatus(selectedUnitId, newStatus);
+      
+      setConfirmOpen(false);
+      setSelectedUnitId(null);
+      setSelectedUnitStatus(null);
+      window.location.reload();
+    } catch (e: any) {
+      console.error('Error updating unit status:', e);
+      const errorMsg = e?.response?.data?.message || e?.message || 'Cập nhật trạng thái căn hộ thất bại';
+      setErrorMessage(errorMsg);
+      setConfirmOpen(false);
+      // Auto hide error message after 5 seconds
+      setTimeout(() => {
+        setErrorMessage(null);
+      }, 5000);
+    }
+  };
+
+  const handleCloseConfirm = () => {
+    setConfirmOpen(false);
+    setSelectedUnitId(null);
+    setSelectedUnitStatus(null);
+    setErrorMessage(null);
   };
 
   if (loading) {
@@ -203,26 +253,33 @@ export default function UnitListPage() {
                         Không có dữ liệu
                       </div>
                     ) : (
-                      filteredBuildings.map((building) => (
-                        <button
-                          key={building.id}
-                          type="button"
-                          onClick={() => handleSelectBuilding(building.id)}
-                          className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition ${
-                            selectedBuildingId === building.id
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                              : 'border-transparent hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex flex-1 flex-col">
-                            <span className="font-semibold text-[#02542D]">{building.name}</span>
-                            <span className="text-xs text-slate-500">{building.code}</span>
-                          </div>
-                          <span className="text-xs font-medium text-slate-500">
-                            {building.units?.length ?? 0}
-                          </span>
-                        </button>
-                      ))
+                      filteredBuildings.map((building) => {
+                        const isInactive = building.status?.toUpperCase() === 'INACTIVE';
+                        return (
+                          <button
+                            key={building.id}
+                            type="button"
+                            onClick={() => handleSelectBuilding(building.id)}
+                            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition ${
+                              isInactive
+                                ? 'border-slate-300 bg-slate-100 text-slate-500 cursor-default'
+                                : selectedBuildingId === building.id
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : 'border-transparent hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex flex-1 flex-col">
+                              <span className={`font-semibold ${isInactive ? 'text-slate-500' : 'text-[#02542D]'}`}>
+                                {building.name}
+                              </span>
+                              <span className="text-xs text-slate-500">{building.code}</span>
+                            </div>
+                            <span className="text-xs font-medium text-slate-500">
+                              {building.units?.length ?? 0}
+                            </span>
+                          </button>
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -299,52 +356,110 @@ export default function UnitListPage() {
                     </td>
                   </tr>
                 ) : (
-                  unitsToDisplay.map((unit) => (
-                    <tr key={unit.id} className="hover:bg-emerald-50/40">
-                      <td className="px-4 py-3 font-medium text-slate-800">{unit.code}</td>
-                      <td className="px-4 py-3 text-slate-600">
-                        <div className="flex flex-col">
-                          <span>{unit.buildingName ?? '-'}</span>
-                          <span className="text-xs text-slate-500">{unit.buildingCode ?? '-'}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">{unit.floor ?? '-'}</td>
-                      <td className="px-4 py-3 text-slate-600">{unit.areaM2 ?? '-'}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-1 text-xs font-medium ${
-                            unit.status === 'ACTIVE' || unit.status === 'Active'
-                              ? 'rounded bg-emerald-100 text-emerald-700'
-                              : 'rounded bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          {unit.status === 'ACTIVE' || unit.status === 'Active' ? t('active') : t('inactive')}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        <div className="flex flex-col">
-                          <span>{unit.ownerName ?? '-'}</span>
-                          {unit.ownerContact && (
-                            <span className="text-xs text-slate-500">{unit.ownerContact}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/base/unit/unitDetail/${unit.id}`}
-                          className="inline-flex items-center"
-                        >
-                          <Image src={EditTable} alt="View Detail" width={24} height={24} />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
+                  unitsToDisplay.map((unit) => {
+                    const isBuildingInactive = unit.buildingStatus?.toUpperCase() === 'INACTIVE';
+                    const isUnitInactive = unit.status?.toUpperCase() === 'INACTIVE';
+                    const isDisabled = isBuildingInactive || isUnitInactive;
+                    return (
+                      <tr 
+                        key={unit.id} 
+                        className={isDisabled ? 'bg-slate-100' : 'hover:bg-emerald-50/40'}
+                      >
+                        <td className={`px-4 py-3 font-medium ${isDisabled ? 'text-slate-500' : 'text-slate-800'}`}>
+                          {unit.code}
+                        </td>
+                        <td className={`px-4 py-3 ${isDisabled ? 'text-slate-500' : 'text-slate-600'}`}>
+                          <div className="flex flex-col">
+                            <span>{unit.buildingName ?? '-'}</span>
+                            <span className="text-xs text-slate-500">{unit.buildingCode ?? '-'}</span>
+                          </div>
+                        </td>
+                        <td className={`px-4 py-3 ${isDisabled ? 'text-slate-500' : 'text-slate-600'}`}>
+                          {unit.floor ?? '-'}
+                        </td>
+                        <td className={`px-4 py-3 ${isDisabled ? 'text-slate-500' : 'text-slate-600'}`}>
+                          {unit.areaM2 ?? '-'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`px-2 py-1 text-xs font-medium ${
+                              unit.status === 'ACTIVE' || unit.status === 'Active'
+                                ? 'rounded bg-emerald-100 text-emerald-700'
+                                : 'rounded bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {unit.status === 'ACTIVE' || unit.status === 'Active' ? t('active') : t('inactive')}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-3 ${isDisabled ? 'text-slate-500' : 'text-slate-600'}`}>
+                          <div className="flex flex-col">
+                            <span>{unit.ownerName ?? '-'}</span>
+                            {unit.ownerContact && (
+                              <span className="text-xs text-slate-500">{unit.ownerContact}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {unit.status === 'INACTIVE' || unit.status === 'Inactive' ? (
+                              <span className="inline-flex items-center cursor-not-allowed opacity-50">
+                                <Image src={EditTable} alt="View Detail" width={24} height={24} />
+                              </span>
+                            ) : (
+                              <Link
+                                href={`/base/unit/unitDetail/${unit.id}`}
+                                className="inline-flex items-center"
+                              >
+                                <Image src={EditTable} alt="View Detail" width={24} height={24} />
+                              </Link>
+                            )}
+                            {!isBuildingInactive && (
+                              <button
+                                type="button"
+                                onClick={() => onUnitStatusChange(unit.id)}
+                                className="w-[34px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-100 transition"
+                                title="Thay đổi trạng thái"
+                              >
+                                <svg 
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  viewBox="0 0 16 16" 
+                                  height="16" 
+                                  width="16"
+                                  fill="currentColor"
+                                >
+                                  <g fill="none" fillRule="nonzero">
+                                    <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
+                                    <path fill="currentColor" d="M13.333333333333332 9.333333333333332a1 1 0 0 1 0.09599999999999999 1.9953333333333332L13.333333333333332 11.333333333333332H5.080666666666667l0.96 0.96a1 1 0 0 1 -1.3386666666666667 1.4826666666666668l-0.076 -0.06866666666666665 -2.5526666666666666 -2.5533333333333332c-0.6493333333333333 -0.6493333333333333 -0.22666666666666668 -1.7446666666666666 0.6606666666666666 -1.8166666666666667l0.09333333333333334 -0.004H13.333333333333332ZM9.959999999999999 2.293333333333333a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.5526666666666666 2.5533333333333332c0.6493333333333333 0.6493333333333333 0.22666666666666668 1.7446666666666666 -0.6606666666666666 1.8166666666666667l-0.09333333333333334 0.004H2.6666666666666665a1 1 0 0 1 -0.09599999999999999 -1.9953333333333332L2.6666666666666665 4.666666666666666h8.252666666666666l-0.96 -0.96a1 1 0 0 1 0 -1.4133333333333333Z" strokeWidth="0.6667"></path>
+                                  </g>
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
         </section>
       </div>
+      <PopupConfirm
+        isOpen={confirmOpen}
+        onClose={handleCloseConfirm}
+        onConfirm={handleConfirmChange}
+        popupTitle="Xác nhận thay đổi trạng thái"
+        popupContext={selectedUnitStatus?.toUpperCase() === 'ACTIVE' 
+          ? 'Bạn có chắc muốn vô hiệu hoá căn hộ này?' 
+          : 'Bạn có chắc muốn kích hoạt căn hộ này?'}
+        isDanger={false}
+      />
+      {errorMessage && (
+        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg z-50">
+          {errorMessage}
+        </div>
+      )}
     </div>
   );
 }

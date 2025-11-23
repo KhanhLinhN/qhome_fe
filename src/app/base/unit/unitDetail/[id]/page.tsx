@@ -46,7 +46,7 @@ export default function UnitDetail () {
     
     const handleBack = () => {
         if (unitData?.buildingId) {
-            router.push(`/base/building/buildingDetail/${unitData.buildingId}`);
+            router.back();
         } else {
             router.back();
         }

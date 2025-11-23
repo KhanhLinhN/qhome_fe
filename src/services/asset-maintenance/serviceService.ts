@@ -100,6 +100,18 @@ export async function updateServiceCategory(
   return response.data as ServiceCategory;
 }
 
+export async function updateServiceCategoryStatus(
+  id: string,
+  active: boolean,
+): Promise<ServiceCategory> {
+  const response = await axios.patch(
+    `${BASE_URL}/api/asset-maintenance/service-categories/${id}/status?active=${active}`,
+    null,
+    withCredentials,
+  );
+  return response.data as ServiceCategory;
+}
+
 export async function deleteServiceCategory(id: string): Promise<void> {
   const response = await axios.delete(
     `${BASE_URL}/api/asset-maintenance/service-categories/${id}`,

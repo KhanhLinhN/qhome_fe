@@ -29,17 +29,12 @@ export const useUnitPage = () => {
         for (const building of buildingsData) {
           const units = await getUnitsByBuilding(building.id);
           
-          // Filter chỉ lấy active units
-          const activeUnits = units.filter(unit => unit.status?.toUpperCase() !== 'INACTIVE');
-
-          // Chỉ thêm building nếu có ít nhất 1 unit
-          if (activeUnits.length > 0) {
-            buildingsWithData.push({
-              ...building,
-              units: activeUnits,
-              isExpanded: false
-            });
-          }
+          // Lấy tất cả units (bao gồm cả inactive)
+          buildingsWithData.push({
+            ...building,
+            units: units,
+            isExpanded: false
+          });
         }
 
         setBuildings(buildingsWithData);
@@ -78,15 +73,12 @@ export const useUnitPage = () => {
       for (const building of buildingsData) {
         const units = await getUnitsByBuilding(building.id);
         
-        const activeUnits = units.filter(unit => unit.status?.toUpperCase() !== 'INACTIVE');
-
-        if (activeUnits.length > 0) {
-          buildingsWithData.push({
-            ...building,
-            units: activeUnits,
-            isExpanded: false
-          });
-        }
+        // Lấy tất cả units (bao gồm cả inactive)
+        buildingsWithData.push({
+          ...building,
+          units: units,
+          isExpanded: false
+        });
       }
 
       setBuildings(buildingsWithData);
