@@ -83,7 +83,6 @@ export default function Home() {
     }
     const newStatus = selectedBuildingStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     try {
-      // Try to update status using PATCH endpoint (similar to units)
       await updateBuildingStatus(selectedBuildingId, newStatus);
       
       setConfirmOpen(false);
