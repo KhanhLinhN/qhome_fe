@@ -60,6 +60,22 @@ export async function updateBuilding(id: string, data: Partial<Building>): Promi
 }
 
 /**
+ * PATCH /api/buildings/:id/status
+ * Updates building status (similar to units)
+ */
+export async function updateBuildingStatus(id: string, status: string): Promise<void> {
+  const response = await axios.patch(
+    `${BASE_URL}/api/buildings/${id}/status`,
+    null,
+    { 
+      params: { status },
+      withCredentials: true 
+    }
+  );
+  return response.data;
+}
+
+/**
  * DELETE /api/buildings/:id
  */
 export async function deleteBuilding(id: string): Promise<void> {

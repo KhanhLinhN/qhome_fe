@@ -94,7 +94,7 @@ const adminSections: NavSection[] = [
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
       {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
-      {href: "/customer-interaction/requestTicket", labelKey: "tickets", icon: "🎫"},
+      // {href: "/customer-interaction/requestTicket", labelKey: "tickets", icon: "🎫"},
     ],
   },
 ];
@@ -236,8 +236,8 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
   };
 
   return (
-    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen">
-      <nav className="p-3 space-y-6 overflow-y-auto flex-1">
+    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen max-h-screen overflow-hidden">
+      <nav className="p-3 space-y-6 overflow-y-auto overflow-x-hidden flex-1 min-h-0 max-h-full">
         {sections.map((section) => {
           const isCollapsed = collapsedSections.has(section.titleKey);
           return (

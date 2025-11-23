@@ -578,7 +578,29 @@
     "editBuildingError": "An error occurred while editing the building",
     "editBuildingReturn": "Return building list",
     "editBuildingDetail": "Return building detail",
-    "editBuildingDelete": "Delete building"
+    "editBuildingDelete": "Delete building",
+    "confirmChangeStatusTitle": "Confirm change status",
+    "confirmActivateBuilding": "Are you sure you want to activate this building?",
+    "confirmDeactivateBuilding": "Are you sure you want to deactivate this building?",
+    "city": "City",
+    "district": "District",
+    "ward": "Ward",
+    "street": "Street",
+    "roadOptional": "Road (optional)",
+    "roadHelper": "Please enter the road name if applicable",
+    "addressDetail": "Address detail",
+    "cityRequired": "City is required",
+    "districtRequired": "District is required",
+    "wardRequired": "Ward is required",
+    "addressDetailError": "Address detail is required",
+    "placeholders":{
+      "selectCity": "Select city",
+      "selectDistrict": "Select district",
+      "selectWard": "Select ward",
+      "selectStreet": "Select street",
+      "noRoadData": "No road data available",
+      "addressDetail": "Enter address detail"
+    }
   },
   "Service": {
     "listTitle": "Service List",

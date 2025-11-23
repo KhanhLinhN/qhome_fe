@@ -11,9 +11,9 @@ import { useRouter } from 'next/navigation';
 import { useBuildingPage } from '@/src/hooks/useBuildingPage';
 import { useAuth } from '@/src/contexts/AuthContext';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
-import { updateBuilding } from '@/src/services/base/buildingService';
+import { updateBuildingStatus } from '@/src/services/base/buildingService';
 import { downloadBuildingImportTemplate, importBuildings, exportBuildings, type BuildingImportResponse } from '@/src/services/base/buildingImportService';
-
+import { Building } from '@/src/types/building';
 
 export default function Home() {
   const { user, hasRole } = useAuth();
@@ -83,13 +83,17 @@ export default function Home() {
     }
     const newStatus = selectedBuildingStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     try {
-      await updateBuilding(selectedBuildingId, { status: newStatus } as any);
+      // Try to update status using PATCH endpoint (similar to units)
+      await updateBuildingStatus(selectedBuildingId, newStatus);
+      
       setConfirmOpen(false);
       setSelectedBuildingId(null);
       setSelectedBuildingStatus(null);
       window.location.reload();
-    } catch (e) {
-      // optionally show error
+    } catch (e: any) {
+      console.error('Error updating building status:', e);
+      const errorMessage = e?.response?.data?.message || e?.message || 'Cập nhật trạng thái tòa nhà thất bại';
+      setImportError(errorMessage);
       setConfirmOpen(false);
     }
   };
