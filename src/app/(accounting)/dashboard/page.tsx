@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
+import { useTranslations } from 'next-intl';
 // import TenantList from "@/src/components/dashboard/TenantList";
 import InvoicesFilters from "@/src/components/account/InvoicesFilters";
 import InvoiceTable from "@/src/components/account/InvoiceTable";
@@ -16,6 +17,7 @@ const TENANT_ID = "tenant-1";
 
 export default function AccountingDashboard(){
   const { show } = useNotifications();
+  const t = useTranslations('AccountingDashboard');
 
   // catalogs
   const [buildings, setBuildings] = React.useState<Building[]>([]);
@@ -75,7 +77,7 @@ export default function AccountingDashboard(){
   const handleToggleNotify = async (id:string, enabled:boolean)=>{
     await InvoiceApi.toggleNotify(id, enabled);
     setRows(prev => prev.map(r => r.id===id ? {...r, notifyEnabled: enabled}: r));
-    show(enabled ? "Đã bật thông báo cho hóa đơn" : "Đã tắt thông báo cho hóa đơn", "success");
+    show(enabled ? t('messages.notifyEnabled') : t('messages.notifyDisabled'), "success");
   };
 
   const handleView = async (id:string)=>{
@@ -84,20 +86,20 @@ export default function AccountingDashboard(){
   };
 
   const handlePreview = async ()=>{
-    if(!filters.templateId){ show("Chọn template trước khi gửi", "error"); return; }
+    if(!filters.templateId){ show(t('messages.selectTemplateFirst'), "error"); return; }
     const ids = Array.from(selected);
-    if(!ids.length){ show("Chọn ít nhất 1 hóa đơn để gửi", "error"); return; }
+    if(!ids.length){ show(t('messages.selectAtLeastOneInvoice'), "error"); return; }
     const { items } = await InvoiceApi.preview(ids, filters.templateId);
     setPreviewItems(items);
     setPreviewOpen(true);
   };
 
   const handleSend = async (channels: NotificationChannel[])=>{
-    if(!channels.length){ show("Chọn ít nhất 1 kênh gửi", "error"); return; }
+    if(!channels.length){ show(t('messages.selectAtLeastOneChannel'), "error"); return; }
     const ids = Array.from(selected);
     const res = await InvoiceApi.send(ids, filters.templateId!, channels, false);
     setPreviewOpen(false);
-    show(`Gửi thành công: ${res.accepted.length} • Lỗi: ${res.rejected.length}`, res.rejected.length? "error":"success");
+    show(t('messages.sendSuccess', { accepted: res.accepted.length, rejected: res.rejected.length }), res.rejected.length? "error":"success");
     // optional: refresh để cập nhật notifyStatus
     refresh().catch(()=>{});
   };
@@ -105,22 +107,22 @@ export default function AccountingDashboard(){
   return (
     <div className="lg:col-span-1 space-y-6">
       <div className="max-w-screen overflow-x-hidden ">
-        <h1 className="text-2xl font-semibold text-[#02542D] mb-4">Accounting Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-[#02542D] mb-4">{t('title')}</h1>
         
         {/* Danh sách Tenants - Mục đầu tiên, click để xem Buildings */}
         {/* <TenantList /> */}
 
         {/* Admin Quick Actions */}
         <div className="bg-white rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">⚡ Quick Actions</h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('quickActions.title')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link 
             href="/roles"
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">🔐</div>
-            <div className="font-medium text-slate-800 text-center">Roles & Permissions</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý phân quyền</div>
+            <div className="font-medium text-slate-800 text-center">{t('quickActions.rolesPermissions.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('quickActions.rolesPermissions.description')}</div>
           </Link>
 
           <Link 
@@ -128,8 +130,8 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">👥</div>
-            <div className="font-medium text-slate-800 text-center">User Management</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý người dùng</div>
+            <div className="font-medium text-slate-800 text-center">{t('quickActions.userManagement.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('quickActions.userManagement.description')}</div>
           </Link>
 
           <Link 
@@ -137,8 +139,8 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">⚙️</div>
-            <div className="font-medium text-slate-800 text-center">System Settings</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Cài đặt hệ thống</div>
+            <div className="font-medium text-slate-800 text-center">{t('quickActions.systemSettings.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('quickActions.systemSettings.description')}</div>
           </Link>
 
           <Link 
@@ -146,8 +148,8 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">📊</div>
-            <div className="font-medium text-slate-800 text-center">Reports</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Báo cáo thống kê</div>
+            <div className="font-medium text-slate-800 text-center">{t('quickActions.reports.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('quickActions.reports.description')}</div>
           </Link>
         </div>
       </div>
@@ -155,7 +157,7 @@ export default function AccountingDashboard(){
         {/* Hàng thẻ thống kê gọn */}
         <div className="grid md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl p-4">
-          <div className="text-slate-500 text-sm">Hộ cư dân</div>
+          <div className="text-slate-500 text-sm">{t('stats.households')}</div>
           <div className="text-2xl font-semibold mt-1">—</div>
         </div>
 
@@ -170,10 +172,10 @@ export default function AccountingDashboard(){
         {/* Actions */}
         <div className="flex items-center justify-between">
           <div className="text-sm text-slate-500">
-            Đã chọn: <b>{selected.size}</b>
+            {t('actions.selected')} <b>{selected.size}</b>
           </div>
           <div className="flex gap-2">
-            <button className="btn-secondary" onClick={handlePreview}>Gửi thông báo</button>
+            <button className="btn-secondary" onClick={handlePreview}>{t('actions.sendNotification')}</button>
           </div>
         </div>
 

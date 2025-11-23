@@ -349,8 +349,8 @@ export default function ResidentAccountApprovalPage() {
             }
             popupContext={
               confirmPopup.isApprove
-                ? `Bạn có chắc chắn muốn phê duyệt yêu cầu tạo tài khoản cho cư dân ${confirmPopup.request.residentName ?? t('fallbacks.unknownResidentName')} không?`
-                : `Bạn có chắc chắn muốn từ chối yêu cầu tạo tài khoản cho cư dân ${confirmPopup.request.residentName ?? t('fallbacks.unknownResidentName')} không?`
+                ? t('confirmApproveMessage', { name: confirmPopup.request.residentName ?? t('fallbacks.unknownResidentName') })
+                : t('confirmRejectMessage', { name: confirmPopup.request.residentName ?? t('fallbacks.unknownResidentName') })
             }
             isDanger={!confirmPopup.isApprove}
           />

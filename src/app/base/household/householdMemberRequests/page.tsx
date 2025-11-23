@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   decideHouseholdMemberRequest,
   fetchPendingHouseholdMemberRequests,
@@ -9,29 +10,30 @@ import {
 import { fetchResidentByIdForAdmin } from '@/src/services/base/residentService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 
-const formatDate = (value?: string | null) => {
-  if (!value) {
-    return '—';
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleDateString('vi-VN');
-};
-
-const formatDateTime = (value?: string | null) => {
-  if (!value) {
-    return '—';
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleString('vi-VN');
-};
-
 export default function HouseholdMemberRequestsPage() {
+  const t = useTranslations('HouseholdMemberRequests');
+  
+  const formatDate = (value?: string | null) => {
+    if (!value) {
+      return '—';
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) {
+      return '—';
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleString('vi-VN');
+  };
   const [requests, setRequests] = useState<HouseholdMemberRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +92,7 @@ export default function HouseholdMemberRequestsPage() {
       setRequesterDetails(detailsMap);
     } catch (err: any) {
       const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải danh sách yêu cầu.';
+        err?.response?.data?.message || err?.message || t('errors.loadError');
       setError(message);
     } finally {
       setLoading(false);
@@ -118,10 +120,10 @@ export default function HouseholdMemberRequestsPage() {
     try {
       await decideHouseholdMemberRequest(id, { approve: true });
       setRequests((prev) => prev.filter((item) => item.id !== id));
-      setSuccess('Đã chấp nhận yêu cầu và thêm thành viên vào hộ gia đình.');
+      setSuccess(t('messages.approveSuccess'));
     } catch (err: any) {
       const message =
-        err?.response?.data?.message || err?.message || 'Không thể duyệt yêu cầu. Vui lòng thử lại.';
+        err?.response?.data?.message || err?.message || t('errors.approveFailed');
       setError(message);
     } finally {
       setActionState((prev) => {
@@ -158,7 +160,7 @@ export default function HouseholdMemberRequestsPage() {
   const handleRejectSubmitClick = (request: HouseholdMemberRequest) => {
     const reason = rejectionReason.trim();
     if (!reason) {
-      setError('Vui lòng nhập lý do từ chối.');
+      setError(t('errors.rejectReasonRequired'));
       return;
     }
 
@@ -172,7 +174,7 @@ export default function HouseholdMemberRequestsPage() {
   const handleRejectSubmit = async (id: string) => {
     const reason = rejectionReason.trim();
     if (!reason) {
-      setError('Vui lòng nhập lý do từ chối.');
+      setError(t('errors.rejectReasonRequired'));
       return;
     }
 
@@ -182,11 +184,11 @@ export default function HouseholdMemberRequestsPage() {
     try {
       await decideHouseholdMemberRequest(id, { approve: false, rejectionReason: reason });
       setRequests((prev) => prev.filter((item) => item.id !== id));
-      setSuccess('Đã từ chối yêu cầu thành công.');
+      setSuccess(t('messages.rejectSuccess'));
       cancelReject();
     } catch (err: any) {
       const message =
-        err?.response?.data?.message || err?.message || 'Không thể từ chối yêu cầu. Vui lòng thử lại.';
+        err?.response?.data?.message || err?.message || t('errors.rejectFailed');
       setError(message);
     } finally {
       setActionState((prev) => {
@@ -216,14 +218,14 @@ export default function HouseholdMemberRequestsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-[#02542D]">
-          Duyệt thành viên gia đình
+          {t('title')}
         </h1>
         <button
           type="button"
           onClick={() => void loadRequests()}
           className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
         >
-          ⟳ Làm mới
+          ⟳ {t('actions.refresh')}
         </button>
       </div>
 
@@ -240,11 +242,11 @@ export default function HouseholdMemberRequestsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center rounded-xl border border-dashed border-slate-200 p-12 text-sm text-slate-500">
-          Đang tải danh sách yêu cầu...
+          {t('loading')}
         </div>
       ) : !hasRequests ? (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">
-          Hiện chưa có yêu cầu nào đang chờ duyệt.
+          {t('empty')}
         </div>
       ) : (
         <div className="space-y-5">
@@ -256,41 +258,41 @@ export default function HouseholdMemberRequestsPage() {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Hộ gia đình
+                      {t('sections.household')}
                     </p>
                     <p className="text-sm text-slate-700">
-                      {request.householdCode ? `Hộ ${request.householdCode}` : 'Chưa có mã hộ'}
+                      {request.householdCode ? t('householdCode', { code: request.householdCode }) : t('noHouseholdCode')}
                     </p>
-                    <p className="text-sm text-slate-500">Căn hộ: {request.unitCode ?? request.unitId}</p>
+                    <p className="text-sm text-slate-500">{t('unit')}: {request.unitCode ?? request.unitId}</p>
                     <p className="text-sm text-slate-500">
-                      Quan hệ: {request.relation ? request.relation : 'Chưa xác định'}
+                      {t('relation')}: {request.relation ? request.relation : t('relationUnknown')}
                     </p>
                     {request.note && (
-                      <p className="text-sm text-slate-500">Ghi chú: {request.note}</p>
+                      <p className="text-sm text-slate-500">{t('note')}: {request.note}</p>
                     )}
                     <p className="text-xs text-slate-400">
-                      Gửi lúc: {formatDateTime(request.createdAt)}
+                      {t('sentAt')}: {formatDateTime(request.createdAt)}
                     </p>
                   </div>
 
                   <div className="space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Thông tin người được thêm
+                      {t('sections.memberInfo')}
                     </p>
                     <p className="text-sm text-slate-700">
-                      {request.requestedResidentFullName || 'Không có họ tên'}
+                      {request.requestedResidentFullName || t('noFullName')}
                     </p>
                     <p className="text-sm text-slate-500">
-                      Email: {request.requestedResidentEmail || '—'}
+                      {t('email')}: {request.requestedResidentEmail || '—'}
                     </p>
                     <p className="text-sm text-slate-500">
-                      Điện thoại: {request.requestedResidentPhone || '—'}
+                      {t('phone')}: {request.requestedResidentPhone || '—'}
                     </p>
                     <p className="text-sm text-slate-500">
-                      CCCD: {request.requestedResidentNationalId || '—'}
+                      {t('nationalId')}: {request.requestedResidentNationalId || '—'}
                     </p>
                     <p className="text-sm text-slate-500">
-                      Ngày sinh: {formatDate(request.requestedResidentDob)}
+                      {t('dob')}: {formatDate(request.requestedResidentDob)}
                     </p>
                     {request.proofOfRelationImageUrl && (
                       <button
@@ -298,21 +300,21 @@ export default function HouseholdMemberRequestsPage() {
                         onClick={() => setImagePopup({ isOpen: true, imageUrl: request.proofOfRelationImageUrl || null })}
                         className="inline-flex text-sm text-green-600 hover:text-green-700 hover:underline"
                       >
-                        Xem minh chứng quan hệ
+                        {t('viewProofOfRelation')}
                       </button>
                     )}
                   </div>
 
                   <div className="space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Người gửi yêu cầu
+                      {t('sections.requester')}
                     </p>
-                    <p className="text-sm text-slate-700">{request.requestedByName || 'Không rõ'}</p>
+                    <p className="text-sm text-slate-700">{request.requestedByName || t('unknown')}</p>
                     <p className="text-sm text-slate-500">
-                      Email: {request.requestedBy ? (requesterDetails[request.requestedBy]?.email || '—') : '—'}
+                      {t('email')}: {request.requestedBy ? (requesterDetails[request.requestedBy]?.email || '—') : '—'}
                     </p>
                     <p className="text-sm text-slate-500">
-                      Điện thoại: {request.requestedBy ? (requesterDetails[request.requestedBy]?.phone || '—') : '—'}
+                      {t('phone')}: {request.requestedBy ? (requesterDetails[request.requestedBy]?.phone || '—') : '—'}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <button
@@ -321,7 +323,7 @@ export default function HouseholdMemberRequestsPage() {
                         disabled={isProcessing}
                         className="inline-flex items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-green-400"
                       >
-                        {isProcessing ? 'Đang xử lý...' : 'Chấp nhận'}
+                        {isProcessing ? t('actions.processing') : t('actions.approve')}
                       </button>
                       <button
                         type="button"
@@ -329,7 +331,7 @@ export default function HouseholdMemberRequestsPage() {
                         disabled={isProcessing}
                         className="inline-flex items-center justify-center rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-red-200 disabled:text-red-300"
                       >
-                        Từ chối
+                        {t('actions.reject')}
                       </button>
                     </div>
                   </div>
@@ -338,14 +340,14 @@ export default function HouseholdMemberRequestsPage() {
                 {showRejectForm && (
                   <div className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4">
                     <p className="text-sm font-medium text-red-700">
-                      Nhập lý do từ chối yêu cầu này
+                      {t('rejectForm.title')}
                     </p>
                     <textarea
                       className="mt-2 w-full rounded-lg border border-red-200 bg-white p-2 text-sm text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
                       rows={3}
                       value={rejectionReason}
                       onChange={(event) => setRejectionReason(event.target.value)}
-                      placeholder="Ví dụ: Thông tin cung cấp chưa chính xác hoặc thiếu giấy tờ."
+                      placeholder={t('rejectForm.placeholder')}
                     />
                     <div className="mt-3 flex flex-wrap gap-3">
                       <button
@@ -354,14 +356,14 @@ export default function HouseholdMemberRequestsPage() {
                         disabled={isProcessing}
                         className="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-400"
                       >
-                        Xác nhận từ chối
+                        {t('rejectForm.confirmReject')}
                       </button>
                       <button
                         type="button"
                         onClick={cancelReject}
                         className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-white"
                       >
-                        Hủy
+                        {t('actions.cancel')}
                       </button>
                     </div>
                   </div>
@@ -380,17 +382,17 @@ export default function HouseholdMemberRequestsPage() {
           onConfirm={handleConfirmAction}
           popupTitle={
             confirmPopup.action === 'approve'
-              ? 'Xác nhận chấp nhận'
+              ? t('confirm.approveTitle')
               : confirmPopup.action === 'reject'
-              ? 'Xác nhận từ chối'
-              : 'Xác nhận từ chối yêu cầu'
+              ? t('confirm.rejectTitle')
+              : t('confirm.rejectSubmitTitle')
           }
           popupContext={
             confirmPopup.action === 'approve'
-              ? `Bạn có chắc chắn muốn chấp nhận yêu cầu thêm thành viên ${confirmPopup.request.requestedResidentFullName || 'này'} vào hộ gia đình không?`
+              ? t('confirm.approveMessage', { name: confirmPopup.request.requestedResidentFullName || t('this') })
               : confirmPopup.action === 'reject'
-              ? `Bạn có chắc chắn muốn từ chối yêu cầu này không? Sau khi xác nhận, bạn sẽ cần nhập lý do từ chối.`
-              : `Bạn có chắc chắn muốn từ chối yêu cầu thêm thành viên ${confirmPopup.request.requestedResidentFullName || 'này'} vào hộ gia đình không?`
+              ? t('confirm.rejectMessage')
+              : t('confirm.rejectSubmitMessage', { name: confirmPopup.request.requestedResidentFullName || t('this') })
           }
           isDanger={confirmPopup.action !== 'approve'}
         />
@@ -407,7 +409,7 @@ export default function HouseholdMemberRequestsPage() {
               type="button"
               onClick={() => setImagePopup({ isOpen: false, imageUrl: null })}
               className="absolute top-2 right-2 z-10 rounded-full bg-white p-2 text-gray-700 shadow-lg hover:bg-gray-100 transition-colors"
-              aria-label="Đóng"
+              aria-label={t('actions.close')}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -421,7 +423,7 @@ export default function HouseholdMemberRequestsPage() {
             </button>
             <img
               src={imagePopup.imageUrl}
-              alt="Minh chứng quan hệ"
+              alt={t('proofOfRelationImageAlt')}
               className="max-w-full max-h-[90vh] rounded-lg shadow-2xl object-contain"
               onClick={(e) => e.stopPropagation()}
             />

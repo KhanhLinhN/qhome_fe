@@ -42,6 +42,9 @@
       "name": "Tên danh mục là bắt buộc",
       "error": "Vui lòng kiểm tra lại các trường bắt buộc"
     },
+    "errors": {
+      "fetchServicesFailed": "Không thể tải danh sách dịch vụ."
+    },
     "confirmDeleteTitle": "Xác nhận xóa danh mục",
     "confirmDeleteMessage": "Bạn có chắc chắn muốn xóa danh mục dịch vụ này không?",
     "confirmUpdateTitle": "Xác nhận cập nhật danh mục",
@@ -106,7 +109,9 @@
     "actions": {
       "approve": "Phê duyệt",
       "reject": "Từ chối"
-    }
+    },
+    "confirmApproveMessage": "Bạn có chắc chắn muốn phê duyệt yêu cầu tạo tài khoản cho cư dân {name} không?",
+    "confirmRejectMessage": "Bạn có chắc chắn muốn từ chối yêu cầu tạo tài khoản cho cư dân {name} không?"
   },
   "Common": {
   "language": "Ngôn ngữ",
@@ -288,7 +293,22 @@
     },
     "messages": {
       "deleteSuccess": "Xóa tài khoản thành công",
-      "deleteError": "Có lỗi xảy ra khi xóa tài khoản"
+      "deleteError": "Có lỗi xảy ra khi xóa tài khoản",
+      "activateSuccess": "Đã kích hoạt tài khoản thành công.",
+      "deactivateSuccess": "Đã vô hiệu hóa tài khoản thành công.",
+      "updateStatusError": "Không thể cập nhật trạng thái tài khoản. Vui lòng thử lại."
+    },
+    "popups": {
+      "statusChange": {
+        "title": "Xác nhận thay đổi trạng thái",
+        "activate": "Bạn có chắc chắn muốn kích hoạt tài khoản này không?",
+        "deactivate": "Bạn có chắc chắn muốn vô hiệu hóa tài khoản này không?",
+        "confirm": "Bạn có chắc chắn muốn thay đổi trạng thái tài khoản này không?"
+      },
+      "delete": {
+        "title": "Xác nhận xóa tài khoản",
+        "context": "Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác."
+      }
     }
   },
   "AccountEditStaff": {
@@ -358,6 +378,77 @@
     "placeholders": {
       "newPassword": "Nhập mật khẩu mới",
       "confirmPassword": "Nhập lại mật khẩu"
+    }
+  },
+  "ProfileView": {
+    "title": "Hồ sơ của tôi",
+    "loading": "Đang tải hồ sơ của bạn...",
+    "loginPrompt": {
+      "title": "Vui lòng đăng nhập",
+      "message": "Bạn cần đăng nhập để xem thông tin hồ sơ cá nhân.",
+      "button": "Đăng nhập"
+    },
+    "roles": {
+      "noRoles": "Chưa có vai trò"
+    },
+    "quickActions": {
+      "title": "Thao tác nhanh",
+      "editProfile": "Chỉnh sửa hồ sơ",
+      "changePassword": "Thay đổi mật khẩu",
+      "viewUnitInfo": "Xem thông tin căn hộ",
+      "logout": "Đăng xuất"
+    },
+    "accountInfo": {
+      "title": "Thông tin tài khoản",
+      "username": "Username",
+      "email": "Email"
+    },
+    "logoutConfirm": "Bạn có chắc muốn đăng xuất?",
+    "errors": {
+      "loadFailed": "Không thể tải thông tin hồ sơ. Vui lòng thử lại sau."
+    },
+    "common": {
+      "unknown": "Không xác định"
+    }
+  },
+  "ProfileEdit": {
+    "title": "Cập nhật hồ sơ",
+    "loading": "Đang tải thông tin hồ sơ để chỉnh sửa...",
+    "loginPrompt": {
+      "title": "Vui lòng đăng nhập",
+      "message": "Bạn cần đăng nhập để chỉnh sửa hồ sơ cá nhân.",
+      "button": "Đăng nhập"
+    },
+    "fields": {
+      "username": "Username",
+      "email": "Email"
+    },
+    "placeholders": {
+      "username": "Nhập username",
+      "email": "example@domain.com"
+    },
+    "buttons": {
+      "cancel": "Huỷ bỏ",
+      "save": "Lưu thay đổi",
+      "saving": "Đang lưu..."
+    },
+    "validation": {
+      "password": {
+        "minLength": "Mật khẩu mới phải có ít nhất 8 ký tự.",
+        "mismatch": "Xác nhận mật khẩu không khớp."
+      },
+      "userNotIdentified": "Không xác định được người dùng hiện tại."
+    },
+    "messages": {
+      "noChanges": "Không có thay đổi nào được áp dụng.",
+      "updateProfileAndPasswordSuccess": "Cập nhật hồ sơ và đổi mật khẩu thành công!",
+      "changePasswordSuccess": "Đổi mật khẩu thành công!",
+      "updateProfileSuccess": "Cập nhật hồ sơ thành công!",
+      "updateError": "Cập nhật hồ sơ thất bại. Vui lòng thử lại sau.",
+      "loadError": "Không thể tải dữ liệu hồ sơ để chỉnh sửa."
+    },
+    "common": {
+      "editProfile": "Chỉnh sửa hồ sơ"
     }
   },
   "Login": {
@@ -544,8 +635,13 @@
       "noteRequired": "Ghi chú là bắt buộc",
       "dateMustBeTodayOrLater": "Ngày sửa chữa phải lớn hơn hoặc bằng ngày hôm nay",
       "pending": "Đang chờ",
-      "done": "Hoàn thành"
-  }
+      "done": "Hoàn thành",
+      "New": "Mới",
+      "Pending": "Đang chờ",
+      "Processing": "Đang xử lý",
+      "Done": "Hoàn thành",
+      "back": "Quay lại"
+    }
   },
   "Dashboard": {
   "dashboard": "Bảng điều khiển",
@@ -654,13 +750,47 @@
   "districtRequired": "Quận/Huyện là bắt buộc",
   "wardRequired": "Phường/Xã là bắt buộc",
   "addressDetailError": "Chi tiết địa chỉ là bắt buộc",
-  "placeholders": {
-    "selectCity": "Chọn thành phố",
-    "selectDistrict": "Chọn quận/huyện",
-    "selectWard": "Chọn phường/xã",
-    "selectStreet": "Chọn đường",
-    "noRoadData": "Không có dữ liệu đường",
-    "addressDetail": "Nhập chi tiết địa chỉ (số nhà, tên tòa nhà,...)"
+    "placeholders": {
+      "selectCity": "Chọn thành phố",
+      "selectDistrict": "Chọn quận/huyện",
+      "selectWard": "Chọn phường/xã",
+      "selectStreet": "Chọn đường",
+      "selectRoadOptional": "Chọn đường/thôn (có thể để trống)",
+      "noRoadData": "Không có dữ liệu đường/thôn",
+      "addressDetail": "Số nhà, toà, tầng..."
+    },
+    "nameMaxError": "Tên tòa nhà không được vượt quá 40 ký tự",
+    "nameSpecialCharError": "Tên tòa nhà không được chứa ký tự đặc biệt",
+    "noData": "Không có dữ liệu",
+    "actions": {
+      "downloadTemplate": "Tải template import tòa nhà",
+      "importing": "Đang import...",
+      "selectFileToImport": "Chọn file Excel để import",
+      "exportBuildings": "Xuất Excel (Tòa nhà)",
+      "exportBuildingsWithUnits": "Xuất Excel (Tòa + Căn hộ)"
+    },
+    "messages": {
+      "updateStatusError": "Cập nhật trạng thái tòa nhà thất bại",
+      "downloadTemplateError": "Tải template thất bại",
+      "exportError": "Xuất Excel thất bại",
+      "importError": "Import thất bại",
+      "updateSuccess": "Cập nhật tòa nhà thành công!",
+      "updateError": "Có lỗi xảy ra khi cập nhật tòa nhà!",
+      "createError": "Có lỗi xảy ra khi tạo tòa nhà"
+    },
+    "importResult": {
+      "summary": "Tổng dòng: {totalRows} | Thành công: {successCount} | Lỗi: {errorCount}",
+      "row": "Row",
+      "success": "Success",
+      "message": "Message",
+      "buildingId": "BuildingId",
+      "code": "Code",
+      "name": "Name"
+    },
+    "importPage": {
+      "title": "Import tòa nhà",
+      "downloadTemplate": "Tải template",
+      "import": "Import"
     }
   },
   "Service": {
@@ -893,7 +1023,14 @@
     "confirmTicketStatusChange": "Xác nhận thay đổi trạng thái vé",
     "confirmOptionStatusChange": "Xác nhận thay đổi trạng thái tùy chọn",
     "confirmComboStatusChange": "Xác nhận thay đổi trạng thái gói dịch vụ",
-    "comboItemName": "Tên mục trong gói"
+    "comboItemName": "Tên mục trong gói",
+    "minutes": "phút",
+    "editCombo": "Chỉnh sửa gói",
+    "deleteCombo": "Xóa gói",
+    "editOption": "Chỉnh sửa tùy chọn",
+    "deleteOption": "Xóa tùy chọn",
+    "editTicket": "Chỉnh sửa vé",
+    "deleteTicket": "Xóa vé"
   },
   "Unit": {
   "unitCode": "Mã căn hộ",
@@ -947,11 +1084,70 @@
   "projectError": "Vui lòng chọn dự án",
   "success": "Tạo căn hộ thành công",
   "errorUnit": "Có lỗi xảy ra khi tạo căn hộ",
-  "missingBuildingId": "Thiếu buildingId hoặc tenantId",
-  "status": "Trạng thái",
-  "action": "Hành động",
-  "images": "Hình ảnh",
-  "additionalInfo": "Thông tin bổ sung"
+    "missingBuildingId": "Thiếu buildingId hoặc tenantId",
+    "status": "Trạng thái",
+    "action": "Hành động",
+    "images": "Hình ảnh",
+    "additionalInfo": "Thông tin bổ sung",
+    "noData": "Không có dữ liệu",
+    "buildingFilter": {
+      "title": "Tòa nhà",
+      "description": "Chọn tòa nhà để lọc",
+      "searchPlaceholder": "Tìm kiếm tòa nhà",
+      "all": "Tất cả",
+      "noData": "Không có dữ liệu"
+    },
+    "unitSearch": {
+      "placeholder": "Tìm kiếm căn hộ"
+    },
+    "summary": {
+      "total": "Tổng cộng: {count} căn hộ",
+      "selectedBuilding": "Tòa nhà được chọn: {count} căn hộ"
+    },
+    "statusChange": {
+      "buttonTitle": "Thay đổi trạng thái",
+      "confirmTitle": "Xác nhận thay đổi trạng thái",
+      "confirmDeactivate": "Bạn có chắc muốn vô hiệu hoá căn hộ này?",
+      "confirmActivate": "Bạn có chắc muốn kích hoạt căn hộ này?",
+      "updateFailed": "Cập nhật trạng thái căn hộ thất bại"
+    },
+    "altText": {
+      "viewDetail": "Xem chi tiết",
+      "back": "Quay lại",
+      "edit": "Chỉnh sửa",
+      "delete": "Xóa"
+    },
+    "unitNew": {
+      "title": "Thêm Căn hộ",
+      "nameMaxError": "Tên căn hộ không được vượt quá 40 ký tự",
+      "nameSpecialCharError": "Tên căn hộ không được chứa ký tự đặc biệt",
+      "bedroomsErrorRange": "Số phòng ngủ phải trong khoảng 1-9",
+      "areaErrorRange": "Diện tích phải > 0 và < 150"
+    },
+    "loading": {
+      "building": "Đang tải..."
+    },
+    "fallbacks": {
+      "notAvailable": "N/A"
+    },
+    "import": {
+      "title": "Import căn hộ/phòng",
+      "downloadTemplate": "Tải template",
+      "importing": "Đang import...",
+      "import": "Import",
+      "downloadFailed": "Tải template thất bại",
+      "importFailed": "Import thất bại",
+      "summary": "Tổng dòng: {total} | Thành công: {success} | Lỗi: {errors}",
+      "tableHeaders": {
+        "row": "Dòng",
+        "success": "Thành công",
+        "message": "Thông báo",
+        "unitId": "Mã căn hộ",
+        "buildingId": "Mã tòa nhà",
+        "buildingCode": "Mã tòa nhà",
+        "code": "Mã"
+      }
+    }
   },
   "Vehicle": {
   "vehicleList": "Danh sách phương tiện",
@@ -1021,9 +1217,23 @@
   "searchVehicle": "Lọc phương tiện",
   "residentsVehiclesTitle": "Cư dân & phương tiện",
   "residentsVehiclesAllDescription": "Hiển thị {total} phương tiện.",
-  "residentsVehiclesBuildingDescription": "Hiển thị {total} phương tiện trong tòa nhà đã chọn.",
-  "residentsVehiclesUnitDescription": "Hiển thị {total} phương tiện trong căn hộ đã chọn.",
-  "searchResidentVehicle": "Lọc cư dân hoặc phương tiện"
+    "residentsVehiclesBuildingDescription": "Hiển thị {total} phương tiện trong tòa nhà đã chọn.",
+    "residentsVehiclesUnitDescription": "Hiển thị {total} phương tiện trong căn hộ đã chọn.",
+    "searchResidentVehicle": "Lọc cư dân hoặc phương tiện",
+    "altText": {
+      "viewDetail": "Xem chi tiết",
+      "back": "Quay lại",
+      "edit": "Chỉnh sửa"
+    },
+    "errors": {
+      "loadRegistrationsFailed": "Không thể tải danh sách đơn đăng ký phương tiện"
+    },
+    "vehicleEdit": "Chỉnh sửa phương tiện",
+    "vehicleDetailReturn": "Quay lại chi tiết phương tiện",
+    "select": "Chọn",
+    "save": "Lưu",
+    "saving": "Đang lưu",
+    "cancel": "Hủy"
   },
   "ResidentDirectory": {
     "title": "Danh sách cư dân",
@@ -1056,7 +1266,8 @@
     "retry": "Thử lại",
     "noResidents": "Không có cư dân nào phù hợp với bộ lọc.",
     "noData": "Không có dữ liệu phù hợp.",
-    "emptyStateTitle": "Phê duyệt cư dân và tài khoản"
+    "emptyStateTitle": "Phê duyệt cư dân và tài khoản",
+    "notUpdated": "Chưa cập nhật"
   },
   "Water": {
     "selectBuilding": "Chọn tòa nhà",
@@ -1205,7 +1416,57 @@
     "selectBuildingForExternalNews": "Vui lòng chọn tòa nhà cho tin tức Ngoại bộ",
     "internalNewsTargetRoleRequired": "Vui lòng chọn vai trò mục tiêu cho tin tức Nội bộ",
     "expireDate": "Ngày hết hạn",
-    "viewCount": "Lượt xem"
+    "viewCount": "Lượt xem",
+    "statusRequired": "Trạng thái là bắt buộc",
+    "updated": "Cập nhật thành công",
+    "errorUpdate": "Cập nhật thất bại",
+    "errorDelete": "Xóa thất bại",
+    "changeStatusTarget": "Thay đổi trạng thái và đối tượng",
+    "selectScope": "Chọn phạm vi",
+    "all": "Tất cả",
+    "admin": "Quản trị viên",
+    "technician": "Kỹ thuật viên",
+    "supporter": "Hỗ trợ",
+    "account": "Kế toán",
+    "resident": "Cư dân",
+    "titleRequired": "Tiêu đề là bắt buộc",
+    "titleMaxLength": "Tiêu đề không được vượt quá 200 ký tự",
+    "summaryRequired": "Tóm tắt là bắt buộc",
+    "summaryMaxLength": "Tóm tắt không được vượt quá 400 ký tự",
+    "bodyHtmlRequired": "Nội dung HTML là bắt buộc",
+    "publishAtRequired": "Ngày xuất bản là bắt buộc",
+    "publishAtInvalid": "Ngày xuất bản không hợp lệ",
+    "publishAtMustBeFuture": "Ngày xuất bản phải lớn hơn ngày hôm nay",
+    "expireAtRequired": "Ngày hết hạn là bắt buộc",
+    "expireAtInvalid": "Ngày hết hạn phải lớn hơn ngày xuất bản",
+    "maxImagesError": "Chỉ được chọn tối đa 3 ảnh chi tiết",
+    "coverImageRequired": "Vui lòng chọn ảnh bìa",
+    "coverImageMustBeImage": "Ảnh bìa phải là file ảnh",
+    "detailImageMustBeImage": "Ảnh chi tiết phải là file ảnh",
+    "enterTitle": "Nhập tiêu đề",
+    "enterSummary": "Nhập tóm tắt",
+    "enterBodyHtml": "Nhập nội dung HTML",
+    "selectPublishDate": "Chọn ngày xuất bản",
+    "selectExpireDate": "Chọn ngày hết hạn",
+    "goBack": "Quay lại",
+    "noNewsFound": "Không tìm thấy tin tức",
+    "summaryLabel": "Tóm tắt",
+    "contentLabel": "Nội dung",
+    "publishedStatus": "Đã xuất bản",
+    "draftStatus": "Nháp",
+    "archivedStatus": "Đã lưu trữ",
+    "allBuildingsText": "Tất cả tòa nhà",
+    "imageAltText": "Hình ảnh {index}",
+    "pleaseCheckRequiredFields": "Vui lòng kiểm tra các trường bắt buộc",
+    "pleaseSelectBuildingForExternalNews": "Vui lòng chọn tòa nhà cho tin tức Ngoại bộ",
+    "pleaseEnterTargetRoleForInternalNews": "Vui lòng nhập vai trò mục tiêu cho tin tức Nội bộ",
+    "errorUploadingCoverImage": "Lỗi khi tải lên ảnh bìa",
+    "errorUploadingDetailImages": "Lỗi khi tải lên ảnh chi tiết",
+    "newsUpdateSuccess": "Cập nhật tin tức thành công",
+    "errorUpdatingNews": "Lỗi khi cập nhật tin tức",
+    "newsNotFound": "Không tìm thấy tin tức",
+    "publishDate": "Ngày xuất bản",
+    "notAvailable": "N/A"
   },
   "AccountDetailRe": {
     "back": "Quay lại danh sách tài khoản",
@@ -1646,6 +1907,1358 @@
     },
     "unitLabel": {
       "floor": "Tầng"
+    }
+  },
+  "ReadingCycles": {
+    "title": "Chu kỳ đọc",
+    "createCycle": "Tạo chu kỳ",
+    "loading": "Đang tải...",
+    "empty": "Không tìm thấy chu kỳ đọc",
+    "filters": {
+      "status": "Trạng thái",
+      "service": "Dịch vụ",
+      "month": "Tháng",
+      "all": "Tất cả",
+      "allMonths": "Tất cả tháng",
+      "reset": "Xóa bộ lọc"
+    },
+    "status": {
+      "open": "Mở",
+      "inProgress": "Đang thực hiện",
+      "completed": "Hoàn thành",
+      "closed": "Đóng"
+    },
+    "table": {
+      "name": "Tên",
+      "fromDate": "Từ ngày",
+      "toDate": "Đến ngày",
+      "status": "Trạng thái",
+      "createdAt": "Ngày tạo",
+      "actions": "Hành động"
+    },
+    "cyclesTitle": "Chu kỳ ({count})",
+    "actions": {
+      "changeStatus": "Đổi trạng thái",
+      "edit": "Chỉnh sửa",
+      "delete": "Xóa"
+    },
+    "fallbacks": {
+      "unknownService": "Không rõ dịch vụ"
+    },
+    "errors": {
+      "onlyCurrentMonth": "Chỉ có thể đổi trạng thái cycle cùng tháng hiện tại"
+    },
+    "messages": {
+      "loadError": "Không thể tải chu kỳ đọc",
+      "createSuccess": "Tạo chu kỳ đọc thành công",
+      "createError": "Không thể tạo chu kỳ đọc",
+      "updateSuccess": "Cập nhật chu kỳ đọc thành công",
+      "updateError": "Không thể cập nhật chu kỳ đọc",
+      "statusUpdateSuccess": "Cập nhật trạng thái thành công",
+      "statusUpdateError": "Không thể cập nhật trạng thái",
+      "deleteSuccess": "Xóa chu kỳ đọc thành công",
+      "deleteError": "Không thể xóa chu kỳ đọc"
+    },
+    "confirmDelete": {
+      "title": "Xác nhận xóa",
+      "message": "Bạn có chắc chắn muốn xóa reading cycle này không?"
+    }
+  },
+  "ReadingAssign": {
+    "subtitle": "Quản lý Assignment",
+    "title": "Chọn dịch vụ để xem dữ liệu",
+    "description": "Mỗi dịch vụ có chu kỳ và assignment tách biệt. Chọn service cụ thể để xem task, tiến độ và export hóa đơn.",
+    "serviceLabel": "Dịch vụ",
+    "open": "Mở",
+    "services": {
+      "water": "Nước",
+      "waterDescription": "Quản lý assignment chu kỳ nước: kiểm tra lần đọc, phân công kỹ thuật viên và xuất hóa đơn.",
+      "electric": "Điện",
+      "electricDescription": "Theo dõi assignment chu kỳ điện riêng biệt để đảm bảo chỉ tiêu và kế hoạch đọc đồng hồ."
+    }
+  },
+  "AddAssignment": {
+    "title": "Thêm Assignment Mới",
+    "loading": "Đang tải...",
+    "loadingUnits": "Đang tải căn hộ...",
+    "fields": {
+      "readingCycle": "Chu kỳ đọc",
+      "building": "Tòa nhà",
+      "buildingOptional": "Tùy chọn - để trống cho tất cả tòa nhà",
+      "service": "Dịch vụ",
+      "assignTo": "Phân công cho",
+      "startDate": "Ngày bắt đầu",
+      "startDateOptional": "Tùy chọn - mặc định là ngày bắt đầu chu kỳ",
+      "endDate": "Ngày kết thúc",
+      "endDateOptional": "Tùy chọn - mặc định là ngày kết thúc chu kỳ",
+      "selectUnits": "Chọn căn hộ",
+      "floorsAssigned": "({count} tầng đã được phân công và ẩn)",
+      "floor": "Tầng {floor}",
+      "unitsCount": "({count} căn hộ)",
+      "selectedCount": "({count} đã chọn)",
+      "selectedUnits": "Đã chọn: {count} căn hộ",
+      "note": "Ghi chú",
+      "optional": "Tùy chọn"
+    },
+    "placeholders": {
+      "selectCycle": "Chọn chu kỳ đọc...",
+      "selectBuilding": "Chọn tòa nhà (tùy chọn)...",
+      "selectService": "Chọn dịch vụ...",
+      "selectStaff": "Chọn nhân viên...",
+      "selectStartDate": "Chọn ngày bắt đầu",
+      "selectEndDate": "Chọn ngày kết thúc",
+      "additionalNotes": "Ghi chú bổ sung..."
+    },
+    "errors": {
+      "selectCycle": "Vui lòng chọn chu kỳ",
+      "selectService": "Vui lòng chọn dịch vụ",
+      "selectStaff": "Vui lòng chọn nhân viên để phân công",
+      "selectAtLeastOneUnit": "Vui lòng chọn ít nhất một căn hộ",
+      "startDateBeforeCycle": "Ngày bắt đầu không thể trước ngày bắt đầu chu kỳ",
+      "endDateAfterCycle": "Ngày kết thúc không thể sau ngày kết thúc chu kỳ"
+    },
+    "messages": {
+      "allFloorsAssigned": "Tất cả tầng đã được phân công cho chu kỳ và dịch vụ này. Vui lòng chọn chu kỳ hoặc dịch vụ khác.",
+      "noFloorsAvailable": "Không có tầng nào. Vui lòng đảm bảo tòa nhà có căn hộ.",
+      "noUnitsFound": "Không tìm thấy căn hộ",
+      "createSuccess": "Tạo assignment thành công",
+      "createError": "Không thể tạo assignment"
+    },
+    "actions": {
+      "showUnits": "▶ Hiển thị căn hộ",
+      "hideUnits": "▼ Ẩn căn hộ",
+      "clearAll": "Xóa tất cả",
+      "cancel": "Hủy",
+      "creating": "Đang tạo...",
+      "createAssignment": "Tạo Assignment"
+    }
+  },
+  "AssetManagement": {
+    "subtitle": "Quản lý tài sản",
+    "title": "Quản lý meter & tài sản",
+    "description": "Trang tổng quan tập trung các thao tác liên quan đến meter: khám phá tòa nhà, thêm meter mới và chuyển sang phân công đọc để đảm bảo dữ liệu luôn được cập nhật.",
+    "goTo": "Đi tới",
+    "actions": {
+      "buildingList": {
+        "label": "Danh sách tòa nhà",
+        "description": "Truy cập danh sách tòa nhà để xem chi tiết, căn hộ và trạng thái meter."
+      },
+      "meterManagement": {
+        "label": "Quản lý meter",
+        "description": "Xem bảng tổng hợp meter theo tòa nhà, dịch vụ và hành động nhanh mà không cần vào từng tòa."
+      },
+      "createMeter": {
+        "label": "Tạo meter",
+        "description": "Chọn tòa nhà, căn hộ rồi thêm meter mới theo dịch vụ."
+      },
+      "readingAssignment": {
+        "label": "Phân công đọc meter",
+        "description": "Chuyển qua phần phân công đọc điện/nước cho từng chu kỳ."
+      }
+    }
+  },
+  "ApprovedCards": {
+    "title": "Quản lý thẻ đã duyệt",
+    "actions": {
+      "refresh": "Làm mới"
+    },
+    "filters": {
+      "cardType": "Loại thẻ",
+      "allCardTypes": "Tất cả loại thẻ",
+      "building": "Tòa nhà",
+      "allBuildings": "Tất cả tòa nhà",
+      "unit": "Căn hộ/Phòng",
+      "allUnits": "Tất cả căn hộ"
+    },
+    "cardTypes": {
+      "resident": "Thẻ cư dân",
+      "elevator": "Thẻ thang máy",
+      "vehicle": "Thẻ xe"
+    },
+    "table": {
+      "cardType": "Loại thẻ",
+      "displayName": "Tên hiển thị",
+      "apartment": "Căn hộ",
+      "building": "Tòa nhà",
+      "status": "Trạng thái",
+      "payment": "Thanh toán",
+      "approvedDate": "Ngày duyệt"
+    },
+    "showing": "Hiển thị: {filtered} / {total} thẻ đã duyệt",
+    "empty": "Không có thẻ đã duyệt nào phù hợp.",
+    "errors": {
+      "loadError": "Không thể tải danh sách thẻ đã duyệt"
+    }
+  },
+  "ElevatorCards": {
+    "title": "Quản lý đăng ký thẻ thang máy",
+    "actions": {
+      "refresh": "Làm mới",
+      "close": "Đóng",
+      "viewDetails": "Xem chi tiết",
+      "approve": "Duyệt",
+      "reject": "Từ chối"
+    },
+    "filters": {
+      "registrationStatus": "Trạng thái đăng ký",
+      "allStatuses": "Tất cả trạng thái",
+      "paymentStatus": "Trạng thái thanh toán",
+      "allPayments": "Tất cả thanh toán"
+    },
+    "statuses": {
+      "readyForPayment": "Chờ thanh toán",
+      "paymentPending": "Đang thanh toán",
+      "pending": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "completed": "Đã hoàn tất",
+      "rejected": "Đã từ chối"
+    },
+    "paymentStatuses": {
+      "unpaid": "Chưa thanh toán",
+      "paymentPending": "Đang thanh toán",
+      "paid": "Đã thanh toán"
+    },
+    "table": {
+      "resident": "Cư dân",
+      "apartment": "Căn hộ",
+      "building": "Tòa nhà",
+      "createdDate": "Ngày tạo",
+      "status": "Trạng thái",
+      "payment": "Thanh toán",
+      "actions": "Thao tác"
+    },
+    "selectRegistration": "Chọn một đăng ký để xem chi tiết và duyệt.",
+    "notFound": "Không tìm thấy dữ liệu đăng ký.",
+    "empty": "Không có đăng ký nào phù hợp.",
+    "detail": {
+      "title": "Chi tiết đăng ký",
+      "registrationId": "Mã đăng ký",
+      "fullName": "Họ tên cư dân",
+      "apartment": "Căn hộ",
+      "building": "Tòa nhà",
+      "citizenId": "Số CCCD",
+      "phoneNumber": "Số điện thoại",
+      "requestType": "Loại yêu cầu",
+      "note": "Ghi chú",
+      "status": "Trạng thái",
+      "paymentStatus": "Trạng thái thanh toán",
+      "paymentAmount": "Số tiền",
+      "paymentDate": "Ngày thanh toán",
+      "createdDate": "Ngày tạo",
+      "updatedDate": "Ngày cập nhật",
+      "adminNote": "Ghi chú quản trị viên",
+      "adminNotePlaceholder": "Nhập ghi chú hoặc lý do từ chối..."
+    },
+    "errors": {
+      "loadError": "Không thể tải danh sách đăng ký thang máy. Vui lòng thử lại.",
+      "loadDetailError": "Không thể tải chi tiết đăng ký. Vui lòng thử lại.",
+      "rejectReasonRequired": "Vui lòng nhập lý do từ chối.",
+      "actionFailed": "Không thể thực hiện hành động. Vui lòng thử lại."
+    },
+    "messages": {
+      "approveSuccess": "Đã duyệt đăng ký thẻ thang máy.",
+      "rejectSuccess": "Đã từ chối đăng ký thẻ thang máy."
+    }
+  },
+  "ResidentCards": {
+    "title": "Quản lý đăng ký thẻ cư dân",
+    "actions": {
+      "refresh": "Làm mới",
+      "close": "Đóng",
+      "viewDetails": "Xem chi tiết",
+      "approve": "Duyệt",
+      "reject": "Từ chối"
+    },
+    "filters": {
+      "registrationStatus": "Trạng thái đăng ký",
+      "allStatuses": "Tất cả trạng thái",
+      "paymentStatus": "Trạng thái thanh toán",
+      "allPayments": "Tất cả thanh toán"
+    },
+    "statuses": {
+      "readyForPayment": "Chờ thanh toán",
+      "paymentPending": "Đang thanh toán",
+      "pending": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "completed": "Đã hoàn tất",
+      "rejected": "Đã từ chối"
+    },
+    "paymentStatuses": {
+      "unpaid": "Chưa thanh toán",
+      "paymentPending": "Đang thanh toán",
+      "paid": "Đã thanh toán"
+    },
+    "table": {
+      "resident": "Cư dân",
+      "apartment": "Căn hộ",
+      "building": "Tòa nhà",
+      "createdDate": "Ngày tạo",
+      "status": "Trạng thái",
+      "payment": "Thanh toán",
+      "actions": "Thao tác"
+    },
+    "selectRegistration": "Chọn một đăng ký để xem chi tiết và duyệt.",
+    "notFound": "Không tìm thấy dữ liệu đăng ký.",
+    "empty": "Không có đăng ký nào phù hợp.",
+    "detail": {
+      "title": "Chi tiết đăng ký",
+      "registrationId": "Mã đăng ký",
+      "fullName": "Họ tên cư dân",
+      "apartment": "Căn hộ",
+      "building": "Tòa nhà",
+      "citizenId": "Số CCCD",
+      "phoneNumber": "Số điện thoại",
+      "requestType": "Loại yêu cầu",
+      "note": "Ghi chú",
+      "status": "Trạng thái",
+      "paymentStatus": "Trạng thái thanh toán",
+      "paymentAmount": "Số tiền",
+      "paymentDate": "Ngày thanh toán",
+      "createdDate": "Ngày tạo",
+      "updatedDate": "Ngày cập nhật",
+      "adminNote": "Ghi chú quản trị viên",
+      "adminNotePlaceholder": "Nhập ghi chú hoặc lý do từ chối..."
+    },
+    "errors": {
+      "loadError": "Không thể tải danh sách đăng ký thẻ cư dân. Vui lòng thử lại.",
+      "loadDetailError": "Không thể tải chi tiết đăng ký. Vui lòng thử lại.",
+      "rejectReasonRequired": "Vui lòng nhập lý do từ chối.",
+      "actionFailed": "Không thể thực hiện hành động. Vui lòng thử lại."
+    },
+    "messages": {
+      "approveSuccess": "Đã duyệt đăng ký thẻ cư dân.",
+      "rejectSuccess": "Đã từ chối đăng ký thẻ cư dân."
+    }
+  },
+  "ContractExport": {
+    "title": "Xuất hợp đồng PDF",
+    "back": "Quay lại",
+    "fields": {
+      "buyerName": "Tên người mua",
+      "idNo": "CCCD/Hộ chiếu",
+      "idDate": "Ngày cấp (dd/MM/yyyy)",
+      "idPlace": "Nơi cấp",
+      "residence": "Nơi cư trú",
+      "address": "Địa chỉ liên hệ",
+      "phone": "Điện thoại",
+      "taxCode": "MST (nếu có)",
+      "bankAcc": "Số tài khoản",
+      "bankName": "Ngân hàng"
+    },
+    "buttons": {
+      "generating": "Đang tạo...",
+      "exportPdf": "Xuất PDF"
+    },
+    "errors": {
+      "exportFailed": "Không thể xuất PDF"
+    }
+  },
+  "Household": {
+    "kinds": {
+      "owner": "Chủ sở hữu",
+      "tenant": "Người thuê",
+      "service": "Dịch vụ",
+      "ownerWithCode": "Chủ sở hữu (OWNER)",
+      "tenantWithCode": "Người thuê (TENANT)",
+      "serviceWithCode": "Dịch vụ (SERVICE)"
+    },
+    "unitLabel": {
+      "floor": "Tầng"
+    },
+    "common": {
+      "notSet": "Chưa thiết lập",
+      "unknown": "Không rõ"
+    },
+    "list": {
+      "title": "Quản lý hộ gia đình",
+      "subtitle": "Chọn tòa nhà và căn hộ để xem danh sách hộ đang/đã cư trú.",
+      "createNew": "Tạo hộ gia đình mới",
+      "householdList": "Danh sách hộ gia đình",
+      "showingSelectedUnit": "Đang hiển thị các hộ thuộc căn hộ đã chọn.",
+      "selectToView": "Hãy chọn tòa nhà và căn hộ để xem danh sách hộ cư trú.",
+      "viewUnitDetail": "Xem chi tiết căn hộ"
+    },
+    "new": {
+      "title": "Tạo hộ gia đình mới",
+      "subtitle": "Liên kết hộ gia đình với căn hộ và thiết lập thời gian cư trú.",
+      "backToList": "Quay lại danh sách"
+    },
+    "fields": {
+      "building": "Tòa nhà",
+      "unit": "Căn hộ",
+      "kind": "Loại hộ",
+      "startDate": "Ngày bắt đầu",
+      "endDate": "Ngày kết thúc",
+      "primaryResidentId": "Mã cư dân chủ hộ (tùy chọn)"
+    },
+    "placeholders": {
+      "selectBuilding": "-- Chọn tòa nhà --",
+      "selectUnit": "-- Chọn căn hộ --",
+      "selectBuildingFirst": "Hãy chọn tòa nhà trước",
+      "primaryResidentId": "Nhập UUID cư dân nếu đã có"
+    },
+    "hints": {
+      "endDateOptional": "Để trống nếu chưa xác định ngày kết thúc cư trú.",
+      "primaryResidentId": "Nếu để trống, bạn có thể cấp chủ hộ sau thông qua provisioning."
+    },
+    "table": {
+      "householdCode": "Mã hộ",
+      "kind": "Loại hộ",
+      "primaryResident": "Chủ hộ",
+      "startDate": "Ngày bắt đầu",
+      "endDate": "Ngày kết thúc",
+      "actions": "Thao tác",
+      "detail": "Chi tiết"
+    },
+    "loading": {
+      "buildings": "Đang tải danh sách tòa nhà...",
+      "units": "Đang tải danh sách căn hộ...",
+      "households": "Đang tải danh sách hộ gia đình..."
+    },
+    "empty": {
+      "noHouseholds": "Chưa có hộ gia đình nào cho căn hộ này."
+    },
+    "validation": {
+      "unitRequired": "Vui lòng chọn căn hộ để tạo hộ gia đình.",
+      "startDateRequired": "Vui lòng chọn ngày bắt đầu."
+    },
+    "errors": {
+      "loadBuildings": "Không thể tải danh sách tòa nhà.",
+      "loadUnits": "Không thể tải danh sách căn hộ của tòa nhà này.",
+      "loadHouseholds": "Không thể tải danh sách hộ gia đình của căn hộ.",
+      "createFailed": "Không thể tạo hộ gia đình. Vui lòng thử lại."
+    },
+    "messages": {
+      "createSuccess": "Tạo hộ gia đình thành công.",
+      "createSuccessWithId": "Tạo hộ gia đình thành công (ID: {id}). Bạn có thể cấp tài khoản chủ hộ ngay."
+    },
+    "buttons": {
+      "cancel": "Hủy",
+      "creating": "Đang tạo...",
+      "create": "Tạo hộ gia đình"
+    }
+  },
+  "HouseholdMemberRequests": {
+    "title": "Duyệt thành viên gia đình",
+    "actions": {
+      "refresh": "Làm mới",
+      "approve": "Chấp nhận",
+      "reject": "Từ chối",
+      "cancel": "Hủy",
+      "close": "Đóng",
+      "processing": "Đang xử lý..."
+    },
+    "sections": {
+      "household": "Hộ gia đình",
+      "memberInfo": "Thông tin người được thêm",
+      "requester": "Người gửi yêu cầu"
+    },
+    "householdCode": "Hộ {code}",
+    "noHouseholdCode": "Chưa có mã hộ",
+    "unit": "Căn hộ",
+    "relation": "Quan hệ",
+    "relationUnknown": "Chưa xác định",
+    "note": "Ghi chú",
+    "sentAt": "Gửi lúc",
+    "noFullName": "Không có họ tên",
+    "email": "Email",
+    "phone": "Điện thoại",
+    "nationalId": "CCCD",
+    "dob": "Ngày sinh",
+    "viewProofOfRelation": "Xem minh chứng quan hệ",
+    "unknown": "Không rõ",
+    "rejectForm": {
+      "title": "Nhập lý do từ chối yêu cầu này",
+      "placeholder": "Ví dụ: Thông tin cung cấp chưa chính xác hoặc thiếu giấy tờ.",
+      "confirmReject": "Xác nhận từ chối"
+    },
+    "confirm": {
+      "approveTitle": "Xác nhận chấp nhận",
+      "approveMessage": "Bạn có chắc chắn muốn chấp nhận yêu cầu thêm thành viên {name} vào hộ gia đình không?",
+      "rejectTitle": "Xác nhận từ chối",
+      "rejectMessage": "Bạn có chắc chắn muốn từ chối yêu cầu này không? Sau khi xác nhận, bạn sẽ cần nhập lý do từ chối.",
+      "rejectSubmitTitle": "Xác nhận từ chối yêu cầu",
+      "rejectSubmitMessage": "Bạn có chắc chắn muốn từ chối yêu cầu thêm thành viên {name} vào hộ gia đình không?"
+    },
+    "proofOfRelationImageAlt": "Minh chứng quan hệ",
+    "this": "này",
+    "loading": "Đang tải danh sách yêu cầu...",
+    "empty": "Hiện chưa có yêu cầu nào đang chờ duyệt.",
+    "errors": {
+      "loadError": "Không thể tải danh sách yêu cầu.",
+      "approveFailed": "Không thể duyệt yêu cầu. Vui lòng thử lại.",
+      "rejectFailed": "Không thể từ chối yêu cầu. Vui lòng thử lại.",
+      "rejectReasonRequired": "Vui lòng nhập lý do từ chối."
+    },
+    "messages": {
+      "approveSuccess": "Đã chấp nhận yêu cầu và thêm thành viên vào hộ gia đình.",
+      "rejectSuccess": "Đã từ chối yêu cầu thành công."
+    }
+  },
+  "MeterManagement": {
+    "subtitle": "Quản lý công tơ",
+    "title": "Danh sách meter",
+    "description": "Xem nhanh tình trạng meter theo tòa nhà và dịch vụ, lọc ra các căn hộ đang có hay chưa có meter, rồi chuyển sang phân công đọc/nạp mới khi cần.",
+    "buttons": {
+      "addMeter": "Thêm meter",
+      "downloadTemplate": "Tải template import công tơ",
+      "downloadingTemplate": "Đang tải template...",
+      "viewDetails": "Xem chi tiết",
+      "viewBuilding": "Xem tòa",
+      "close": "Đóng",
+      "cancel": "Hủy",
+      "createAuto": "Tạo công tơ tự động",
+      "creating": "Đang tạo..."
+    },
+    "filters": {
+      "building": "Lọc tòa nhà",
+      "service": "Lọc dịch vụ",
+      "floor": "Lọc tầng",
+      "allBuildings": "Tất cả tòa nhà",
+      "allServices": "Tất cả dịch vụ",
+      "allFloors": "Tất cả tầng"
+    },
+    "summary": {
+      "totalFiltered": "Tổng meter đang lọc",
+      "active": "Meter đang hoạt động",
+      "inactive": "Meter không hoạt động",
+      "distributionByService": "Phân bố theo dịch vụ"
+    },
+    "other": "Khác",
+    "missingUnits": {
+      "checking": "Đang kiểm tra các căn hộ chưa có công tơ...",
+      "message": "Hiện còn {count} căn hộ chưa có công tơ dành cho {service}{building}.",
+      "preview": "Một số vị trí: {units}",
+      "andMore": "và {count} căn khác",
+      "allHaveMeters": "Đã có meter cho tất cả căn hộ ở {building} cho dịch vụ này."
+    },
+    "table": {
+      "loading": "Đang tải dữ liệu meter...",
+      "headers": {
+        "building": "Tòa nhà",
+        "unit": "Căn hộ",
+        "floor": "Tầng",
+        "service": "Dịch vụ",
+        "meterCode": "Mã công tơ",
+        "status": "Trạng thái",
+        "installedDate": "Ngày lắp",
+        "lastReading": "Chỉ số cuối",
+        "actions": "Hành động"
+      },
+      "empty": "Không tìm thấy công tơ phù hợp.",
+      "status": {
+        "active": "Hoạt động",
+        "inactive": "Ngừng"
+      },
+      "fallbacks": {
+        "unknownBuilding": "Tòa nhà chưa xác định",
+        "noUnit": "—"
+      }
+    },
+    "modal": {
+      "title": "Danh sách tầng thiếu công tơ",
+      "empty": "Không có căn hộ thiếu công tơ.",
+      "hasMissing": "Có {count} căn hộ chưa có công tơ.",
+      "headers": {
+        "building": "Tòa nhà",
+        "unit": "Căn hộ",
+        "floor": "Tầng"
+      }
+    },
+    "errors": {
+      "loadFailed": "Không thể tải dữ liệu meter",
+      "createFailed": "Không thể tạo công tơ tự động"
+    }
+  },
+  "Noti": {
+    "title": "Tiêu đề",
+    "content": "Nội dung",
+    "type": "Loại",
+    "createdAt": "Ngày tạo",
+    "action": "Hành động",
+    "loading": "Đang tải...",
+    "error": "Lỗi",
+    "retry": "Thử lại",
+    "back": "Quay lại",
+    "goBack": "Quay lại",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "saving": "Đang lưu...",
+    "update": "Cập nhật",
+    "edit": "Chỉnh sửa",
+    "notFound": "Không tìm thấy thông báo",
+    "listTitle": "Danh sách thông báo",
+    "addNotification": "+ Thêm thông báo",
+    "filterByType": "Lọc theo loại:",
+    "allTypes": "Tất cả loại",
+    "info": "Thông tin",
+    "request": "Yêu cầu",
+    "bill": "Hóa đơn",
+    "contract": "Hợp đồng",
+    "meterReading": "Đọc điện nước",
+    "system": "Hệ thống",
+    "selectType": "Chọn loại",
+    "clearFilter": "Xóa bộ lọc",
+    "emptyList": "Chưa có thông báo nào. Nhấn \"Thêm thông báo\" để tạo mới.",
+    "changeScope": "Thay đổi phạm vi",
+    "scope": "Phạm vi",
+    "internal": "Nội bộ",
+    "external": "Bên ngoài",
+    "selectScope": "Chọn phạm vi",
+    "targetRole": "Vai trò đích",
+    "selectTargetRole": "Chọn vai trò",
+    "all": "Tất cả",
+    "admin": "Quản trị viên",
+    "technician": "Kỹ thuật viên",
+    "supporter": "Hỗ trợ",
+    "account": "Kế toán",
+    "resident": "Cư dân",
+    "selectBuilding": "Chọn tòa nhà",
+    "allBuildings": "Tất cả tòa nhà",
+    "loadingBuildingList": "Đang tải danh sách tòa nhà...",
+    "loadingBuildings": "Đang tải...",
+    "actionUrl": "URL hành động",
+    "enterActionUrl": "Nhập URL hành động (tùy chọn)",
+    "createNotification": "Tạo thông báo",
+    "editNotification": "Chỉnh sửa thông báo",
+    "notificationType": "Loại thông báo",
+    "selectNotificationType": "Chọn loại thông báo",
+    "enterNotificationTitle": "Nhập tiêu đề thông báo",
+    "enterNotificationContent": "Nhập nội dung thông báo",
+    "backToNotificationList": "Quay lại danh sách thông báo",
+    "messages": {
+      "updated": "Cập nhật thông báo thành công!",
+      "deleteSuccess": "Xóa thông báo thành công!",
+      "deleteError": "Có lỗi xảy ra khi xóa thông báo!",
+      "updateScopeSuccess": "Cập nhật phạm vi thành công!",
+      "updateScopeError": "Có lỗi xảy ra khi cập nhật phạm vi!"
+    },
+    "errors": {
+      "loadListFailed": "Có lỗi xảy ra khi tải danh sách thông báo!",
+      "loadBuildings": "Không thể tải danh sách tòa nhà",
+      "selectTargetRole": "Vui lòng chọn vai trò đích",
+      "updateFailed": "Không thể cập nhật thông báo"
+    },
+    "validation": {
+      "typeRequired": "Loại thông báo không được để trống",
+      "titleRequired": "Tiêu đề là bắt buộc",
+      "titleMaxLength": "Tiêu đề không được vượt quá 200 ký tự",
+      "contentRequired": "Nội dung là bắt buộc",
+      "checkRequiredFields": "Vui lòng kiểm tra các trường bắt buộc",
+      "emptyTitle": "Tiêu đề không được để trống",
+      "emptyMessage": "Nội dung không được để trống"
+    },
+    "deleteConfirm": {
+      "title": "Xác nhận xóa",
+      "message": "Bạn có chắc chắn muốn xóa thông báo này? Hành động này không thể hoàn tác."
+    },
+    "changeScopeModal": {
+      "title": "Thay đổi phạm vi",
+      "scope": "Phạm vi",
+      "selectScope": "Chọn phạm vi",
+      "targetRole": "Vai trò đích",
+      "selectTargetRole": "Chọn vai trò",
+      "selectBuilding": "Chọn tòa nhà",
+      "allBuildings": "Tất cả tòa nhà",
+      "loadingBuildings": "Đang tải...",
+      "cancel": "Hủy",
+      "save": "Lưu",
+      "saving": "Đang lưu..."
+    },
+    "detail": {
+      "information": "Thông tin",
+      "scope": "Phạm vi",
+      "targetRole": "Vai trò đích",
+      "building": "Tòa nhà",
+      "referenceId": "Mã tham chiếu",
+      "referenceType": "Loại tham chiếu",
+      "createdAt": "Ngày tạo",
+      "updatedAt": "Ngày cập nhật",
+      "allBuildings": "Tất cả tòa nhà",
+      "notificationIcon": "Biểu tượng thông báo",
+      "notAvailable": "N/A"
+    },
+    "fetchBuildingError": "Không thể tải danh sách tòa nhà",
+    "fetchDetailError": "Không thể tải chi tiết thông báo",
+    "createNotificationSuccess": "Tạo thông báo thành công!",
+    "createNotificationError": "Có lỗi xảy ra khi tạo thông báo!",
+    "information": "Thông tin",
+    "warning": "Cảnh báo",
+    "alert": "Báo động",
+    "success": "Thành công",
+    "announcement": "Thông báo",
+    "message": "Tin nhắn",
+    "enterTitle": "Nhập tiêu đề",
+    "enterMessage": "Nhập tin nhắn"
+  },
+  "AccountNewRe": {
+    "back": "Quay lại danh sách tài khoản",
+    "title": "Tạo tài khoản chủ hộ",
+    "subtitle": "Tạo tài khoản cho chủ hộ hoặc duyệt các yêu cầu tạo tài khoản được cư dân gửi lên.",
+    "pendingRequestsBadge": "Đang có {count} yêu cầu chờ duyệt",
+    "tabs": {
+      "manual": "Tạo thủ công",
+      "requests": "Duyệt yêu cầu cư dân"
+    },
+    "manualForm": {
+      "title": "Thông tin chủ hộ",
+      "fields": {
+        "building": "Tòa nhà",
+        "unit": "Căn hộ",
+        "fullName": "Họ và tên cư dân",
+        "email": "Email",
+        "phone": "Số điện thoại",
+        "dob": "Ngày sinh",
+        "nationalId": "CMND / CCCD",
+        "username": "Tên đăng nhập (tùy chọn)",
+        "relation": "Quan hệ"
+      },
+      "placeholders": {
+        "selectBuilding": "-- Chọn tòa nhà --",
+        "selectUnit": "-- Chọn căn hộ --",
+        "selectBuildingFirst": "Chọn tòa nhà trước",
+        "fullName": "Nhập họ tên đầy đủ",
+        "email": "example@domain.com",
+        "phone": "Nhập số điện thoại (10 số, bắt đầu bằng 0)",
+        "dob": "Chọn ngày sinh",
+        "nationalId": "Nhập số CMND/CCCD (13 số)",
+        "username": "Để trống để hệ thống tự tạo",
+        "relation": "Chủ hộ"
+      },
+      "contractInfo": {
+        "title": "Thông tin hợp đồng",
+        "contractNumber": "Số hợp đồng:",
+        "status": "Trạng thái:",
+        "effectiveFrom": "Hiệu lực từ:",
+        "effectiveTo": "Hiệu lực đến:",
+        "unlimited": "Không giới hạn",
+        "noContract": "Căn hộ này chưa có hợp đồng hợp lệ. Vui lòng tạo hợp đồng trước khi cấp tài khoản chủ hộ.",
+        "selectFirst": "Chọn tòa nhà và căn hộ để xem thông tin hợp đồng.",
+        "viewDetail": "Xem chi tiết hợp đồng"
+      },
+      "householdInfo": {
+        "title": "Thông tin hộ gia đình",
+        "household": "Hộ:",
+        "kind": "Loại:",
+        "startDate": "Ngày bắt đầu:",
+        "endDate": "Ngày kết thúc:",
+        "notSet": "Chưa thiết lập",
+        "unit": "Căn hộ:",
+        "building": "Tòa:",
+        "floor": "Tầng:",
+        "area": "Diện tích:"
+      },
+      "passwordNote": "Mật khẩu tạm thời sẽ được hệ thống tạo tự động và gửi tới email cư dân ngay sau khi tài khoản được tạo.",
+      "buttons": {
+        "cancel": "Huỷ bỏ",
+        "create": "Tạo tài khoản",
+        "creating": "Đang tạo..."
+      },
+      "loading": {
+        "buildings": "Đang tải danh sách tòa nhà...",
+        "units": "Đang tải danh sách căn hộ...",
+        "household": "Đang tải thông tin hộ gia đình..."
+      }
+    },
+    "validation": {
+      "phone": {
+        "required": "Số điện thoại không được để trống.",
+        "specialChars": "Số điện thoại không được chứa ký tự đặc biệt.",
+        "mustStartWithZero": "Số điện thoại phải bắt đầu bằng số 0.",
+        "mustBe10Digits": "Số điện thoại phải có đúng 10 số.",
+        "invalidPrefix": "Số điện thoại không hợp lệ. Vui lòng kiểm tra lại đầu số."
+      },
+      "fullName": {
+        "required": "Họ và tên cư dân không được để trống.",
+        "maxLength": "Họ và tên không được vượt quá 40 ký tự.",
+        "specialChars": "Họ và tên không được chứa ký tự đặc biệt."
+      },
+      "nationalId": {
+        "required": "CMND/CCCD không được để trống.",
+        "specialChars": "CMND/CCCD không được chứa ký tự đặc biệt.",
+        "mustBe13Digits": "CMND/CCCD phải có đúng 13 số."
+      },
+      "username": {
+        "noWhitespace": "Tên đăng nhập không được chứa khoảng trắng.",
+        "invalidFormat": "Tên đăng nhập chỉ được chứa chữ cái không dấu, số và các ký tự @, _, -, .",
+        "maxLength": "Tên đăng nhập không được vượt quá 40 ký tự."
+      },
+      "dob": {
+        "required": "Ngày sinh không được để trống.",
+        "invalid": "Ngày sinh không hợp lệ.",
+        "ageMin": "Tuổi phải lớn hơn 18.",
+        "ageMax": "Tuổi phải nhỏ hơn 200."
+      },
+      "email": {
+        "required": "Email không được để trống.",
+        "noWhitespace": "Email không được chứa ký tự trắng.",
+        "maxLength": "Email không được vượt quá 40 ký tự.",
+        "invalid": "Email không hợp lệ.",
+        "exists": "Email đã tồn tại trong hệ thống."
+      },
+      "building": {
+        "required": "Vui lòng chọn tòa nhà."
+      },
+      "unit": {
+        "required": "Vui lòng chọn căn hộ.",
+        "noHousehold": "Căn hộ này chưa có hộ gia đình. Vui lòng tạo trước.",
+        "householdInvalid": "Vui lòng kiểm tra lại thông tin hộ gia đình.",
+        "hasOwner": "Hộ gia đình đã có chủ hộ.",
+        "noContract": "Căn hộ này chưa có hợp đồng hợp lệ. Vui lòng tạo hợp đồng trước."
+      }
+    },
+    "messages": {
+      "createHouseholdSuccess": "Đã tạo hộ gia đình mới cho căn hộ.",
+      "createAccountSuccess": "Tạo chủ hộ và tài khoản cư dân thành công.",
+      "createAccountError": "Không thể tạo tài khoản cư dân. Vui lòng thử lại.",
+      "loadBuildingsError": "Không thể tải danh sách tòa nhà.",
+      "loadUnitsError": "Không thể tải danh sách căn hộ.",
+      "loadContractError": "Không thể tải chi tiết hợp đồng.",
+      "loadHouseholdError": "Không thể tải thông tin hộ gia đình.",
+      "loadContractInfoError": "Không thể tải thông tin hợp đồng. Vui lòng thử lại.",
+      "createHouseholdError": "Không thể tạo hộ gia đình cho căn hộ này."
+    },
+    "requestsTab": {
+      "title": "Danh sách yêu cầu tạo tài khoản từ cư dân",
+      "refresh": "Làm mới",
+      "loading": "Đang tải danh sách yêu cầu...",
+      "empty": "Hiện không có yêu cầu đang chờ duyệt.",
+      "table": {
+        "resident": "Cư dân",
+        "contact": "Liên hệ",
+        "proposedAccount": "Tài khoản đề xuất",
+        "options": "Tùy chọn",
+        "time": "Thời gian",
+        "action": "Hành động"
+      },
+      "columns": {
+        "requestId": "Mã yêu cầu:",
+        "username": "Tên đăng nhập:",
+        "email": "Email:",
+        "relation": "Quan hệ:",
+        "notProvided": "Chưa cung cấp",
+        "unknown": "Không rõ",
+        "noData": "Không có"
+      },
+      "actions": {
+        "approve": "Phê duyệt",
+        "reject": "Từ chối"
+      },
+      "rejectPrompt": "Nhập lý do từ chối (bắt buộc):",
+      "rejectError": "Không thể xử lý yêu cầu. Vui lòng thử lại."
+    },
+    "contractModal": {
+      "title": "Chi tiết hợp đồng",
+      "contractNumber": "Số hợp đồng:",
+      "close": "Đóng",
+      "loading": "Đang tải chi tiết hợp đồng...",
+      "fields": {
+        "contractType": "Loại hợp đồng:",
+        "status": "Trạng thái:",
+        "startDate": "Ngày bắt đầu:",
+        "endDate": "Ngày kết thúc:",
+        "monthlyRent": "Giá thuê / tháng:",
+        "purchasePrice": "Giá mua:",
+        "purchaseDate": "Ngày mua:",
+        "paymentMethod": "Phương thức thanh toán:",
+        "notes": "Ghi chú",
+        "attachments": "Tệp đính kèm"
+      },
+      "values": {
+        "unknown": "Không xác định",
+        "unlimited": "Không giới hạn",
+        "unknownFormat": "Không rõ định dạng",
+        "unknownSize": "Kích thước không rõ",
+        "primaryFile": "Tệp chính",
+        "viewDownload": "Xem / tải",
+        "unnamedFile": "Tệp không tên"
+      }
+    },
+    "common": {
+      "notUpdated": "Chưa cập nhật",
+      "defaultRejectionReason": "Thông tin không đầy đủ"
+    }
+  },
+  "AccountingDashboard": {
+    "title": "Bảng điều khiển kế toán",
+    "quickActions": {
+      "title": "⚡ Thao tác nhanh",
+      "rolesPermissions": {
+        "title": "Vai trò & Phân quyền",
+        "description": "Quản lý phân quyền"
+      },
+      "userManagement": {
+        "title": "Quản lý người dùng",
+        "description": "Quản lý người dùng"
+      },
+      "systemSettings": {
+        "title": "Cài đặt hệ thống",
+        "description": "Cài đặt hệ thống"
+      },
+      "reports": {
+        "title": "Báo cáo",
+        "description": "Báo cáo thống kê"
+      }
+    },
+    "stats": {
+      "households": "Hộ cư dân"
+    },
+    "actions": {
+      "selected": "Đã chọn:",
+      "sendNotification": "Gửi thông báo"
+    },
+    "messages": {
+      "notifyEnabled": "Đã bật thông báo cho hóa đơn",
+      "notifyDisabled": "Đã tắt thông báo cho hóa đơn",
+      "selectTemplateFirst": "Chọn template trước khi gửi",
+      "selectAtLeastOneInvoice": "Chọn ít nhất 1 hóa đơn để gửi",
+      "selectAtLeastOneChannel": "Chọn ít nhất 1 kênh gửi",
+      "sendSuccess": "Gửi thành công: {accepted} • Lỗi: {rejected}"
+    }
+  },
+  "AdminRoles": {
+    "title": "Quản lý Vai trò & Phân quyền",
+    "subtitle": "Xem và quản lý roles cùng permissions của hệ thống"
+  },
+  "AdminTenants": {
+    "title": "Quản Lý Tenant",
+    "subtitle": "Danh sách tất cả tenant trong hệ thống",
+    "search": {
+      "placeholder": "Tìm kiếm tenant theo tên hoặc mã..."
+    },
+    "loading": "Đang tải...",
+    "error": "❌ Không thể tải danh sách tenants",
+    "table": {
+      "headers": {
+        "tenant": "Tenant",
+        "code": "Mã",
+        "address": "Địa chỉ",
+        "status": "Trạng thái",
+        "action": "Hành động"
+      },
+      "empty": {
+        "noResults": "Không tìm thấy tenant nào",
+        "noData": "📭 Chưa có tenant nào"
+      },
+      "footer": {
+        "total": "Tổng cộng: {count} tenant",
+        "filtered": " (đã lọc từ {total} tenant)"
+      }
+    },
+    "actions": {
+      "requestDeletion": "Yêu cầu Xóa",
+      "requestDeletionTooltip": "Yêu cầu xóa tenant",
+      "onlyActiveTooltip": "Chỉ có thể xóa tenant ACTIVE"
+    }
+  },
+  "AdminTenantDeletions": {
+    "title": {
+      "admin": "Quản Lý Yêu Cầu Xóa Tenant",
+      "user": "Yêu Cầu Xóa Tenant Của Tôi"
+    },
+    "subtitle": {
+      "admin": "Admin: Phê duyệt và xử lý các yêu cầu xóa tenant",
+      "user": "Theo dõi các yêu cầu xóa tenant bạn đã gửi"
+    },
+    "stats": {
+      "pending": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "completed": "Hoàn thành",
+      "rejected": "Từ chối"
+    },
+    "filters": {
+      "searchPlaceholder": "Tìm kiếm theo ID, Tenant ID, lý do...",
+      "statusAll": "Tất cả trạng thái",
+      "statusPending": "🟡 Chờ duyệt",
+      "statusApproved": "🟢 Đã duyệt",
+      "statusCompleted": "✅ Hoàn thành",
+      "statusRejected": "❌ Từ chối"
+    },
+    "loading": "⏳ Đang tải...",
+    "table": {
+      "headers": {
+        "id": "ID",
+        "tenantId": "Tenant ID",
+        "reason": "Lý do",
+        "status": "Trạng thái",
+        "createdAt": "Ngày tạo",
+        "action": "Hành động"
+      },
+      "empty": {
+        "noResults": "Không tìm thấy yêu cầu nào",
+        "noData": "📭 Chưa có yêu cầu xóa nào"
+      },
+      "footer": {
+        "showing": "Hiển thị: {count}",
+        "of": " / {total} yêu cầu"
+      },
+      "actions": {
+        "viewDetails": "👁️ Chi tiết"
+      }
+    },
+    "messages": {
+      "loadError": "❌ Không thể tải danh sách yêu cầu xóa"
+    }
+  },
+  "AdminTenantDeletionDetail": {
+    "breadcrumb": "Yêu cầu xóa tenant",
+    "title": "Chi tiết yêu cầu xóa Tenant",
+    "loading": "Đang tải...",
+    "notFound": "❌ Không tìm thấy yêu cầu",
+    "header": {
+      "title": "Yêu cầu Xóa Tenant #{id}",
+      "fields": {
+        "tenantId": "Tenant ID:",
+        "requestedBy": "Người yêu cầu:",
+        "createdAt": "Ngày tạo:",
+        "approvedBy": "Người phê duyệt:",
+        "approvedAt": "Ngày phê duyệt:",
+        "reason": "Lý do:",
+        "note": "Ghi chú:"
+      }
+    },
+    "timeline": {
+      "title": "📊 Tiến trình",
+      "steps": {
+        "create": "Tạo yêu cầu",
+        "pending": "Chờ duyệt",
+        "approved": "Đã duyệt",
+        "completed": "Hoàn thành"
+      }
+    },
+    "targetsStatus": {
+      "title": "🎯 Tiến độ Xóa",
+      "refresh": "🔄 Refresh",
+      "refreshing": "⏳",
+      "buildings": {
+        "label": "Buildings",
+        "archived": "{archived} / {total} ARCHIVED",
+        "ready": "✅ Đã sẵn sàng",
+        "processing": "⏳ Đang xử lý..."
+      },
+      "units": {
+        "label": "🏠 Units",
+        "inactive": "{inactive} / {total} INACTIVE",
+        "ready": "✅ Đã sẵn sàng",
+        "processing": "⏳ Đang xử lý..."
+      },
+      "employees": {
+        "label": "👥 Employees",
+        "remaining": "{count} nhân viên còn lại",
+        "ready": "✅ Đã sẵn sàng (0 nhân viên)",
+        "processing": "⏳ Còn {count} nhân viên cần gỡ bỏ"
+      },
+      "overall": {
+        "ready": "Sẵn sàng hoàn thành!",
+        "waiting": "Đang chờ xóa buildings, units & employees...",
+        "readyDescription": "Tất cả buildings, units và employees đã được xử lý. Có thể hoàn thành deletion.",
+        "waitingDescription": "Đợi tất cả buildings ARCHIVED, units INACTIVE và employees được gỡ bỏ trước khi hoàn thành."
+      }
+    },
+    "actions": {
+      "title": "⚡ Hành động",
+      "approve": "✅ Phê duyệt",
+      "reject": "❌ Từ chối",
+      "complete": "🎯 Hoàn thành Deletion",
+      "completeDisabled": "🎯 Hoàn thành Deletion (Chưa sẵn sàng)",
+      "completeDisabledTooltip": "Chờ tất cả targets sẵn sàng",
+      "completed": "✅ Yêu cầu đã được hoàn thành",
+      "rejected": "❌ Yêu cầu đã bị từ chối"
+    },
+    "modals": {
+      "approve": {
+        "title": "✅ Phê duyệt Yêu cầu Xóa",
+        "noteLabel": "Ghi chú (tùy chọn)",
+        "notePlaceholder": "Nhập ghi chú...",
+        "warning": "⚠️ Phê duyệt sẽ:",
+        "warningItems": {
+          "buildings": "Set buildings → DELETING",
+          "units": "Set units → INACTIVE",
+          "requests": "Tạo building deletion requests",
+          "employees": "Employees cần được gỡ bỏ thủ công"
+        },
+        "cancel": "Hủy",
+        "confirm": "✅ Xác nhận Phê duyệt",
+        "processing": "⏳ Đang xử lý..."
+      },
+      "reject": {
+        "title": "❌ Từ chối Yêu cầu Xóa",
+        "reasonLabel": "Lý do từ chối",
+        "reasonRequired": "*",
+        "reasonPlaceholder": "Nhập lý do từ chối (tối thiểu 10 ký tự)...",
+        "charCount": "{count}/10 ký tự",
+        "cancel": "Hủy",
+        "confirm": "❌ Xác nhận Từ chối",
+        "processing": "⏳ Đang xử lý...",
+        "minLengthError": "Lý do từ chối phải có ít nhất 10 ký tự"
+      },
+      "complete": {
+        "title": "🎯 Hoàn thành Deletion",
+        "warningTitle": "🔥 CẢNH BÁO CUỐI CÙNG",
+        "warningItems": {
+          "archived": "Tenant sẽ được đánh dấu ARCHIVED",
+          "deleted": "Tenant.deleted = true",
+          "irreversible": "KHÔNG THỂ HOÀN TÁC!"
+        },
+        "confirmLabel": "Nhập mã tenant để xác nhận:",
+        "confirmPlaceholder": "Nhập \"{code}\" để xác nhận",
+        "cancel": "Hủy",
+        "confirm": "🔥 Hoàn thành Deletion",
+        "processing": "⏳ Đang xử lý...",
+        "invalidCode": "Mã xác nhận không đúng!"
+      }
+    },
+    "messages": {
+      "loadError": "❌ Không thể tải thông tin yêu cầu",
+      "approveSuccess": "✅ Đã phê duyệt yêu cầu xóa tenant!",
+      "rejectSuccess": "✅ Đã từ chối yêu cầu xóa tenant!",
+      "completeSuccess": "✅ Đã hoàn thành xóa tenant!",
+      "error": "❌ Lỗi: {message}"
+    }
+  },
+  "AdminUserPermissions": {
+    "loading": "Đang tải dữ liệu...",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "userPermissions": "User Permissions"
+    },
+    "title": "User Permissions",
+    "subtitle": "View detailed permissions for users in {tenantName}",
+    "filters": {
+      "searchPlaceholder": "Search by username or email...",
+      "roleAll": "All Roles"
+    },
+    "empty": {
+      "noResults": "Không tìm thấy user phù hợp",
+      "noData": "Không có user nào trong tenant này"
+    },
+    "userCard": {
+      "roles": "🎭 Roles:",
+      "noRoles": "No roles",
+      "permissions": "{count} permissions",
+      "viewDetails": "View Details →"
+    },
+    "summary": {
+      "showing": "Showing",
+      "of": "of",
+      "users": "users"
+    }
+  },
+  "AdminUserPermissionDetail": {
+    "loading": "Đang tải dữ liệu...",
+    "notFound": "User not found",
+    "backToUserList": "← Back to User List",
+    "breadcrumb": {
+      "dashboard": "Dashboard"
+    },
+    "userCard": {
+      "tenant": "Tenant:",
+      "roles": "🎭 Roles:",
+      "noRoles": "No roles assigned",
+      "totalPermissions": "🔑 {count} total permissions",
+      "editPermissions": "✏️ Edit Permissions"
+    },
+    "permissionBreakdown": {
+      "title": "📊 Permission Breakdown",
+      "inherited": {
+        "label": "Inherited from Roles",
+        "description": "From assigned roles"
+      },
+      "granted": {
+        "label": "Granted Directly",
+        "description": "User-specific grants"
+      },
+      "denied": {
+        "label": "Denied",
+        "description": "Explicitly blocked"
+      },
+      "effective": {
+        "label": "Effective",
+        "description": "Final permissions"
+      }
+    },
+    "search": {
+      "placeholder": "Search permissions...",
+      "showing": "Showing {filtered} of {total} permissions"
+    },
+    "effectivePermissions": {
+      "title": "🔑 Effective Permissions",
+      "empty": {
+        "noResults": "No permissions match your search",
+        "noData": "No permissions assigned"
+      }
+    },
+    "export": {
+      "button": "📥 Export to CSV",
+      "csvHeaders": {
+        "permission": "Quyền",
+        "service": "Dịch vụ"
+      }
+    }
+  },
+  "Auth": {
+    "login": {
+      "logoAlt": "QHome Logo",
+      "title": "QHome PMS",
+      "copyright": "© {year} QHome. All rights reserved."
+    }
+  },
+  "Supplier": {
+    "list": {
+      "title": "Danh sách nhà cung cấp",
+      "loading": "Đang tải...",
+      "error": "Lỗi: {error}",
+      "retry": "Thử lại",
+      "headers": {
+        "name": "Tên nhà cung cấp",
+        "type": "Loại",
+        "contactPerson": "Người liên hệ",
+        "phone": "Điện thoại",
+        "email": "Email",
+        "status": "Trạng thái",
+        "createdAt": "Ngày tạo"
+      },
+      "status": {
+        "active": "Hoạt động",
+        "inactive": "Không hoạt động"
+      }
+    },
+    "edit": {
+      "back": "Chi tiết nhà cung cấp",
+      "title": "Chỉnh sửa nhà cung cấp",
+      "loading": "Đang tải...",
+      "error": "Lỗi: {error}",
+      "fields": {
+        "name": "Tên nhà cung cấp",
+        "namePlaceholder": "Nhập tên nhà cung cấp",
+        "type": "Loại",
+        "typePlaceholder": "Nhập loại",
+        "contactPerson": "Người liên hệ",
+        "contactPersonPlaceholder": "Nhập người liên hệ",
+        "phone": "Điện thoại",
+        "phonePlaceholder": "Nhập số điện thoại",
+        "email": "Email",
+        "emailPlaceholder": "Nhập email",
+        "address": "Địa chỉ",
+        "addressPlaceholder": "Nhập địa chỉ",
+        "taxCode": "Mã số thuế",
+        "taxCodePlaceholder": "Nhập mã số thuế",
+        "website": "Website",
+        "websitePlaceholder": "Nhập website",
+        "notes": "Ghi chú",
+        "notesPlaceholder": "Nhập ghi chú"
+      },
+      "validation": {
+        "nameRequired": "Tên nhà cung cấp là bắt buộc",
+        "typeRequired": "Loại là bắt buộc",
+        "contactPersonRequired": "Người liên hệ là bắt buộc",
+        "phoneRequired": "Điện thoại là bắt buộc",
+        "emailRequired": "Email là bắt buộc",
+        "emailInvalid": "Email không hợp lệ",
+        "addressRequired": "Địa chỉ là bắt buộc"
+      },
+      "buttons": {
+        "cancel": "Hủy",
+        "save": "Lưu",
+        "saving": "Đang lưu..."
+      },
+      "messages": {
+        "updateSuccess": "Cập nhật nhà cung cấp thành công",
+        "updateError": "Cập nhật nhà cung cấp thất bại: {error}"
+      }
+    },
+    "detail": {
+      "back": "Danh sách nhà cung cấp",
+      "title": "Chi tiết nhà cung cấp",
+      "loading": "Đang tải...",
+      "error": "Lỗi: {error}",
+      "notFound": "Không tìm thấy dữ liệu",
+      "status": {
+        "active": "Hoạt động",
+        "inactive": "Không hoạt động"
+      },
+      "fields": {
+        "name": "Tên nhà cung cấp",
+        "type": "Loại",
+        "contactPerson": "Người liên hệ",
+        "phone": "Điện thoại",
+        "email": "Email",
+        "address": "Địa chỉ",
+        "taxCode": "Mã số thuế",
+        "website": "Website",
+        "notes": "Ghi chú",
+        "createdAt": "Ngày tạo",
+        "createdBy": "Người tạo"
+      },
+      "delete": {
+        "title": "Xác nhận xóa",
+        "message": "Bạn có chắc chắn muốn xóa nhà cung cấp này?"
+      }
+    }
+  },
+  "AssetImage": {
+    "edit": {
+      "back": "Chỉnh sửa hình ảnh tài sản",
+      "title": "Chỉnh sửa hình ảnh tài sản",
+      "fields": {
+        "assetName": "Tên tài sản",
+        "assetCode": "Mã tài sản"
+      },
+      "upload": {
+        "label": "Tải lên hình ảnh",
+        "button": "Tải lên",
+        "uploading": "Đang tải...",
+        "selectFiles": "Vui lòng chọn ít nhất một hình ảnh"
+      },
+      "image": {
+        "primary": "Hình chính",
+        "setPrimary": "Đặt làm chính",
+        "delete": "Xóa"
+      },
+      "empty": "Chưa có hình ảnh nào. Vui lòng tải lên hình ảnh.",
+      "buttons": {
+        "cancel": "Hủy",
+        "save": "Lưu"
+      },
+      "messages": {
+        "uploadSuccess": "Tải lên hình ảnh thành công",
+        "uploadError": "Tải lên hình ảnh thất bại: {error}",
+        "deleteSuccess": "Xóa hình ảnh thành công",
+        "deleteError": "Xóa hình ảnh thất bại: {error}",
+        "deleteConfirm": "Bạn có chắc chắn muốn xóa hình ảnh này?",
+        "setPrimarySuccess": "Đặt hình ảnh chính thành công",
+        "setPrimaryError": "Đặt hình ảnh chính thất bại: {error}",
+        "saveSuccess": "Lưu thành công"
+      }
+    },
+    "detail": {
+      "back": "Quản lý hình ảnh tài sản",
+      "title": "Hình ảnh tài sản",
+      "fields": {
+        "assetName": "Tên tài sản",
+        "assetCode": "Mã tài sản"
+      },
+      "upload": {
+        "label": "Tải lên hình ảnh",
+        "button": "Tải lên",
+        "uploading": "Đang tải...",
+        "selectFiles": "Vui lòng chọn ít nhất một hình ảnh"
+      },
+      "image": {
+        "primary": "Hình chính",
+        "setPrimary": "Đặt làm chính",
+        "delete": "Xóa"
+      },
+      "empty": "Chưa có hình ảnh nào. Vui lòng tải lên hình ảnh.",
+      "messages": {
+        "uploadSuccess": "Tải lên hình ảnh thành công",
+        "uploadError": "Tải lên hình ảnh thất bại: {error}",
+        "deleteSuccess": "Xóa hình ảnh thành công",
+        "deleteError": "Xóa hình ảnh thất bại: {error}",
+        "deleteConfirm": "Bạn có chắc chắn muốn xóa hình ảnh này?",
+        "setPrimarySuccess": "Đặt hình ảnh chính thành công",
+        "setPrimaryError": "Đặt hình ảnh chính thất bại: {error}"
+      }
     }
   }
 }

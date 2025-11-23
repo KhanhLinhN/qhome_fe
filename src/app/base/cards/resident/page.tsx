@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   CardRegistration,
   CardRegistrationFilter,
@@ -11,24 +12,25 @@ import {
   fetchResidentCardRegistrations,
 } from '@/src/services/card';
 
-const statusOptions = [
-  { value: '', label: 'Tất cả trạng thái' },
-  { value: 'READY_FOR_PAYMENT', label: 'Chờ thanh toán' },
-  { value: 'PAYMENT_PENDING', label: 'Đang thanh toán' },
-  { value: 'PENDING', label: 'Chờ duyệt' },
-  { value: 'APPROVED', label: 'Đã duyệt' },
-  { value: 'COMPLETED', label: 'Đã hoàn tất' },
-  { value: 'REJECTED', label: 'Đã từ chối' },
-];
-
-const paymentStatusOptions = [
-  { value: '', label: 'Tất cả thanh toán' },
-  { value: 'UNPAID', label: 'Chưa thanh toán' },
-  { value: 'PAYMENT_PENDING', label: 'Đang thanh toán' },
-  { value: 'PAID', label: 'Đã thanh toán' },
-];
-
 export default function ResidentCardAdminPage() {
+  const t = useTranslations('ResidentCards');
+  
+  const statusOptions = [
+    { value: '', label: t('filters.allStatuses') },
+    { value: 'READY_FOR_PAYMENT', label: t('statuses.readyForPayment') },
+    { value: 'PAYMENT_PENDING', label: t('statuses.paymentPending') },
+    { value: 'PENDING', label: t('statuses.pending') },
+    { value: 'APPROVED', label: t('statuses.approved') },
+    { value: 'COMPLETED', label: t('statuses.completed') },
+    { value: 'REJECTED', label: t('statuses.rejected') },
+  ];
+
+  const paymentStatusOptions = [
+    { value: '', label: t('filters.allPayments') },
+    { value: 'UNPAID', label: t('paymentStatuses.unpaid') },
+    { value: 'PAYMENT_PENDING', label: t('paymentStatuses.paymentPending') },
+    { value: 'PAID', label: t('paymentStatuses.paid') },
+  ];
   const [registrations, setRegistrations] = useState<CardRegistration[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<CardRegistration | null>(null);
@@ -48,7 +50,7 @@ export default function ResidentCardAdminPage() {
       setRegistrations(data);
     } catch (err) {
       console.error('Failed to load resident card registrations', err);
-      setError('Không thể tải danh sách đăng ký thẻ cư dân. Vui lòng thử lại.');
+      setError(t('errors.loadError'));
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export default function ResidentCardAdminPage() {
         setNote(data.adminNote ?? '');
       } catch (err) {
         console.error('Failed to load resident card registration detail', err);
-        setDetailError('Không thể tải chi tiết đăng ký. Vui lòng thử lại.');
+        setDetailError(t('errors.loadDetailError'));
       } finally {
         setLoadingDetail(false);
       }
@@ -110,7 +112,7 @@ export default function ResidentCardAdminPage() {
     if (!selectedId) return;
 
     if (decision === 'REJECT' && !note.trim()) {
-      alert('Vui lòng nhập lý do từ chối.');
+      alert(t('errors.rejectReasonRequired'));
       return;
     }
 
@@ -124,15 +126,15 @@ export default function ResidentCardAdminPage() {
       await loadRegistrations();
       alert(
         decision === 'APPROVE'
-          ? 'Đã duyệt đăng ký thẻ cư dân.'
-          : 'Đã từ chối đăng ký thẻ cư dân.'
+          ? t('messages.approveSuccess')
+          : t('messages.rejectSuccess')
       );
     } catch (err: unknown) {
       console.error('Failed to submit decision', err);
       if (err instanceof Error && err.message) {
         alert(err.message);
       } else {
-        alert('Không thể thực hiện hành động. Vui lòng thử lại.');
+        alert(t('errors.actionFailed'));
       }
     } finally {
       setSubmitting(false);
@@ -143,14 +145,14 @@ export default function ResidentCardAdminPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-[#02542D]">
-          Quản lý đăng ký thẻ cư dân
+          {t('title')}
         </h1>
         <button
           type="button"
           onClick={handleRefresh}
           className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024428] transition-colors"
         >
-          Làm mới
+          {t('actions.refresh')}
         </button>
       </div>
 
@@ -159,7 +161,7 @@ export default function ResidentCardAdminPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-end mb-6">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Trạng thái đăng ký
+                {t('filters.registrationStatus')}
               </label>
               <select
                 value={filters.status ?? ''}
@@ -177,7 +179,7 @@ export default function ResidentCardAdminPage() {
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Trạng thái thanh toán
+                {t('filters.paymentStatus')}
               </label>
               <select
                 value={filters.paymentStatus ?? ''}
@@ -203,7 +205,7 @@ export default function ResidentCardAdminPage() {
             <div className="text-center text-red-600 py-12">{error}</div>
           ) : registrations.length === 0 ? (
             <div className="text-center text-gray-500 py-12">
-              Không có đăng ký nào phù hợp.
+              {t('empty')}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -211,25 +213,25 @@ export default function ResidentCardAdminPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Cư dân
+                      {t('table.resident')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Căn hộ
+                      {t('table.apartment')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Tòa nhà
+                      {t('table.building')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Ngày tạo
+                      {t('table.createdDate')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Trạng thái
+                      {t('table.status')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Thanh toán
+                      {t('table.payment')}
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
-                      Thao tác
+                      {t('table.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -275,7 +277,7 @@ export default function ResidentCardAdminPage() {
                           }
                           className="text-[#02542D] hover:text-[#01391d] font-medium"
                         >
-                          {selectedId === item.id ? 'Đóng' : 'Xem chi tiết'}
+                          {selectedId === item.id ? t('actions.close') : t('actions.viewDetails')}
                         </button>
                       </td>
                     </tr>
@@ -289,7 +291,7 @@ export default function ResidentCardAdminPage() {
         <div className="bg-white rounded-xl p-6 border border-gray-100 h-max">
           {selectedId == null ? (
             <p className="text-gray-500">
-              Chọn một đăng ký để xem chi tiết và duyệt.
+              {t('selectRegistration')}
             </p>
           ) : loadingDetail ? (
             <div className="flex justify-center py-12">
@@ -298,42 +300,42 @@ export default function ResidentCardAdminPage() {
           ) : detailError ? (
             <p className="text-red-600">{detailError}</p>
           ) : !selected ? (
-            <p className="text-gray-500">Không tìm thấy dữ liệu đăng ký.</p>
+            <p className="text-gray-500">{t('notFound')}</p>
           ) : (
             <div className="space-y-4">
               <div>
                 <h2 className="text-xl font-semibold text-[#02542D]">
-                  Chi tiết đăng ký
+                  {t('detail.title')}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Mã đăng ký: {selected.id}
+                  {t('detail.registrationId')}: {selected.id}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3 text-sm">
-                <DetailRow label="Họ tên cư dân" value={selected.fullName} />
+                <DetailRow label={t('detail.fullName')} value={selected.fullName} />
                 <DetailRow
-                  label="Căn hộ"
+                  label={t('detail.apartment')}
                   value={selected.apartmentNumber}
                 />
                 <DetailRow
-                  label="Tòa nhà"
+                  label={t('detail.building')}
                   value={selected.buildingName}
                 />
-                <DetailRow label="Số CCCD" value={selected.citizenId} />
-                <DetailRow label="Số điện thoại" value={selected.phoneNumber} />
+                <DetailRow label={t('detail.citizenId')} value={selected.citizenId} />
+                <DetailRow label={t('detail.phoneNumber')} value={selected.phoneNumber} />
                 <DetailRow
-                  label="Loại yêu cầu"
+                  label={t('detail.requestType')}
                   value={selected.requestType}
                 />
-                <DetailRow label="Ghi chú" value={selected.note} />
-                <DetailRow label="Trạng thái" value={selected.status} />
+                <DetailRow label={t('detail.note')} value={selected.note} />
+                <DetailRow label={t('detail.status')} value={selected.status} />
                 <DetailRow
-                  label="Trạng thái thanh toán"
+                  label={t('detail.paymentStatus')}
                   value={selected.paymentStatus}
                 />
                 <DetailRow
-                  label="Số tiền"
+                  label={t('detail.paymentAmount')}
                   value={
                     selected.paymentAmount != null
                       ? `${selected.paymentAmount.toLocaleString()} VND`
@@ -341,7 +343,7 @@ export default function ResidentCardAdminPage() {
                   }
                 />
                 <DetailRow
-                  label="Ngày thanh toán"
+                  label={t('detail.paymentDate')}
                   value={
                     selected.paymentDate
                       ? new Date(selected.paymentDate).toLocaleString()
@@ -349,7 +351,7 @@ export default function ResidentCardAdminPage() {
                   }
                 />
                 <DetailRow
-                  label="Ngày tạo"
+                  label={t('detail.createdDate')}
                   value={
                     selected.createdAt
                       ? new Date(selected.createdAt).toLocaleString()
@@ -357,7 +359,7 @@ export default function ResidentCardAdminPage() {
                   }
                 />
                 <DetailRow
-                  label="Ngày cập nhật"
+                  label={t('detail.updatedDate')}
                   value={
                     selected.updatedAt
                       ? new Date(selected.updatedAt).toLocaleString()
@@ -368,14 +370,14 @@ export default function ResidentCardAdminPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ghi chú quản trị viên
+                  {t('detail.adminNote')}
                 </label>
                 <textarea
                   value={note}
                   onChange={event => setNote(event.target.value)}
                   rows={4}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
-                  placeholder="Nhập ghi chú hoặc lý do từ chối..."
+                  placeholder={t('detail.adminNotePlaceholder')}
                   disabled={submitting}
                 />
               </div>
@@ -391,7 +393,7 @@ export default function ResidentCardAdminPage() {
                       : 'bg-gray-300 cursor-not-allowed'
                   }`}
                 >
-                  Duyệt
+                  {t('actions.approve')}
                 </button>
                 <button
                   type="button"
@@ -403,7 +405,7 @@ export default function ResidentCardAdminPage() {
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  Từ chối
+                  {t('actions.reject')}
                 </button>
               </div>
             </div>

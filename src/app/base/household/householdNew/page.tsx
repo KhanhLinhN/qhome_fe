@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
@@ -9,12 +10,6 @@ import {
   createHousehold,
   type CreateHouseholdPayload,
 } from '@/src/services/base/householdService';
-
-const KIND_OPTIONS: { value: CreateHouseholdPayload['kind']; label: string }[] = [
-  { value: 'OWNER', label: 'Chủ sở hữu (OWNER)' },
-  { value: 'TENANT', label: 'Người thuê (TENANT)' },
-  { value: 'SERVICE', label: 'Dịch vụ (SERVICE)' },
-];
 
 type AsyncState<T> = {
   data: T;
@@ -35,7 +30,14 @@ const DEFAULT_UNIT_STATE: AsyncState<Unit[]> = {
 };
 
 export default function HouseholdNewPage() {
+  const t = useTranslations('Household');
   const router = useRouter();
+  
+  const KIND_OPTIONS: { value: CreateHouseholdPayload['kind']; label: string }[] = [
+    { value: 'OWNER', label: t('kinds.ownerWithCode') },
+    { value: 'TENANT', label: t('kinds.tenantWithCode') },
+    { value: 'SERVICE', label: t('kinds.serviceWithCode') },
+  ];
 
   const [buildingsState, setBuildingsState] =
     useState<AsyncState<Building[]>>(DEFAULT_BUILDING_STATE);
@@ -62,7 +64,7 @@ export default function HouseholdNewPage() {
         setBuildingsState({ data, loading: false, error: null });
       } catch (err: any) {
         const message =
-          err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+          err?.response?.data?.message || err?.message || t('errors.loadBuildings');
         setBuildingsState({ data: [], loading: false, error: message });
       }
     };
@@ -87,7 +89,7 @@ export default function HouseholdNewPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tải danh sách căn hộ của tòa nhà này.';
+        t('errors.loadUnits');
       setUnitsState({ data: [], loading: false, error: message });
     }
   };
@@ -105,9 +107,9 @@ export default function HouseholdNewPage() {
     () =>
       unitsState.data.map((unit) => ({
         value: unit.id,
-        label: `${unit.code ?? ''} (Tầng ${unit.floor ?? '—'})`,
+        label: `${unit.code ?? ''} (${t('unitLabel.floor')} ${unit.floor ?? '—'})`,
       })),
-    [unitsState.data],
+    [unitsState.data, t],
   );
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -116,12 +118,12 @@ export default function HouseholdNewPage() {
     setSubmitSuccess(null);
 
     if (!selectedUnitId) {
-      setSubmitError('Vui lòng chọn căn hộ để tạo hộ gia đình.');
+      setSubmitError(t('validation.unitRequired'));
       return;
     }
 
     if (!startDate) {
-      setSubmitError('Vui lòng chọn ngày bắt đầu.');
+      setSubmitError(t('validation.startDateRequired'));
       return;
     }
 
@@ -136,14 +138,14 @@ export default function HouseholdNewPage() {
     try {
       setSubmitting(true);
       const response = await createHousehold(payload);
-      setSubmitSuccess('Tạo hộ gia đình thành công.');
+      setSubmitSuccess(t('messages.createSuccess'));
       setPrimaryResidentId('');
       setEndDate('');
 
       // Nếu đã có chủ hộ, hiển thị thông báo và giữ form
       if (response?.id) {
         setSubmitSuccess(
-          `Tạo hộ gia đình thành công (ID: ${response.id}). Bạn có thể cấp tài khoản chủ hộ ngay.`,
+          t('messages.createSuccessWithId', { id: response.id }),
         );
         setTimeout(() => {
           router.push(`/base/household/householdDetail/${response.id}`);
@@ -153,7 +155,7 @@ export default function HouseholdNewPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tạo hộ gia đình. Vui lòng thử lại.';
+        t('errors.createFailed');
       setSubmitError(message);
     } finally {
       setSubmitting(false);
@@ -165,9 +167,9 @@ export default function HouseholdNewPage() {
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Tạo hộ gia đình mới</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{t('new.title')}</h1>
             <p className="text-sm text-slate-500">
-              Liên kết hộ gia đình với căn hộ và thiết lập thời gian cư trú.
+              {t('new.subtitle')}
             </p>
           </div>
           <button
@@ -175,7 +177,7 @@ export default function HouseholdNewPage() {
             onClick={() => router.push('/base/household/householdList')}
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
           >
-            ← Quay lại danh sách
+            ← {t('new.backToList')}
           </button>
         </div>
 
@@ -185,13 +187,13 @@ export default function HouseholdNewPage() {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-700">Tòa nhà</label>
+              <label className="text-sm font-medium text-slate-700">{t('fields.building')}</label>
               <select
                 value={selectedBuildingId}
                 onChange={(event) => handleSelectBuilding(event.target.value)}
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               >
-                <option value="">-- Chọn tòa nhà --</option>
+                <option value="">{t('placeholders.selectBuilding')}</option>
                 {buildingOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -199,7 +201,7 @@ export default function HouseholdNewPage() {
                 ))}
               </select>
               {buildingsState.loading && (
-                <span className="text-xs text-slate-500">Đang tải danh sách tòa nhà...</span>
+                <span className="text-xs text-slate-500">{t('loading.buildings')}</span>
               )}
               {buildingsState.error && (
                 <span className="text-xs text-red-600">{buildingsState.error}</span>
@@ -207,7 +209,7 @@ export default function HouseholdNewPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-700">Căn hộ</label>
+              <label className="text-sm font-medium text-slate-700">{t('fields.unit')}</label>
               <select
                 value={selectedUnitId}
                 onChange={(event) => setSelectedUnitId(event.target.value)}
@@ -215,7 +217,7 @@ export default function HouseholdNewPage() {
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100"
               >
                 <option value="">
-                  {selectedBuildingId ? '-- Chọn căn hộ --' : 'Hãy chọn tòa nhà trước'}
+                  {selectedBuildingId ? t('placeholders.selectUnit') : t('placeholders.selectBuildingFirst')}
                 </option>
                 {unitOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -224,7 +226,7 @@ export default function HouseholdNewPage() {
                 ))}
               </select>
               {unitsState.loading && (
-                <span className="text-xs text-slate-500">Đang tải danh sách căn hộ...</span>
+                <span className="text-xs text-slate-500">{t('loading.units')}</span>
               )}
               {unitsState.error && (
                 <span className="text-xs text-red-600">{unitsState.error}</span>
@@ -234,7 +236,7 @@ export default function HouseholdNewPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-700">Loại hộ</label>
+              <label className="text-sm font-medium text-slate-700">{t('fields.kind')}</label>
               <select
                 value={kind}
                 onChange={(event) => setKind(event.target.value as CreateHouseholdPayload['kind'])}
@@ -248,7 +250,7 @@ export default function HouseholdNewPage() {
               </select>
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-700">Ngày bắt đầu</label>
+              <label className="text-sm font-medium text-slate-700">{t('fields.startDate')}</label>
               <input
                 type="date"
                 value={startDate}
@@ -260,7 +262,7 @@ export default function HouseholdNewPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-700">Ngày kết thúc</label>
+              <label className="text-sm font-medium text-slate-700">{t('fields.endDate')}</label>
               <input
                 type="date"
                 value={endDate}
@@ -268,23 +270,23 @@ export default function HouseholdNewPage() {
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               />
               <span className="text-xs text-slate-500">
-                Để trống nếu chưa xác định ngày kết thúc cư trú.
+                {t('hints.endDateOptional')}
               </span>
             </div>
 
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-slate-700">
-                Mã cư dân chủ hộ (tùy chọn)
+                {t('fields.primaryResidentId')}
               </label>
               <input
                 type="text"
                 value={primaryResidentId}
                 onChange={(event) => setPrimaryResidentId(event.target.value)}
-                placeholder="Nhập UUID cư dân nếu đã có"
+                placeholder={t('placeholders.primaryResidentId')}
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               />
               <span className="text-xs text-slate-500">
-                Nếu để trống, bạn có thể cấp chủ hộ sau thông qua provisioning.
+                {t('hints.primaryResidentId')}
               </span>
             </div>
           </div>
@@ -307,14 +309,14 @@ export default function HouseholdNewPage() {
               onClick={() => router.push('/base/household/householdList')}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
             >
-              Hủy
+              {t('buttons.cancel')}
             </button>
             <button
               type="submit"
               disabled={submitting}
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? 'Đang tạo...' : 'Tạo hộ gia đình'}
+              {submitting ? t('buttons.creating') : t('buttons.create')}
             </button>
           </div>
         </form>

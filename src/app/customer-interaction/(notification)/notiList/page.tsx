@@ -77,11 +77,11 @@ export default function NotificationList() {
 
         try {
             await deleteNotification(notificationToDelete);
-            show('Xóa thông báo thành công!', 'success');
+            show(t('messages.deleteSuccess'), 'success');
             refetch(); // Refresh list after deletion
         } catch (error) {
             console.error('Error deleting notification:', error);
-            show('Có lỗi xảy ra khi xóa thông báo!', 'error');
+            show(t('messages.deleteError'), 'error');
         } finally {
             setNotificationToDelete(null);
         }
@@ -153,12 +153,12 @@ export default function NotificationList() {
                     ? (changeBuildingId === 'all' ? null : changeBuildingId)
                     : undefined,
             });
-            show('Cập nhật phạm vi thành công!', 'success');
+            show(t('messages.updateScopeSuccess'), 'success');
             await refetch();
             handleCloseChange();
         } catch (e: any) {
             console.error('Failed to update notification scope', e);
-            show('Có lỗi xảy ra khi cập nhật phạm vi!', 'error');
+            show(t('messages.updateScopeError'), 'error');
             setChanging(false);
         }
     };
@@ -180,7 +180,7 @@ export default function NotificationList() {
                     <div className="flex items-center justify-center py-12">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#02542D] mx-auto mb-4"></div>
-                            <p className="text-gray-600">Đang tải...</p>
+                            <p className="text-gray-600">{t('loading')}</p>
                         </div>
                     </div>
                 </div>
@@ -195,12 +195,12 @@ export default function NotificationList() {
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-center py-12">
                         <div className="text-center">
-                            <p className="text-red-600 mb-4">Có lỗi xảy ra khi tải danh sách thông báo!</p>
+                            <p className="text-red-600 mb-4">{t('errors.loadListFailed')}</p>
                             <button
                                 onClick={() => refetch()}
                                 className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-opacity-80"
                             >
-                                Thử lại
+                                {t('retry')}
                             </button>
                         </div>
                     </div>
@@ -216,13 +216,13 @@ export default function NotificationList() {
                 <div className="flex flex-col gap-4 mb-6">
                     <div className="flex justify-between items-center">
                         <h1 className="text-2xl font-semibold text-[#02542D]">
-                            Danh sách thông báo
+                            {t('listTitle')}
                         </h1>
                         <button
                             onClick={handleAdd}
                             className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md font-semibold"
                         >
-                            + Thêm thông báo
+                            {t('addNotification')}
                         </button>
                     </div>
                     
@@ -230,24 +230,24 @@ export default function NotificationList() {
                     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
                         <div className="flex items-center gap-4">
                             <label className="text-sm font-semibold text-[#02542D] whitespace-nowrap">
-                                Lọc theo loại:
+                                {t('filterByType')}
                             </label>
                             <div className="w-full max-w-md">
                                 <Select
                                     options={[
-                                        { name: 'Tất cả loại', value: '' },
-                                        { name: 'Thông tin', value: 'NEWS' },
-                                        { name: 'Yêu cầu', value: 'REQUEST' },
-                                        { name: 'Hóa đơn', value: 'BILL' },
-                                        { name: 'Hợp đồng', value: 'CONTRACT' },
-                                        { name: 'Đọc điện nước', value: 'METER_READING' },
-                                        { name: 'Hệ thống', value: 'SYSTEM' },
+                                        { name: t('allTypes'), value: '' },
+                                        { name: t('info'), value: 'NEWS' },
+                                        { name: t('request'), value: 'REQUEST' },
+                                        { name: t('bill'), value: 'BILL' },
+                                        { name: t('contract'), value: 'CONTRACT' },
+                                        { name: t('meterReading'), value: 'METER_READING' },
+                                        { name: t('system'), value: 'SYSTEM' },
                                     ]}
                                     value={selectedType}
                                     onSelect={handleTypeChange}
                                     renderItem={(item) => item.name}
                                     getValue={(item) => item.value}
-                                    placeholder="Chọn loại"
+                                    placeholder={t('selectType')}
                                 />
                             </div>
                             {selectedType && (
@@ -258,7 +258,7 @@ export default function NotificationList() {
                                     }}
                                     className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                                 >
-                                    Xóa bộ lọc
+                                    {t('clearFilter')}
                                 </button>
                             )}
                         </div>
@@ -268,7 +268,7 @@ export default function NotificationList() {
                 {/* Table */}
                 {orderedNotifications.length === 0 ? (
                     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center text-gray-500">
-                        Chưa có thông báo nào. Nhấn "Thêm thông báo" để tạo mới.
+                        {t('emptyList')}
                     </div>
                 ) : (
                     <>
@@ -289,7 +289,7 @@ export default function NotificationList() {
                             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
                                 <div className="bg-white w-full max-w-md rounded-lg shadow-xl p-6">
                                     <div className="flex items-start justify-between border-b pb-3 mb-4">
-                                        <h3 className="text-lg font-semibold text-[#02542D]">Thay đổi phạm vi</h3>
+                                        <h3 className="text-lg font-semibold text-[#02542D]">{t('changeScopeModal.title')}</h3>
                                         <button
                                             onClick={handleCloseChange}
                                             className="text-gray-500 hover:text-gray-700 text-xl leading-none"
@@ -299,48 +299,48 @@ export default function NotificationList() {
                                     </div>
                                     <div className="space-y-4">
                                         <div className="flex flex-col">
-                                            <label className="text-sm font-medium text-[#02542D]">Phạm vi</label>
+                                            <label className="text-sm font-medium text-[#02542D]">{t('changeScopeModal.scope')}</label>
                                             <Select
                                                 options={[
-                                                    { name: 'Nội bộ', value: 'INTERNAL' },
-                                                    { name: 'Bên ngoài', value: 'EXTERNAL' },
+                                                    { name: t('internal'), value: 'INTERNAL' },
+                                                    { name: t('external'), value: 'EXTERNAL' },
                                                 ]}
                                                 value={changeScope}
                                                 onSelect={(item) => setChangeScope(item.value as NotificationScope)}
                                                 renderItem={(item) => item.name}
                                                 getValue={(item) => item.value}
-                                                placeholder="Chọn phạm vi"
+                                                placeholder={t('changeScopeModal.selectScope')}
                                             />
                                         </div>
                                         {changeScope === 'INTERNAL' && (
                                             <div className="flex flex-col">
-                                                <label className="text-sm font-medium text-[#02542D]">Vai trò đích</label>
+                                                <label className="text-sm font-medium text-[#02542D]">{t('changeScopeModal.targetRole')}</label>
                                                 <Select
                                                     options={[
-                                                        { name: 'Tất cả', value: 'ALL' },
-                                                        { name: 'Quản trị viên', value: 'ADMIN' },
-                                                        { name: 'Kỹ thuật viên', value: 'TECHNICIAN' },
-                                                        { name: 'Hỗ trợ', value: 'SUPPORTER' },
-                                                        { name: 'Kế toán', value: 'ACCOUNT' },
-                                                        { name: 'Cư dân', value: 'RESIDENT' },
+                                                        { name: t('all'), value: 'ALL' },
+                                                        { name: t('admin'), value: 'ADMIN' },
+                                                        { name: t('technician'), value: 'TECHNICIAN' },
+                                                        { name: t('supporter'), value: 'SUPPORTER' },
+                                                        { name: t('account'), value: 'ACCOUNT' },
+                                                        { name: t('resident'), value: 'RESIDENT' },
                                                     ]}
                                                     value={changeTargetRole}
                                                     onSelect={(item) => setChangeTargetRole(item.value)}
                                                     renderItem={(item) => item.name}
                                                     getValue={(item) => item.value}
-                                                    placeholder="Chọn vai trò"
+                                                    placeholder={t('changeScopeModal.selectTargetRole')}
                                                 />
                                             </div>
                                         )}
                                         {changeScope === 'EXTERNAL' && (
                                             <div className="flex flex-col">
-                                                <label className="text-sm font-medium text-[#02542D]">Chọn tòa nhà</label>
+                                                <label className="text-sm font-medium text-[#02542D]">{t('changeScopeModal.selectBuilding')}</label>
                                                 {loadingBuildings ? (
-                                                    <p className="text-gray-500 text-sm">Đang tải...</p>
+                                                    <p className="text-gray-500 text-sm">{t('changeScopeModal.loadingBuildings')}</p>
                                                 ) : (
                                                     <Select
                                                         options={[
-                                                            { name: 'Tất cả tòa nhà', value: 'all' },
+                                                            { name: t('changeScopeModal.allBuildings'), value: 'all' },
                                                             ...buildings.map((b) => ({
                                                                 name: `${b.name} (${b.code})`,
                                                                 value: b.id,
@@ -350,7 +350,7 @@ export default function NotificationList() {
                                                         onSelect={(item) => setChangeBuildingId(item.value)}
                                                         renderItem={(item) => item.name}
                                                         getValue={(item) => item.value}
-                                                        placeholder="Chọn tòa nhà"
+                                                        placeholder={t('changeScopeModal.selectBuilding')}
                                                     />
                                                 )}
                                             </div>
@@ -363,7 +363,7 @@ export default function NotificationList() {
                                             className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition"
                                             disabled={changing}
                                         >
-                                            Hủy
+                                            {t('changeScopeModal.cancel')}
                                         </button>
                                         <button
                                             type="button"
@@ -371,7 +371,7 @@ export default function NotificationList() {
                                             className="px-4 py-2 rounded-lg bg-[#02542D] text-white hover:bg-opacity-80 transition disabled:opacity-50"
                                             disabled={changing}
                                         >
-                                            {changing ? 'Đang lưu...' : 'Lưu'}
+                                            {changing ? t('changeScopeModal.saving') : t('changeScopeModal.save')}
                                         </button>
                                     </div>
                                 </div>
@@ -389,8 +389,8 @@ export default function NotificationList() {
                     setNotificationToDelete(null);
                 }}
                 onConfirm={confirmDelete}
-                popupTitle="Xác nhận xóa"
-                popupContext="Bạn có chắc chắn muốn xóa thông báo này? Hành động này không thể hoàn tác."
+                popupTitle={t('deleteConfirm.title')}
+                popupContext={t('deleteConfirm.message')}
                 isDanger={true}
             />
         </div>

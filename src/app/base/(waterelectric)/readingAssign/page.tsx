@@ -1,26 +1,29 @@
 import Link from 'next/link';
-
-const services = [
-  {
-    slug: 'water',
-    label: 'Nước',
-    description: 'Quản lý assignment chu kỳ nước: kiểm tra lần đọc, phân công kỹ thuật viên và xuất hóa đơn.',
-  },
-  {
-    slug: 'electric',
-    label: 'Điện',
-    description: 'Theo dõi assignment chu kỳ điện riêng biệt để đảm bảo chỉ tiêu và kế hoạch đọc đồng hồ.',
-  },
-];
+import { useTranslations } from 'next-intl';
 
 export default function ReadingAssignIndexPage() {
+  const t = useTranslations('ReadingAssign');
+  
+  const services = [
+    {
+      slug: 'water',
+      label: t('services.water'),
+      description: t('services.waterDescription'),
+    },
+    {
+      slug: 'electric',
+      label: t('services.electric'),
+      description: t('services.electricDescription'),
+    },
+  ];
+
   return (
     <div className="px-[41px] py-12 space-y-8">
       <div>
-        <p className="text-xs uppercase tracking-wide text-gray-500">Assignment Management</p>
-        <h1 className="text-3xl font-semibold text-[#02542D] mt-2">Chọn dịch vụ để xem dữ liệu</h1>
+        <p className="text-xs uppercase tracking-wide text-gray-500">{t('subtitle')}</p>
+        <h1 className="text-3xl font-semibold text-[#02542D] mt-2">{t('title')}</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Mỗi dịch vụ có chu kỳ và assignment tách biệt. Chọn service cụ thể để xem task, tiến độ và export hóa đơn.
+          {t('description')}
         </p>
       </div>
 
@@ -33,10 +36,10 @@ export default function ReadingAssignIndexPage() {
           >
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-sm font-semibold text-gray-500">Dịch vụ</p>
+                <p className="text-sm font-semibold text-gray-500">{t('serviceLabel')}</p>
                 <h2 className="text-xl font-semibold text-[#02542D]">{service.label}</h2>
               </div>
-              <span className="text-xs font-semibold text-[#02542D] uppercase">Mở</span>
+              <span className="text-xs font-semibold text-[#02542D] uppercase">{t('open')}</span>
             </div>
             <p className="text-sm text-gray-600 mt-3">{service.description}</p>
           </Link>

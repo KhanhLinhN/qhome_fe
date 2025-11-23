@@ -41,7 +41,7 @@ export default function VehicleDetailPage() {
       <div className="max-w-4xl mx-auto mb-6 flex items-center cursor-pointer" onClick={handleBack}>
         <Image
           src={Arrow}
-          alt="Back"
+          alt={t('altText.back')}
           width={20}
           height={20}
           className="w-5 h-5 mr-2"
@@ -69,7 +69,7 @@ export default function VehicleDetailPage() {
               className={`p-2 rounded-lg bg-[#739559] hover:bg-opacity-80 transition duration-150`}
               onClick={() => router.push(`/base/vehicles/vehicleEdit/${vehicleId}`)}
             >
-              <Image src={Edit} alt="Edit" width={24} height={24} className="w-6 h-6" />
+              <Image src={Edit} alt={t('altText.edit')} width={24} height={24} className="w-6 h-6" />
             </button>
           </div>
         </div>

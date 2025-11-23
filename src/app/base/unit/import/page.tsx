@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from 'next-intl';
 import { downloadUnitImportTemplate, importUnits, UnitImportResponse } from "@/src/services/base/unitImportService";
 
 export default function UnitImportPage() {
+  const t = useTranslations('Unit.import');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<UnitImportResponse | null>(null);
@@ -26,7 +28,7 @@ export default function UnitImportPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setError(e?.response?.data?.message || "Tải template thất bại");
+      setError(e?.response?.data?.message || t('downloadFailed'));
     }
   };
 
@@ -39,7 +41,7 @@ export default function UnitImportPage() {
       const res = await importUnits(file);
       setResult(res);
     } catch (e: any) {
-      setError(e?.response?.data?.message || "Import thất bại");
+      setError(e?.response?.data?.message || t('importFailed'));
     } finally {
       setLoading(false);
     }
@@ -47,29 +49,29 @@ export default function UnitImportPage() {
 
   return (
     <div className="p-4 space-y-4">
-      <h2 className="text-xl font-semibold">Import căn hộ/phòng</h2>
+      <h2 className="text-xl font-semibold">{t('title')}</h2>
       <div className="flex gap-2">
-        <button className="px-3 py-2 rounded bg-gray-200" onClick={onDownloadTemplate}>Tải template</button>
+        <button className="px-3 py-2 rounded bg-gray-200" onClick={onDownloadTemplate}>{t('downloadTemplate')}</button>
         <input type="file" accept=".xlsx" onChange={onChangeFile} />
         <button disabled={!file || loading} className="px-3 py-2 rounded bg-indigo-600 text-white disabled:opacity-50" onClick={onImport}>
-          {loading ? "Đang import..." : "Import"}
+          {loading ? t('importing') : t('import')}
         </button>
       </div>
       {error && <div className="text-red-600">{error}</div>}
       {result && (
         <div className="space-y-2">
-          <div>Tổng dòng: {result.totalRows} | Thành công: {result.successCount} | Lỗi: {result.errorCount}</div>
+          <div>{t('summary', { total: result.totalRows, success: result.successCount, errors: result.errorCount })}</div>
           <div className="overflow-auto">
             <table className="min-w-full border">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="border px-2 py-1">Row</th>
-                  <th className="border px-2 py-1">Success</th>
-                  <th className="border px-2 py-1">Message</th>
-                  <th className="border px-2 py-1">UnitId</th>
-                  <th className="border px-2 py-1">BuildingId</th>
-                  <th className="border px-2 py-1">BuildingCode</th>
-                  <th className="border px-2 py-1">Code</th>
+                  <th className="border px-2 py-1">{t('tableHeaders.row')}</th>
+                  <th className="border px-2 py-1">{t('tableHeaders.success')}</th>
+                  <th className="border px-2 py-1">{t('tableHeaders.message')}</th>
+                  <th className="border px-2 py-1">{t('tableHeaders.unitId')}</th>
+                  <th className="border px-2 py-1">{t('tableHeaders.buildingId')}</th>
+                  <th className="border px-2 py-1">{t('tableHeaders.buildingCode')}</th>
+                  <th className="border px-2 py-1">{t('tableHeaders.code')}</th>
                 </tr>
               </thead>
               <tbody>

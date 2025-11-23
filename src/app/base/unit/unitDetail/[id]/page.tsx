@@ -35,7 +35,7 @@ export default function UnitDetail () {
                 setBuildingName(building.name);
             } catch (err: any) {
                 console.error('Failed to load building:', err);
-                setBuildingName('N/A');
+                setBuildingName(t('fallbacks.notAvailable'));
             } finally {
                 setLoadingBuilding(false);
             }
@@ -104,7 +104,7 @@ export default function UnitDetail () {
             <div className="max-w-4xl mx-auto mb-6 flex items-center cursor-pointer" onClick={handleBack}>
                 <Image 
                     src={Arrow} 
-                    alt="Back" 
+                    alt={t('altText.back')} 
                     width={20} 
                     height={20}
                     className="w-5 h-5 mr-2" 
@@ -135,7 +135,7 @@ export default function UnitDetail () {
                         >
                             <Image 
                                 src={Edit} 
-                                alt="Edit" 
+                                alt={t('altText.edit')} 
                                 width={24} 
                                 height={24}
                                 className="w-6 h-6" 
@@ -147,7 +147,7 @@ export default function UnitDetail () {
                         >
                             <Image 
                                 src={Delete} 
-                                alt="Delete" 
+                                alt={t('altText.delete')} 
                                 width={24} 
                                 height={24}
                                 className="w-6 h-6" 
@@ -173,7 +173,7 @@ export default function UnitDetail () {
 
                     <DetailField 
                         label={t('buildingName')} 
-                        value={loadingBuilding ? 'Loading...' : buildingName || ""} 
+                        value={loadingBuilding ? t('loading.building') : buildingName || ""} 
                         readonly={true}
                     />
 

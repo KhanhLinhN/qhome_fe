@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Arrow from '@/src/assets/Arrow.svg';
 import {
@@ -44,8 +45,6 @@ type ManualFieldErrors = Partial<Record<keyof ManualFormState, string>>;
 
 type RequestActionState = Record<string, boolean>;
 
-const DEFAULT_ACCOUNT_REJECTION_REASON = 'Thông tin không đầy đủ';
-
 const approveIcon = (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" height="16" width="16" aria-hidden="true">
     <g fill="none" fillRule="evenodd">
@@ -80,6 +79,7 @@ const rejectIcon = (
 
 export default function AccountNewResidentPage() {
   const router = useRouter();
+  const t = useTranslations('AccountNewRe');
 
   const [activeTab, setActiveTab] = useState<'manual' | 'requests'>('manual');
 
@@ -91,7 +91,7 @@ export default function AccountNewResidentPage() {
     nationalId: '',
     dob: '',
     username: '',
-    relation: 'Chủ hộ',
+    relation: t('manualForm.placeholders.relation'),
   });
 
   const [manualSubmitting, setManualSubmitting] = useState(false);
@@ -135,7 +135,7 @@ export default function AccountNewResidentPage() {
 
   const buildingSelectOptions = useMemo<(Building | null)[]>(() => [null, ...buildings], [buildings]);
   const unitSelectOptions = useMemo<(Unit | null)[]>(() => [null, ...units], [units]);
-  const unitPlaceholder = selectedBuildingId ? '-- Chọn căn hộ --' : 'Chọn tòa nhà trước';
+  const unitPlaceholder = selectedBuildingId ? t('manualForm.placeholders.selectUnit') : t('manualForm.placeholders.selectBuildingFirst');
 
   const handleBack = () => {
     router.back();
@@ -221,24 +221,24 @@ export default function AccountNewResidentPage() {
   // Validate phone number (Vietnam format)
   const validatePhone = (phone: string): string | null => {
     if (!phone.trim()) {
-      return 'Số điện thoại không được để trống.';
+      return t('validation.phone.required');
     }
     // Remove spaces and special characters for validation
     const cleaned = phone.replace(/\s+/g, '');
     
     // Check if contains only digits
     if (!/^\d+$/.test(cleaned)) {
-      return 'Số điện thoại không được chứa ký tự đặc biệt.';
+      return t('validation.phone.specialChars');
     }
     
     // Check if starts with 0
     if (!cleaned.startsWith('0')) {
-      return 'Số điện thoại phải bắt đầu bằng số 0.';
+      return t('validation.phone.mustStartWithZero');
     }
     
     // Check length (10 digits)
     if (cleaned.length !== 10) {
-      return 'Số điện thoại phải có đúng 10 số.';
+      return t('validation.phone.mustBe10Digits');
     }
     
     // Check Vietnamese mobile prefixes
@@ -252,7 +252,7 @@ export default function AccountNewResidentPage() {
     
     const prefix = cleaned.substring(0, 3);
     if (!vietnamPrefixes.includes(prefix)) {
-      return 'Số điện thoại không hợp lệ. Vui lòng kiểm tra lại đầu số.';
+      return t('validation.phone.invalidPrefix');
     }
     
     return null;
@@ -261,14 +261,14 @@ export default function AccountNewResidentPage() {
   // Validate full name
   const validateFullName = (fullName: string): string | null => {
     if (!fullName.trim()) {
-      return 'Họ và tên cư dân không được để trống.';
+      return t('validation.fullName.required');
     }
     if (fullName.length > 40) {
-      return 'Họ và tên không được vượt quá 40 ký tự.';
+      return t('validation.fullName.maxLength');
     }
     // Check for special characters (allow Vietnamese characters, spaces, and apostrophes)
     if (!/^[a-zA-ZÀÁẢÃẠẦẤẨẪẬÈÉẺẼẸỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌỒỐỔỖỘỜỚỞỠỢÙÚỦŨỤỪỨỬỮỰỲÝỶỸỴĐàáảãạầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵđ\s'-]+$/.test(fullName)) {
-      return 'Họ và tên không được chứa ký tự đặc biệt.';
+      return t('validation.fullName.specialChars');
     }
     return null;
   };
@@ -276,18 +276,18 @@ export default function AccountNewResidentPage() {
   // Validate national ID (CCCD)
   const validateNationalId = (nationalId: string): string | null => {
     if (!nationalId.trim()) {
-      return 'CMND/CCCD không được để trống.';
+      return t('validation.nationalId.required');
     }
     const cleaned = nationalId.replace(/\s+/g, '');
     
     // Check if contains only digits
     if (!/^\d+$/.test(cleaned)) {
-      return 'CMND/CCCD không được chứa ký tự đặc biệt.';
+      return t('validation.nationalId.specialChars');
     }
     
     // Check length (13 digits for CCCD)
     if (cleaned.length !== 13) {
-      return 'CMND/CCCD phải có đúng 13 số.';
+      return t('validation.nationalId.mustBe13Digits');
     }
     
     return null;
@@ -304,13 +304,13 @@ export default function AccountNewResidentPage() {
   const validateUsername = (username: string): string | null => {
     if (username.trim()) {
       if (/\s/.test(username)) {
-        return 'Tên đăng nhập không được chứa khoảng trắng.';
+        return t('validation.username.noWhitespace');
       }
       if (!validateUsernameFormat(username)) {
-        return 'Tên đăng nhập chỉ được chứa chữ cái không dấu, số và các ký tự @, _, -, .';
+        return t('validation.username.invalidFormat');
       }
       if (username.length > 40) {
-        return 'Tên đăng nhập không được vượt quá 40 ký tự.';
+        return t('validation.username.maxLength');
       }
     }
     return null;
@@ -319,7 +319,7 @@ export default function AccountNewResidentPage() {
   // Validate date of birth
   const validateDateOfBirth = (dob: string): string | null => {
     if (!dob) {
-      return 'Ngày sinh không được để trống.';
+      return t('validation.dob.required');
     }
     
     const birthDate = new Date(dob);
@@ -327,16 +327,16 @@ export default function AccountNewResidentPage() {
     today.setHours(0, 0, 0, 0);
     
     if (isNaN(birthDate.getTime())) {
-      return 'Ngày sinh không hợp lệ.';
+      return t('validation.dob.invalid');
     }
     
     const age = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
     
     if (age <= 18) {
-      return 'Tuổi phải lớn hơn 18.';
+      return t('validation.dob.ageMin');
     }
     if (age >= 200) {
-      return 'Tuổi phải nhỏ hơn 200.';
+      return t('validation.dob.ageMax');
     }
     
     return null;
@@ -661,7 +661,7 @@ export default function AccountNewResidentPage() {
         nationalId: '',
         dob: '',
         username: '',
-        relation: 'Chủ hộ',
+        relation: t('manualForm.placeholders.relation'),
       });
       setManualFieldErrors({});
       setHouseholdInfo(null);
@@ -745,10 +745,11 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
     let rejectionReason: string | undefined;
 
     if (!approve) {
+      const defaultReason = t('common.defaultRejectionReason');
       // eslint-disable-next-line no-alert
       const reason =
-        window.prompt('Nhập lý do từ chối (bắt buộc):', DEFAULT_ACCOUNT_REJECTION_REASON) ??
-        DEFAULT_ACCOUNT_REJECTION_REASON;
+        window.prompt(t('requestsTab.rejectPrompt'), defaultReason) ??
+        defaultReason;
       const trimmed = reason.trim();
       if (!trimmed) {
         return;
@@ -782,21 +783,21 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
       >
         <Image src={Arrow} alt="Back" width={20} height={20} className="mr-2 h-5 w-5" />
         <span className="text-2xl font-bold text-[#02542D] transition hover:text-opacity-80">
-          Quay lại danh sách tài khoản
+          {t('back')}
         </span>
       </div>
 
       <div className="mx-auto max-w-5xl rounded-2xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Tạo tài khoản chủ hộ</h1>
+            <h1 className="text-2xl font-bold text-slate-800">{t('title')}</h1>
             <p className="text-sm text-slate-500">
-              Tạo tài khoản cho chủ hộ hoặc duyệt các yêu cầu tạo tài khoản được cư dân gửi lên.
+              {t('subtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-amber-400 bg-amber-100 px-4 py-1 text-xs font-semibold text-amber-700 shadow-sm">
             <span className="inline-flex h-2 w-2 rounded-full bg-amber-500" />
-            Đang có {pendingRequests.length} yêu cầu chờ duyệt
+            {t('pendingRequestsBadge', { count: pendingRequests.length })}
           </div>
         </div>
 
@@ -810,7 +811,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Tạo thủ công
+            {t('tabs.manual')}
           </button>
           <button
             type="button"
@@ -821,13 +822,13 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Duyệt yêu cầu cư dân
+            {t('tabs.requests')}
           </button>
         </div>
 
         {activeTab === 'manual' && (
           <div className="mt-6 rounded-xl border border-slate-100 p-6">
-            <h2 className="text-lg font-semibold text-slate-800">Thông tin chủ hộ</h2>
+            <h2 className="text-lg font-semibold text-slate-800">{t('manualForm.title')}</h2>
 
             {(manualSuccess || manualError) && (
               <div className="mt-4 space-y-3">

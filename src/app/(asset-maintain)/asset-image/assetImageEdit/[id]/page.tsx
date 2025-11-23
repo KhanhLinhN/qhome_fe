@@ -9,7 +9,7 @@ import { uploadAssetImages, deleteAssetImage, setPrimaryImage, getAssetImageUrl,
 import { useNotifications } from '@/src/hooks/useNotifications';
 
 export default function AssetImageEdit() {
-    const t = useTranslations('AssetImage'); 
+    const t = useTranslations('AssetImage.edit'); 
     const router = useRouter();
     const params = useParams();
     const assetId = params.id as string;
@@ -31,7 +31,7 @@ export default function AssetImageEdit() {
 
     const handleUpload = async () => {
         if (selectedFiles.length === 0) {
-            show('Vui lòng chọn ít nhất một hình ảnh', 'error');
+            show(t('upload.selectFiles'), 'error');
             return;
         }
 
@@ -40,24 +40,24 @@ export default function AssetImageEdit() {
             const result = await uploadAssetImages(assetId, selectedFiles);
             setAssetData(result);
             setSelectedFiles([]);
-            show('Tải lên hình ảnh thành công', 'success');
+            show(t('messages.uploadSuccess'), 'success');
         } catch (err: any) {
-            show('Tải lên hình ảnh thất bại: ' + (err?.message || ''), 'error');
+            show(t('messages.uploadError', { error: err?.message || '' }), 'error');
         } finally {
             setUploading(false);
         }
     };
 
     const handleDeleteImage = async (imageUrl: string) => {
-        if (!confirm('Bạn có chắc chắn muốn xóa hình ảnh này?')) return;
+        if (!confirm(t('messages.deleteConfirm'))) return;
 
         try {
             setLoading(true);
             const result = await deleteAssetImage(assetId, imageUrl);
             setAssetData(result);
-            show('Xóa hình ảnh thành công', 'success');
+            show(t('messages.deleteSuccess'), 'success');
         } catch (err: any) {
-            show('Xóa hình ảnh thất bại: ' + (err?.message || ''), 'error');
+            show(t('messages.deleteError', { error: err?.message || '' }), 'error');
         } finally {
             setLoading(false);
         }
@@ -68,16 +68,16 @@ export default function AssetImageEdit() {
             setLoading(true);
             const result = await setPrimaryImage(assetId, imageUrl);
             setAssetData(result);
-            show('Đặt hình ảnh chính thành công', 'success');
+            show(t('messages.setPrimarySuccess'), 'success');
         } catch (err: any) {
-            show('Đặt hình ảnh chính thất bại: ' + (err?.message || ''), 'error');
+            show(t('messages.setPrimaryError', { error: err?.message || '' }), 'error');
         } finally {
             setLoading(false);
         }
     };
 
     const handleSave = () => {
-        show('Lưu thành công', 'success');
+        show(t('messages.saveSuccess'), 'success');
         router.push(`/asset-maintain/asset-image/assetImageDetail/${assetId}`);
     };
 
@@ -95,27 +95,27 @@ export default function AssetImageEdit() {
                     className="w-5 h-5 mr-2"
                 />
                 <span className="text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150">
-                    Chỉnh sửa hình ảnh tài sản
+                    {t('back')}
                 </span>
             </div>
 
             <div className="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <h1 className="text-2xl font-semibold text-[#02542D]">
-                        Chỉnh sửa hình ảnh tài sản
+                        {t('title')}
                     </h1>
                 </div>
 
                 {assetData && (
                     <div className="mb-6">
                         <DetailField 
-                            label="Tên tài sản"
+                            label={t('fields.assetName')}
                             value={assetData.name ?? ""} 
                             readonly={true}
                         />
                         {assetData.code && (
                             <DetailField 
-                                label="Mã tài sản"
+                                label={t('fields.assetCode')}
                                 value={assetData.code ?? ""} 
                                 readonly={true}
                             />
@@ -125,7 +125,7 @@ export default function AssetImageEdit() {
 
                 <div className="mb-6">
                     <label className="block text-md font-bold text-[#02542D] mb-2">
-                        Tải lên hình ảnh
+                        {t('upload.label')}
                     </label>
                     <div className="flex items-center space-x-3">
                         <input
@@ -145,7 +145,7 @@ export default function AssetImageEdit() {
                             disabled={selectedFiles.length === 0 || uploading}
                             className="px-4 py-2 bg-[#739559] text-white rounded-md hover:bg-opacity-80 disabled:opacity-50"
                         >
-                            {uploading ? 'Đang tải...' : 'Tải lên'}
+                            {uploading ? t('upload.uploading') : t('upload.button')}
                         </button>
                     </div>
                 </div>
@@ -168,7 +168,7 @@ export default function AssetImageEdit() {
                                     />
                                     {isPrimary && (
                                         <div className="absolute top-2 left-2 bg-[#739559] text-white px-2 py-1 rounded text-xs font-semibold">
-                                            Hình chính
+                                            {t('image.primary')}
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
@@ -178,7 +178,7 @@ export default function AssetImageEdit() {
                                                     onClick={() => handleSetPrimary(imageUrl)}
                                                     className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
                                                 >
-                                                    Đặt làm chính
+                                                    {t('image.setPrimary')}
                                                 </button>
                                             )}
                                             <button
@@ -186,7 +186,7 @@ export default function AssetImageEdit() {
                                                 disabled={loading}
                                                 className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
                                             >
-                                                Xóa
+                                                {t('image.delete')}
                                             </button>
                                         </div>
                                     </div>
@@ -198,7 +198,7 @@ export default function AssetImageEdit() {
 
                 {images.length === 0 && (
                     <div className="text-center py-12 text-gray-500 mb-6">
-                        Chưa có hình ảnh nào. Vui lòng tải lên hình ảnh.
+                        {t('empty')}
                     </div>
                 )}
 
@@ -208,14 +208,14 @@ export default function AssetImageEdit() {
                         onClick={handleBack}
                         className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                     >
-                        Hủy
+                            {t('buttons.cancel')}
                     </button>
                     <button
                         type="button"
                         onClick={handleSave}
                         className="px-6 py-2 bg-[#739559] text-white rounded-md hover:bg-opacity-80"
                     >
-                        Lưu
+                        {t('buttons.save')}
                     </button>
                 </div>
             </div>

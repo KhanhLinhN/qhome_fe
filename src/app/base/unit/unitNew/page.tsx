@@ -152,26 +152,26 @@ export default function UnitAdd () {
                 const v = String(value ?? '').trim();
                 const nameRegex = /^[a-zA-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐđ0-9\s'-]+$/;
                 if (!v) newErrors.name = t('nameError');
-                else if (v.length > 40) newErrors.name = t('nameMaxError') || 'Tên căn hộ không được vượt quá 40 ký tự';
-                else if (!nameRegex.test(v)) newErrors.name = t('nameSpecialCharError') || 'Tên căn hộ không được chứa ký tự đặc biệt';
+                else if (v.length > 40) newErrors.name = t('unitNew.nameMaxError');
+                else if (!nameRegex.test(v)) newErrors.name = t('unitNew.nameSpecialCharError');
                 else delete newErrors.name;
                 break;
             }
             case 'floor': {
                 const floor = typeof value === 'number' ? value : parseInt(String(value));
-                if (!floor || floor <= 0) newErrors.floor = t('floorError') || 'Số tầng phải lớn hơn 0';
+                if (!floor || floor <= 0) newErrors.floor = t('floorError');
                 else delete newErrors.floor;
                 break;
             }
             case 'bedrooms': {
                 const bedrooms = typeof value === 'number' ? value : parseInt(String(value));
-                if (!bedrooms || bedrooms <= 0 || bedrooms >= 10) newErrors.bedrooms = t('bedroomsErrorRange') || 'Số phòng ngủ phải trong khoảng 1-9';
+                if (!bedrooms || bedrooms <= 0 || bedrooms >= 10) newErrors.bedrooms = t('unitNew.bedroomsErrorRange');
                 else delete newErrors.bedrooms;
                 break;
             }
             case 'area': {
                 const area = typeof value === 'number' ? value : parseFloat(String(value));
-                if (!area || area <= 0 || area >= 150) newErrors.area = t('areaErrorRange') || 'Diện tích phải > 0 và < 150';
+                if (!area || area <= 0 || area >= 150) newErrors.area = t('unitNew.areaErrorRange');
                 else delete newErrors.area;
                 break;
             }
@@ -192,17 +192,17 @@ export default function UnitAdd () {
         
         // Validate floor
         if (formData.floor === undefined || formData.floor <= 0) {
-            newErrors.floor = t('floorError') || 'Số tầng phải lớn hơn 0';
+            newErrors.floor = t('floorError');
         }
         
         // Validate bedrooms
         if (formData.bedrooms === undefined || formData.bedrooms <= 0 || formData.bedrooms >= 10) {
-            newErrors.bedrooms = t('bedroomsErrorRange') || 'Số phòng ngủ phải trong khoảng 1-9';
+            newErrors.bedrooms = t('unitNew.bedroomsErrorRange');
         }
         
         // Validate area
         if (formData.areaM2 === undefined || formData.areaM2 <= 0 || formData.areaM2 >= 150) {
-            newErrors.area = t('areaErrorRange') || 'Diện tích phải > 0 và < 150';
+            newErrors.area = t('unitNew.areaErrorRange');
         }
         
         setErrors(newErrors);
@@ -268,7 +268,7 @@ export default function UnitAdd () {
             >
                 <Image 
                     src={Arrow} 
-                    alt="Back" 
+                    alt={t('altText.back')} 
                     width={20} 
                     height={20}
                     className="w-5 h-5 mr-2" 
@@ -285,7 +285,7 @@ export default function UnitAdd () {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className={`text-2xl font-semibold text-[#02542D] mr-3`}>
-                            Thêm Căn hộ
+                            {t('unitNew.title')}
                         </h1>
                     </div>
                 </div>

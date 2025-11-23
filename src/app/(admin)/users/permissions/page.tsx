@@ -1,11 +1,13 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { getEmployeesInTenant } from '@/src/services/iam';
 import type { EmployeeRoleDto } from '@/src/services/iam';
 
 export default function UserPermissionsPage() {
+  const t = useTranslations('AdminUserPermissions');
   const searchParams = useSearchParams();
   const tenantId = searchParams.get('tenant') || '';
   const tenantName = searchParams.get('tenantName') || 'Unknown Tenant';
@@ -58,7 +60,7 @@ export default function UserPermissionsPage() {
           <div className="px-[41px] py-12 flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
-              <p className="text-gray-600">Đang tải dữ liệu...</p>
+              <p className="text-gray-600">{t('loading')}</p>
             </div>
           </div>
         </div>
@@ -72,17 +74,17 @@ export default function UserPermissionsPage() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-            <Link href="/dashboard" className="hover:text-[#02542D]">Dashboard</Link>
+            <Link href="/dashboard" className="hover:text-[#02542D]">{t('breadcrumb.dashboard')}</Link>
           <span>›</span>
           <span className="text-slate-700 font-medium">{tenantName}</span>
           <span>›</span>
-          <span className="text-slate-700 font-medium">User Permissions</span>
+          <span className="text-slate-700 font-medium">{t('breadcrumb.userPermissions')}</span>
         </div>
           <h1 className="text-2xl font-semibold text-[#02542D]">
-            User Permissions
+            {t('title')}
           </h1>
           <p className="text-slate-600 mt-1">
-            View detailed permissions for users in {tenantName}
+            {t('subtitle', { tenantName })}
           </p>
         </div>
 
@@ -91,7 +93,7 @@ export default function UserPermissionsPage() {
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Search by username or email..."
+              placeholder={t('filters.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#02542D]"
@@ -103,7 +105,7 @@ export default function UserPermissionsPage() {
               onChange={(e) => setRoleFilter(e.target.value)}
               className="px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#02542D]"
             >
-            <option value="all">All Roles</option>
+            <option value="all">{t('filters.roleAll')}</option>
             {allRoles.map(role => (
               <option key={role} value={role}>{role.toUpperCase()}</option>
             ))}
@@ -116,8 +118,8 @@ export default function UserPermissionsPage() {
           {filteredEmployees.length === 0 ? (
             <div className="text-center py-12 text-slate-500 bg-white rounded-xl">
             {searchQuery || roleFilter !== 'all' 
-              ? 'Không tìm thấy user phù hợp'
-              : 'Không có user nào trong tenant này'
+              ? t('empty.noResults')
+              : t('empty.noData')
             }
           </div>
         ) : (
@@ -143,9 +145,9 @@ export default function UserPermissionsPage() {
 
                   {/* Roles */}
                   <div className="mb-3">
-                    <span className="text-sm text-slate-600 font-medium">🎭 Roles: </span>
+                    <span className="text-sm text-slate-600 font-medium">{t('userCard.roles')} </span>
                     {employee.assignedRoles.length === 0 ? (
-                      <span className="text-sm text-slate-400 italic">No roles</span>
+                      <span className="text-sm text-slate-400 italic">{t('userCard.noRoles')}</span>
                     ) : (
                       <div className="inline-flex flex-wrap gap-1">
                         {employee.assignedRoles.map((role, idx) => (
@@ -162,7 +164,7 @@ export default function UserPermissionsPage() {
 
                   {/* Permission Count */}
                   <div className="text-sm text-slate-600">
-                     <span className="font-semibold">{employee.allPermissions?.length || 0}</span> permissions
+                     <span className="font-semibold">{employee.allPermissions?.length || 0}</span> {t('userCard.permissions', { count: employee.allPermissions?.length || 0 })}
                   </div>
                 </div>
 
@@ -171,7 +173,7 @@ export default function UserPermissionsPage() {
                     href={`/users/${employee.username}/permissions?tenant=${tenantId}&tenantName=${encodeURIComponent(tenantName)}`}
                     className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024030] transition font-medium flex items-center gap-2"
                   >
-                    View Details →
+                    {t('userCard.viewDetails')}
                   </Link>
               </div>
             </div>
@@ -183,8 +185,8 @@ export default function UserPermissionsPage() {
         {filteredEmployees.length > 0 && (
           <div className="mt-6 p-4 bg-white rounded-xl">
             <div className="text-sm text-slate-600">
-              Showing <span className="font-semibold">{filteredEmployees.length}</span> of{' '}
-              <span className="font-semibold">{employees.length}</span> users
+              {t('summary.showing')} <span className="font-semibold">{filteredEmployees.length}</span> {t('summary.of')}{' '}
+              <span className="font-semibold">{employees.length}</span> {t('summary.users')}
             </div>
           </div>
         )}

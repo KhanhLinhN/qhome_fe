@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslations } from 'next-intl';
 import Link from "next/link";
 import { useAuth } from "@/src/contexts/AuthContext";
 import {
@@ -14,6 +15,7 @@ import {
 
 export default function ProfileViewPage() {
   const { user, isLoading, logout } = useAuth();
+  const t = useTranslations('ProfileView');
   const [profile, setProfile] = useState<UserProfileInfo | null>(null);
   const [account, setAccount] = useState<UserAccountInfo | null>(null);
   const [status, setStatus] = useState<UserStatusInfo | null>(null);
@@ -21,7 +23,7 @@ export default function ProfileViewPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleLogout = () => {
-    if (confirm("Bạn có chắc muốn đăng xuất?")) {
+    if (confirm(t('logoutConfirm'))) {
       logout();
     }
   };
@@ -59,7 +61,7 @@ export default function ProfileViewPage() {
         const message =
           err?.response?.data?.message ||
           err?.message ||
-          "Không thể tải thông tin hồ sơ. Vui lòng thử lại sau.";
+          t('errors.loadFailed');
         setError(message);
       } finally {
         if (active) {
@@ -92,7 +94,7 @@ export default function ProfileViewPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-sm text-slate-600">Đang tải hồ sơ của bạn...</div>
+        <div className="text-sm text-slate-600">{t('loading')}</div>
       </div>
     );
   }
@@ -102,16 +104,16 @@ export default function ProfileViewPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="bg-white shadow rounded-xl p-6 text-center space-y-3">
           <h1 className="text-lg font-semibold text-slate-800">
-            Vui lòng đăng nhập
+            {t('loginPrompt.title')}
           </h1>
           <p className="text-sm text-slate-500">
-            Bạn cần đăng nhập để xem thông tin hồ sơ cá nhân.
+            {t('loginPrompt.message')}
           </p>
           <Link
             href="/login"
             className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition"
           >
-            Đăng nhập
+            {t('loginPrompt.button')}
           </Link>
         </div>
       </div>
@@ -124,11 +126,11 @@ export default function ProfileViewPage() {
         <div className="flex flex-col gap-3 rounded-2xl bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-emerald-600 uppercase tracking-wide">
-              Hồ sơ của tôi
+              {t('title')}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
                 <h1 className="mt-2 text-2xl font-bold text-slate-800">
-                {profile?.username || user.username || "Không xác định"}
+                {profile?.username || user.username || t('common.unknown')}
                 </h1>
                 <div className="mt-2 ml-2 flex flex-wrap gap-2">
                     {(profile?.roles?.length ? profile.roles : user.roles)?.map(
@@ -142,7 +144,7 @@ export default function ProfileViewPage() {
                       )
                     ) || (
                       <span className="text-sm text-slate-500">
-                        Chưa có vai trò
+                        {t('roles.noRoles')}
                       </span>
                     )}
                   </div>
@@ -153,7 +155,7 @@ export default function ProfileViewPage() {
               href="/profileEdit"
               className="inline-flex items-center justify-center rounded-lg border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition"
             >
-              {user?.roles?.find(role => role === "Resident") ? "Chỉnh sửa hồ sơ" : "Thay đổi mật khẩu"}
+              {user?.roles?.find(role => role === "Resident") ? t('quickActions.editProfile') : t('quickActions.changePassword')}
             </Link>
           </div>
         </div>
@@ -169,25 +171,25 @@ export default function ProfileViewPage() {
             <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-slate-800">
-                  Thông tin tài khoản
+                  {t('accountInfo.title')}
                 </h2>
               </div>
 
               <dl className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                   <dt className="text-xs font-medium uppercase text-slate-500">
-                    Username
+                    {t('accountInfo.username')}
                   </dt>
                   <dd className="mt-2 text-base font-semibold text-slate-800">
-                    {account?.username || profile?.username || "Không xác định"}
+                    {account?.username || profile?.username || t('common.unknown')}
                   </dd>
                 </div>
                 <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 overflow-auto">
                   <dt className="text-xs font-medium uppercase text-slate-500">
-                    Email
+                    {t('accountInfo.email')}
                   </dt>
                   <dd className="mt-2 text-base font-semibold text-slate-800">
-                    {account?.email || profile?.email || "Không xác định"}
+                    {account?.email || profile?.email || t('common.unknown')}
                   </dd>
                 </div>
               </dl>
@@ -196,21 +198,21 @@ export default function ProfileViewPage() {
           <aside className="col-span-2 md:grid-cols-1 space-y-6">
             <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-700">
-                Thao tác nhanh
+                {t('quickActions.title')}
               </h3>
               <div className="mt-4 space-y-3">
                 <Link
                   href="/profileEdit"
                   className="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 transition"
                 >
-                  {user?.roles?.find(role => role === "Resident") ? "Chỉnh sửa hồ sơ" : "Thay đổi mật khẩu"}
+                  {user?.roles?.find(role => role === "Resident") ? t('quickActions.editProfile') : t('quickActions.changePassword')}
                 </Link>
                 {user?.roles?.find(role => role === "Resident") && (
                   <Link
                     href="/dashboard/buildings"
                     className="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-yellow-200 hover:bg-yellow-50 hover:text-yellow-700 transition"
                   >
-                    Xem thông tin căn hộ
+                    {t('quickActions.viewUnitInfo')}
                   </Link>
                 )}
                 <Link
@@ -218,7 +220,7 @@ export default function ProfileViewPage() {
                   onClick={handleLogout}
                   className="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700 transition"
                 >
-                  Đăng xuất
+                  {t('quickActions.logout')}
                 </Link>
               </div>
             </div>
