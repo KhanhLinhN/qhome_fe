@@ -10,7 +10,7 @@ import DropdownArrow from '@/src/assets/DropdownArrow.svg';
 import EditTable from '@/src/assets/EditTable.svg';
 import { useVehiclePage } from '@/src/hooks/useVehiclePage';
 import { Vehicle, VehicleKind } from '@/src/types/vehicle';
-import { fetchResidentById, ResidentSummary } from '@/src/services/base/residentService';
+import { fetchResidentById, fetchResidentByUserId, ResidentSummary } from '@/src/services/base/residentService';
 
 type VehicleWithContext = Vehicle & {
   buildingId: string;
@@ -150,9 +150,11 @@ export default function VehicleAllPage() {
 
     const loadResidents = async () => {
       const results = await Promise.allSettled(
-        missingResidentIds.map(async (residentId) => {
-          const resident = await fetchResidentById(residentId);
-          return { residentId, resident };
+        missingResidentIds.map(async (userId) => {
+          // Note: vehicle.residentId is actually userId from vehicle registration
+          // Use by-user endpoint to get resident by userId
+          const resident = await fetchResidentByUserId(userId);
+          return { residentId: userId, resident };
         }),
       );
 

@@ -6,10 +6,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   approveVehicleRegistration,
-  getVehicleRegistrations,
+  fetchVehicleRegistrationRequests,
   rejectVehicleRegistration,
-} from '@/src/services/base/vehicleRegistrationService';
-import { VehicleKind, VehicleRegistration, VehicleRegistrationStatus } from '@/src/types/vehicle';
+} from '@/src/services/card/vehicleRegistrationService';
+import { VehicleKind } from '@/src/types/vehicle';
+import { VehicleRegistrationRequest } from '@/src/types/vehicleRegistration';
 
 const approveIcon = (
   <svg
@@ -78,22 +79,29 @@ export default function VehicleRegistrationPage() {
   const t = useTranslations('Vehicle');
   const router = useRouter();
 
-  const [registrations, setRegistrations] = useState<VehicleRegistration[]>([]);
+  const [registrations, setRegistrations] = useState<VehicleRegistrationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
   const loadRegistrations = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getVehicleRegistrations();
+      const data = await fetchVehicleRegistrationRequests({ 
+        status: statusFilter || undefined 
+      });
+      console.log('Loaded registrations:', data); // Debug log
+      console.log('Status filter:', statusFilter); // Debug log
+      console.log('CANCELLED registrations:', data.filter(r => r.status === 'CANCELLED')); // Debug log
       const sorted = [...data].sort(
         (a, b) =>
-          getTimestamp(b.requestedAt ?? b.createdAt) - getTimestamp(a.requestedAt ?? a.createdAt),
+          getTimestamp(b.createdAt) - getTimestamp(a.createdAt),
       );
       setRegistrations(sorted);
     } catch (err: any) {
+      console.error('Error loading registrations:', err); // Debug log
       const message =
         err?.response?.data?.message ??
         err?.message ??
@@ -102,34 +110,70 @@ export default function VehicleRegistrationPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
     void loadRegistrations();
   }, [loadRegistrations]);
 
   const statusConfig = useMemo<
-    Partial<Record<VehicleRegistrationStatus, { label: string; className: string }>>
+    Partial<Record<string, { label: string; className: string }>>
   >(
     () => ({
       PENDING: {
         label: t('statusLabels.PENDING'),
         className: 'bg-amber-50 text-amber-700 border-amber-200',
       },
+      READY_FOR_PAYMENT: {
+        label: 'Chờ thanh toán',
+        className: 'bg-blue-50 text-blue-700 border-blue-200',
+      },
+      PAYMENT_PENDING: {
+        label: 'Đang thanh toán',
+        className: 'bg-purple-50 text-purple-700 border-purple-200',
+      },
       APPROVED: {
         label: t('statusLabels.APPROVED'),
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      },
+      COMPLETED: {
+        label: 'Hoàn thành',
         className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       },
       REJECTED: {
         label: t('statusLabels.REJECTED'),
         className: 'bg-red-50 text-red-600 border-red-200',
       },
-      CANCELED: {
+      CANCELLED: {
         label: t('statusLabels.CANCELED'),
         className: 'bg-slate-50 text-slate-600 border-slate-200',
       },
     }),
     [t],
+  );
+
+  const paymentStatusConfig = useMemo<
+    Partial<Record<string, { label: string; className: string }>>
+  >(
+    () => ({
+      UNPAID: {
+        label: 'Chưa thanh toán',
+        className: 'bg-orange-50 text-orange-700 border-orange-200',
+      },
+      PAYMENT_APPROVAL: {
+        label: 'Đang xử lý thanh toán',
+        className: 'bg-purple-50 text-purple-700 border-purple-200',
+      },
+      PAYMENT_PENDING: {
+        label: 'Chờ xác nhận',
+        className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+      },
+      PAID: {
+        label: 'Đã thanh toán',
+        className: 'bg-green-50 text-green-700 border-green-200',
+      },
+    }),
+    [],
   );
 
   const getVehicleKindLabel = useCallback(
@@ -158,16 +202,16 @@ export default function VehicleRegistrationPage() {
     void loadRegistrations();
   };
 
-  const handleApprove = async (registration: VehicleRegistration) => {
+  const handleApprove = async (registration: VehicleRegistrationRequest) => {
     const noteInput =
-      window.prompt(t('promptApprovalNote'), registration.note ?? '') ?? '';
+      window.prompt(t('promptApprovalNote'), registration.adminNote ?? '') ?? '';
     const note = noteInput.trim();
 
     setProcessingId(registration.id);
     try {
       const updated = await approveVehicleRegistration(
         registration.id,
-        note.length > 0 ? note : undefined,
+        note.length > 0 ? { note, issueMessage: '' } : undefined,
       );
       setRegistrations((prev) =>
         prev.map((item) => (item.id === updated.id ? updated : item)),
@@ -180,9 +224,9 @@ export default function VehicleRegistrationPage() {
     }
   };
 
-  const handleReject = async (registration: VehicleRegistration) => {
+  const handleReject = async (registration: VehicleRegistrationRequest) => {
     const reasonInput =
-      window.prompt(t('promptRejectionReason'), registration.reason ?? '') ?? '';
+      window.prompt(t('promptRejectionReason'), registration.rejectionReason ?? '') ?? '';
     const reason = reasonInput.trim();
 
     if (!reason) {
@@ -191,7 +235,7 @@ export default function VehicleRegistrationPage() {
 
     setProcessingId(registration.id);
     try {
-      const updated = await rejectVehicleRegistration(registration.id, reason);
+      const updated = await rejectVehicleRegistration(registration.id, { note: reason });
       setRegistrations((prev) =>
         prev.map((item) => (item.id === updated.id ? updated : item)),
       );
@@ -238,6 +282,19 @@ export default function VehicleRegistrationPage() {
             {t('registrationList')}
           </h1>
           <div className="flex items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-md border border-[#02542D] px-3 py-2 text-sm font-medium text-[#02542D] transition-colors focus:outline-none focus:ring-2 focus:ring-[#02542D]"
+            >
+              <option value="">Tất cả</option>
+              <option value="PENDING">{t('statusLabels.PENDING')}</option>
+              <option value="READY_FOR_PAYMENT">Chờ thanh toán</option>
+              <option value="PAYMENT_PENDING">Đang thanh toán</option>
+              <option value="APPROVED">{t('statusLabels.APPROVED')}</option>
+              <option value="REJECTED">{t('statusLabels.REJECTED')}</option>
+              <option value="CANCELLED">{t('statusLabels.CANCELED')}</option>
+            </select>
             <button
               onClick={handleRefresh}
               className="rounded-md border border-[#02542D] px-4 py-2 text-sm font-medium text-[#02542D] transition-colors hover:bg-[#02542D] hover:text-white"
@@ -254,7 +311,12 @@ export default function VehicleRegistrationPage() {
         </div>
 
         <div className="w-full rounded-xl bg-white p-6">
-          {registrations.length === 0 ? (
+          {loading ? (
+            <div className="py-12 text-center text-gray-500">
+              <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-[#02542D]"></div>
+              <p>{t('loading')}</p>
+            </div>
+          ) : registrations.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
               {t('noRegistrations')}
             </div>
@@ -275,9 +337,29 @@ export default function VehicleRegistrationPage() {
               </thead>
               <tbody className="text-sm text-gray-700">
                 {registrations.map((registration) => {
+                  // Determine status: use status field, or infer from paymentStatus
+                  let currentStatus = registration.status;
+                  
+                  // Normalize COMPLETED to APPROVED (legacy status)
+                  if (currentStatus === 'COMPLETED') {
+                    currentStatus = 'APPROVED';
+                  }
+                  
+                  // Only infer status if it's missing or empty (preserve CANCELLED, REJECTED, etc.)
+                  if (!currentStatus || currentStatus === '') {
+                    // Infer status from paymentStatus if status is missing
+                    if (registration.paymentStatus === 'PAYMENT_APPROVAL' || registration.paymentStatus === 'PAYMENT_PENDING') {
+                      currentStatus = 'PAYMENT_PENDING';
+                    } else if (registration.paymentStatus === 'UNPAID') {
+                      currentStatus = 'READY_FOR_PAYMENT';
+                    } else {
+                      currentStatus = 'PENDING';
+                    }
+                  }
+                  
                   const statusStyle =
-                    statusConfig[registration.status] ?? {
-                      label: registration.status,
+                    statusConfig[currentStatus] ?? {
+                      label: currentStatus,
                       className: 'bg-slate-50 text-slate-600 border-slate-200',
                     };
                   const isProcessing = processingId === registration.id;
@@ -288,43 +370,61 @@ export default function VehicleRegistrationPage() {
                       className="border-b border-gray-100 transition-colors hover:bg-slate-50"
                     >
                       <td className="px-4 py-3 font-medium text-gray-900">
-                        {registration.vehiclePlateNo ?? '--'}
+                        {registration.licensePlate ?? '--'}
                       </td>
                       <td className="px-4 py-3">
-                        {getVehicleKindLabel(registration.vehicleKind)}
+                        {getVehicleKindLabel(registration.vehicleType)}
                       </td>
                       <td className="px-4 py-3">{registration.vehicleColor ?? '--'}</td>
                       <td className="px-4 py-3">
-                        {registration.requestedByName ?? '--'}
+                        {registration.apartmentNumber ?? registration.buildingName ?? '--'}
                       </td>
                       <td className="px-4 py-3">
-                        {formatDateTime(registration.requestedAt ?? registration.createdAt)}
+                        {formatDateTime(registration.createdAt)}
                       </td>
                       <td className="px-4 py-3">
-                        {registration.approvedByName ?? '--'}
+                        {registration.approvedBy ?? '--'}
                       </td>
                       <td className="px-4 py-3">
                         {formatDateTime(registration.approvedAt)}
                       </td>
                       <td className="px-4 py-3">
-                        <div
-                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyle.className}`}
-                        >
-                          {statusStyle.label}
+                        <div className="flex flex-col gap-1.5">
+                          <div
+                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyle.className}`}
+                          >
+                            {statusStyle.label}
+                          </div>
+                          {registration.paymentStatus && (
+                            (() => {
+                              const paymentStyle = paymentStatusConfig[registration.paymentStatus] ?? {
+                                label: registration.paymentStatus,
+                                className: 'bg-slate-50 text-slate-600 border-slate-200',
+                              };
+                              return (
+                                <div
+                                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${paymentStyle.className}`}
+                                  title={`Trạng thái thanh toán: ${paymentStyle.label}`}
+                                >
+                                  💳 {paymentStyle.label}
+                                </div>
+                              );
+                            })()
+                          )}
                         </div>
-                        {registration.status === 'REJECTED' && registration.reason && (
+                        {currentStatus === 'REJECTED' && registration.rejectionReason && (
                           <p className="mt-1 text-xs text-red-600">
-                            {t('rejectionReason')}: {registration.reason}
+                            {t('rejectionReason')}: {registration.rejectionReason}
                           </p>
                         )}
-                        {registration.status === 'APPROVED' && registration.note && (
+                        {currentStatus === 'APPROVED' && registration.adminNote && (
                           <p className="mt-1 text-xs text-emerald-600">
-                            {t('approvalNote')}: {registration.note}
+                            {t('approvalNote')}: {registration.adminNote}
                           </p>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        {registration.status === 'PENDING' ? (
+                        {(currentStatus === 'PENDING' || currentStatus === 'READY_FOR_PAYMENT' || currentStatus === 'PAYMENT_PENDING') ? (
                           <div className="flex items-center justify-center gap-3">
                             <button
                               type="button"

@@ -29,3 +29,10 @@ export async function fetchResidentByIdForAdmin(residentId: string): Promise<Res
   return response.data;
 }
 
+export async function fetchResidentByUserId(userId: string): Promise<ResidentSummary> {
+  const response = await axios.get<ResidentSummary>(`${BASE_URL}/api/residents/by-user/${userId}`, {
+    withCredentials: true,
+  });
+  return response.data;
+}
+

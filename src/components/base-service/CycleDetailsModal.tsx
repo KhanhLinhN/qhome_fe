@@ -205,3 +205,5 @@ const CycleDetailsModal = ({
 
 export default CycleDetailsModal;
 
+
+
