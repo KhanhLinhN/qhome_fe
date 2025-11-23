@@ -6,6 +6,8 @@ import {
   fetchPendingHouseholdMemberRequests,
   HouseholdMemberRequest,
 } from '@/src/services/base/householdMemberRequestService';
+import { fetchResidentByIdForAdmin } from '@/src/services/base/residentService';
+import PopupConfirm from '@/src/components/common/PopupComfirm';
 
 const formatDate = (value?: string | null) => {
   if (!value) {
@@ -37,13 +39,55 @@ export default function HouseholdMemberRequestsPage() {
   const [actionState, setActionState] = useState<Record<string, boolean>>({});
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>('');
+  const [requesterDetails, setRequesterDetails] = useState<Record<string, { email?: string | null; phone?: string | null }>>({});
+  const [imagePopup, setImagePopup] = useState<{ isOpen: boolean; imageUrl: string | null }>({
+    isOpen: false,
+    imageUrl: null,
+  });
+  const [confirmPopup, setConfirmPopup] = useState<{
+    isOpen: boolean;
+    request: HouseholdMemberRequest | null;
+    action: 'approve' | 'reject' | 'rejectSubmit' | null;
+  }>({
+    isOpen: false,
+    request: null,
+    action: null,
+  });
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await fetchPendingHouseholdMemberRequests();
+      console.log("CCC",data);
       setRequests(data);
+      
+      // Lấy danh sách các requestedBy ID duy nhất
+      const uniqueRequestedByIds = Array.from(
+        new Set(data.map((req) => req.requestedBy).filter((id): id is string => id !== null))
+      );
+      
+      // Gọi API để lấy thông tin email và số điện thoại cho từng người gửi yêu cầu
+      const detailsMap: Record<string, { email?: string | null; phone?: string | null }> = {};
+      await Promise.all(
+        uniqueRequestedByIds.map(async (requestedById) => {
+          try {
+            const resident = await fetchResidentByIdForAdmin(requestedById);
+            detailsMap[requestedById] = {
+              email: resident.email || null,
+              phone: resident.phone || null,
+            };
+          } catch (err) {
+            console.error(`Failed to fetch resident ${requestedById}:`, err);
+            detailsMap[requestedById] = {
+              email: null,
+              phone: null,
+            };
+          }
+        })
+      );
+      
+      setRequesterDetails(detailsMap);
     } catch (err: any) {
       const message =
         err?.response?.data?.message || err?.message || 'Không thể tải danh sách yêu cầu.';
@@ -58,6 +102,14 @@ export default function HouseholdMemberRequestsPage() {
   }, [loadRequests]);
 
   const hasRequests = useMemo(() => requests.length > 0, [requests]);
+
+  const handleApproveClick = (request: HouseholdMemberRequest) => {
+    setConfirmPopup({
+      isOpen: true,
+      request,
+      action: 'approve',
+    });
+  };
 
   const handleApprove = async (id: string) => {
     setError(null);
@@ -80,16 +132,41 @@ export default function HouseholdMemberRequestsPage() {
     }
   };
 
-  const openRejectForm = (id: string) => {
-    setRejectingId(id);
-    setRejectionReason('');
-    setSuccess(null);
-    setError(null);
+  const openRejectForm = (request: HouseholdMemberRequest) => {
+    setConfirmPopup({
+      isOpen: true,
+      request,
+      action: 'reject',
+    });
+  };
+
+  const confirmOpenRejectForm = () => {
+    if (confirmPopup.request) {
+      setRejectingId(confirmPopup.request.id);
+      setRejectionReason('');
+      setSuccess(null);
+      setError(null);
+      setConfirmPopup({ isOpen: false, request: null, action: null });
+    }
   };
 
   const cancelReject = () => {
     setRejectingId(null);
     setRejectionReason('');
+  };
+
+  const handleRejectSubmitClick = (request: HouseholdMemberRequest) => {
+    const reason = rejectionReason.trim();
+    if (!reason) {
+      setError('Vui lòng nhập lý do từ chối.');
+      return;
+    }
+
+    setConfirmPopup({
+      isOpen: true,
+      request,
+      action: 'rejectSubmit',
+    });
   };
 
   const handleRejectSubmit = async (id: string) => {
@@ -117,6 +194,21 @@ export default function HouseholdMemberRequestsPage() {
         delete next[id];
         return next;
       });
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmPopup.request || !confirmPopup.action) return;
+
+    const request = confirmPopup.request;
+    setConfirmPopup({ isOpen: false, request: null, action: null });
+
+    if (confirmPopup.action === 'approve') {
+      await handleApprove(request.id);
+    } else if (confirmPopup.action === 'reject') {
+      confirmOpenRejectForm();
+    } else if (confirmPopup.action === 'rejectSubmit') {
+      await handleRejectSubmit(request.id);
     }
   };
 
@@ -201,14 +293,13 @@ export default function HouseholdMemberRequestsPage() {
                       Ngày sinh: {formatDate(request.requestedResidentDob)}
                     </p>
                     {request.proofOfRelationImageUrl && (
-                      <a
-                        href={request.proofOfRelationImageUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex text-sm text-green-600 hover:text-green-700"
+                      <button
+                        type="button"
+                        onClick={() => setImagePopup({ isOpen: true, imageUrl: request.proofOfRelationImageUrl || null })}
+                        className="inline-flex text-sm text-green-600 hover:text-green-700 hover:underline"
                       >
                         Xem minh chứng quan hệ
-                      </a>
+                      </button>
                     )}
                   </div>
 
@@ -217,12 +308,16 @@ export default function HouseholdMemberRequestsPage() {
                       Người gửi yêu cầu
                     </p>
                     <p className="text-sm text-slate-700">{request.requestedByName || 'Không rõ'}</p>
-                    <p className="text-sm text-slate-500">Email: {request.residentEmail || '—'}</p>
-                    <p className="text-sm text-slate-500">Điện thoại: {request.residentPhone || '—'}</p>
+                    <p className="text-sm text-slate-500">
+                      Email: {request.requestedBy ? (requesterDetails[request.requestedBy]?.email || '—') : '—'}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      Điện thoại: {request.requestedBy ? (requesterDetails[request.requestedBy]?.phone || '—') : '—'}
+                    </p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <button
                         type="button"
-                        onClick={() => void handleApprove(request.id)}
+                        onClick={() => handleApproveClick(request)}
                         disabled={isProcessing}
                         className="inline-flex items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-green-400"
                       >
@@ -230,7 +325,7 @@ export default function HouseholdMemberRequestsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => openRejectForm(request.id)}
+                        onClick={() => openRejectForm(request)}
                         disabled={isProcessing}
                         className="inline-flex items-center justify-center rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-red-200 disabled:text-red-300"
                       >
@@ -255,7 +350,7 @@ export default function HouseholdMemberRequestsPage() {
                     <div className="mt-3 flex flex-wrap gap-3">
                       <button
                         type="button"
-                        onClick={() => void handleRejectSubmit(request.id)}
+                        onClick={() => handleRejectSubmitClick(request)}
                         disabled={isProcessing}
                         className="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-400"
                       >
@@ -274,6 +369,63 @@ export default function HouseholdMemberRequestsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Confirm Popup */}
+      {confirmPopup.isOpen && confirmPopup.request && confirmPopup.action && (
+        <PopupConfirm
+          isOpen={confirmPopup.isOpen}
+          onClose={() => setConfirmPopup({ isOpen: false, request: null, action: null })}
+          onConfirm={handleConfirmAction}
+          popupTitle={
+            confirmPopup.action === 'approve'
+              ? 'Xác nhận chấp nhận'
+              : confirmPopup.action === 'reject'
+              ? 'Xác nhận từ chối'
+              : 'Xác nhận từ chối yêu cầu'
+          }
+          popupContext={
+            confirmPopup.action === 'approve'
+              ? `Bạn có chắc chắn muốn chấp nhận yêu cầu thêm thành viên ${confirmPopup.request.requestedResidentFullName || 'này'} vào hộ gia đình không?`
+              : confirmPopup.action === 'reject'
+              ? `Bạn có chắc chắn muốn từ chối yêu cầu này không? Sau khi xác nhận, bạn sẽ cần nhập lý do từ chối.`
+              : `Bạn có chắc chắn muốn từ chối yêu cầu thêm thành viên ${confirmPopup.request.requestedResidentFullName || 'này'} vào hộ gia đình không?`
+          }
+          isDanger={confirmPopup.action !== 'approve'}
+        />
+      )}
+
+      {/* Image Popup */}
+      {imagePopup.isOpen && imagePopup.imageUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#E7E4E8CC]/70"
+          onClick={() => setImagePopup({ isOpen: false, imageUrl: null })}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] p-4">
+            <button
+              type="button"
+              onClick={() => setImagePopup({ isOpen: false, imageUrl: null })}
+              className="absolute top-2 right-2 z-10 rounded-full bg-white p-2 text-gray-700 shadow-lg hover:bg-gray-100 transition-colors"
+              aria-label="Đóng"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={imagePopup.imageUrl}
+              alt="Minh chứng quan hệ"
+              className="max-w-full max-h-[90vh] rounded-lg shadow-2xl object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
       )}
     </div>

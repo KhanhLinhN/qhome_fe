@@ -9,6 +9,7 @@ import {
   approveAccountRequest,
   fetchPendingAccountRequests,
 } from '@/src/services/base/residentAccountService';
+import PopupConfirm from '@/src/components/common/PopupComfirm';
 
 const approveIcon = (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Check-2-Fill--Streamline-Mingcute-Fill" height="16" width="16">
@@ -39,6 +40,15 @@ export default function ResidentAccountApprovalPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [confirmPopup, setConfirmPopup] = useState<{
+    isOpen: boolean;
+    request: AccountCreationRequest | null;
+    isApprove: boolean;
+  }>({
+    isOpen: false,
+    request: null,
+    isApprove: false,
+  });
 
   const formatDateTime = useCallback(
     (value?: string | null) => {
@@ -85,8 +95,25 @@ export default function ResidentAccountApprovalPage() {
     setRequests((prev) => prev.filter((item) => item.id !== requestId));
   }, []);
 
-  const handleDecision = useCallback(
-    async (request: AccountCreationRequest, approve: boolean) => {
+  const handleDecisionClick = useCallback(
+    (request: AccountCreationRequest, approve: boolean) => {
+      setConfirmPopup({
+        isOpen: true,
+        request,
+        isApprove: approve,
+      });
+    },
+    [],
+  );
+
+  const handleConfirmDecision = useCallback(
+    async () => {
+      if (!confirmPopup.request) return;
+
+      const request = confirmPopup.request;
+      const isApprove = confirmPopup.isApprove;
+
+      setConfirmPopup({ isOpen: false, request: null, isApprove: false });
       updateProcessing(request.id, true);
       setSuccessMessage(null);
       setError(null);
@@ -94,7 +121,7 @@ export default function ResidentAccountApprovalPage() {
       try {
         let payload: { approve: boolean; rejectionReason?: string };
 
-        if (approve) {
+        if (isApprove) {
           payload = { approve: true };
         } else {
           const defaultReason = t('prompt.defaultRejectionReason');
@@ -111,7 +138,7 @@ export default function ResidentAccountApprovalPage() {
         await approveAccountRequest(request.id, payload);
         removeRequest(request.id);
         setSuccessMessage(
-          approve
+          isApprove
             ? t('messages.approveSuccess', {
                 name: request.residentName ?? t('fallbacks.unknownResidentName'),
               })
@@ -127,7 +154,7 @@ export default function ResidentAccountApprovalPage() {
         updateProcessing(request.id, false);
       }
     },
-    [removeRequest, t, updateProcessing],
+    [confirmPopup, removeRequest, t, updateProcessing],
   );
 
   const pendingMessage = useMemo(() => {
@@ -282,7 +309,7 @@ export default function ResidentAccountApprovalPage() {
                           <div className="flex items-center justify-center gap-3">
                             <button
                               type="button"
-                              onClick={() => handleDecision(request, true)}
+                              onClick={() => handleDecisionClick(request, true)}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-emerald-200 text-emerald-600 transition hover:bg-emerald-50"
                               title={t('actions.approve')}
                               disabled={isProcessing}
@@ -291,7 +318,7 @@ export default function ResidentAccountApprovalPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDecision(request, false)}
+                              onClick={() => handleDecisionClick(request, false)}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-600 transition hover:bg-red-50"
                               title={t('actions.reject')}
                               disabled={isProcessing}
@@ -308,6 +335,26 @@ export default function ResidentAccountApprovalPage() {
             </table>
           </div>
         </div>
+
+        {/* Confirm Popup */}
+        {confirmPopup.isOpen && confirmPopup.request && (
+          <PopupConfirm
+            isOpen={confirmPopup.isOpen}
+            onClose={() => setConfirmPopup({ isOpen: false, request: null, isApprove: false })}
+            onConfirm={handleConfirmDecision}
+            popupTitle={
+              confirmPopup.isApprove
+                ? t('actions.approve')
+                : t('actions.reject')
+            }
+            popupContext={
+              confirmPopup.isApprove
+                ? `Bạn có chắc chắn muốn phê duyệt yêu cầu tạo tài khoản cho cư dân ${confirmPopup.request.residentName ?? t('fallbacks.unknownResidentName')} không?`
+                : `Bạn có chắc chắn muốn từ chối yêu cầu tạo tài khoản cho cư dân ${confirmPopup.request.residentName ?? t('fallbacks.unknownResidentName')} không?`
+            }
+            isDanger={!confirmPopup.isApprove}
+          />
+        )}
       </div>
     </div>
   );
