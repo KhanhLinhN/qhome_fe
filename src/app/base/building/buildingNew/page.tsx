@@ -393,7 +393,7 @@ export default function BuildingAdd () {
             router.push(`/base/building/buildingList`);
         } catch (error) {
             console.error('Lỗi khi tạo building:', error);
-            show(t('errorBuilding'), 'error');
+            show(t('messages.createError'), 'error');
         } finally {
             setIsSubmit(false);
         }
@@ -552,58 +552,58 @@ export default function BuildingAdd () {
                     {/* Address structured selectors */}
                     <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex flex-col">
-                            <label className="text-md font-bold text-[#02542D] mb-1">Thành phố</label>
+                            <label className="text-md font-bold text-[#02542D] mb-1">{t('city')}</label>
                             <Select<Province>
                                 options={cities}
                                 value={selectedCity}
                                 onSelect={(item) => setSelectedCity(String((item as Province).code))}
                                 renderItem={(item) => (item as Province).name}
                                 getValue={(item) => String((item as Province).code)}
-                                placeholder="Chọn thành phố"
+                                placeholder={t('placeholders.selectCity')}
                                 error={!!errors.city}
                             />
                             {errors.city && <span className="text-xs text-red-500 mt-1">{errors.city}</span>}
                         </div>
                         <div className="flex flex-col">
-                            <label className="text-md font-bold text-[#02542D] mb-1">Quận/Huyện</label>
+                            <label className="text-md font-bold text-[#02542D] mb-1">{t('district')}</label>
                             <Select<District>
                                 options={districts}
                                 value={selectedDistrict}
                                 onSelect={(item) => setSelectedDistrict(String((item as District).code))}
                                 renderItem={(item) => (item as District).name}
                                 getValue={(item) => String((item as District).code)}
-                                placeholder="Chọn quận/huyện"
+                                placeholder={t('placeholders.selectDistrict')}
                                 error={!!errors.district}
                             />
                             {errors.district && <span className="text-xs text-red-500 mt-1">{errors.district}</span>}
                         </div>
                         <div className="flex flex-col">
-                            <label className="text-md font-bold text-[#02542D] mb-1">Phường/Xã</label>
+                            <label className="text-md font-bold text-[#02542D] mb-1">{t('ward')}</label>
                             <Select<Ward>
                                 options={wards}
                                 value={selectedWard}
                                 onSelect={(item) => setSelectedWard(String((item as Ward).code))}
                                 renderItem={(item) => (item as Ward).name}
                                 getValue={(item) => String((item as Ward).code)}
-                                placeholder="Chọn phường/xã"
+                                placeholder={t('placeholders.selectWard')}
                                 error={!!errors.ward}
                             />
                             {errors.ward && <span className="text-xs text-red-500 mt-1">{errors.ward}</span>}
                         </div>
                         <div className="flex flex-col">
-                            <label className="text-md font-bold text-[#02542D] mb-1">Đường/Thôn (tuỳ chọn)</label>
+                            <label className="text-md font-bold text-[#02542D] mb-1">{t('roadOptional')}</label>
                             <Select<{ name: string }>
                                 options={roads}
                                 value={road}
                                 onSelect={(item) => setRoad((item as { name: string }).name)}
                                 renderItem={(item) => (item as { name: string }).name}
                                 getValue={(item) => (item as { name: string }).name}
-                                placeholder={roads.length ? 'Chọn đường/thôn (có thể để trống)' : 'Không có dữ liệu đường/thôn'}
+                                placeholder={roads.length ? t('placeholders.selectRoadOptional') : t('placeholders.noRoadData')}
                                 error={false}
                             />
                         </div>
                         <div className="flex flex-col md:col-span-2">
-                            <label className="text-md font-bold text-[#02542D] mb-1">Địa chỉ chi tiết</label>
+                            <label className="text-md font-bold text-[#02542D] mb-1">{t('addressDetail')}</label>
                             <input
                                 type="text"
                                 value={addressDetail}
@@ -624,7 +624,7 @@ export default function BuildingAdd () {
                                     const v = (e.target as HTMLInputElement).value;
                                     void geocodeAndFillFromDetail(v);
                                 }}
-                                placeholder="Số nhà, toà, tầng..."
+                                placeholder={t('placeholders.addressDetail')}
                                 className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                                     errors.addressDetail ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
                                 }`}

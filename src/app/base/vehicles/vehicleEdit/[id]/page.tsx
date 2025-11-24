@@ -67,7 +67,7 @@ export default function VehicleEditPage() {
   return (
     <div className={`min-h-screen p-4 sm:p-8 font-sans`}>
       <div className="max-w-4xl mx-auto mb-6 flex items-center cursor-pointer" onClick={handleBack}>
-        <Image src={Arrow} alt="Back" width={20} height={20} className="w-5 h-5 mr-2" />
+        <Image src={Arrow} alt={t('altText.back')} width={20} height={20} className="w-5 h-5 mr-2" />
         <span className={`text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150`}>
           {t('vehicleDetailReturn')}
         </span>

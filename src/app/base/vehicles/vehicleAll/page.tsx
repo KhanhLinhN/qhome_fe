@@ -522,7 +522,7 @@ export default function VehicleAllPage() {
                           href={`/base/vehicles/vehicleDetail/${vehicle.id}`}
                           className="inline-flex items-center"
                         >
-                          <Image src={EditTable} alt="View Detail" width={24} height={24} />
+                          <Image src={EditTable} alt={t('altText.viewDetail')} width={24} height={24} />
                         </Link>
                       </td>
                     </tr>

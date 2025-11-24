@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getAllDeletionRequests, getMyDeletionRequests, TenantDeletionRequest, TenantDeletionStatus } from '@/src/services/base';
@@ -8,6 +9,7 @@ import Delete from '@/src/assets/Delete.svg';
 
 export default function AdminDeletionRequestsPage() {
   const { user, hasRole } = useAuth();
+  const t = useTranslations('AdminTenantDeletions');
   const [requests, setRequests] = useState<TenantDeletionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -27,7 +29,7 @@ export default function AdminDeletionRequestsPage() {
       setRequests(data);
     } catch (error) {
       console.error('Failed to load deletion requests:', error);
-      alert('❌ Không thể tải danh sách yêu cầu xóa');
+      alert(t('messages.loadError'));
     } finally {
       setLoading(false);
     }
@@ -79,12 +81,10 @@ export default function AdminDeletionRequestsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800 mb-2 flex items-center gap-2">
           <Image src={Delete} alt="Delete" width={24} height={24} />
-          {hasRole('admin') ? 'Quản Lý Yêu Cầu Xóa Tenant' : 'Yêu Cầu Xóa Tenant Của Tôi'}
+          {hasRole('admin') ? t('title.admin') : t('title.user')}
         </h1>
         <p className="text-sm text-slate-600">
-          {hasRole('admin') 
-            ? 'Admin: Phê duyệt và xử lý các yêu cầu xóa tenant' 
-            : 'Theo dõi các yêu cầu xóa tenant bạn đã gửi'}
+          {hasRole('admin') ? t('subtitle.admin') : t('subtitle.user')}
         </p>
       </div>
 
@@ -93,7 +93,7 @@ export default function AdminDeletionRequestsPage() {
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-yellow-700 font-medium">Chờ duyệt</div>
+              <div className="text-sm text-yellow-700 font-medium">{t('stats.pending')}</div>
               <div className="text-2xl font-bold text-yellow-800 mt-1">{statusCounts.PENDING}</div>
             </div>
             <div className="text-3xl">🟡</div>
@@ -102,7 +102,7 @@ export default function AdminDeletionRequestsPage() {
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-green-700 font-medium">Đã duyệt</div>
+              <div className="text-sm text-green-700 font-medium">{t('stats.approved')}</div>
               <div className="text-2xl font-bold text-green-800 mt-1">{statusCounts.APPROVED}</div>
             </div>
             <div className="text-3xl">🟢</div>
@@ -111,7 +111,7 @@ export default function AdminDeletionRequestsPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-blue-700 font-medium">Hoàn thành</div>
+              <div className="text-sm text-blue-700 font-medium">{t('stats.completed')}</div>
               <div className="text-2xl font-bold text-blue-800 mt-1">{statusCounts.COMPLETED}</div>
             </div>
             <div className="text-3xl">✅</div>
@@ -120,7 +120,7 @@ export default function AdminDeletionRequestsPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-red-700 font-medium">Từ chối</div>
+              <div className="text-sm text-red-700 font-medium">{t('stats.rejected')}</div>
               <div className="text-2xl font-bold text-red-800 mt-1">{statusCounts.REJECTED}</div>
             </div>
             <div className="text-3xl">❌</div>
@@ -135,7 +135,7 @@ export default function AdminDeletionRequestsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm theo ID, Tenant ID, lý do..."
+            placeholder={t('filters.searchPlaceholder')}
             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
           />
         </div>
@@ -144,18 +144,18 @@ export default function AdminDeletionRequestsPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
         >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="PENDING">🟡 Chờ duyệt</option>
-          <option value="APPROVED">🟢 Đã duyệt</option>
-          <option value="COMPLETED">✅ Hoàn thành</option>
-          <option value="REJECTED">❌ Từ chối</option>
+          <option value="all">{t('filters.statusAll')}</option>
+          <option value="PENDING">{t('filters.statusPending')}</option>
+          <option value="APPROVED">{t('filters.statusApproved')}</option>
+          <option value="COMPLETED">{t('filters.statusCompleted')}</option>
+          <option value="REJECTED">{t('filters.statusRejected')}</option>
         </select>
       </div>
 
       {/* Loading */}
       {loading && (
         <div className="text-center py-12">
-          <div className="text-slate-500">⏳ Đang tải...</div>
+          <div className="text-slate-500">{t('loading')}</div>
         </div>
       )}
 
@@ -165,12 +165,12 @@ export default function AdminDeletionRequestsPage() {
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">Tenant ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">Lý do</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">Trạng thái</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">Ngày tạo</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase">Hành động</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">{t('table.headers.id')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">{t('table.headers.tenantId')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">{t('table.headers.reason')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">{t('table.headers.status')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">{t('table.headers.createdAt')}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase">{t('table.headers.action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -178,8 +178,8 @@ export default function AdminDeletionRequestsPage() {
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                     {searchQuery || statusFilter !== 'all'
-                      ? 'Không tìm thấy yêu cầu nào'
-                      : '📭 Chưa có yêu cầu xóa nào'
+                      ? t('table.empty.noResults')
+                      : t('table.empty.noData')
                     }
                   </td>
                 </tr>
@@ -214,7 +214,7 @@ export default function AdminDeletionRequestsPage() {
                         href={`/tenant-deletions/${request.id}`}
                         className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-[#6B9B6E] hover:bg-[#5A8A5D] rounded-md transition"
                       >
-                        👁️ Chi tiết
+                        {t('table.actions.viewDetails')}
                       </Link>
                     </td>
                   </tr>
@@ -225,8 +225,8 @@ export default function AdminDeletionRequestsPage() {
 
           {/* Footer */}
           <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 text-sm text-slate-600">
-            Hiển thị: <span className="font-medium">{filteredRequests.length}</span>
-            {(searchQuery || statusFilter !== 'all') && ` / ${requests.length}`} yêu cầu
+            {t('table.footer.showing', { count: filteredRequests.length })}
+            {(searchQuery || statusFilter !== 'all') && t('table.footer.of', { total: requests.length })}
           </div>
         </div>
       )}

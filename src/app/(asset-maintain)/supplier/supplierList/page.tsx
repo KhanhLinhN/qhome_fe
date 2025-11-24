@@ -7,9 +7,17 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 export default function SupplierListPage() {
-  const t = useTranslations('Supplier');
+  const t = useTranslations('Supplier.list');
   const router = useRouter();
-  const headers = ['Tên nhà cung cấp', 'Loại', 'Người liên hệ', 'Điện thoại', 'Email', 'Trạng thái', 'Ngày tạo'];
+  const headers = [
+    t('headers.name'),
+    t('headers.type'),
+    t('headers.contactPerson'),
+    t('headers.phone'),
+    t('headers.email'),
+    t('headers.status'),
+    t('headers.createdAt')
+  ];
 
   const {
     data,
@@ -28,7 +36,7 @@ export default function SupplierListPage() {
       contactPerson: item.contactPerson,
       phone: item.phone,
       email: item.email,
-      status: item.isActive ? 'Hoạt động' : 'Không hoạt động',
+      status: item.isActive ? t('status.active') : t('status.inactive'),
       createdAt: item.createdAt?.slice(0, 10).replace(/-/g, '/') || '',
     })) || [];
   }, [data]);
@@ -42,7 +50,7 @@ export default function SupplierListPage() {
       <div className="px-[41px] py-12 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải...</p>
+          <p className="text-gray-600">{t('loading')}</p>
         </div>
       </div>
     );
@@ -52,12 +60,12 @@ export default function SupplierListPage() {
     return (
       <div className="px-[41px] py-12 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">Lỗi: {error}</p>
+          <p className="text-red-600 mb-4">{t('error', { error })}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-primary-2 text-white rounded-md hover:bg-primary-3"
           >
-            Thử lại
+            {t('retry')}
           </button>
         </div>
       </div>
@@ -67,7 +75,7 @@ export default function SupplierListPage() {
   return (
     <div className="lg:col-span-1 space-y-6">
       <div className="max-w-screen overflow-x-hidden">
-        <h1 className="text-2xl font-semibold text-[#02542D] mb-4">Danh sách nhà cung cấp</h1>
+        <h1 className="text-2xl font-semibold text-[#02542D] mb-4">{t('title')}</h1>
         <div className="bg-white p-6 rounded-xl w-full min-h-[200px]">
           <Table 
             data={tableData} 

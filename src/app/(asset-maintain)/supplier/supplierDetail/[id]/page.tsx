@@ -14,7 +14,7 @@ import { deleteSupplier } from '@/src/services/asset-maintenance/supplierService
 
 export default function SupplierDetail() {
     const { user, hasRole } = useAuth();
-    const t = useTranslations('Supplier'); 
+    const t = useTranslations('Supplier.detail'); 
     const router = useRouter();
     const params = useParams();
     const supplierId = params.id as string;
@@ -54,7 +54,7 @@ export default function SupplierDetail() {
             <div className="flex justify-center items-center h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Đang tải...</p>
+                    <p className="text-gray-600">{t('loading')}</p>
                 </div>
             </div>
         );
@@ -63,7 +63,7 @@ export default function SupplierDetail() {
     if (error) {
         return (
             <div className="flex justify-center items-center h-screen text-red-500">
-                Lỗi: {error.message}
+                {t('error', { error: error.message })}
             </div>
         );
     }
@@ -71,7 +71,7 @@ export default function SupplierDetail() {
     if (!supplierData) {
         return (
             <div className="flex justify-center text-xl font-bold items-center h-screen">
-                Không tìm thấy dữ liệu
+                {t('notFound')}
             </div>
         );
     }
@@ -87,7 +87,7 @@ export default function SupplierDetail() {
                     className="w-5 h-5 mr-2"
                 />
                 <span className="text-[#02542D] font-bold text-2xl hover:text-opacity-80 transition duration-150">
-                    Danh sách nhà cung cấp
+                    {t('back')}
                 </span>
             </div>
 
@@ -95,12 +95,12 @@ export default function SupplierDetail() {
                 <div className="flex justify-between items-start border-b pb-4 mb-6">
                     <div className="flex items-center">
                         <h1 className="text-2xl font-semibold text-[#02542D] mr-3">
-                            Chi tiết nhà cung cấp
+                            {t('title')}
                         </h1>
                         <span
                             className={`text-sm font-semibold px-3 py-1 rounded-full ${supplierData.isActive ? 'bg-[#739559] text-white' : 'bg-[#EEEEEE] text-[#02542D]'}`}
                         >
-                            {supplierData.isActive ? 'Hoạt động' : 'Không hoạt động'}
+                            {supplierData.isActive ? t('status.active') : t('status.inactive')}
                         </span>
                     </div>
 
@@ -124,38 +124,38 @@ export default function SupplierDetail() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                     <DetailField 
-                        label="Tên nhà cung cấp"
+                        label={t('fields.name')}
                         value={supplierData.name ?? ""} 
                         readonly={true}
                     />
                     <div className="col-span-1 hidden md:block"></div>
 
                     <DetailField 
-                        label="Loại"
+                        label={t('fields.type')}
                         value={supplierData.type ?? ""} 
                         readonly={true}
                     />
 
                     <DetailField 
-                        label="Người liên hệ"
+                        label={t('fields.contactPerson')}
                         value={supplierData.contactPerson ?? ""} 
                         readonly={true}
                     />
 
                     <DetailField 
-                        label="Điện thoại"
+                        label={t('fields.phone')}
                         value={supplierData.phone ?? ""} 
                         readonly={true}
                     />
                     
                     <DetailField 
-                        label="Email"
+                        label={t('fields.email')}
                         value={supplierData.email ?? ""} 
                         readonly={true}
                     />
 
                     <DetailField 
-                        label="Địa chỉ"
+                        label={t('fields.address')}
                         value={supplierData.address ?? ""} 
                         readonly={true}
                         isFullWidth={true}
@@ -163,7 +163,7 @@ export default function SupplierDetail() {
 
                     {supplierData.taxCode && (
                         <DetailField 
-                            label="Mã số thuế"
+                            label={t('fields.taxCode')}
                             value={supplierData.taxCode ?? ""} 
                             readonly={true}
                         />
@@ -171,7 +171,7 @@ export default function SupplierDetail() {
 
                     {supplierData.website && (
                         <DetailField 
-                            label="Website"
+                            label={t('fields.website')}
                             value={supplierData.website ?? ""} 
                             readonly={true}
                         />
@@ -179,7 +179,7 @@ export default function SupplierDetail() {
 
                     {supplierData.notes && (
                         <DetailField 
-                            label="Ghi chú"
+                            label={t('fields.notes')}
                             value={supplierData.notes ?? ""} 
                             readonly={true}
                             type="textarea"
@@ -188,13 +188,13 @@ export default function SupplierDetail() {
                     )}
 
                     <DetailField 
-                        label="Ngày tạo"
+                        label={t('fields.createdAt')}
                         value={supplierData.createdAt ? supplierData.createdAt.slice(0, 10).replace(/-/g, '/') : ''}
                         readonly={true}
                     />
                     
                     <DetailField 
-                        label="Người tạo" 
+                        label={t('fields.createdBy')} 
                         value={supplierData.createdBy ?? ""} 
                         readonly={true}
                     />
@@ -205,8 +205,8 @@ export default function SupplierDetail() {
                 isOpen={isPopupOpen}
                 onClose={handleClosePopup}
                 onConfirm={handleConfirmDelete}
-                title="Xác nhận xóa"
-                message="Bạn có chắc chắn muốn xóa nhà cung cấp này?"
+                title={t('delete.title')}
+                message={t('delete.message')}
             />
         </div>
     );

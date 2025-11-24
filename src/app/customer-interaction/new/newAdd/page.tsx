@@ -144,7 +144,7 @@ export default function NewsAdd() {
                 if (!value || value.trim() === '') {
                     newErrors.title = t('titleRequired');
                 } else if (value.trim().length > 200) {
-                    newErrors.title = t('titleMaxLength') || 'Tiêu đề không được vượt quá 200 ký tự';
+                    newErrors.title = t('titleMaxLength');
                 } else {
                     delete newErrors.title;
                 }
@@ -153,7 +153,7 @@ export default function NewsAdd() {
                 if (!value || value.trim() === '') {
                     newErrors.summary = t('summaryRequired');
                 } else if (value.trim().length > 400) {
-                    newErrors.summary = t('summaryMaxLength') || 'Tóm tắt không được vượt quá 400 ký tự';
+                    newErrors.summary = t('summaryMaxLength');
                 } else {
                     delete newErrors.summary;
                 }
@@ -238,14 +238,14 @@ export default function NewsAdd() {
         if (!formData.title || formData.title.trim() === '') {
             newErrors.title = t('titleRequired');
         } else if (formData.title.trim().length > 200) {
-            newErrors.title = t('titleMaxLength') || 'Tiêu đề không được vượt quá 200 ký tự';
+            newErrors.title = t('titleMaxLength');
         }
 
         // Validate summary
         if (!formData.summary || formData.summary.trim() === '') {
             newErrors.summary = t('summaryRequired');
         } else if (formData.summary.trim().length > 400) {
-            newErrors.summary = t('summaryMaxLength') || 'Tóm tắt không được vượt quá 400 ký tự';
+            newErrors.summary = t('summaryMaxLength');
         }
 
         // Validate bodyHtml
@@ -299,7 +299,7 @@ export default function NewsAdd() {
 
         // Validate cover image is required
         if (!coverImageFile && !formData.coverImageUrl) {
-            newErrors.coverImage = t('coverImageRequired') || 'Vui lòng chọn ảnh bìa';
+            newErrors.coverImage = t('coverImageRequired');
         }
 
         setErrors(newErrors);
@@ -580,7 +580,7 @@ export default function NewsAdd() {
         if (file) {
             // Validate image file type
             if (!file.type.startsWith('image/')) {
-                show(t('coverImageMustBeImage') || 'Ảnh bìa phải là file ảnh', 'error');
+                show(t('coverImageMustBeImage'), 'error');
                 e.target.value = '';
                 return;
             }
@@ -600,7 +600,7 @@ export default function NewsAdd() {
         if (file) {
             // Validate image file type
             if (!file.type.startsWith('image/')) {
-                show(t('detailImageMustBeImage') || 'Ảnh chi tiết phải là file ảnh', 'error');
+                show(t('detailImageMustBeImage'), 'error');
                 e.target.value = '';
                 return;
             }

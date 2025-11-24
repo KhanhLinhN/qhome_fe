@@ -16,7 +16,7 @@ import Pagination from '@/src/components/customer-interaction/Pagination';
 
 export default function Home() {
   const t = useTranslations('customer-interaction.Request');
-  const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('dateCreated'), t('status'), 'Action'];
+  const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('dateCreated'), t('status'), t('action')];
 
   const {
       data,

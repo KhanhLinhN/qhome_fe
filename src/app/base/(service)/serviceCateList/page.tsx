@@ -100,7 +100,7 @@ export default function ServiceCategoryListPage() {
       setServices(servicesArray);
     } catch (fetchError) {
       console.error('Failed to fetch services', fetchError);
-      setServiceError('Failed to fetch services.');
+      setServiceError(t('errors.fetchServicesFailed'));
       setServices([]);
     } finally {
       setServiceLoading(false);
