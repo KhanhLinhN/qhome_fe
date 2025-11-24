@@ -9,9 +9,10 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { Unit } from '@/src/types/unit';
 import { useUnitAdd } from '@/src/hooks/useUnitAdd';
-import { getBuilding } from '@/src/services/base/buildingService';
+import { getBuilding, getBuildings } from '@/src/services/base/buildingService';
 import { checkUnitCodeExists } from '@/src/services/base/unitService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { Building } from '@/src/types/building';
 
 export default function UnitAdd () {
 
@@ -23,7 +24,10 @@ export default function UnitAdd () {
     const { show } = useNotifications();
 
     // Get buildingId from URL params
-    const buildingId = searchParams.get('buildingId') || '';
+    const buildingIdFromParams = searchParams.get('buildingId') || '';
+    const [selectedBuildingId, setSelectedBuildingId] = useState<string>(buildingIdFromParams);
+    const [buildings, setBuildings] = useState<Building[]>([]);
+    const [loadingBuildings, setLoadingBuildings] = useState(false);
     const [buildingCode, setBuildingCode] = useState<string>('');
     const [codeError, setCodeError] = useState<string>('');
     const [errors, setErrors] = useState<{
@@ -31,6 +35,7 @@ export default function UnitAdd () {
         floor?: string;
         bedrooms?: string;
         area?: string;
+        building?: string;
     }>({});
 
     const { addUnit, loading, error, isSubmitting } = useUnitAdd();
@@ -54,30 +59,58 @@ export default function UnitAdd () {
         ownerContact: '',
     });
 
-    // Fetch building code
+    // Fetch buildings list
+    useEffect(() => {
+        const fetchBuildings = async () => {
+            setLoadingBuildings(true);
+            try {
+                if (buildingIdFromParams) {
+                    // If buildingId is in params, fetch that specific building and add to list
+                    const building = await getBuilding(buildingIdFromParams);
+                    setBuildings([building]);
+                } else {
+                    // Otherwise, fetch all buildings
+                    const buildingsList = await getBuildings();
+                    setBuildings(buildingsList);
+                }
+            } catch (err) {
+                console.error('Failed to fetch buildings:', err);
+                show(t('error') || 'Failed to fetch buildings', 'error');
+            } finally {
+                setLoadingBuildings(false);
+            }
+        };
+        fetchBuildings();
+    }, [buildingIdFromParams]);
+
+    // Fetch building code when selectedBuildingId changes
     useEffect(() => {
         const fetchBuildingCode = async () => {
-            if (!buildingId) return;
+            if (!selectedBuildingId) {
+                setBuildingCode('');
+                return;
+            }
             try {
-                const building = await getBuilding(buildingId);
+                const building = await getBuilding(selectedBuildingId);
                 console.log("building", building);
                 setBuildingCode(building.code);
             } catch (err) {
                 console.error('Failed to fetch building:', err);
+                setBuildingCode('');
             }
         };
         fetchBuildingCode();
-    }, [buildingId]);
+    }, [selectedBuildingId]);
 
-    // Check code khi code hoặc buildingId thay đổi
+    // Check code khi code hoặc selectedBuildingId thay đổi
     useEffect(() => {
         const checkCode = async () => {
-            if (!formData.code || !buildingId) {
+            if (!formData.code || !selectedBuildingId) {
                 setCodeError('');
                 return;
             }
             
-            const exists = await checkUnitCodeExists(formData.code, buildingId);
+            const exists = await checkUnitCodeExists(formData.code, selectedBuildingId);
             if (exists) {
                 setCodeError(t('codeError'));
             } else {
@@ -87,7 +120,7 @@ export default function UnitAdd () {
 
         const timeoutId = setTimeout(checkCode, 500); // Debounce 500ms
         return () => clearTimeout(timeoutId);
-    }, [formData.code, buildingId]);
+    }, [formData.code, selectedBuildingId]);
     
     const handleBack = () => {
         router.back(); 
@@ -99,14 +132,15 @@ export default function UnitAdd () {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const building = await getBuilding(buildingId);
+        
         if (isSubmitting) return;
 
-        // Validate all fields at once
+        // Validate all fields first before making any API calls
         const isValid = validateAllFields();
 
-        if (!buildingId) {
-            show(t('missingBuildingId'), 'error');
+        if (!selectedBuildingId) {
+            setErrors(prev => ({ ...prev, building: t('buildingRequired') || 'Building is required' }));
+            show(t('buildingRequired') || 'Please select a building', 'error');
             return;
         }
 
@@ -125,11 +159,11 @@ export default function UnitAdd () {
             const { floorStr, areaStr, bedroomsStr, ...unitData } = formData;
             const completeData = {
                 ...unitData,
-                buildingId,
+                buildingId: selectedBuildingId,
             };
             console.log('Dữ liệu gửi đi:', completeData);
             await addUnit(completeData);
-            router.push(`/base/building/buildingDetail/${buildingId}`);
+            router.push(`/base/building/buildingDetail/${selectedBuildingId}`);
         } catch (error) {
             console.error('Lỗi khi tạo unit:', error);
             show(t('errorUnit'), 'error');
@@ -186,9 +220,24 @@ export default function UnitAdd () {
             floor?: string;
             bedrooms?: string;
             area?: string;
+            building?: string;
         } = {};
         
-        // Validate name
+        // Validate building
+        if (!selectedBuildingId) {
+            newErrors.building = t('buildingRequired') || 'Building is required';
+        }
+        
+        // Validate name (if name field is required, uncomment this)
+        // const nameValue = String(formData.name ?? '').trim();
+        // const nameRegex = /^[a-zA-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐđ0-9\s'-]+$/;
+        // if (!nameValue) {
+        //     newErrors.name = t('nameError');
+        // } else if (nameValue.length > 40) {
+        //     newErrors.name = t('unitNew.nameMaxError');
+        // } else if (!nameRegex.test(nameValue)) {
+        //     newErrors.name = t('unitNew.nameSpecialCharError');
+        // }
         
         // Validate floor
         if (formData.floor === undefined || formData.floor <= 0) {
@@ -260,6 +309,15 @@ export default function UnitAdd () {
         }));
     };
 
+    const handleBuildingChange = (building: Building) => {
+        setSelectedBuildingId(building.id);
+        setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.building;
+            return newErrors;
+        });
+    };
+
     return (
         <div className={`min-h-screen  p-4 sm:p-8 font-sans`}>
             <div
@@ -292,6 +350,25 @@ export default function UnitAdd () {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                     
+                    <div className={`flex flex-col mb-4 col-span-full`}>
+                        <label className="text-md font-bold text-[#02542D] mb-1">
+                            {t('building') || 'Building'} <span className="text-red-500">*</span>
+                        </label>
+                        <Select
+                            options={buildings}
+                            value={selectedBuildingId}
+                            onSelect={handleBuildingChange}
+                            renderItem={(item) => `${item.code} - ${item.name}`}
+                            getValue={(item) => item.id}
+                            placeholder={loadingBuildings ? (t('load')) : (t('selectBuilding'))}
+                            disable={loadingBuildings || !!buildingIdFromParams}
+                            error={!!errors.building}
+                        />
+                        {errors.building && (
+                            <p className="text-red-500 text-sm mt-1">{errors.building}</p>
+                        )}
+                    </div>
+
                     {/* <DetailField 
                         label="Mã căn hộ"
                         value={formData.code || ""}

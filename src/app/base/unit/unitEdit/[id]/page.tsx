@@ -249,7 +249,7 @@ export default function UnitEdit() {
     };
 
     if (loading) {
-        return <div className="flex justify-center items-center h-screen">{t('loading')}</div>;
+        return <div className="flex justify-center items-center h-screen">{t('load')}</div>;
     }
 
     if (error) {

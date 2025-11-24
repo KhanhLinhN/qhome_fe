@@ -152,9 +152,14 @@
     "taskList": "Task List",
     "management": "Management",
     "assetManagement": "Asset Management",
+    "meterManagement": "Meter Management",
     "buildings": "Buildings",
     "employees": "Employees",
-    "home": "Home"
+    "home": "Home",
+    "unitManagement": "Unit Management",
+    "elevatorCard": "Elevator Card",
+    "residentCard": "Resident Card",
+    "approvedCard": "Approved Card"
   },
   "Account": {
     "selectBuilding": "Select building",
@@ -1003,7 +1008,7 @@
     "save":  "Save",
     "cancel":  "Cancel",
     "newDescription": "New Description",
-    "loading": "Data is loading...",
+    "load": "Data is loading...",
     "error": "Error loading data",
     "retry": "Please try again",
     "clear": "Clear",
@@ -1041,6 +1046,9 @@
     "status": "Status",
     "action": "Action",
     "noData": "No data",
+    "building": "Building",
+    "selectBuilding":"Select building",
+    "buildingRequired": "Building is required",
     "buildingFilter": {
       "title": "Building",
       "description": "Select building to filter",

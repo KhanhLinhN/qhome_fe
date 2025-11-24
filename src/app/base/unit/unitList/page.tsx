@@ -168,7 +168,7 @@ export default function UnitListPage() {
       <div className="flex items-center justify-center px-[41px] py-12">
         <div className="text-center">
           <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary-2"></div>
-          <p className="text-gray-600">{t('loading')}</p>
+          <p className="text-gray-600">{t('load')}</p>
         </div>
       </div>
     );
