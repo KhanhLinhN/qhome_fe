@@ -210,7 +210,7 @@ export default function NewsEdit() {
                     const publishAt = fieldName === 'expireAt' ? data.publishAt : value;
                     const expireAt = fieldName === 'expireAt' ? value : data.expireAt;
                     if (publishAt && publishAt >= expireAt) {
-                        newErrors.expireAt = 'Ngày hết hạn phải lớn hơn ngày xuất bản';
+                        newErrors.expireAt = t('expireAtInvalid');
                     } else {
                         delete newErrors.expireAt;
                     }

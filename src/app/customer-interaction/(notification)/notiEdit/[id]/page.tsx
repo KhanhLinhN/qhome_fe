@@ -93,7 +93,7 @@ export default function NotificationEdit() {
                     setBuildings(allBuildings);
                 } catch (error) {
                     console.error('Lỗi khi tải danh sách tòa nhà:', error);
-                    show(t('error.loadBuildings'), 'error');
+                    show(t('errors.loadBuildings'), 'error');
                 } finally {
                     setLoadingBuildings(false);
                 }
@@ -117,14 +117,14 @@ export default function NotificationEdit() {
         switch (fieldName) {
             case 'title':
                 if (!value || value.trim() === '') {
-                    newErrors.title = t('emptyTitle');
+                    newErrors.title = t('validation.emptyTitle');
                 } else {
                     delete newErrors.title;
                 }
                 break;
             case 'message':
                 if (!value || value.trim() === '') {
-                    newErrors.message = t('emptyMessage');
+                    newErrors.message = t('validation.emptyMessage');
                 } else {
                     delete newErrors.message;
                 }
@@ -143,12 +143,12 @@ export default function NotificationEdit() {
 
         // Validate title
         if (!formData.title || formData.title.trim() === '') {
-            newErrors.title = t('emptyTitle');
+            newErrors.title = t('validation.emptyTitle');
         }
 
         // Validate message
         if (!formData.message || formData.message.trim() === '') {
-            newErrors.message = t('emptyMessage');
+            newErrors.message = t('validation.emptyMessage');
         }
 
         setErrors(newErrors);
@@ -161,13 +161,13 @@ export default function NotificationEdit() {
 
         // Validate all fields
         if (!validateAllFields()) {
-            show(t('checkRequiredFields'), 'error');
+            show(t('validation.checkRequiredFields'), 'error');
             return;
         }
 
         // Additional validations
         if (formData.scope === 'INTERNAL' && !formData.targetRole) {
-            show(t('error.selectTargetRole'), 'error');
+            show(t('errors.selectTargetRole'), 'error');
             return;
         }
 
@@ -291,7 +291,7 @@ export default function NotificationEdit() {
             >
                 <Image
                     src={Arrow}
-                    alt="Back"
+                    alt={t('back')}
                     width={20}
                     height={20}
                     className="w-5 h-5 mr-2"

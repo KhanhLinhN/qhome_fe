@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from 'next-intl';
 import { downloadBuildingImportTemplate, importBuildings, BuildingImportResponse } from "@/src/services/base/buildingImportService";
 
 export default function BuildingImportPage() {
+  const t = useTranslations('Building');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<BuildingImportResponse | null>(null);
@@ -26,7 +28,7 @@ export default function BuildingImportPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setError(e?.response?.data?.message || "Tải template thất bại");
+      setError(e?.response?.data?.message || t('messages.downloadTemplateError'));
     }
   };
 
@@ -39,7 +41,7 @@ export default function BuildingImportPage() {
       const res = await importBuildings(file);
       setResult(res);
     } catch (e: any) {
-      setError(e?.response?.data?.message || "Import thất bại");
+      setError(e?.response?.data?.message || t('messages.importError'));
     } finally {
       setLoading(false);
     }
@@ -47,28 +49,32 @@ export default function BuildingImportPage() {
 
   return (
     <div className="p-4 space-y-4">
-      <h2 className="text-xl font-semibold">Import tòa nhà</h2>
+      <h2 className="text-xl font-semibold">{t('importPage.title')}</h2>
       <div className="flex gap-2">
-        <button className="px-3 py-2 rounded bg-gray-200" onClick={onDownloadTemplate}>Tải template</button>
+        <button className="px-3 py-2 rounded bg-gray-200" onClick={onDownloadTemplate}>{t('importPage.downloadTemplate')}</button>
         <input type="file" accept=".xlsx" onChange={onChangeFile} />
         <button disabled={!file || loading} className="px-3 py-2 rounded bg-indigo-600 text-white disabled:opacity-50" onClick={onImport}>
-          {loading ? "Đang import..." : "Import"}
+          {loading ? t('actions.importing') : t('importPage.import')}
         </button>
       </div>
       {error && <div className="text-red-600">{error}</div>}
       {result && (
         <div className="space-y-2">
-          <div>Tổng dòng: {result.totalRows} | Thành công: {result.successCount} | Lỗi: {result.errorCount}</div>
+          <div>{t('importResult.summary', { 
+            totalRows: result.totalRows, 
+            successCount: result.successCount, 
+            errorCount: result.errorCount 
+          })}</div>
           <div className="overflow-auto">
             <table className="min-w-full border">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="border px-2 py-1">Row</th>
-                  <th className="border px-2 py-1">Success</th>
-                  <th className="border px-2 py-1">Message</th>
-                  <th className="border px-2 py-1">BuildingId</th>
-                  <th className="border px-2 py-1">Code</th>
-                  <th className="border px-2 py-1">Name</th>
+                  <th className="border px-2 py-1">{t('importResult.row')}</th>
+                  <th className="border px-2 py-1">{t('importResult.success')}</th>
+                  <th className="border px-2 py-1">{t('importResult.message')}</th>
+                  <th className="border px-2 py-1">{t('importResult.buildingId')}</th>
+                  <th className="border px-2 py-1">{t('importResult.code')}</th>
+                  <th className="border px-2 py-1">{t('importResult.name')}</th>
                 </tr>
               </thead>
               <tbody>

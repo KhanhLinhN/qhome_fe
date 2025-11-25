@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useTranslations } from 'next-intl';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/contexts/AuthContext";
@@ -35,6 +36,7 @@ const initialFormState: FormState = {
 export default function ProfileEditPage() {
   const router = useRouter();
   const { user, setUser, isLoading } = useAuth();
+  const t = useTranslations('ProfileEdit');
   const [form, setForm] = useState<FormState>(initialFormState);
   const [profile, setProfile] = useState<UserProfileInfo | null>(null);
   const [account, setAccount] = useState<UserAccountInfo | null>(null);
@@ -86,7 +88,7 @@ export default function ProfileEditPage() {
         const message =
           err?.response?.data?.message ||
           err?.message ||
-          "Không thể tải dữ liệu hồ sơ để chỉnh sửa.";
+          t('messages.loadError');
         setError(message);
       } finally {
         if (active) {
@@ -117,17 +119,17 @@ export default function ProfileEditPage() {
     event.preventDefault();
 
     if (!user?.userId) {
-      setError("Không xác định được người dùng hiện tại.");
+      setError(t('validation.userNotIdentified'));
       return;
     }
 
     if (form.newPassword && form.newPassword.length < 8) {
-      setError("Mật khẩu mới phải có ít nhất 8 ký tự.");
+      setError(t('validation.password.minLength'));
       return;
     }
 
     if (form.newPassword && form.newPassword !== form.confirmPassword) {
-      setError("Xác nhận mật khẩu không khớp.");
+      setError(t('validation.password.mismatch'));
       return;
     }
 
@@ -183,13 +185,13 @@ export default function ProfileEditPage() {
       }
 
       if (!passwordPayload && !updatedAccount) {
-        setSuccess("Không có thay đổi nào được áp dụng.");
+        setSuccess(t('messages.noChanges'));
       } else if (passwordPayload && updatedAccount) {
-        setSuccess("Cập nhật hồ sơ và đổi mật khẩu thành công!");
+        setSuccess(t('messages.updateProfileAndPasswordSuccess'));
       } else if (passwordPayload) {
-        setSuccess("Đổi mật khẩu thành công!");
+        setSuccess(t('messages.changePasswordSuccess'));
       } else {
-        setSuccess("Cập nhật hồ sơ thành công!");
+        setSuccess(t('messages.updateProfileSuccess'));
       }
 
       setForm((prev) => ({
@@ -205,7 +207,7 @@ export default function ProfileEditPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        "Cập nhật hồ sơ thất bại. Vui lòng thử lại sau.";
+        t('messages.updateError');
       setError(message);
     } finally {
       setSubmitting(false);
@@ -216,7 +218,7 @@ export default function ProfileEditPage() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-sm text-slate-600">
-          Đang tải thông tin hồ sơ để chỉnh sửa...
+          {t('loading')}
         </div>
       </div>
     );
@@ -227,16 +229,16 @@ export default function ProfileEditPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="bg-white shadow rounded-xl p-6 text-center space-y-3">
           <h1 className="text-lg font-semibold text-slate-800">
-            Vui lòng đăng nhập
+            {t('loginPrompt.title')}
           </h1>
           <p className="text-sm text-slate-500">
-            Bạn cần đăng nhập để chỉnh sửa hồ sơ cá nhân.
+            {t('loginPrompt.message')}
           </p>
           <Link
             href="/login"
             className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition"
           >
-            Đăng nhập
+            {t('loginPrompt.button')}
           </Link>
         </div>
       </div>
@@ -250,10 +252,10 @@ export default function ProfileEditPage() {
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium text-emerald-600 uppercase tracking-wide">
-              Cập nhật hồ sơ
+              {t('title')}
             </p>
             <h1 className="text-2xl font-bold text-slate-800">
-              {profile?.username || user.username || "Chỉnh sửa hồ sơ"}
+              {profile?.username || user.username || t('common.editProfile')}
             </h1>
           </div>
         </div>
@@ -279,7 +281,7 @@ export default function ProfileEditPage() {
             <div>
                 <div className="sm:col-span-2">
                 <label className="text-sm font-medium text-slate-700">
-                    Username
+                    {t('fields.username')}
                 </label>
                 <input
                     type="text"
@@ -289,13 +291,13 @@ export default function ProfileEditPage() {
                     minLength={3}
                     maxLength={50}
                     className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                    placeholder="Nhập username"
+                    placeholder={t('placeholders.username')}
                 />
                 </div>
 
                 <div className="sm:col-span-2">
                 <label className="text-sm font-medium text-slate-700">
-                    Email
+                    {t('fields.email')}
                 </label>
                 <input
                     type="email"
@@ -303,7 +305,7 @@ export default function ProfileEditPage() {
                     onChange={handleChange("email")}
                     required
                     className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                    placeholder="example@domain.com"
+                    placeholder={t('placeholders.email')}
                 />
                 </div>
             </div>
@@ -322,14 +324,14 @@ export default function ProfileEditPage() {
               href="/profileView"
               className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition"
             >
-              Huỷ bỏ
+              {t('buttons.cancel')}
             </Link>
             <button
               type="submit"
               disabled={submitting}
               className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {submitting ? "Đang lưu..." : "Lưu thay đổi"}
+              {submitting ? t('buttons.saving') : t('buttons.save')}
             </button>
           </div>
         </form>

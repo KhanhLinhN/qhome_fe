@@ -410,7 +410,7 @@ export default function AccountListPage() {
       }
 
       show(
-        `Đã ${newStatus ? 'kích hoạt' : 'vô hiệu hóa'} tài khoản thành công.`,
+        newStatus ? t('messages.activateSuccess') : t('messages.deactivateSuccess'),
         'success'
       );
       
@@ -426,7 +426,7 @@ export default function AccountListPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể cập nhật trạng thái tài khoản. Vui lòng thử lại.';
+        t('messages.updateStatusError');
       show(message, 'error');
       console.error('Error updating account status:', err);
     }
@@ -563,11 +563,11 @@ export default function AccountListPage() {
         isOpen={popupOpen}
         onClose={handleClosePopup}
         onConfirm={handleConfirmStatusChange}
-        popupTitle="Xác nhận thay đổi trạng thái"
+        popupTitle={t('popups.statusChange.title')}
         popupContext={
           selectedAccountStatus !== null
-            ? `Bạn có chắc chắn muốn ${selectedAccountStatus ? 'vô hiệu hóa' : 'kích hoạt'} tài khoản này không?`
-            : 'Bạn có chắc chắn muốn thay đổi trạng thái tài khoản này không?'
+            ? selectedAccountStatus ? t('popups.statusChange.deactivate') : t('popups.statusChange.activate')
+            : t('popups.statusChange.confirm')
         }
         isDanger={false}
       />
@@ -576,8 +576,8 @@ export default function AccountListPage() {
         isOpen={deletePopupOpen}
         onClose={handleCloseDeletePopup}
         onConfirm={handleConfirmDelete}
-        popupTitle="Xác nhận xóa tài khoản"
-        popupContext="Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác."
+        popupTitle={t('popups.delete.title')}
+        popupContext={t('popups.delete.context')}
         isDanger={true}
       />
     </div>

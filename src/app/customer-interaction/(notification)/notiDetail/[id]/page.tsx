@@ -54,7 +54,7 @@ export default function NotificationDetail() {
     };
 
     const formatDate = (dateString?: string) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return t('detail.notAvailable') || 'N/A';
         try {
             const date = new Date(dateString);
             return date.toLocaleDateString('vi-VN', {
@@ -134,7 +134,7 @@ export default function NotificationDetail() {
                 >
                     <Image
                         src={Arrow}
-                        alt="Back"
+                        alt={t('back')}
                         width={20}
                         height={20}
                         className="w-5 h-5 mr-2"
@@ -156,7 +156,7 @@ export default function NotificationDetail() {
                                 {getTypeLabel(notification.type)}
                             </span>
                             <span className="px-3 py-1 rounded-full font-semibold bg-gray-100 text-gray-800">
-                                {notification.scope === 'INTERNAL' ? 'Nội bộ' : 'Bên ngoài'}
+                                {notification.scope === 'INTERNAL' ? t('internal') : t('external')}
                             </span>
                             {notification.createdAt && (
                                 <span>{t('createdAt')}: {formatDate(notification.createdAt)}</span>
@@ -169,7 +169,7 @@ export default function NotificationDetail() {
                         <div className="mb-6">
                             <img
                                 src={notification.iconUrl}
-                                alt="Notification icon"
+                                alt={t('detail.notificationIcon')}
                                 className="w-16 h-16 rounded-lg border border-gray-300"
                                 onError={(e) => {
                                     (e.target as HTMLImageElement).style.display = 'none';
@@ -201,53 +201,53 @@ export default function NotificationDetail() {
 
                     {/* Metadata */}
                     <div className="border-t pt-6 mt-6">
-                        <h2 className="text-lg font-semibold text-[#02542D] mb-4">{t('information')}</h2>
+                        <h2 className="text-lg font-semibold text-[#02542D] mb-4">{t('detail.information')}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
-                                <span className="font-semibold text-gray-700">{t('scope')}:</span>
+                                <span className="font-semibold text-gray-700">{t('detail.scope')}:</span>
                                 <span className="ml-2 text-gray-600">
                                     {notification.scope === 'INTERNAL' ? t('internal') : t('external')}
                                 </span>
                             </div>
                             {notification.targetRole && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">{t('targetRole')}:</span>
+                                    <span className="font-semibold text-gray-700">{t('detail.targetRole')}:</span>
                                     <span className="ml-2 text-gray-600">{notification.targetRole}</span>
                                 </div>
                             )}
                             {notification.scope === 'EXTERNAL' && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">{t('building')}:</span>
+                                    <span className="font-semibold text-gray-700">{t('detail.building')}:</span>
                                     <span className="ml-2 text-gray-600">
                                         {building 
                                             ? `${building.name} (${building.code})`
                                             : notification.targetBuildingId 
                                             ? `ID: ${notification.targetBuildingId}`
-                                            : 'Tất cả tòa nhà'}
+                                            : t('detail.allBuildings')}
                                     </span>
                                 </div>
                             )}
                             {notification.referenceId && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">{t('referenceId')}:</span>
+                                    <span className="font-semibold text-gray-700">{t('detail.referenceId')}:</span>
                                     <span className="ml-2 text-gray-600">{notification.referenceId}</span>
                                 </div>
                             )}
                             {notification.referenceType && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">{t('referenceType')}:</span>
+                                    <span className="font-semibold text-gray-700">{t('detail.referenceType')}:</span>
                                     <span className="ml-2 text-gray-600">{notification.referenceType}</span>
                                 </div>
                             )}
                             {notification.createdAt && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">{t('createdAt')}:</span>
+                                    <span className="font-semibold text-gray-700">{t('detail.createdAt')}:</span>
                                     <span className="ml-2 text-gray-600">{formatDate(notification.createdAt)}</span>
                                 </div>
                             )}
                             {notification.updatedAt && (
                                 <div>
-                                    <span className="font-semibold text-gray-700">{t('updatedAt')}:</span>
+                                    <span className="font-semibold text-gray-700">{t('detail.updatedAt')}:</span>
                                     <span className="ml-2 text-gray-600">{formatDate(notification.updatedAt)}</span>
                                 </div>
                             )}

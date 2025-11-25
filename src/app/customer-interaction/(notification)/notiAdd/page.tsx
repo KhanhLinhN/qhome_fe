@@ -93,23 +93,23 @@ export default function NotificationAdd() {
         switch (fieldName) {
             case 'type':
                 if (!value || value.trim() === '') {
-                    newErrors.type = t('typeRequired') || 'Loại thông báo không được để trống';
+                    newErrors.type = t('validation.typeRequired');
                 } else {
                     delete newErrors.type;
                 }
                 break;
             case 'title':
                 if (!value || value.trim() === '') {
-                    newErrors.title = t('titleRequired');
+                    newErrors.title = t('validation.titleRequired');
                 } else if (value.trim().length > 200) {
-                    newErrors.title = t('titleMaxLength') || 'Tiêu đề không được vượt quá 200 ký tự';
+                    newErrors.title = t('validation.titleMaxLength');
                 } else {
                     delete newErrors.title;
                 }
                 break;
             case 'message':
                 if (!value || value.trim() === '') {
-                    newErrors.message = t('contentRequired');
+                    newErrors.message = t('validation.contentRequired');
                 } else {
                     delete newErrors.message;
                 }
@@ -129,19 +129,19 @@ export default function NotificationAdd() {
 
         // Validate type
         if (!formData.type || formData.type.trim() === '') {
-            newErrors.type = t('typeRequired') || 'Loại thông báo không được để trống';
+            newErrors.type = t('validation.typeRequired');
         }
 
         // Validate title
         if (!formData.title || formData.title.trim() === '') {
-            newErrors.title = t('titleRequired');
+            newErrors.title = t('validation.titleRequired');
         } else if (formData.title.trim().length > 200) {
-            newErrors.title = t('titleMaxLength') || 'Tiêu đề không được vượt quá 200 ký tự';
+            newErrors.title = t('validation.titleMaxLength');
         }
 
         // Validate message
         if (!formData.message || formData.message.trim() === '') {
-            newErrors.message = t('contentRequired');
+            newErrors.message = t('validation.contentRequired');
         }
 
         setErrors(newErrors);
@@ -154,13 +154,13 @@ export default function NotificationAdd() {
 
         // Validate all fields
         if (!validateAllFields()) {
-            show(t('checkRequiredFields'), 'error');
+            show(t('validation.checkRequiredFields'), 'error');
             return;
         }
 
         // Additional validations
         if (formData.scope === 'INTERNAL' && !formData.targetRole) {
-            show(t('selectTargetRole'), 'error');
+            show(t('errors.selectTargetRole'), 'error');
             return;
         }
 
@@ -267,7 +267,7 @@ export default function NotificationAdd() {
             >
                 <Image
                     src={Arrow}
-                    alt="Back"
+                    alt={t('back')}
                     width={20}
                     height={20}
                     className="w-5 h-5 mr-2"

@@ -79,7 +79,7 @@ export default function UnitEdit() {
                 setBuildingCode(building.code);
             } catch (err: any) {
                 console.error('Failed to load building:', err);
-                setBuildingName('N/A');
+                setBuildingName(t('fallbacks.notAvailable'));
             } finally {
                 setLoadingBuilding(false);
             }
@@ -107,29 +107,29 @@ export default function UnitEdit() {
                     const v = String(value ?? '').trim();
                     const nameRegex = /^[a-zA-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐđ0-9\s'-]+$/;
                     if (!v) newErrors.name = t('nameError');
-                    else if (v.length > 40) newErrors.name = t('nameMaxError') || 'Tên căn hộ không được vượt quá 40 ký tự';
-                    else if (!nameRegex.test(v)) newErrors.name = t('nameSpecialCharError') || 'Tên căn hộ không được chứa ký tự đặc biệt';
+                    else if (v.length > 40) newErrors.name = t('unitNew.nameMaxError');
+                    else if (!nameRegex.test(v)) newErrors.name = t('unitNew.nameSpecialCharError');
                     else delete newErrors.name;
                 }
                 break;
             case 'floor':
                 {
                     const floor = typeof value === 'number' ? value : parseInt(String(value));
-                    if (!floor || floor <= 0) newErrors.floor = t('floorError') || 'Số tầng phải lớn hơn 0';
+                    if (!floor || floor <= 0) newErrors.floor = t('floorError');
                     else delete newErrors.floor;
                 }
                 break;
             case 'bedrooms':
                 {
                     const bedrooms = typeof value === 'number' ? value : parseInt(String(value));
-                    if (!bedrooms || bedrooms <= 0 || bedrooms >= 10) newErrors.bedrooms = t('bedroomsErrorRange') || 'Số phòng ngủ phải trong khoảng 1-9';
+                    if (!bedrooms || bedrooms <= 0 || bedrooms >= 10) newErrors.bedrooms = t('unitNew.bedroomsErrorRange');
                     else delete newErrors.bedrooms;
                 }
                 break;
             case 'area':
                 {
                     const area = typeof value === 'number' ? value : parseFloat(String(value));
-                    if (!area || area <= 0 || area >= 150) newErrors.area = t('areaErrorRange') || 'Diện tích phải > 0 và < 150';
+                    if (!area || area <= 0 || area >= 150) newErrors.area = t('unitNew.areaErrorRange');
                     else delete newErrors.area;
                 }
                 break;
@@ -157,17 +157,17 @@ export default function UnitEdit() {
         
         // Validate floor
         if (formData.floor === undefined || formData.floor <= 0) {
-            newErrors.floor = t('floorError') || 'Số tầng phải lớn hơn 0';
+            newErrors.floor = t('floorError');
         }
         
         // Validate bedrooms
         if (formData.bedrooms === undefined || formData.bedrooms <= 0 || formData.bedrooms >= 10) {
-            newErrors.bedrooms = t('bedroomsErrorRange') || 'Số phòng ngủ phải trong khoảng 1-9';
+            newErrors.bedrooms = t('unitNew.bedroomsErrorRange');
         }
         
         // Validate area
         if (formData.areaM2 === undefined || formData.areaM2 <= 0 || formData.areaM2 >= 150) {
-            newErrors.area = t('areaErrorRange') || 'Diện tích phải > 0 và < 150';
+            newErrors.area = t('unitNew.areaErrorRange');
         }
         
         setErrors(newErrors);
@@ -249,7 +249,7 @@ export default function UnitEdit() {
     };
 
     if (loading) {
-        return <div className="flex justify-center items-center h-screen">{t('loading')}</div>;
+        return <div className="flex justify-center items-center h-screen">{t('load')}</div>;
     }
 
     if (error) {
@@ -265,7 +265,7 @@ export default function UnitEdit() {
             <div className="max-w-4xl mx-auto mb-6 flex items-center cursor-pointer" onClick={handleBack}>
                 <Image
                     src={Arrow}
-                    alt="Back"
+                    alt={t('altText.back')}
                     width={20}
                     height={20}
                     className="w-5 h-5 mr-2"
@@ -322,7 +322,7 @@ export default function UnitEdit() {
                     </div> */}
                     <DetailField
                         label={t('buildingName')}
-                        value={loadingBuilding ? 'Loading...' : buildingName || ""}
+                        value={loadingBuilding ? t('loading.building') : buildingName || ""}
                         readonly={true}
                         placeholder={t('buildingName')}
                     />

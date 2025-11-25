@@ -495,7 +495,7 @@ export default function ResidentDirectoryPage() {
                 ) : (
                   residentsToDisplay.map((resident) => (
                     <tr key={resident.id} className="hover:bg-emerald-50/40">
-                      <td className="px-4 py-3 font-medium text-slate-800">{resident.residentName ?? 'Chưa cập nhật'}</td>
+                      <td className="px-4 py-3 font-medium text-slate-800">{resident.residentName ?? t('notUpdated')}</td>
                       <td className="px-4 py-3 text-slate-600">
                         <div className="flex flex-col">
                           <span>{resident.residentPhone ?? '—'}</span>

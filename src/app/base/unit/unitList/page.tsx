@@ -146,7 +146,7 @@ export default function UnitListPage() {
       window.location.reload();
     } catch (e: any) {
       console.error('Error updating unit status:', e);
-      const errorMsg = e?.response?.data?.message || e?.message || 'Cập nhật trạng thái căn hộ thất bại';
+      const errorMsg = e?.response?.data?.message || e?.message || t('statusChange.updateFailed');
       setErrorMessage(errorMsg);
       setConfirmOpen(false);
       // Auto hide error message after 5 seconds
@@ -168,7 +168,7 @@ export default function UnitListPage() {
       <div className="flex items-center justify-center px-[41px] py-12">
         <div className="text-center">
           <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary-2"></div>
-          <p className="text-gray-600">{t('loading')}</p>
+          <p className="text-gray-600">{t('load')}</p>
         </div>
       </div>
     );
@@ -212,8 +212,8 @@ export default function UnitListPage() {
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-800">Tòa nhà</h2>
-                  <p className="text-sm text-slate-500">Chọn tòa nhà để lọc</p>
+                  <h2 className="text-lg font-semibold text-slate-800">{t('buildingFilter.title')}</h2>
+                  <p className="text-sm text-slate-500">{t('buildingFilter.description')}</p>
                 </div>
                 <button
                   type="button"
@@ -229,7 +229,7 @@ export default function UnitListPage() {
                     type="text"
                     value={buildingSearch}
                     onChange={(event) => setBuildingSearch(event.target.value)}
-                    placeholder="Tìm kiếm tòa nhà"
+                    placeholder={t('buildingFilter.searchPlaceholder')}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
                 </div>
@@ -243,14 +243,14 @@ export default function UnitListPage() {
                         : 'border-transparent hover:bg-slate-50'
                     }`}
                   >
-                    <span>Tất cả</span>
+                    <span>{t('buildingFilter.all')}</span>
                     <span className="text-xs text-slate-500">{unitsWithContext.length}</span>
                   </button>
 
                   <div className="max-h-[420px] space-y-1 overflow-y-auto pr-1">
                     {filteredBuildings.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-slate-500">
-                        Không có dữ liệu
+                        {t('buildingFilter.noData')}
                       </div>
                     ) : (
                       filteredBuildings.map((building) => {
@@ -303,8 +303,8 @@ export default function UnitListPage() {
               <h2 className="text-lg font-semibold text-slate-800">{t('unitList')}</h2>
               <p className="text-sm text-slate-500">
                 {selectedBuildingId === 'all'
-                  ? `Tổng cộng: ${unitsToDisplay.length} căn hộ`
-                  : `Tòa nhà được chọn: ${unitsToDisplay.length} căn hộ`}
+                  ? t('summary.total', { count: unitsToDisplay.length })
+                  : t('summary.selectedBuilding', { count: unitsToDisplay.length })}
               </p>
             </div>
             <div className="w-full max-w-xs">
@@ -312,7 +312,7 @@ export default function UnitListPage() {
                 type="text"
                 value={unitSearch}
                 onChange={(event) => setUnitSearch(event.target.value)}
-                placeholder="Tìm kiếm căn hộ"
+                placeholder={t('unitSearch.placeholder')}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               />
             </div>
@@ -403,14 +403,14 @@ export default function UnitListPage() {
                           <div className="flex items-center gap-2">
                             {unit.status === 'INACTIVE' || unit.status === 'Inactive' ? (
                               <span className="inline-flex items-center cursor-not-allowed opacity-50">
-                                <Image src={EditTable} alt="View Detail" width={24} height={24} />
+                                <Image src={EditTable} alt={t('altText.viewDetail')} width={24} height={24} />
                               </span>
                             ) : (
                               <Link
                                 href={`/base/unit/unitDetail/${unit.id}`}
                                 className="inline-flex items-center"
                               >
-                                <Image src={EditTable} alt="View Detail" width={24} height={24} />
+                                <Image src={EditTable} alt={t('altText.viewDetail')} width={24} height={24} />
                               </Link>
                             )}
                             {!isBuildingInactive && (
@@ -418,7 +418,7 @@ export default function UnitListPage() {
                                 type="button"
                                 onClick={() => onUnitStatusChange(unit.id)}
                                 className="w-[34px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-100 transition"
-                                title="Thay đổi trạng thái"
+                                title={t('statusChange.buttonTitle')}
                               >
                                 <svg 
                                   xmlns="http://www.w3.org/2000/svg" 
@@ -449,10 +449,10 @@ export default function UnitListPage() {
         isOpen={confirmOpen}
         onClose={handleCloseConfirm}
         onConfirm={handleConfirmChange}
-        popupTitle="Xác nhận thay đổi trạng thái"
+        popupTitle={t('statusChange.confirmTitle')}
         popupContext={selectedUnitStatus?.toUpperCase() === 'ACTIVE' 
-          ? 'Bạn có chắc muốn vô hiệu hoá căn hộ này?' 
-          : 'Bạn có chắc muốn kích hoạt căn hộ này?'}
+          ? t('statusChange.confirmDeactivate')
+          : t('statusChange.confirmActivate')}
         isDanger={false}
       />
       {errorMessage && (

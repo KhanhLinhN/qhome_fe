@@ -659,14 +659,14 @@ export default function ServiceDetailPage() {
                                     onClick={() => handleEditCombo(combo.id)}
                                     className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
                                   >
-                                    <Image src={Edit} alt="Edit combo" width={24} height={24} />
+                                    <Image src={Edit} alt={t('Service.editCombo')} width={24} height={24} />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteCombo(combo.id)}
                                     className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
                                   >
-                                    <Image src={Delete} alt="Delete combo" width={24} height={24} />
+                                    <Image src={Delete} alt={t('Service.deleteCombo')} width={24} height={24} />
                                   </button>
                                 </div>
                               </td>
@@ -759,14 +759,14 @@ export default function ServiceDetailPage() {
                             onClick={() => handleEditOption(option.id)}
                             className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
                           >
-                            <Image src={Edit} alt="Edit option" width={24} height={24} />
+                            <Image src={Edit} alt={t('Service.editOption')} width={24} height={24} />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteOption(option.id)}
                             className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
                           >
-                            <Image src={Delete} alt="Delete option" width={24} height={24} />
+                            <Image src={Delete} alt={t('Service.deleteOption')} width={24} height={24} />
                           </button>
                         </div>
                       </div>
@@ -885,14 +885,14 @@ export default function ServiceDetailPage() {
                                 onClick={() => handleEditTicket(ticket.id)}
                                 className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
                               >
-                                <Image src={Edit} alt="Edit ticket" width={24} height={24} />
+                                <Image src={Edit} alt={t('Service.editTicket')} width={24} height={24} />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteTicket(ticket.id)}
                                 className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
                               >
-                                <Image src={Delete} alt="Delete ticket" width={24} height={24} />
+                                <Image src={Delete} alt={t('Service.deleteTicket')} width={24} height={24} />
                               </button>
                             </div>
                           </td>
@@ -981,7 +981,7 @@ export default function ServiceDetailPage() {
                           {item.itemPrice != null ? formatCurrency(item.itemPrice) : '-'}
                         </td>
                         <td className="px-4 py-3 text-gray-700">
-                          {item.itemDurationMinutes != null ? `${item.itemDurationMinutes} phút` : '-'}
+                          {item.itemDurationMinutes != null ? `${item.itemDurationMinutes} ${t('Service.minutes')}` : '-'}
                         </td>
                         <td className="px-4 py-3 text-gray-700">
                           {item.quantity != null ? item.quantity : '-'}

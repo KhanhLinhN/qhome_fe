@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { getEmployeesInTenant, getUserPermissionSummary, type UserPermissionSummaryDto } from '@/src/services/iam';
 import type { EmployeeRoleDto } from '@/src/services/iam';
@@ -8,6 +9,7 @@ import PermissionGroup from '@/src/components/admin/PermissionGroup';
 import EditUserPermissionsModal from '@/src/components/admin/EditUserPermissionsModal';
 
 export default function UserPermissionDetailPage() {
+  const t = useTranslations('AdminUserPermissionDetail');
   const params = useParams();
   const searchParams = useSearchParams();
   const username = params.username as string;
@@ -93,7 +95,7 @@ export default function UserPermissionDetailPage() {
           <div className="px-[41px] py-12 flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
-              <p className="text-gray-600">Đang tải dữ liệu...</p>
+              <p className="text-gray-600">{t('loading')}</p>
             </div>
           </div>
         </div>
@@ -107,12 +109,12 @@ export default function UserPermissionDetailPage() {
         <div className="max-w-screen overflow-x-hidden  min-h-screen">
           <div className="px-[41px] py-12 flex items-center justify-center">
             <div className="text-center">
-              <p className="text-red-600 mb-4">User not found</p>
+              <p className="text-red-600 mb-4">{t('notFound')}</p>
               <Link
                 href={`/users/permissions?tenant=${tenantId}&tenantName=${encodeURIComponent(tenantName)}`}
                 className="text-[#02542D] hover:underline"
               >
-                ← Back to User List
+                {t('backToUserList')}
               </Link>
             </div>
           </div>
@@ -126,7 +128,7 @@ export default function UserPermissionDetailPage() {
       <div className="max-w-screen overflow-x-hidden ">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
-          <Link href="/dashboard" className="hover:text-[#02542D]">Dashboard</Link>
+          <Link href="/dashboard" className="hover:text-[#02542D]">{t('breadcrumb.dashboard')}</Link>
           <span>›</span>
           <Link
             href={`/users/permissions?tenant=${tenantId}&tenantName=${encodeURIComponent(tenantName)}`}
@@ -143,7 +145,7 @@ export default function UserPermissionDetailPage() {
           href={`/users/permissions?tenant=${tenantId}&tenantName=${encodeURIComponent(tenantName)}`}
           className="inline-flex items-center text-[#02542D] hover:underline mb-6"
         >
-          ← Back to User List
+          {t('backToUserList')}
         </Link>
 
         {/* User Info Card */}
@@ -164,15 +166,15 @@ export default function UserPermissionDetailPage() {
                   <path fill="#475569" d="M10 2a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v2.6666666666666665h1.3333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v5.333333333333333a0.6666666666666666 0.6666666666666666 0 1 1 0 1.3333333333333333H2a0.6666666666666666 0.6666666666666666 0 1 1 0 -1.3333333333333333V6a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h1.3333333333333333V3.333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h4ZM4.666666666666666 6H3.333333333333333v6.666666666666666h1.3333333333333333V6Zm8 1.3333333333333333h-1.3333333333333333v5.333333333333333h1.3333333333333333v-5.333333333333333Zm-4 2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333V4.666666666666666Z" strokeWidth="0.6667"></path>
                 </g>
               </svg>
-              Tenant: {tenantName}
+              {t('userCard.tenant')} {tenantName}
             </p>
 
             {/* Roles */}
             <div className="mb-4">
-              <span className="text-sm font-semibold text-slate-700">🎭 Roles:</span>
+              <span className="text-sm font-semibold text-slate-700">{t('userCard.roles')}</span>
               <div className="flex flex-wrap gap-2 mt-2">
                 {employee.assignedRoles.length === 0 ? (
-                  <span className="text-sm text-slate-400 italic">No roles assigned</span>
+                  <span className="text-sm text-slate-400 italic">{t('userCard.noRoles')}</span>
                 ) : (
                   employee.assignedRoles.map((role, idx) => (
                     <span
@@ -189,13 +191,13 @@ export default function UserPermissionDetailPage() {
             {/* Permission Summary */}
             <div className="flex items-center gap-4">
               <div className="text-sm text-slate-600">
-                🔑 <span className="font-semibold text-lg">{totalPermissions}</span> total permissions
+                {t('userCard.totalPermissions', { count: totalPermissions })}
               </div>
               <button
                 onClick={() => setShowEditModal(true)}
                 className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024030] transition font-medium text-sm flex items-center gap-2"
               >
-                ✏️ Edit Permissions
+                {t('userCard.editPermissions')}
               </button>
             </div>
           </div>
@@ -206,28 +208,28 @@ export default function UserPermissionDetailPage() {
         {summary && (
           <div className="bg-white rounded-xl p-6 mb-6">
           <h2 className="text-xl font-bold text-slate-800 mb-4">
-            📊 Permission Breakdown
+            {t('permissionBreakdown.title')}
           </h2>
           <div className="grid grid-cols-4 gap-4">
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="text-sm text-blue-700 font-medium mb-1">Inherited from Roles</div>
+              <div className="text-sm text-blue-700 font-medium mb-1">{t('permissionBreakdown.inherited.label')}</div>
               <div className="text-2xl font-bold text-blue-800">{summary.inheritedFromRoles?.length || 0}</div>
-              <div className="text-xs text-blue-600 mt-1">From assigned roles</div>
+              <div className="text-xs text-blue-600 mt-1">{t('permissionBreakdown.inherited.description')}</div>
             </div>
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="text-sm text-green-700 font-medium mb-1">Granted Directly</div>
+              <div className="text-sm text-green-700 font-medium mb-1">{t('permissionBreakdown.granted.label')}</div>
               <div className="text-2xl font-bold text-green-800">{summary.grantedPermissions?.length || 0}</div>
-              <div className="text-xs text-green-600 mt-1">User-specific grants</div>
+              <div className="text-xs text-green-600 mt-1">{t('permissionBreakdown.granted.description')}</div>
             </div>
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="text-sm text-red-700 font-medium mb-1">Denied</div>
+              <div className="text-sm text-red-700 font-medium mb-1">{t('permissionBreakdown.denied.label')}</div>
               <div className="text-2xl font-bold text-red-800">{summary.deniedPermissions?.length || 0}</div>
-              <div className="text-xs text-red-600 mt-1">Explicitly blocked</div>
+              <div className="text-xs text-red-600 mt-1">{t('permissionBreakdown.denied.description')}</div>
             </div>
             <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-              <div className="text-sm text-purple-700 font-medium mb-1">Effective</div>
+              <div className="text-sm text-purple-700 font-medium mb-1">{t('permissionBreakdown.effective.label')}</div>
               <div className="text-2xl font-bold text-purple-800">{summary.effectivePermissions?.length || 0}</div>
-              <div className="text-xs text-purple-600 mt-1">Final permissions</div>
+              <div className="text-xs text-purple-600 mt-1">{t('permissionBreakdown.effective.description')}</div>
             </div>
           </div>
         </div>
@@ -237,14 +239,14 @@ export default function UserPermissionDetailPage() {
         <div className="mb-6">
           <input
             type="text"
-            placeholder="Search permissions..."
+            placeholder={t('search.placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#02542D]"
           />
         {searchQuery && (
           <p className="text-sm text-slate-600 mt-2">
-            Showing {filteredCount} of {totalPermissions} permissions
+            {t('search.showing', { filtered: filteredCount, total: totalPermissions })}
           </p>
         )}
       </div>
@@ -252,14 +254,14 @@ export default function UserPermissionDetailPage() {
         {/* Permissions List */}
         <div className="bg-white rounded-xl p-6">
         <h2 className="text-xl font-bold text-slate-800 mb-4">
-          🔑 Effective Permissions
+          {t('effectivePermissions.title')}
         </h2>
 
         {Object.keys(filteredGroups).length === 0 ? (
           <div className="text-center py-12 text-slate-500">
             {searchQuery 
-              ? 'No permissions match your search'
-              : 'No permissions assigned'
+              ? t('effectivePermissions.empty.noResults')
+              : t('effectivePermissions.empty.noData')
             }
           </div>
         ) : (
@@ -284,7 +286,7 @@ export default function UserPermissionDetailPage() {
           onClick={() => {
             const permissions = employee?.allPermissions || [];
             const csv = [
-              ['Permission', 'Service'],
+              [t('export.csvHeaders.permission'), t('export.csvHeaders.service')],
               ...permissions.map(p => [p, p.split('.')[0]])
             ].map(row => row.join(',')).join('\n');
             
@@ -299,7 +301,7 @@ export default function UserPermissionDetailPage() {
           disabled={!employee || !employee.allPermissions || employee.allPermissions.length === 0}
           className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 transition font-medium flex items-center gap-2"
         >
-          📥 Export to CSV
+          {t('export.button')}
         </button>
       </div>
 

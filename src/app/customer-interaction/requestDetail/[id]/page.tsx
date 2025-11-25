@@ -53,7 +53,7 @@ export default function RequestDetailPage() {
         <div className="flex items-center text-xl font-bold text-gray-800 pb-4 text-[#02542D] flex-none">
             <Image 
               src={Arrow} 
-              alt="Back" 
+              alt={t('back')} 
               className="h-6 w-6 mr-2 cursor-pointer" 
               onClick={() => {
                   handleBack();

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import {
   createMissingMeters,
@@ -24,6 +25,7 @@ const formatDate = (value?: string) => {
 };
 
 export default function MeterManagementPage() {
+  const t = useTranslations('MeterManagement');
   const [meters, setMeters] = useState<MeterDto[]>([]);
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [services, setServices] = useState<ServiceDto[]>([]);
@@ -67,7 +69,7 @@ export default function MeterManagementPage() {
       setError(null);
     } catch (err: any) {
       console.error('Failed to load meters:', err);
-      setError(err?.message || 'Không thể tải dữ liệu meter');
+      setError(err?.message || t('errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -108,7 +110,7 @@ export default function MeterManagementPage() {
       await loadMissingUnits();
       setModalOpen(false);
     } catch (err: any) {
-      setCreationError(err?.response?.data?.message || 'Không thể tạo công tơ tự động');
+      setCreationError(err?.response?.data?.message || t('errors.createFailed'));
     } finally {
       setCreatingMissing(false);
     }
@@ -159,12 +161,12 @@ export default function MeterManagementPage() {
     const active = filteredMeters.filter((meter) => meter.active).length;
     const inactive = total - active;
     const perService = filteredMeters.reduce<Record<string, number>>((acc, meter) => {
-      const key = meter.serviceCode || 'Khác';
+      const key = meter.serviceCode || t('other');
       acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
     return { total, active, inactive, perService };
-  }, [filteredMeters]);
+  }, [filteredMeters, t]);
 
   const handleDownloadTemplate = async () => {
     try {
@@ -187,19 +189,16 @@ export default function MeterManagementPage() {
     <div className="px-8 py-12 space-y-8">
       <header className="space-y-4">
         <div>
-          <p className="text-xs uppercase tracking-wide text-gray-500">Quản lý công tơ</p>
-          <h1 className="text-3xl font-semibold text-[#02542D]">Danh sách meter</h1>
-          <p className="text-gray-600 max-w-3xl">
-            Xem nhanh tình trạng meter theo tòa nhà và dịch vụ, lọc ra các căn hộ đang có hay chưa có meter, rồi chuyển
-            sang phân công đọc/nạp mới khi cần.
-          </p>
+          <p className="text-xs uppercase tracking-wide text-gray-500">{t('subtitle')}</p>
+          <h1 className="text-3xl font-semibold text-[#02542D]">{t('title')}</h1>
+          <p className="text-gray-600 max-w-3xl">{t('description')}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Link
             href="/base/building/buildingList"
             className="px-4 py-2 bg-[#02542D] text-white text-sm rounded-lg shadow-sm hover:bg-[#014a26] transition"
           >
-            Thêm meter
+            {t('buttons.addMeter')}
           </Link>
           <button
             type="button"
@@ -207,18 +206,18 @@ export default function MeterManagementPage() {
             disabled={templateDownloading}
             className="px-4 py-2 bg-[#F1F5F9] text-sm text-[#02542D] rounded-lg border border-[#CAD7D3] hover:bg-[#E2EDF2] transition disabled:opacity-60"
           >
-            {templateDownloading ? 'Đang tải template...' : 'Tải template import công tơ'}
+            {templateDownloading ? t('buttons.downloadingTemplate') : t('buttons.downloadTemplate')}
           </button>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex flex-col text-sm text-gray-600">
-            <span className="text-xs uppercase tracking-wide text-gray-500">Lọc tòa nhà</span>
+            <span className="text-xs uppercase tracking-wide text-gray-500">{t('filters.building')}</span>
             <select
               value={buildingFilter}
               onChange={(e) => setBuildingFilter(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
             >
-              <option value="">Tất cả tòa nhà</option>
+              <option value="">{t('filters.allBuildings')}</option>
               {buildings.map((building) => (
                 <option key={building.id} value={building.id}>
                   {building.code} – {building.name}
@@ -227,13 +226,13 @@ export default function MeterManagementPage() {
             </select>
           </div>
           <div className="flex flex-col text-sm text-gray-600">
-            <span className="text-xs uppercase tracking-wide text-gray-500">Lọc dịch vụ</span>
+            <span className="text-xs uppercase tracking-wide text-gray-500">{t('filters.service')}</span>
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
             >
-              <option value="">Tất cả dịch vụ</option>
+              <option value="">{t('filters.allServices')}</option>
               {services.map((service) => (
                 <option key={service.id} value={service.id}>
                   {service.code} – {service.name}
@@ -242,13 +241,13 @@ export default function MeterManagementPage() {
             </select>
           </div>
           <div className="flex flex-col text-sm text-gray-600">
-            <span className="text-xs uppercase tracking-wide text-gray-500">Lọc tầng</span>
+            <span className="text-xs uppercase tracking-wide text-gray-500">{t('filters.floor')}</span>
             <select
               value={floorFilter}
               onChange={(e) => setFloorFilter(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
             >
-              <option value="">Tất cả tầng</option>
+              <option value="">{t('filters.allFloors')}</option>
               {floorOptions.map((floor) => (
                 <option key={floor} value={floor.toString()}>
                   {floor}
@@ -262,21 +261,21 @@ export default function MeterManagementPage() {
       <section className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">
-            <p className="text-gray-500">Tổng meter đang lọc</p>
+            <p className="text-gray-500">{t('summary.totalFiltered')}</p>
             <p className="text-2xl font-semibold text-[#02542D]">{summary.total}</p>
           </div>
           <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">
-            <p className="text-gray-500">Meter đang hoạt động</p>
+            <p className="text-gray-500">{t('summary.active')}</p>
             <p className="text-2xl font-semibold text-[#14AE5C]">{summary.active}</p>
           </div>
           <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">
-            <p className="text-gray-500">Meter không hoạt động</p>
+            <p className="text-gray-500">{t('summary.inactive')}</p>
             <p className="text-2xl font-semibold text-[#E02424]">{summary.inactive}</p>
           </div>
         </div>
         {Object.keys(summary.perService).length > 0 && (
           <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm text-sm text-gray-600">
-            <p className="font-semibold text-gray-700">Phân bố theo dịch vụ</p>
+            <p className="font-semibold text-gray-700">{t('summary.distributionByService')}</p>
             <div className="flex flex-wrap gap-3">
               {Object.entries(summary.perService).map(([serviceCode, count]) => (
                 <span key={serviceCode} className="rounded-full border border-[#D1D5DB] px-3 py-1 text-xs font-medium">
@@ -289,35 +288,39 @@ export default function MeterManagementPage() {
         {serviceFilter && (
           <div className="rounded-lg border border-dashed border-[#a5d5ba] bg-white/80 px-4 py-3 text-sm text-[#0a642c] shadow-sm space-y-1">
             {missingLoading ? (
-              <div>Đang kiểm tra các căn hộ chưa có công tơ...</div>
+              <div>{t('missingUnits.checking')}</div>
             ) : missingUnits.length > 0 ? (
               <>
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-semibold">
-                    Hiện còn {missingUnits.length} căn hộ chưa có công tơ dành cho{' '}
-                    <span className="font-normal">
-                      {selectedService?.code || 'dịch vụ'}
-                      {selectedBuilding ? ` tại tòa ${selectedBuilding.code}` : ''}
-                    </span>
-                    .
+                    {t('missingUnits.message', {
+                      count: missingUnits.length,
+                      service: selectedService?.code || 'dịch vụ',
+                      building: selectedBuilding ? ` tại tòa ${selectedBuilding.code}` : '',
+                    })}
                   </div>
                   <button
                     type="button"
                     onClick={() => setModalOpen(true)}
                     className="px-3 py-1 rounded-full border border-[#0d7033] text-xs font-semibold text-[#0d7033] hover:bg-[#ecf8f1]"
                   >
-                    Xem chi tiết
+                    {t('buttons.viewDetails')}
                   </button>
                 </div>
                 <div className="text-xs text-gray-600">
-                  Một số vị trí: {missingUnits.slice(0, 4).map((unit) => unit.unitCode).join(', ')}
-                  {missingUnits.length > 4 ? ` và ${missingUnits.length - 4} căn khác` : ''}
+                  {t('missingUnits.preview', {
+                    units: missingUnits.slice(0, 4).map((unit) => unit.unitCode).join(', '),
+                  })}
+                  {missingUnits.length > 4
+                    ? ` ${t('missingUnits.andMore', { count: missingUnits.length - 4 })}`
+                    : ''}
                 </div>
               </>
             ) : (
               <div>
-                Đã có meter cho tất cả căn hộ ở{' '}
-                <span className="font-semibold">{selectedBuilding ? selectedBuilding.code : 'tòa này'}</span> cho dịch vụ này.
+                {t('missingUnits.allHaveMeters', {
+                  building: selectedBuilding ? selectedBuilding.code : 'tòa này',
+                })}
               </div>
             )}
           </div>
@@ -326,7 +329,7 @@ export default function MeterManagementPage() {
 
       <section className="bg-white rounded-lg border border-gray-200 shadow-sm">
         {loading ? (
-          <div className="p-12 text-center text-gray-500">Đang tải dữ liệu meter...</div>
+          <div className="p-12 text-center text-gray-500">{t('table.loading')}</div>
         ) : error ? (
           <div className="p-6 text-center text-red-600">{error}</div>
         ) : (
@@ -334,22 +337,22 @@ export default function MeterManagementPage() {
             <table className="min-w-full text-left text-sm">
               <thead className="bg-gray-50 text-gray-700">
                 <tr>
-                  <th className="px-4 py-3">Tòa nhà</th>
-                  <th className="px-4 py-3">Căn hộ</th>
-                  <th className="px-4 py-3">Tầng</th>
-                  <th className="px-4 py-3">Dịch vụ</th>
-                  <th className="px-4 py-3">Mã công tơ</th>
-                  <th className="px-4 py-3">Trạng thái</th>
-                  <th className="px-4 py-3">Ngày lắp</th>
-                  <th className="px-4 py-3">Chỉ số cuối</th>
-                  <th className="px-4 py-3">Hành động</th>
+                  <th className="px-4 py-3">{t('table.headers.building')}</th>
+                  <th className="px-4 py-3">{t('table.headers.unit')}</th>
+                  <th className="px-4 py-3">{t('table.headers.floor')}</th>
+                  <th className="px-4 py-3">{t('table.headers.service')}</th>
+                  <th className="px-4 py-3">{t('table.headers.meterCode')}</th>
+                  <th className="px-4 py-3">{t('table.headers.status')}</th>
+                  <th className="px-4 py-3">{t('table.headers.installedDate')}</th>
+                  <th className="px-4 py-3">{t('table.headers.lastReading')}</th>
+                  <th className="px-4 py-3">{t('table.headers.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {filteredMeters.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                      Không tìm thấy công tơ phù hợp.
+                      {t('table.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -361,10 +364,10 @@ export default function MeterManagementPage() {
                           <div className="text-sm font-medium text-[#02542D]">
                             {building?.code ?? meter.buildingCode ?? '-'}
                           </div>
-                          <div className="text-xs text-gray-500">{building?.name ?? 'Tòa nhà chưa xác định'}</div>
+                          <div className="text-xs text-gray-500">{building?.name ?? t('table.fallbacks.unknownBuilding')}</div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="font-medium text-gray-900">{meter.unitCode ?? '—'}</span>
+                          <span className="font-medium text-gray-900">{meter.unitCode ?? t('table.fallbacks.noUnit')}</span>
                         </td>
                         <td className="px-4 py-3 text-center">{meter.floor ?? '-'}</td>
                         <td className="px-4 py-3">
@@ -378,7 +381,7 @@ export default function MeterManagementPage() {
                               meter.active ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                             }`}
                           >
-                            {meter.active ? 'Hoạt động' : 'Ngừng'}
+                            {meter.active ? t('table.status.active') : t('table.status.inactive')}
                           </span>
                         </td>
                         <td className="px-4 py-3">{formatDate(meter.installedAt)}</td>
@@ -392,7 +395,7 @@ export default function MeterManagementPage() {
                             }
                             className="text-xs font-semibold text-[#02542D] hover:underline"
                           >
-                            Xem tòa
+                            {t('buttons.viewBuilding')}
                           </Link>
                         </td>
                       </tr>
@@ -408,24 +411,24 @@ export default function MeterManagementPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="max-w-3xl w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h3 className="text-lg font-semibold text-[#02542D]">Danh sách tầng thiếu công tơ</h3>
+              <h3 className="text-lg font-semibold text-[#02542D]">{t('modal.title')}</h3>
               <button onClick={() => setModalOpen(false)} className="text-gray-500 hover:text-gray-900">
-                Đóng
+                {t('buttons.close')}
               </button>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div className="text-sm text-gray-600">
                 {missingUnits.length === 0
-                  ? 'Không có căn hộ thiếu công tơ.'
-                  : `Có ${missingUnits.length} căn hộ chưa có công tơ.`}
+                  ? t('modal.empty')
+                  : t('modal.hasMissing', { count: missingUnits.length })}
               </div>
               <div className="max-h-64 overflow-auto border rounded">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-3 py-2 text-left">Tòa nhà</th>
-                      <th className="px-3 py-2 text-left">Căn hộ</th>
-                      <th className="px-3 py-2 text-left">Tầng</th>
+                      <th className="px-3 py-2 text-left">{t('modal.headers.building')}</th>
+                      <th className="px-3 py-2 text-left">{t('modal.headers.unit')}</th>
+                      <th className="px-3 py-2 text-left">{t('modal.headers.floor')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -448,7 +451,7 @@ export default function MeterManagementPage() {
                   onClick={() => setModalOpen(false)}
                   className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
                 >
-                  Hủy
+                  {t('buttons.cancel')}
                 </button>
                 <button
                   type="button"
@@ -456,7 +459,7 @@ export default function MeterManagementPage() {
                   disabled={creatingMissing || missingUnits.length === 0}
                   className="px-4 py-2 rounded-lg bg-[#02542D] text-white text-sm font-semibold hover:bg-[#014a26] disabled:opacity-50 flex items-center gap-2"
                 >
-                  {creatingMissing ? 'Đang tạo...' : 'Tạo công tơ tự động'}
+                  {creatingMissing ? t('buttons.creating') : t('buttons.createAuto')}
                 </button>
               </div>
             </div>

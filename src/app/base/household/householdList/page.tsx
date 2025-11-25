@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
@@ -34,20 +35,21 @@ const DEFAULT_HOUSEHOLDS_STATE: AsyncState<HouseholdDto[]> = {
   error: null,
 };
 
-const KIND_OPTIONS: Record<string, string> = {
-  OWNER: 'Chủ sở hữu',
-  TENANT: 'Người thuê',
-  SERVICE: 'Dịch vụ',
-};
-
-function formatDate(value?: string | null) {
-  if (!value) return 'Chưa thiết lập';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('vi-VN');
-}
-
 export default function HouseholdListPage() {
+  const t = useTranslations('Household');
+  
+  const KIND_OPTIONS: Record<string, string> = {
+    OWNER: t('kinds.owner'),
+    TENANT: t('kinds.tenant'),
+    SERVICE: t('kinds.service'),
+  };
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return t('common.notSet');
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('vi-VN');
+  };
   const [buildingsState, setBuildingsState] =
     useState<AsyncState<Building[]>>(DEFAULT_BUILDINGS_STATE);
   const [unitsState, setUnitsState] = useState<AsyncState<Unit[]>>(DEFAULT_UNITS_STATE);
@@ -65,7 +67,7 @@ export default function HouseholdListPage() {
         setBuildingsState({ data, loading: false, error: null });
       } catch (err: any) {
         const message =
-          err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+          err?.response?.data?.message || err?.message || t('errors.loadBuildings');
         setBuildingsState({ data: [], loading: false, error: message });
       }
     };
@@ -91,7 +93,7 @@ export default function HouseholdListPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tải danh sách căn hộ của tòa nhà này.';
+        t('errors.loadUnits');
       setUnitsState({ data: [], loading: false, error: message });
     }
   };
@@ -111,7 +113,7 @@ export default function HouseholdListPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tải danh sách hộ gia đình của căn hộ.';
+        t('errors.loadHouseholds');
       setHouseholdsState({ data: [], loading: false, error: message });
     }
   };
@@ -129,9 +131,9 @@ export default function HouseholdListPage() {
     () =>
       unitsState.data.map((unit) => ({
         value: unit.id,
-        label: `${unit.code ?? ''} (Tầng ${unit.floor ?? '—'})`,
+        label: `${unit.code ?? ''} (${t('unitLabel.floor')} ${unit.floor ?? '—'})`,
       })),
-    [unitsState.data],
+    [unitsState.data, t],
   );
 
   return (
@@ -139,29 +141,29 @@ export default function HouseholdListPage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Quản lý hộ gia đình</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{t('list.title')}</h1>
             <p className="text-sm text-slate-500">
-              Chọn tòa nhà và căn hộ để xem danh sách hộ đang/đã cư trú.
+              {t('list.subtitle')}
             </p>
           </div>
           <Link
             href="/base/household/householdNew"
             className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
           >
-            + Tạo hộ gia đình mới
+            + {t('list.createNew')}
           </Link>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-700">Tòa nhà</label>
+              <label className="text-sm font-medium text-slate-700">{t('fields.building')}</label>
               <select
                 value={selectedBuildingId}
                 onChange={(event) => handleSelectBuilding(event.target.value)}
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               >
-                <option value="">-- Chọn tòa nhà --</option>
+                <option value="">{t('placeholders.selectBuilding')}</option>
                 {buildingOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -169,7 +171,7 @@ export default function HouseholdListPage() {
                 ))}
               </select>
               {buildingsState.loading && (
-                <span className="text-xs text-slate-500">Đang tải danh sách tòa nhà...</span>
+                <span className="text-xs text-slate-500">{t('loading.buildings')}</span>
               )}
               {buildingsState.error && (
                 <span className="text-xs text-red-600">{buildingsState.error}</span>
@@ -177,7 +179,7 @@ export default function HouseholdListPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-700">Căn hộ</label>
+              <label className="text-sm font-medium text-slate-700">{t('fields.unit')}</label>
               <select
                 value={selectedUnitId}
                 onChange={(event) => handleSelectUnit(event.target.value)}
@@ -185,7 +187,7 @@ export default function HouseholdListPage() {
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100"
               >
                 <option value="">
-                  {selectedBuildingId ? '-- Chọn căn hộ --' : 'Hãy chọn tòa nhà trước'}
+                  {selectedBuildingId ? t('placeholders.selectUnit') : t('placeholders.selectBuildingFirst')}
                 </option>
                 {unitOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -194,7 +196,7 @@ export default function HouseholdListPage() {
                 ))}
               </select>
               {unitsState.loading && (
-                <span className="text-xs text-slate-500">Đang tải danh sách căn hộ...</span>
+                <span className="text-xs text-slate-500">{t('loading.units')}</span>
               )}
               {unitsState.error && (
                 <span className="text-xs text-red-600">{unitsState.error}</span>
@@ -206,14 +208,14 @@ export default function HouseholdListPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Danh sách hộ gia đình</h2>
+              <h2 className="text-xl font-semibold text-slate-900">{t('list.householdList')}</h2>
               {selectedUnitId ? (
                 <p className="text-sm text-slate-500">
-                  Đang hiển thị các hộ thuộc căn hộ đã chọn.
+                  {t('list.showingSelectedUnit')}
                 </p>
               ) : (
                 <p className="text-sm text-slate-500">
-                  Hãy chọn tòa nhà và căn hộ để xem danh sách hộ cư trú.
+                  {t('list.selectToView')}
                 </p>
               )}
             </div>
@@ -222,14 +224,14 @@ export default function HouseholdListPage() {
                 href={`/base/unit/unitDetail/${selectedUnitId}`}
                 className="text-sm font-semibold text-emerald-600 hover:text-emerald-700"
               >
-                Xem chi tiết căn hộ
+                {t('list.viewUnitDetail')}
               </Link>
             )}
           </div>
 
           {householdsState.loading && (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600">
-              Đang tải danh sách hộ gia đình...
+              {t('loading.households')}
             </div>
           )}
 
@@ -244,7 +246,7 @@ export default function HouseholdListPage() {
             selectedUnitId &&
             householdsState.data.length === 0 && (
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600">
-                Chưa có hộ gia đình nào cho căn hộ này.
+                {t('empty.noHouseholds')}
               </div>
             )}
 
@@ -256,22 +258,22 @@ export default function HouseholdListPage() {
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                        Mã hộ
+                        {t('table.householdCode')}
                       </th>
                       <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                        Loại hộ
+                        {t('table.kind')}
                       </th>
                       <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                        Chủ hộ
+                        {t('table.primaryResident')}
                       </th>
                       <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                        Ngày bắt đầu
+                        {t('table.startDate')}
                       </th>
                       <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                        Ngày kết thúc
+                        {t('table.endDate')}
                       </th>
                       <th className="px-4 py-3 text-right font-semibold uppercase tracking-wide text-slate-600">
-                        Thao tác
+                        {t('table.actions')}
                       </th>
                     </tr>
                   </thead>
@@ -283,7 +285,7 @@ export default function HouseholdListPage() {
                           {KIND_OPTIONS[household.kind] ?? household.kind}
                         </td>
                         <td className="px-4 py-3 text-slate-600">
-                          {household.primaryResidentName ?? 'Chưa thiết lập'}
+                          {household.primaryResidentName ?? t('common.notSet')}
                         </td>
                         <td className="px-4 py-3 text-slate-600">{formatDate(household.startDate)}</td>
                         <td className="px-4 py-3 text-slate-600">{formatDate(household.endDate)}</td>
@@ -292,7 +294,7 @@ export default function HouseholdListPage() {
                             href={`/base/household/householdDetail/${household.id}`}
                             className="font-semibold text-emerald-600 hover:text-emerald-700"
                           >
-                            Chi tiết
+                            {t('table.detail')}
                           </Link>
                         </td>
                       </tr>

@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getBuildings, Building } from '@/src/services/base/buildingService';
 import {
@@ -20,6 +21,7 @@ import Checkbox from '@/src/components/customer-interaction/Checkbox';
 import { getAssignmentsByCycle, MeterReadingAssignmentDto } from '@/src/services/base/waterService';
 
 export default function AddAssignmentPage() {
+  const t = useTranslations('AddAssignment');
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, hasRole } = useAuth();
@@ -232,17 +234,17 @@ export default function AddAssignmentPage() {
     e.preventDefault();
 
     if (!selectedCycleId) {
-      show('Please select a cycle', 'error');
+      show(t('errors.selectCycle'), 'error');
       return;
     }
 
     if (!selectedServiceId) {
-      show('Please select a service', 'error');
+      show(t('errors.selectService'), 'error');
       return;
     }
 
     if (!assignedTo) {
-      show('Please select a staff member to assign to', 'error');
+      show(t('errors.selectStaff'), 'error');
       return;
     }
 
@@ -264,7 +266,7 @@ export default function AddAssignmentPage() {
       if (startDate) {
         const startDateValue = parseDateOnly(startDate);
         if (startDateValue < cycleStartDate) {
-          setStartDateError('Start date cannot be before the cycle start date');
+          setStartDateError(t('errors.startDateBeforeCycle'));
           return;
         }
       }
@@ -272,7 +274,7 @@ export default function AddAssignmentPage() {
       if (endDate) {
         const endDateValue = parseDateOnly(endDate);
         if (endDateValue > cycleEndDate) {
-          setEndDateError('End date cannot be after the cycle end date');
+          setEndDateError(t('errors.endDateAfterCycle'));
           return;
         }
       }
@@ -280,7 +282,7 @@ export default function AddAssignmentPage() {
 
     // Validate: must select at least one unit when building is selected
     if (selectedBuildingId && selectedUnitIds.size === 0) {
-      show('Please select at least one unit', 'error');
+      show(t('errors.selectAtLeastOneUnit'), 'error');
       return;
     }
 
@@ -311,14 +313,14 @@ export default function AddAssignmentPage() {
       const response = await createMeterReadingAssignment(req);
 
       if (response.id) {
-        show('Successfully created assignment', 'success');
+        show(t('messages.createSuccess'), 'success');
         router.push('/base/readingAssign');
       } else {
-        show('Failed to create assignment', 'error');
+        show(t('messages.createError'), 'error');
       }
     } catch (error: any) {
       console.error('Failed to create assignment:', error);
-      show(error?.response?.data?.message || error?.message || 'Failed to create assignment', 'error');
+      show(error?.response?.data?.message || error?.message || t('messages.createError'), 'error');
     } finally {
       setLoading(false);
     }
@@ -333,7 +335,7 @@ export default function AddAssignmentPage() {
       <div className="px-[41px] py-12">
         <div className="bg-white p-6 rounded-xl text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#739559] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">{t('loading')}</p>
         </div>
       </div>
     );
@@ -350,7 +352,7 @@ export default function AddAssignmentPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-2xl font-semibold text-[#02542D]">Add New Assignment</h1>
+        <h1 className="text-2xl font-semibold text-[#02542D]">{t('title')}</h1>
       </div>
 
       <div className="bg-white p-6 rounded-xl">
@@ -359,7 +361,7 @@ export default function AddAssignmentPage() {
             {/* Reading Cycle */}
             <div className={`flex flex-col mb-4 col-span-1`}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Reading Cycle <span className="text-red-500">*</span>
+                {t('fields.readingCycle')} <span className="text-red-500">*</span>
               </label>
               <Select
                 options={cycles}
@@ -367,7 +369,7 @@ export default function AddAssignmentPage() {
                 onSelect={(cycle) => setSelectedCycleId(cycle.id)}
                 renderItem={(cycle) => `${cycle.name} (${cycle.status}) - ${new Date(cycle.periodFrom).toLocaleDateString()} to ${new Date(cycle.periodTo).toLocaleDateString()}`}
                 getValue={(cycle) => cycle.id}
-                placeholder="Select a reading cycle..."
+                placeholder={t('placeholders.selectCycle')}
                 disable={true}
               />
             </div>
@@ -375,7 +377,7 @@ export default function AddAssignmentPage() {
             {/* Building (Optional) */}
             <div className={`flex flex-col mb-4 col-span-1`}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Building <span className="text-gray-500 text-xs">(Optional - leave empty for all buildings)</span>
+                {t('fields.building')} <span className="text-gray-500 text-xs">({t('fields.buildingOptional')})</span>
               </label>
               <Select
                 options={buildings}
@@ -383,14 +385,14 @@ export default function AddAssignmentPage() {
                 onSelect={(building) => setSelectedBuildingId(building.id)}
                 renderItem={(building) => `${building.name} (${building.code})`}
                 getValue={(building) => building.id}
-                placeholder="Select a building (optional)..."
+                placeholder={t('placeholders.selectBuilding')}
               />
             </div>
 
             {/* Service */}
             <div className={`flex flex-col mb-4 col-span-1`}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Service <span className="text-red-500">*</span>
+                {t('fields.service')} <span className="text-red-500">*</span>
               </label>
               <Select
                 options={services}
@@ -398,14 +400,14 @@ export default function AddAssignmentPage() {
                 onSelect={(service) => setSelectedServiceId(service.id)}
                 renderItem={(service) => `${service.name} (${service.code})`}
                 getValue={(service) => service.id}
-                placeholder="Select a service..."
+                placeholder={t('placeholders.selectService')}
               />
             </div>
 
             {/* Assigned To */}
             <div className={`flex flex-col mb-4 col-span-1`}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assign To <span className="text-red-500">*</span>
+                {t('fields.assignTo')} <span className="text-red-500">*</span>
               </label>
               <Select
                 options={staffList}
@@ -413,7 +415,7 @@ export default function AddAssignmentPage() {
                 onSelect={(staff) => setAssignedTo(staff.userId)}
                 renderItem={(staff) => `${staff.fullName || staff.username} (${staff.email})`}
                 getValue={(staff) => staff.userId}
-                placeholder="Select a staff member..."
+                placeholder={t('placeholders.selectStaff')}
               />
             </div>
           </div>
@@ -422,7 +424,7 @@ export default function AddAssignmentPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Start Date <span className="text-gray-500 text-xs">(Optional - defaults to cycle start)</span>
+                {t('fields.startDate')} <span className="text-gray-500 text-xs">({t('fields.startDateOptional')})</span>
               </label>
               <DateBox
                 value={startDate}
@@ -432,7 +434,7 @@ export default function AddAssignmentPage() {
                     setStartDateError('');
                   }
                 }}
-                placeholderText="Select start date"
+                placeholderText={t('placeholders.selectStartDate')}
               />
               {startDateError && (
                 <span className="text-red-500 text-xs mt-1">{startDateError}</span>
@@ -440,7 +442,7 @@ export default function AddAssignmentPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                End Date <span className="text-gray-500 text-xs">(Optional - defaults to cycle end)</span>
+                {t('fields.endDate')} <span className="text-gray-500 text-xs">({t('fields.endDateOptional')})</span>
               </label>
               <DateBox
                 value={endDate}
@@ -450,7 +452,7 @@ export default function AddAssignmentPage() {
                     setEndDateError('');
                   }
                 }}
-                placeholderText="Select end date"
+                placeholderText={t('placeholders.selectEndDate')}
               />
               {endDateError && (
                 <span className="text-red-500 text-xs mt-1">{endDateError}</span>
@@ -462,10 +464,10 @@ export default function AddAssignmentPage() {
           {selectedBuildingId && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Units <span className="text-red-500">*</span>
+                {t('fields.selectUnits')} <span className="text-red-500">*</span>
                 {assignedFloors.size > 0 && (
                   <span className="text-gray-500 text-xs ml-2">
-                    ({assignedFloors.size} floor(s) already assigned and hidden)
+                    {t('fields.floorsAssigned', { count: assignedFloors.size })}
                   </span>
                 )}
               </label>
@@ -474,8 +476,8 @@ export default function AddAssignmentPage() {
                 <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
                   <p className="text-sm text-gray-600">
                     {assignedFloors.size > 0 
-                      ? 'All floors have been assigned for this cycle and service. Please select a different cycle or service.'
-                      : 'No floors available. Please make sure the building has units.'}
+                      ? t('messages.allFloorsAssigned')
+                      : t('messages.noFloorsAvailable')}
                   </p>
                 </div>
               ) : (
@@ -519,16 +521,16 @@ export default function AddAssignmentPage() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-sm text-gray-700">
-                                  Floor {floor}
+                                  {t('fields.floor', { floor })}
                                 </span>
                                 {floorUnits.length > 0 && (
                                   <span className="text-xs text-gray-500">
-                                    ({floorUnits.length} units)
+                                    {t('fields.unitsCount', { count: floorUnits.length })}
                                   </span>
                                 )}
                                 {someUnitsSelected && !allUnitsSelected && (
                                   <span className="text-xs text-blue-600">
-                                    ({floorUnits.filter(u => selectedUnitIds.has(u.id)).length} selected)
+                                    {t('fields.selectedCount', { count: floorUnits.filter(u => selectedUnitIds.has(u.id)).length })}
                                   </span>
                                 )}
                                 <button
@@ -544,14 +546,14 @@ export default function AddAssignmentPage() {
                                   }}
                                   className="ml-auto text-xs text-blue-600 hover:text-blue-800 underline"
                                 >
-                                  {isExpanded ? '▼ Hide' : '▶ Show'} units
+                                  {isExpanded ? t('actions.hideUnits') : t('actions.showUnits')}
                                 </button>
                               </div>
                               
                               {isExpanded && (
                                 <div className="mt-2 ml-6 space-y-1 border-l-2 border-gray-200 pl-3">
                                   {isLoading ? (
-                                    <div className="text-xs text-gray-500 italic">Loading units...</div>
+                                    <div className="text-xs text-gray-500 italic">{t('loadingUnits')}</div>
                                   ) : floorUnits.length > 0 ? (
                                     floorUnits.map((unit) => {
                                       const isUnitSelected = selectedUnitIds.has(unit.id);
@@ -581,7 +583,7 @@ export default function AddAssignmentPage() {
                                       );
                                     })
                                   ) : (
-                                    <div className="text-xs text-gray-400 italic">No units found</div>
+                                    <div className="text-xs text-gray-400 italic">{t('messages.noUnitsFound')}</div>
                                   )}
                                 </div>
                               )}
@@ -597,14 +599,14 @@ export default function AddAssignmentPage() {
               {selectedUnitIds.size > 0 && (
                 <div className="mt-2 flex items-center gap-2">
                   <span className="text-sm text-gray-600">
-                    Selected: {selectedUnitIds.size} unit(s)
+                    {t('fields.selectedUnits', { count: selectedUnitIds.size })}
                   </span>
                   <button
                     type="button"
                     onClick={() => setSelectedUnitIds(new Set())}
                     className="text-sm text-blue-600 hover:text-blue-800 underline"
                   >
-                    Clear all
+                    {t('actions.clearAll')}
                   </button>
                 </div>
               )}
@@ -614,12 +616,12 @@ export default function AddAssignmentPage() {
           {/* Note */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Note <span className="text-gray-500 text-xs">(Optional)</span>
+              {t('fields.note')} <span className="text-gray-500 text-xs">({t('fields.optional')})</span>
             </label>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Additional notes..."
+              placeholder={t('placeholders.additionalNotes')}
               rows={3}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
             />
@@ -632,14 +634,14 @@ export default function AddAssignmentPage() {
               onClick={handleCancel}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading || !selectedCycleId || !selectedServiceId || !assignedTo}
               className="px-6 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024428] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating...' : 'Create Assignment'}
+              {loading ? t('actions.creating') : t('actions.createAssignment')}
             </button>
           </div>
         </form>

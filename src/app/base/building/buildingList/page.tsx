@@ -91,7 +91,7 @@ export default function Home() {
       window.location.reload();
     } catch (e: any) {
       console.error('Error updating building status:', e);
-      const errorMessage = e?.response?.data?.message || e?.message || 'Cập nhật trạng thái tòa nhà thất bại';
+      const errorMessage = e?.response?.data?.message || e?.message || t('messages.updateStatusError');
       setImportError(errorMessage);
       setConfirmOpen(false);
     }
@@ -114,7 +114,7 @@ export default function Home() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setImportError(e?.response?.data?.message || 'Tải template thất bại');
+      setImportError(e?.response?.data?.message || t('messages.downloadTemplateError'));
     }
   };
 
@@ -128,7 +128,7 @@ export default function Home() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setImportError(e?.response?.data?.message || 'Xuất Excel thất bại');
+      setImportError(e?.response?.data?.message || t('messages.exportError'));
     }
   };
 
@@ -142,7 +142,7 @@ export default function Home() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setImportError(e?.response?.data?.message || 'Xuất Excel thất bại');
+      setImportError(e?.response?.data?.message || t('messages.exportError'));
     }
   };
 
@@ -162,7 +162,7 @@ export default function Home() {
       const res = await importBuildings(f);
       setImportResult(res);
     } catch (e: any) {
-      setImportError(e?.response?.data?.message || 'Import thất bại');
+      setImportError(e?.response?.data?.message || t('messages.importError'));
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -220,26 +220,26 @@ export default function Home() {
                   onClick={handleDownloadTemplate}
                   className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
                 >
-                  Tải template import tòa nhà
+                  {t('actions.downloadTemplate')}
                 </button>
                 <button
                   onClick={handlePickFile}
                   disabled={importing}
                   className="px-3 py-2 rounded bg-indigo-600 text-white disabled:opacity-50"
                 >
-                  {importing ? 'Đang import...' : 'Chọn file Excel để import'}
+                  {importing ? t('actions.importing') : t('actions.selectFileToImport')}
                 </button>
                 <button
                   onClick={handleExport}
                   className="px-3 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition"
                 >
-                  Xuất Excel (Tòa nhà)
+                  {t('actions.exportBuildings')}
                 </button>
                 <button
                   onClick={handleExportWithUnits}
                   className="px-3 py-2 rounded bg-teal-600 text-white hover:bg-teal-700 transition"
                 >
-                  Xuất Excel (Tòa + Căn hộ)
+                  {t('actions.exportBuildingsWithUnits')}
                 </button>
                 <input
                   ref={fileInputRef}
@@ -255,18 +255,22 @@ export default function Home() {
               {importResult && (
                 <div className="mb-4">
                   <div className="mb-2">
-                    Tổng dòng: {importResult.totalRows} | Thành công: {importResult.successCount} | Lỗi: {importResult.errorCount}
+                    {t('importResult.summary', { 
+                      totalRows: importResult.totalRows, 
+                      successCount: importResult.successCount, 
+                      errorCount: importResult.errorCount 
+                    })}
                   </div>
                   <div className="max-h-64 overflow-auto border rounded">
                     <table className="min-w-full">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="border px-2 py-1 text-left">Row</th>
-                          <th className="border px-2 py-1 text-left">Success</th>
-                          <th className="border px-2 py-1 text-left">Message</th>
-                          <th className="border px-2 py-1 text-left">BuildingId</th>
-                          <th className="border px-2 py-1 text-left">Code</th>
-                          <th className="border px-2 py-1 text-left">Name</th>
+                          <th className="border px-2 py-1 text-left">{t('importResult.row')}</th>
+                          <th className="border px-2 py-1 text-left">{t('importResult.success')}</th>
+                          <th className="border px-2 py-1 text-left">{t('importResult.message')}</th>
+                          <th className="border px-2 py-1 text-left">{t('importResult.buildingId')}</th>
+                          <th className="border px-2 py-1 text-left">{t('importResult.code')}</th>
+                          <th className="border px-2 py-1 text-left">{t('importResult.name')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -303,8 +307,8 @@ export default function Home() {
         isOpen={confirmOpen}
         onClose={handleCloseConfirm}
         onConfirm={handleConfirmChange}
-        popupTitle={t('confirmChangeStatusTitle') || 'Xác nhận thay đổi trạng thái'}
-        popupContext={selectedBuildingStatus === 'ACTIVE' ? (t('confirmDeactivateBuilding') || 'Bạn có chắc muốn vô hiệu hoá tòa nhà này?') : (t('confirmActivateBuilding') || 'Bạn có chắc muốn kích hoạt tòa nhà này?')}
+        popupTitle={t('confirmChangeStatusTitle')}
+        popupContext={selectedBuildingStatus === 'ACTIVE' ? t('confirmDeactivateBuilding') : t('confirmActivateBuilding')}
         isDanger={false}
       />
     </div>

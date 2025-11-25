@@ -54,7 +54,7 @@ export default function NewsDetail() {
     };
 
     const formatDate = (dateString?: string) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return t('notAvailable') || 'N/A';
         try {
             const date = new Date(dateString);
             return date.toLocaleDateString('vi-VN', {
@@ -137,8 +137,8 @@ export default function NewsDetail() {
                                     ? 'bg-yellow-100 text-yellow-800'
                                     : 'bg-gray-100 text-gray-800'
                             }`}>
-                                {news.status === 'PUBLISHED' ? 'Đã xuất bản' : 
-                                 news.status === 'DRAFT' ? 'Nháp' : 'Đã lưu trữ'}
+                                {news.status === 'PUBLISHED' ? t('publishedStatus') : 
+                                 news.status === 'DRAFT' ? t('draftStatus') : t('archivedStatus')}
                             </span>
                             <span>{t('publishDate')}: {formatDate(news.publishAt)}</span>
                             {news.expireAt && (
@@ -167,14 +167,14 @@ export default function NewsDetail() {
                     {/* Summary */}
                     {news.summary && (
                         <div className="mb-6">
-                            <h2 className="text-xl font-semibold text-[#02542D] mb-2">Tóm tắt</h2>
+                            <h2 className="text-xl font-semibold text-[#02542D] mb-2">{t('summaryLabel')}</h2>
                             <p className="text-gray-700 leading-relaxed">{news.summary}</p>
                         </div>
                     )}
 
                     {/* Body Content */}
                     <div className="mb-6">
-                        <h2 className="text-xl font-semibold text-[#02542D] mb-2">Nội dung</h2>
+                        <h2 className="text-xl font-semibold text-[#02542D] mb-2">{t('contentLabel')}</h2>
                         <div 
                             className="text-gray-700 leading-relaxed prose max-w-none"
                             dangerouslySetInnerHTML={{ __html: news.bodyHtml }}
@@ -195,7 +195,7 @@ export default function NewsDetail() {
                                             <div className="relative w-full aspect-video overflow-hidden rounded-lg">
                                                 <img
                                                     src={image.url}
-                                                    alt={image.caption || `Hình ảnh ${index + 1}`}
+                                                    alt={image.caption || `${t('images')} ${index + 1}`}
                                                     className="w-full h-full object-cover rounded-lg"
                                                     onError={(e) => {
                                                         (e.target as HTMLImageElement).style.display = 'none';
@@ -237,7 +237,7 @@ export default function NewsDetail() {
                                             ? `${building.name} (${building.code})`
                                             : news.targetBuildingId 
                                             ? `ID: ${news.targetBuildingId}`
-                                            : 'Tất cả tòa nhà'}
+                                            : t('allBuildingsText')}
                                     </span>
                                 </div>
                             )}

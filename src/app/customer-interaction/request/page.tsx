@@ -10,7 +10,7 @@ import Pagination from '@/src/components/customer-interaction/Pagination';
 
 export default function Home() {
   const t = useTranslations('customer-interaction.Request');
-  const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('dateCreated'), t('status'), 'Action'];
+  const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('dateCreated'), t('status'), t('action')];
 
   const {
       data,
@@ -113,10 +113,10 @@ export default function Home() {
     
     return [
         { title: t('totalRequests'), count: totalCount, status: '' },
-        { title: 'New', count: counts.New || 0, status: 'New' },
-        { title: 'Pending', count: counts.Pending || 0, status: 'Pending' },
-        { title: 'Processing', count: counts.Processing || 0, status: 'Processing' },
-        { title: 'Done', count: counts.Done || 0, status: 'Done' },
+        { title: t('New'), count: counts.New || 0, status: 'New' },
+        { title: t('Pending'), count: counts.Pending || 0, status: 'Pending' },
+        { title: t('Processing'), count: counts.Processing || 0, status: 'Processing' },
+        { title: t('Done'), count: counts.Done || 0, status: 'Done' },
     ];
   }, [statusCounts, t]);
   

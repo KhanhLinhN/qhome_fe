@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { getAllTenants, type Tenant } from '@/src/services/base';
 import CreateDeletionRequestModal from '@/src/components/tenant/CreateDeletionRequestModal';
@@ -8,6 +9,7 @@ import Delete from '@/src/assets/Delete.svg';
 
 export default function TenantsPage() {
   const { user, hasRole } = useAuth();
+  const t = useTranslations('AdminTenants');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,7 +35,7 @@ export default function TenantsPage() {
       setTenants(filteredData);
     } catch (error) {
       console.error('Failed to load tenants:', error);
-      alert('❌ Không thể tải danh sách tenants');
+      alert(t('error'));
     } finally {
       setLoading(false);
     }
@@ -65,10 +67,10 @@ export default function TenantsPage() {
               <path fill="#02542D" d="M10 2a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v2.6666666666666665h1.3333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v5.333333333333333a0.6666666666666666 0.6666666666666666 0 1 1 0 1.3333333333333333H2a0.6666666666666666 0.6666666666666666 0 1 1 0 -1.3333333333333333V6a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h1.3333333333333333V3.333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h4ZM4.666666666666666 6H3.333333333333333v6.666666666666666h1.3333333333333333V6Zm8 1.3333333333333333h-1.3333333333333333v5.333333333333333h1.3333333333333333v-5.333333333333333Zm-4 2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333V4.666666666666666Z" strokeWidth="0.6667"></path>
             </g>
           </svg>
-          Quản Lý Tenant
+          {t('title')}
         </h1>
         <p className="text-sm text-slate-600 mb-4">
-          Danh sách tất cả tenant trong hệ thống
+          {t('subtitle')}
         </p>
 
         {/* Search Bar */}
@@ -86,7 +88,7 @@ export default function TenantsPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm tenant theo tên hoặc mã..."
+              placeholder={t('search.placeholder')}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#02542D]"
             />
           </div>
@@ -97,7 +99,7 @@ export default function TenantsPage() {
           <div className="px-[41px] py-12 flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
-              <p className="text-gray-600">Đang tải...</p>
+              <p className="text-gray-600">{t('loading')}</p>
             </div>
           </div>
         )}
@@ -109,19 +111,19 @@ export default function TenantsPage() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                  Tenant
+                  {t('table.headers.tenant')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                  Mã
+                  {t('table.headers.code')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                  Địa chỉ
+                  {t('table.headers.address')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                  Trạng thái
+                  {t('table.headers.status')}
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">
-                  Hành động
+                  {t('table.headers.action')}
                 </th>
               </tr>
             </thead>
@@ -130,8 +132,8 @@ export default function TenantsPage() {
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                     {searchQuery 
-                      ? 'Không tìm thấy tenant nào'
-                      : '📭 Chưa có tenant nào'
+                      ? t('table.empty.noResults')
+                      : t('table.empty.noData')
                     }
                   </td>
                 </tr>
@@ -174,10 +176,10 @@ export default function TenantsPage() {
                         onClick={() => handleRequestDeletion(tenant)}
                         disabled={tenant.status !== 'ACTIVE'}
                         className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
-                        title={tenant.status !== 'ACTIVE' ? 'Chỉ có thể xóa tenant ACTIVE' : 'Yêu cầu xóa tenant'}
+                        title={tenant.status !== 'ACTIVE' ? t('actions.onlyActiveTooltip') : t('actions.requestDeletionTooltip')}
                       >
                         <Image src={Delete} alt="Delete" width={16} height={16} />
-                        Yêu cầu Xóa
+                        {t('actions.requestDeletion')}
                       </button>
                     </td>
                   </tr>
@@ -188,8 +190,8 @@ export default function TenantsPage() {
 
             {/* Footer Stats */}
             <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 text-sm text-slate-600">
-              Tổng cộng: <span className="font-medium">{filteredTenants.length}</span> tenant
-              {searchQuery && ` (đã lọc từ ${tenants.length} tenant)`}
+              {t('table.footer.total', { count: filteredTenants.length })}
+              {searchQuery && t('table.footer.filtered', { total: tenants.length })}
             </div>
           </div>
         )}
