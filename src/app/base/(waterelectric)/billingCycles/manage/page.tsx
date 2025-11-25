@@ -11,6 +11,7 @@ import {
   loadBillingPeriod,
   loadBuildingInvoices,
   exportBillingCycleToExcel,
+  getMissingServicesInCycle,
 } from '@/src/services/finance/billingCycleService';
 import { getAllServices, ServiceDto } from '@/src/services/base/waterService';
 import { getBuildings, Building } from '@/src/services/base/buildingService';
@@ -49,6 +50,8 @@ export default function BillingCycleManagePage() {
   const [selectedFloorFilter, setSelectedFloorFilter] = useState<number | null>(null);
   const [unitNamesMap, setUnitNamesMap] = useState<Record<string, Unit>>({});
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>('ALL');
+  const [missingServices, setMissingServices] = useState<string[]>([]);
+  const [loadingMissingServices, setLoadingMissingServices] = useState(false);
 
   useEffect(() => {
     loadCycles();
@@ -171,12 +174,13 @@ export default function BillingCycleManagePage() {
     }
   }, [filteredCycles, selectedCycle?.id]);
 
-  // Load building summaries khi cycle được chọn
+  // Load building summaries và missing services khi cycle được chọn
   useEffect(() => {
     if (!selectedCycle) {
       setBuildingSummaries([]);
       setSelectedBuildingId(null);
       setBuildingInvoices([]);
+      setMissingServices([]);
       return;
     }
 
@@ -196,7 +200,20 @@ export default function BillingCycleManagePage() {
       }
     };
 
+    const fetchMissingServices = async () => {
+      setLoadingMissingServices(true);
+      try {
+        const missing = await getMissingServicesInCycle(selectedCycle.id);
+        setMissingServices(missing);
+      } catch (error) {
+        console.error('Failed to load missing services', error);
+      } finally {
+        setLoadingMissingServices(false);
+      }
+    };
+
     fetchSummaries();
+    fetchMissingServices();
   }, [selectedCycle, show]);
 
   // Load invoices khi building được chọn
@@ -396,6 +413,29 @@ export default function BillingCycleManagePage() {
         </button>
       </div>
 
+      {filteredCycles.length > 0 && (
+        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <label className="block text-xs font-semibold text-gray-500 mb-2">Chọn Billing Cycle</label>
+          <select
+            value={selectedCycle?.id || ''}
+            onChange={(event) => {
+              const cycleId = event.target.value;
+              const cycle = filteredCycles.find(c => c.id === cycleId);
+              setSelectedCycle(cycle || null);
+            }}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
+          >
+            <option value="">-- Chọn cycle --</option>
+            {filteredCycles.map((cycle) => (
+              <option key={cycle.id} value={cycle.id}>
+                {cycle.name} ({new Date(cycle.periodFrom).toLocaleDateString()} - {new Date(cycle.periodTo).toLocaleDateString()})
+                {cycle.serviceCode && ` - ${cycle.serviceCode}`}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="grid grid-cols-5 gap-3">
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1">Dịch vụ</label>
@@ -477,10 +517,33 @@ export default function BillingCycleManagePage() {
       </div>
 
       {selectedCycle && (
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <div className="text-sm text-gray-600">
-            <span className="font-semibold">Chu kỳ hiện tại:</span>{' '}
-            {selectedCycle.name} ({new Date(selectedCycle.periodFrom).toLocaleDateString()} - {new Date(selectedCycle.periodTo).toLocaleDateString()})
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <div className="text-sm text-gray-600">
+              <span className="font-semibold">Chu kỳ hiện tại:</span>{' '}
+              {selectedCycle.name} ({new Date(selectedCycle.periodFrom).toLocaleDateString()} - {new Date(selectedCycle.periodTo).toLocaleDateString()})
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <div className="text-sm text-gray-600 mb-2">
+              <span className="font-semibold">Dịch vụ chưa có hóa đơn:</span>
+            </div>
+            {loadingMissingServices ? (
+              <div className="text-xs text-gray-500">Đang tải...</div>
+            ) : missingServices.length === 0 ? (
+              <div className="text-xs text-green-600 font-semibold">✓ Tất cả dịch vụ đã có hóa đơn</div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {missingServices.map((service) => (
+                  <span
+                    key={service}
+                    className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold"
+                  >
+                    {service}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
