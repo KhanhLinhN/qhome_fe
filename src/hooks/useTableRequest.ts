@@ -32,60 +32,69 @@ export const useRequests = (loadOnMount: boolean = true) => {
     const prevDateFromRef = useRef<string>('');
     const prevDateToRef = useRef<string>('');
 
-    const fetchData = useCallback(async (currentFilters: RequestFilters, currentPage: number) => {
+    // Calculate status counts from request list
+    const calculateStatusCounts = useCallback((requests: Request[]): StatusCounts => {
+        const counts: StatusCounts = {
+            New: 0,
+            Pending: 0,
+            Processing: 0,
+            Done: 0,
+            Cancelled: 0,
+            total: 0
+        };
+
+        requests.forEach(request => {
+            const status = request.status;
+            if (status === 'New') {
+                counts.New = (counts.New || 0) + 1;
+            } else if (status === 'Pending') {
+                counts.Pending = (counts.Pending || 0) + 1;
+            } else if (status === 'Processing') {
+                counts.Processing = (counts.Processing || 0) + 1;
+            } else if (status === 'Done') {
+                counts.Done = (counts.Done || 0) + 1;
+            } else if (status === 'Cancelled') {
+                counts.Cancelled = (counts.Cancelled || 0) + 1;
+            }
+        });
+
+        counts.total = requests.length;
+        return counts;
+    }, []);
+
+    const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
+            // Always get full data from backend - all filtering, pagination, counting will be done in frontend
+            const allRequests = await requestService.getAllRequests();
+            setAllRequestsList(allRequests);
+            
+            // Calculate counts from full data
+            const calculatedCounts = calculateStatusCounts(allRequests);
+            setStatusCounts(calculatedCounts);
+            
+            // Set data structure for compatibility (but pagination will be handled in page component)
             const PAGE_SIZE = 10;
-            
-            // Check if any backend filter is applied (status, dateFrom, dateTo)
-            // Note: search is filtered on frontend, so we don't include it here
-            const hasBackendFilters = currentFilters.status || currentFilters.dateFrom || currentFilters.dateTo;
-            
-            let listResponse: Page<Request>;
-            
-            if (hasBackendFilters) {
-                // Use filtered endpoint when backend filters are applied
-                const params: GetRequestsParams = {
-                    ...currentFilters,
-                    pageNo: currentPage,
-                };
-                // Remove search from params since it's filtered on frontend
-                delete params.search;
-                listResponse = await requestService.getRequestList(params);
-                // Clear allRequestsList when using filtered endpoint
-                setAllRequestsList(null);
-            } else {
-                // Use getAllRequests when no backend filters - store full list for frontend pagination
-                const allRequests = await requestService.getAllRequests();
-                setAllRequestsList(allRequests);
-                // Return full list in content, pagination will be handled in page component
-                listResponse = {
-                    content: allRequests,
-                    totalPages: Math.ceil(allRequests.length / PAGE_SIZE),
-                    totalElements: allRequests.length,
-                    size: PAGE_SIZE,
-                    number: currentPage
-                };
-            }
-
-            // Always fetch counts separately (counts endpoint doesn't have getAll, so use filters)
-            const countsResponse = await requestService.getRequestCounts(currentFilters);
-
-            setData(listResponse);
-            setStatusCounts(countsResponse);
+            setData({
+                content: allRequests,
+                totalPages: Math.ceil(allRequests.length / PAGE_SIZE),
+                totalElements: allRequests.length,
+                size: PAGE_SIZE,
+                number: 0
+            });
         } catch (err) {
             setError('Failed to fetch requests.');
             console.error(err);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [calculateStatusCounts]);
 
     useEffect(() => {
         if (loadOnMount) {
-            // Default: exclude "Done" status by setting status to empty string (which will be filtered on frontend if needed)
-            fetchData(defaultFilters, 0);
+            // Fetch full data once on mount - all filtering will be done in frontend
+            fetchData();
         }
     }, [fetchData, loadOnMount]);
 
@@ -96,47 +105,24 @@ export const useRequests = (loadOnMount: boolean = true) => {
         }));
     };
 
-    // Auto-filter when both dateFrom and dateTo are filled and changed
-    useEffect(() => {
-        const dateFromChanged = prevDateFromRef.current !== (filters.dateFrom || '');
-        const dateToChanged = prevDateToRef.current !== (filters.dateTo || '');
-        
-        // Only trigger if one of the dates changed and both are now filled
-        if ((dateFromChanged || dateToChanged) && filters.dateFrom && filters.dateTo) {
-            prevDateFromRef.current = filters.dateFrom;
-            prevDateToRef.current = filters.dateTo;
-            setPageNo(0);
-            fetchData(filters, 0);
-        } else {
-            // Update refs even if not triggering fetch
-            prevDateFromRef.current = filters.dateFrom || '';
-            prevDateToRef.current = filters.dateTo || '';
-        }
-    }, [filters.dateFrom, filters.dateTo, fetchData]);
-
+    // No need to refetch when filters change - all filtering is done in frontend
     const handleSearch = () => {
-        const newPageNo = 0;
-        setPageNo(newPageNo);
-        fetchData(filters, newPageNo);
+        setPageNo(0);
     };
 
     const handleClear = () => {
         setFilters(initialFilters);
         setPageNo(0);
-        fetchData(initialFilters, 0);
     };
 
     const handlePageChange = (newPage: number) => {
         setPageNo(newPage);
-        fetchData(filters, newPage);
     };
 
     const handleStatusChange = (status: string) => {
-        // If status is empty string, don't filter by status (for "All" tab)
-        const updatedFilters = { ...filters, status: status || '' };
-        setFilters(updatedFilters);
+        // Update filter state - filtering will be done in page component
+        setFilters(prevFilters => ({ ...prevFilters, status: status || '' }));
         setPageNo(0);
-        fetchData(updatedFilters, 0);
     };
 
     return {

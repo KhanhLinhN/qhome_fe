@@ -1,6 +1,6 @@
-import { ProcessLog } from "@/src/types/processLog";
 import { Request } from "@/src/types/request";
 import { LogUpdateData } from '@/src/components/customer-interaction/RequestLogUpdate';
+import { RequestService as MaintenanceRequestService } from './requestService';
 
 export interface BulkUpdateResponse {
   success: boolean;
@@ -8,41 +8,19 @@ export interface BulkUpdateResponse {
   updatedCount?: number;
 }
 
-interface RequestDetailsResponse {
-    request: Request;
-    logs: ProcessLog[];
-}
-
 export class RequestService {
-    async getRequestDetails(requestId? : string) : Promise<RequestDetailsResponse> {
+    private maintenanceRequestService = new MaintenanceRequestService();
+
+    async getRequestDetails(requestId? : string) : Promise<Request> {
+        if (!requestId) {
+            throw new Error('Request ID is required');
+        }
         
-        // Construct the full URL
-        const url = `${process.env.NEXT_PUBLIC_CUSTOMER_INTERACTION_API_URL}/requests/${requestId}`;
-        const progressLogUrl = `${process.env.NEXT_PUBLIC_CUSTOMER_INTERACTION_API_URL}/requests-logs/${requestId}`;
-
         try {
-            const [requestResponse, logsResponse] = await Promise.all([
-                fetch(url),
-                fetch(progressLogUrl)
-            ]);
-
-            if (!requestResponse.ok) {
-                 throw new Error(`HTTP error! status for request: ${requestResponse.status}`);
-            }
-            if (!logsResponse.ok) {
-                throw new Error(`HTTP error! status for logs: ${logsResponse.status}`);
-            }
-
-            const requestResult: Request = await requestResponse.json();
-            const logsResult: ProcessLog[] = await logsResponse.json();
-
-             return {
-                request: requestResult,
-                logs: logsResult
-            };
-
+            const request = await this.maintenanceRequestService.getRequestDetails(requestId);
+            return request;
         } catch (error) {
-            console.error('An error occurred while fetching requests:', error);
+            console.error('An error occurred while fetching request details:', error);
             throw error;
         }
     }

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import Select from './Select';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
-import DateBox from './DateBox';
 
 export interface LogUpdateData {
     requestStatus: string;
@@ -14,7 +13,7 @@ export interface LogUpdateData {
 interface RequestStatusAndResponseProps {
     initialStatusValue: string;
     onSave: (data: LogUpdateData) => void;
-    onAcceptDeny?: (action: string, fee: number | null, repairedDate: string | null, note: string) => Promise<void>;
+    onAcceptDeny?: (action: string, adminResponse: string | null, fee: number | null, note: string) => Promise<void>;
     unactive: boolean;
     isSubmitting: boolean;
 }
@@ -27,7 +26,7 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
     const [repairCost, setRepairCost] = useState<string>('');
     const [note, setNote] = useState('');
     const [action, setAction] = useState<'accept' | 'deny'>('accept'); // For New status
-    const [repairedDate, setRepairedDate] = useState<string>('');
+    const [adminResponse, setAdminResponse] = useState<string>('');
     const [acceptFee, setAcceptFee] = useState<string>('');
     const [denyNote, setDenyNote] = useState('');
 
@@ -57,7 +56,7 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
         setRepairCost('');
         setNote('');
         setAcceptFee('');
-        setRepairedDate('');
+        setAdminResponse('');
         setDenyNote('');
         setAction('accept');
     };
@@ -107,6 +106,18 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                     <>
                         <div className="mb-4">
                             <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                {t('adminResponse') || 'Mô tả vấn đề hỏng hóc'}
+                            </h3>
+                            <textarea
+                                rows={5}
+                                value={adminResponse}
+                                onChange={(e) => setAdminResponse(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                                placeholder={t('adminResponsePlaceholder') || 'Nhập mô tả vấn đề hỏng hóc...'}
+                            ></textarea>
+                        </div>
+                        <div className="mb-4">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">
                                 {t('fee')}
                             </h3>
                             <input
@@ -117,17 +128,6 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                                 onChange={(e) => setAcceptFee(e.target.value)}
                                 className="w-full p-3 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
                                 placeholder={t('enterFee')}
-                            />
-                        </div>
-                        <div className="mb-4">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                                {t('repairedDate')}
-                            </h3>
-                            <DateBox
-                                value={repairedDate}
-                                onChange={(e) => setRepairedDate(e.target.value)}
-                                placeholderText={t('selectRepairedDate')}
-                                min={new Date().toISOString().split('T')[0]} // Set min date to today
                             />
                         </div>
                         <div className="mb-4">
@@ -163,7 +163,7 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                         onClick={() => {
                             setAction('accept');
                             setAcceptFee('');
-                            setRepairedDate('');
+                            setAdminResponse('');
                             setNote('');
                             setDenyNote('');
                         }}
@@ -176,7 +176,7 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                         onClick={async () => {
                             if (action === 'accept') {
                                 // Validate all required fields
-                                if (!acceptFee.trim() || !repairedDate.trim() || !note.trim()) {
+                                if (!adminResponse.trim() || !acceptFee.trim() || !note.trim()) {
                                     alert(t('allFieldsRequired'));
                                     return;
                                 }
@@ -188,26 +188,22 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                                     return;
                                 }
                                 
-                                // Validate date is >= today
-                                const selectedDate = new Date(repairedDate.trim());
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0); // Reset time to compare dates only
-                                
-                                if (selectedDate < today) {
-                                    alert(t('dateMustBeTodayOrLater') || 'Ngày sửa chữa phải lớn hơn hoặc bằng ngày hôm nay');
+                                // Validate adminResponse is not empty
+                                if (!adminResponse.trim()) {
+                                    alert(t('adminResponseRequired'));
                                     return;
                                 }
                                 
                                 // Validate note is not empty
                                 if (!note.trim()) {
-                                    alert(t('noteRequired') || 'Ghi chú là bắt buộc');
+                                    alert(t('noteRequired'));
                                     return;
                                 }
                                 
                                 try {
-                                    await onAcceptDeny('accept', fee, repairedDate.trim(), note.trim());
+                                    await onAcceptDeny('accept', adminResponse.trim(), fee, note.trim());
                                     setAcceptFee('');
-                                    setRepairedDate('');
+                                    setAdminResponse('');
                                     setNote('');
                                 } catch (error) {
                                     console.error('Accept failed:', error);
@@ -227,7 +223,7 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                                 }
                             }
                         }}
-                        disabled={isSubmitting || (action === 'accept' ? (!acceptFee.trim() || !repairedDate.trim() || !note.trim()) : !denyNote.trim())}
+                        disabled={isSubmitting || (action === 'accept' ? (!adminResponse.trim() || !acceptFee.trim() || !note.trim()) : !denyNote.trim())}
                         className={`px-4 py-2 text-white rounded-lg transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${
                             action === 'accept'
                                 ? 'bg-green-600 hover:bg-green-700'
@@ -242,9 +238,9 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
     }
 
     // For other statuses, show normal response form
-    return (
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div>
+    // return (
+    //     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            {/* <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">{t('response')}</h3>
                 <textarea
                     rows={5}
@@ -276,9 +272,9 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                 >
                     {t('save')}
                 </button>
-            </div>
-        </div>
-    );
+            </div> */}
+    //     </div>
+    // );
 };
 
 export default RequestLogUpdate;
