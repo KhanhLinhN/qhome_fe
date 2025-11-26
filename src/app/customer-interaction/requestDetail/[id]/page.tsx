@@ -1,13 +1,11 @@
 'use client'
 import {useTranslations} from 'next-intl';
 import RequestInfoAndContext from '@/src/components/customer-interaction/RequestInfo';
-import ProcessLog from '@/src/components/customer-interaction/ProcessLog';
 import RequestLogUpdate from '@/src/components/customer-interaction/RequestLogUpdate';
 import Arrow from '@/src/assets/Arrow.svg';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { useRequestDetails } from '@/src/hooks/useRequestDetails'; 
-import { LogUpdateData } from '@/src/components/customer-interaction/RequestLogUpdate'; // Import type
 
 
 export default function RequestDetailPage() {
@@ -16,25 +14,12 @@ export default function RequestDetailPage() {
     const params = useParams();
 
     const requestId = params.id
-    const { requestData, logData, loading, error, addLog, updateFee, acceptOrDenyRequest, isSubmitting } = useRequestDetails(requestId);
-    const isUnactive = requestData?.status === 'Done' || requestData?.status === 'Pending';
+    const { requestData, loading, error, acceptOrDenyRequest, isSubmitting } = useRequestDetails(requestId);
+    const isUnactive = requestData?.status === 'Done' || requestData?.status === 'Cancelled';
 
     const handleBack = () => {
         router.back(); // Navigate to the previous page
     }
-
-    const handleSaveLog = async (data: LogUpdateData) => {
-        try {
-            // If repairCost is provided, update fee first
-            if (data.repairCost !== undefined && data.repairCost !== null) {
-                await updateFee(data.repairCost);
-            }
-            // Then create the log
-            await addLog(data);
-        } catch (err) {
-          console.error("Save failed:", err);
-        }
-    };
 
     if (loading) {
         return <div className="flex justify-center items-center h-screen">{t('loading')}</div>;
@@ -61,30 +46,22 @@ export default function RequestDetailPage() {
             {t('requestDetails')}
         </div>
         <div className="flex-grow min-h-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-            <div className="lg:col-span-1 space-y-6">
-              <RequestInfoAndContext
-                value={requestData}
-                contextTitle={t('contextTitle')}
-                contextContextTitle={t('contextContextTitle')}
-                contextImageTitle={t('contextImageTitle')}
-              ></RequestInfoAndContext>
-            </div>
-            <div className="lg:col-span-1 space-y-6">
-              <ProcessLog 
-                logData={logData}
-                title={t('requestLog')}
-              ></ProcessLog>
-              {!isUnactive && (
-                <RequestLogUpdate
-                  initialStatusValue={requestData.status ?? 'Processing'}
-                  onSave={handleSaveLog}
-                  onAcceptDeny={acceptOrDenyRequest}
-                  unactive={false}
-                  isSubmitting={isSubmitting}
-                />
-              )}
-            </div>
+          <div className="max-w-4xl mx-auto space-y-6">
+            <RequestInfoAndContext
+              value={requestData}
+              contextTitle={t('contextTitle')}
+              contextContextTitle={t('contextContextTitle')}
+              contextImageTitle={t('contextImageTitle')}
+            ></RequestInfoAndContext>
+            {!isUnactive && (
+              <RequestLogUpdate
+                initialStatusValue={requestData.status ?? 'New'}
+                onSave={async () => {}}
+                onAcceptDeny={acceptOrDenyRequest}
+                unactive={false}
+                isSubmitting={isSubmitting}
+              />
+            )}
           </div>
         </div>
       </div>

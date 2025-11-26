@@ -567,6 +567,9 @@
       "deny": "Deny",
       "fee": "Fee",
       "enterFee": "Enter fee",
+      "adminResponse": "Problem Description",
+      "adminResponsePlaceholder": "Enter problem description...",
+      "adminResponseRequired": "Problem description is required",
       "repairedDate": "Repair Date",
       "selectRepairedDate": "Select repair date",
       "enterNote": "Enter note",
@@ -585,7 +588,13 @@
       "Pending": "Pending",
       "Processing": "Processing",
       "Done": "Done",
-      "back": "Back"
+      "back": "Back",
+      "unitCode": "Unit Code",
+      "unitName": "Unit Name",
+      "contactPhone": "Contact Phone",
+      "location": "Location",
+      "preferredDatetime": "Preferred Date/Time",
+      "Cancel": "Cancel"
     }
   },
   "Dashboard":{
