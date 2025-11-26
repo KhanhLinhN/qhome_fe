@@ -243,3 +243,39 @@ export async function getEmployees(
   console.log('Available staff:', response.data);
   return response.data;
 }
+
+/**
+ * Employee DTO từ backend
+ */
+export interface EmployeeDto {
+  userId: string;
+  username: string;
+  fullName?: string;
+  email: string;
+  phoneNumber?: string;
+  department?: string;
+  position?: string;
+  tenantId?: string;
+  tenantName?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  permissionStatus?: string;
+  grantedOverrides?: number;
+  deniedOverrides?: number;
+  totalOverrides?: number;
+  hasTemporaryPermissions?: boolean;
+  lastPermissionChange?: string;
+}
+
+/**
+ * Lấy chi tiết employee theo userId (từ EmployeeManagementController)
+ * GET /api/employees/{userId}
+ */
+export async function getEmployeeDetailsById(userId: string): Promise<EmployeeDto> {
+  const response = await axios.get(
+    `${IAM_URL}/api/employees/${userId}`,
+    { withCredentials: true }
+  );
+  return response.data;
+}

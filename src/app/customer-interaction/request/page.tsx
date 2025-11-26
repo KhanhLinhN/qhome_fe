@@ -3,14 +3,18 @@ import {useTranslations} from 'next-intl';
 import FilterForm from "../../../components/customer-interaction/FilterForm";
 import Table from "../../../components/customer-interaction/Table";
 import StatusTabs from "@/src/components/customer-interaction/StatusTabs";
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRequests } from '@/src/hooks/useTableRequest';
 import Pagination from '@/src/components/customer-interaction/Pagination';
+import { getUnit } from '@/src/services/base/unitService';
+import axios from '@/src/lib/axios';
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
 
 export default function Home() {
   const t = useTranslations('customer-interaction.Request');
-  const headers = [t('requestNumber'), t('requestTitle'), t('residentName'), t('dateCreated'), t('status'), t('action')];
+  const headers = [t('unitCode') || 'Mã căn hộ', t('requestTitle'), t('residentName'), t('dateCreated'), t('status'), t('action')];
 
   const {
       data,
@@ -29,6 +33,7 @@ export default function Home() {
 
   const [activeStatus, setActiveStatus] = useState<string>('');
   const PAGE_SIZE = 10;
+  const [unitResidentMap, setUnitResidentMap] = useState<Map<string, { unitCode: string; residentName: string }>>(new Map());
 
   // Override handleClear to also reset activeStatus
   const handleClearWithStatus = () => {
@@ -36,28 +41,120 @@ export default function Home() {
     handleClear();
   };
 
-  // Filter data first, then sort, then paginate if using allRequestsList
+  // Fetch unit and resident info for all requests
+  useEffect(() => {
+    const fetchUnitAndResidentInfo = async () => {
+      if (!allRequestsList || allRequestsList.length === 0) return;
+
+      const newMap = new Map<string, { unitCode: string; residentName: string }>();
+      const uniqueUnitIds = new Set<string>();
+      const uniqueResidentIds = new Set<string>();
+
+      // Collect unique IDs
+      allRequestsList.forEach(item => {
+        if (item.unitId) uniqueUnitIds.add(item.unitId);
+        if (item.residentId) uniqueResidentIds.add(item.residentId);
+      });
+
+      // Fetch all units
+      const unitPromises = Array.from(uniqueUnitIds).map(async (unitId) => {
+        try {
+          const unit = await getUnit(unitId);
+          return { unitId, unitCode: unit.code || unit.name || 'N/A' };
+        } catch (err) {
+          console.error(`Failed to load unit ${unitId}:`, err);
+          return { unitId, unitCode: 'N/A' };
+        }
+      });
+
+      // Fetch all residents
+      const residentPromises = Array.from(uniqueResidentIds).map(async (residentId) => {
+        try {
+          const response = await axios.get(`${BASE_URL}/api/residents/${residentId}`, {
+            withCredentials: true
+          });
+          return { residentId, residentName: response.data.fullName || 'N/A' };
+        } catch (err) {
+          console.error(`Failed to load resident ${residentId}:`, err);
+          return { residentId, residentName: 'N/A' };
+        }
+      });
+
+      const [unitResults, residentResults] = await Promise.all([
+        Promise.all(unitPromises),
+        Promise.all(residentPromises)
+      ]);
+
+      // Create maps for quick lookup
+      const unitMap = new Map(unitResults.map(r => [r.unitId, r.unitCode]));
+      const residentMap = new Map(residentResults.map(r => [r.residentId, r.residentName]));
+
+      // Build combined map - use request id as key for unique mapping
+      allRequestsList.forEach(item => {
+        newMap.set(item.id, {
+          unitCode: item.unitId ? (unitMap.get(item.unitId) || 'N/A') : 'N/A',
+          residentName: item.residentId ? (residentMap.get(item.residentId) || item.residentName || 'N/A') : (item.residentName || 'N/A')
+        });
+      });
+
+      setUnitResidentMap(newMap);
+    };
+
+    fetchUnitAndResidentInfo();
+  }, [allRequestsList]);
+
+  // Filter data first, then sort, then paginate - all done in frontend
   const { filteredTableData, filteredTotalPages } = useMemo(() => {
-    // Use full list if available (when getAllRequests was used), otherwise use data.content (when backend filter was used)
-    const sourceData = allRequestsList || data?.content || [];
+    // Always use allRequestsList - all filtering is done in frontend
+    const sourceData = allRequestsList || [];
+    
+    if (sourceData.length === 0) {
+      return {
+        filteredTableData: [],
+        filteredTotalPages: 1
+      };
+    }
     
     let filtered = [...sourceData];
     
-    // Only filter Done when using allRequestsList (frontend pagination)
-    // When backend filter is used, backend already handles status filtering
-    if (activeStatus === '' && allRequestsList) {
-      // Filter Done when showing "All" tab with full list
-      filtered = filtered.filter(item => item.status !== 'Done');
+    // Filter by status
+    if (activeStatus === '') {
+      // Filter Done and Cancelled when showing "All" tab
+      filtered = filtered.filter(item => item.status !== 'Done' && item.status !== 'Cancelled');
+    } else if (activeStatus === 'New') {
+      // Show both New and Pending for "New" tab
+      filtered = filtered.filter(item => item.status === 'New' || item.status === 'Pending');
+    } else {
+      // Filter by specific status
+      filtered = filtered.filter(item => item.status === activeStatus);
     }
-    // Note: When backend filter is used and activeStatus === '', backend still returns all including Done
-    // We need to filter Done in this case too, but it will affect pagination
     
-    // Apply search filter if search term exists (frontend filtering)
+    // Filter by date range (dateFrom and dateTo)
+    if (filters.dateFrom) {
+      const dateFrom = new Date(filters.dateFrom);
+      dateFrom.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(item => {
+        const itemDate = new Date(item.createdAt);
+        itemDate.setHours(0, 0, 0, 0);
+        return itemDate >= dateFrom;
+      });
+    }
+    
+    if (filters.dateTo) {
+      const dateTo = new Date(filters.dateTo);
+      dateTo.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(item => {
+        const itemDate = new Date(item.createdAt);
+        return itemDate <= dateTo;
+      });
+    }
+    
+    // Apply search filter if search term exists
     if (filters.search && filters.search.trim() !== '') {
       const searchTerm = filters.search.toLowerCase().trim();
       filtered = filtered.filter(item => 
         (item.title?.toLowerCase().includes(searchTerm) || 
-         item.requestCode?.toLowerCase().includes(searchTerm))
+         item.id?.toLowerCase().includes(searchTerm))
       );
     }
     
@@ -68,47 +165,42 @@ export default function Home() {
       return dateB - dateA; // Descending order (newest first)
     });
     
-    // Only paginate if using allRequestsList (frontend pagination)
-    if (allRequestsList) {
-      const totalFiltered = filtered.length;
-      const totalPagesAfterFilter = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
-      const startIndex = pageNo * PAGE_SIZE;
-      const endIndex = startIndex + PAGE_SIZE;
-      const paginatedData = filtered.slice(startIndex, endIndex);
+    // Paginate
+    const totalFiltered = filtered.length;
+    const totalPagesAfterFilter = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+    const startIndex = pageNo * PAGE_SIZE;
+    const endIndex = startIndex + PAGE_SIZE;
+    const paginatedData = filtered.slice(startIndex, endIndex);
+    
+    return {
+      filteredTableData: paginatedData,
+      filteredTotalPages: totalPagesAfterFilter
+    };
+  }, [allRequestsList, activeStatus, filters.search, filters.dateFrom, filters.dateTo, pageNo]);
+
+  const tableData = useMemo(() => {
+    return filteredTableData.map(item => {
+      const info = unitResidentMap.get(item.id) || { unitCode: 'Loading...', residentName: item.residentName || 'N/A' };
       
       return {
-        filteredTableData: paginatedData,
-        filteredTotalPages: totalPagesAfterFilter
+        id: item.id,
+        unitCode: info.unitCode,
+        residentName: info.residentName,
+        title: item.title,
+        status: item.status,
+        createdAt: item.createdAt.slice(0, 10).replace(/-/g, '/'), // Format to YYYY/MM/DD
       };
-    } else {
-      // When backend pagination, filter Done if needed (but this affects current page only)
-      if (activeStatus === '') {
-        filtered = filtered.filter(item => item.status !== 'Done');
-      }
-      return {
-        filteredTableData: filtered,
-        filteredTotalPages: totalPages
-      };
-    }
-  }, [allRequestsList, data?.content, activeStatus, filters.search, pageNo, totalPages]);
+    });
+  }, [filteredTableData, unitResidentMap]);
 
-  const tableData = filteredTableData.map(item => ({
-      id: item.id,
-      requestCode: item.requestCode,
-      residentName: item.residentName,
-      title: item.title,
-      status: item.status,
-      createdAt: item.createdAt.slice(0, 10).replace(/-/g, '/'), // Format to YYYY/MM/DD
-  }));
-
-  // Use filtered totalPages when using allRequestsList (frontend pagination), otherwise use backend totalPages
-  const displayTotalPages = allRequestsList ? filteredTotalPages : Math.max(totalPages, 1);
+  // Use filtered totalPages (always frontend pagination now)
+  const displayTotalPages = filteredTotalPages;
   
   const tabData = useMemo(() => {
     const counts = statusCounts || {}; 
     
-    // Calculate total manually to ensure it includes New, Pending, Processing, and Done
-    const calculatedTotal = (counts.New || 0) + (counts.Pending || 0) + (counts.Processing || 0) + (counts.Done || 0);
+    // Calculate total manually to ensure it includes New, Pending, Processing, Done, and Cancelled
+    const calculatedTotal = (counts.New || 0) + (counts.Pending || 0) + (counts.Processing || 0) + (counts.Done || 0) + (counts.Cancelled || 0);
     const totalCount = counts.total || calculatedTotal;
     
     return [
@@ -117,6 +209,7 @@ export default function Home() {
         { title: t('Pending'), count: counts.Pending || 0, status: 'Pending' },
         { title: t('Processing'), count: counts.Processing || 0, status: 'Processing' },
         { title: t('Done'), count: counts.Done || 0, status: 'Done' },
+        { title: t('Cancel'), count: counts.Cancelled || 0, status: 'Cancelled' },
     ];
   }, [statusCounts, t]);
   

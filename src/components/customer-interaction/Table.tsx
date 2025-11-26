@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 interface TableItemProps {
     id?: string;
-    requestCode?: string;
+    unitCode?: string;
     residentName?: string;
     title?: string;
     status?: string;
@@ -37,7 +37,7 @@ const Table = ({ data, headers }: TableProps) => {
                             <th
                                 key={index}
                                 className={`px-4 py-3 text-[14px] font-bold text-[#024023] uppercase tracking-wider ${header === t('requestTitle') || header === t('residentName') || header === t('assignee') ? 'text-left' : 'text-center'} whitespace-nowrap`}
-                                style={{ width: header === t('requestNumber') || header === t('status') ? '5%' : 'auto' }}
+                                style={{ width: header === (t('unitCode') || 'Mã căn hộ') || header === t('status') ? '5%' : 'auto' }}
                             >
                                 {header}
                             </th>
@@ -81,9 +81,7 @@ const Table = ({ data, headers }: TableProps) => {
                                 </td> */}
 
                                 <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold text-center">
-                                    <Link href={`/customer-interaction/requestDetail/${item.id}`} className="text-green-600 hover:underline">
-                                        {item.requestCode}
-                                    </Link>
+                                    {item.unitCode || 'N/A'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-[14px] text-[#024023] font-semibold truncate">{item.title}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-[14px] font-semibold text-[#024023]">{item.residentName}</td>

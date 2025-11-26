@@ -176,3 +176,22 @@ export async function exportBillingCycleToExcel(
   return response.data as Blob;
 }
 
+export async function getMissingServicesInCycle(
+  cycleId: string,
+  serviceCode?: string
+): Promise<string[]> {
+  const params: Record<string, string> = {};
+  if (serviceCode) {
+    params.serviceCode = serviceCode;
+  }
+  
+  const response = await axios.get(
+    `${BASE_URL}/api/invoices/cycle/${cycleId}/missing-services`,
+    {
+      params,
+      withCredentials: true,
+    }
+  );
+  return response.data as string[];
+}
+

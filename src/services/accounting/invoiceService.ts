@@ -7,12 +7,11 @@ const BASE = "/api";
 
 export const InvoiceApi = {
   list(params: {
-    tenantId: string; billingCycleId: string;
+    billingCycleId: string;
     buildingIds?: string[]; status?: "PUBLISHED";
     page?: number; size?: number; sort?: string;
   }) {
     const q = new URLSearchParams({
-      tenantId: params.tenantId,
       billingCycleId: params.billingCycleId,
       ...(params.buildingIds?.length ? { buildingIds: params.buildingIds.join(",") } : {}),
       ...(params.status ? { status: params.status } : {}),
