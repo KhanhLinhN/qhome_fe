@@ -200,11 +200,12 @@ export default function CCCDUpload({ onExtract, disabled = false }: CCCDUploadPr
       {preview && !isProcessing && (
         <div className="mt-3">
           <p className="mb-2 text-xs text-slate-600">Ảnh đã chọn:</p>
-          <div className="relative max-h-48 overflow-hidden rounded-lg border border-slate-200">
+          <div className="relative mx-auto max-h-64 max-w-md overflow-hidden rounded-lg border border-slate-200 bg-white">
             <img
               src={preview}
               alt="CCCD preview"
-              className="h-full w-full object-contain"
+              className="h-auto w-full object-contain"
+              style={{ maxHeight: '256px' }}
             />
           </div>
         </div>
