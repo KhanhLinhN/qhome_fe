@@ -186,7 +186,7 @@ export default function NewsAdd() {
                         // Check if date is valid
                         if (isNaN(publishDate.getTime())) {
                             newErrors.publishAt = t('publishAtInvalid') || 'Ngày xuất bản không hợp lệ';
-                        } else if (publishDate <= today) {
+                        } else if (publishDate < today) {
                             newErrors.publishAt = t('publishAtMustBeFuture') || 'Ngày xuất bản phải lớn hơn ngày hôm nay';
                 } else {
                     // Validate publishAt < expireAt
@@ -274,7 +274,7 @@ export default function NewsAdd() {
                 // Check if date is valid
                 if (isNaN(publishDate.getTime())) {
                     newErrors.publishAt = t('publishAtInvalid') || 'Ngày xuất bản không hợp lệ';
-                } else if (publishDate <= today) {
+                } else if (publishDate < today) {
                     newErrors.publishAt = t('publishAtMustBeFuture') || 'Ngày xuất bản phải lớn hơn ngày hôm nay';
                 }
             } catch (err) {

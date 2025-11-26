@@ -627,6 +627,9 @@
       "deny": "Từ chối",
       "fee": "Phí sửa chữa",
       "enterFee": "Nhập phí sửa chữa",
+      "adminResponse": "Mô tả vấn đề hỏng hóc",
+      "adminResponsePlaceholder": "Nhập mô tả vấn đề hỏng hóc...",
+      "adminResponseRequired": "Mô tả vấn đề hỏng hóc là bắt buộc",
       "repairedDate": "Ngày sửa chữa",
       "selectRepairedDate": "Chọn ngày sửa chữa",
       "enterNote": "Nhập ghi chú",
@@ -645,7 +648,13 @@
       "Pending": "Đang chờ",
       "Processing": "Đang xử lý",
       "Done": "Hoàn thành",
-      "back": "Quay lại"
+      "back": "Quay lại",
+      "unitCode": "Mã căn hộ",
+      "unitName": "Tên căn hộ",
+      "contactPhone": "Số điện thoại liên hệ",
+      "location": "Vị trí",
+      "preferredDatetime": "Thời gian mong muốn",
+      "Cancel": "Hủy"
     }
   },
   "Dashboard": {
