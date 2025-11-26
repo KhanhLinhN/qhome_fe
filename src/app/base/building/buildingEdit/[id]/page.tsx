@@ -335,11 +335,11 @@ export default function BuildingEdit() {
                 payload.numberOfFloors = formData.numberOfFloors;
             }
             await editBuilding(buildingId, payload);
-            show(t('messages.updateSuccess'), 'success');
+            show('Cập nhật tòa nhà thành công!', 'success');
             router.push(`/base/building/buildingDetail/${buildingId}`);
         } catch (submitError) {
             console.error('Lỗi khi cập nhật:', submitError);
-            show(t('messages.updateError'), 'error');
+            show('Có lỗi xảy ra khi cập nhật tòa nhà!', 'error');
         }
     };
 
