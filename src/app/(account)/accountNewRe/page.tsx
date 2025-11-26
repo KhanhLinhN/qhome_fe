@@ -29,6 +29,8 @@ import { getBuildings, type Building } from '@/src/services/base/buildingService
 import { checkEmailExists } from '@/src/services/iam/userService';
 import Select from '@/src/components/customer-interaction/Select';
 import DateBox from '@/src/components/customer-interaction/DateBox';
+import CCCDUpload from '@/src/components/account/CCCDUpload';
+import { CCCDInfo } from '@/src/utils/cccdOCR';
 
 type ManualFormState = {
   householdId: string;
@@ -354,6 +356,39 @@ export default function AccountNewResidentPage() {
         return next;
       });
     };
+
+  const handleCCCDExtract = (info: CCCDInfo) => {
+    // Auto-fill form fields from OCR results
+    if (info.fullName) {
+      setManualForm((prev) => ({ ...prev, fullName: info.fullName! }));
+      setManualFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.fullName;
+        return next;
+      });
+    }
+    
+    if (info.nationalId) {
+      setManualForm((prev) => ({ ...prev, nationalId: info.nationalId! }));
+      setManualFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.nationalId;
+        return next;
+      });
+    }
+    
+    if (info.dob) {
+      setManualForm((prev) => ({ ...prev, dob: info.dob! }));
+      setManualFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.dob;
+        return next;
+      });
+    }
+    
+    // Show success message
+    setManualSuccess('Đã đọc thông tin từ ảnh CCCD. Vui lòng kiểm tra và điền các thông tin còn thiếu.');
+  };
 
   const resetManualMessages = () => {
     setManualError(null);
@@ -1013,6 +1048,11 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   </div>
                 </div>
               )}
+
+              <CCCDUpload
+                onExtract={handleCCCDExtract}
+                disabled={manualSubmitting}
+              />
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
