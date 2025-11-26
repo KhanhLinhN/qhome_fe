@@ -75,15 +75,21 @@ export class RequestService {
     }
 
     async getAllRequests(): Promise<Request[]> {
-        const url = `${this.getBaseUrl()}/api/maintenance-requests/all`;
+        const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
+        const url = `${BASE_URL}/api/maintenance-requests/all`;
         console.log('Get all requests URL:', url);
 
         try {
-            const response = await axios.get(url, {
-                withCredentials: true
+            const token = localStorage.getItem('accessToken');
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
             });
 
-            const result: any[] = response.data;
+            const result: any[] = await response.json();
             console.log('Fetched all requests:', result);
             return result.map(mr => this.mapMaintenanceRequestToRequest(mr));
 

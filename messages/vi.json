@@ -118,6 +118,7 @@
   "support": "Cần trợ giúp?"
   },
   "Sidebar": {
+    "trelloBoard": "Trello Board",
     "overview": "Tổng quan",
     "dashboard": "Dashboard",
     "systemAdmin": "Quản trị hệ thống",
@@ -562,6 +563,8 @@
   }
   },
   "customer-interaction": {
+  "trelloBoard": "Trello Board",
+  "trelloBoardDescription": "Bảng Kanban để quản lý các yêu cầu bảo trì.",
   "Request": {
     "requestlist": "Danh sách yêu cầu",
     "requestNumber": "Mã yêu cầu",

@@ -95,6 +95,7 @@ const adminSections: NavSection[] = [
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
       {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
+      {href: "/customer-interaction/trello-board", labelKey: "trelloBoard", icon: "📋"},
       // {href: "/customer-interaction/requestTicket", labelKey: "tickets", icon: "🎫"},
     ],
   },

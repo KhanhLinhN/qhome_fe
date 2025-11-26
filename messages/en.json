@@ -113,6 +113,7 @@
   },
   "Common": { "language": "Language", "support": "Need help?" },
   "Sidebar": {
+    "trelloBoard": "Trello Board",
     "overview": "Overview",
     "dashboard": "Dashboard",
     "systemAdmin": "System Administration",
@@ -501,7 +502,10 @@
     "messages": { "created": "Invoice created", "updated": "Invoice updated", "cancelled": "Invoice cancelled" },
     "common": { "save": "Save", "cancel": "Cancel", "close": "Close" }
   },
+
   "customer-interaction": {
+    "trelloBoard": "Trello Board",
+    "trelloBoardDescription": "Kanban board for managing maintenance requests.",
     "Request":{
       "requestlist": "Request List",
       "requestNumber": "Request No.",
