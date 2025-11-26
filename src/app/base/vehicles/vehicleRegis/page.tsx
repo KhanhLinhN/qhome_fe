@@ -105,7 +105,7 @@ export default function VehicleRegistrationPage() {
       const message =
         err?.response?.data?.message ??
         err?.message ??
-        t('errors.loadRegistrationsFailed');
+        'Failed to load vehicle registrations';
       setError(message);
     } finally {
       setLoading(false);

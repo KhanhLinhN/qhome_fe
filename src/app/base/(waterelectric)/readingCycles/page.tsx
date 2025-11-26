@@ -1,7 +1,6 @@
 'use client'
 import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import Edit from '@/src/assets/Edit.svg';
 import Delete from '@/src/assets/Delete.svg';
@@ -24,7 +23,6 @@ import StatusChangeModal from '@/src/components/water/StatusChangeModal';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 
 export default function ReadingCyclesPage() {
-  const t = useTranslations('ReadingCycles');
   const { user, hasRole } = useAuth();
   const { show } = useNotifications();
   const [cycles, setCycles] = useState<ReadingCycleDto[]>([]);
@@ -135,7 +133,7 @@ export default function ReadingCyclesPage() {
       setCycles(data);
     } catch (error) {
       console.error('Failed to load cycles:', error);
-      show(t('messages.loadError'), 'error');
+      show('Failed to load reading cycles', 'error');
     } finally {
       setLoading(false);
     }
@@ -144,42 +142,42 @@ export default function ReadingCyclesPage() {
   const handleCreate = async (req: ReadingCycleCreateReq | ReadingCycleUpdateReq) => {
     try {
       await createReadingCycle(req as ReadingCycleCreateReq);
-      show(t('messages.createSuccess'), 'success');
+      show('Reading cycle created successfully', 'success');
       setIsCreateOpen(false);
       loadCycles();
     } catch (error: any) {
-      show(error?.message || t('messages.createError'), 'error');
+      show(error?.message || 'Failed to create reading cycle', 'error');
     }
   };
 
   const handleUpdate = async (cycleId: string, req: ReadingCycleCreateReq | ReadingCycleUpdateReq) => {
     try {
       await updateReadingCycle(cycleId, req as ReadingCycleUpdateReq);
-      show(t('messages.updateSuccess'), 'success');
+      show('Reading cycle updated successfully', 'success');
       setIsEditOpen(false);
       setSelectedCycle(null);
       loadCycles();
     } catch (error: any) {
-      show(error?.message || t('messages.updateError'), 'error');
+      show(error?.message || 'Failed to update reading cycle', 'error');
     }
   };
 
   const handleStatusChange = async (cycleId: string, status: ReadingCycleStatus) => {
     try {
       await changeReadingCycleStatus(cycleId, status);
-      show(t('messages.statusUpdateSuccess'), 'success');
+      show('Status updated successfully', 'success');
       setIsStatusChangeOpen(false);
       setCycleForStatusChange(null);
       loadCycles();
     } catch (error: any) {
-      show(error?.message || t('messages.statusUpdateError'), 'error');
+      show(error?.message || 'Failed to update status', 'error');
     }
   };
 
   const handleOpenStatusChange = (cycle: ReadingCycleDto) => {
     // Chỉ cho phép đổi trạng thái nếu là tháng hiện tại
     if (!isCurrentMonth(cycle)) {
-      show(t('errors.onlyCurrentMonth'), 'error');
+      show('Chỉ có thể đổi trạng thái cycle cùng tháng hiện tại', 'error');
       return;
     }
     setCycleForStatusChange(cycle);
@@ -196,10 +194,10 @@ export default function ReadingCyclesPage() {
 
     try {
       await deleteReadingCycle(cycleToDelete);
-      show(t('messages.deleteSuccess'), 'success');
+      show('Reading cycle deleted successfully', 'success');
       loadCycles();
     } catch (error: any) {
-      show(error?.message || t('messages.deleteError'), 'error');
+      show(error?.message || 'Failed to delete reading cycle', 'error');
     } finally {
       setIsDeleteConfirmOpen(false);
       setCycleToDelete(null);
@@ -214,12 +212,12 @@ export default function ReadingCyclesPage() {
   return (
     <div className="px-[41px] py-12">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-[#02542D]">{t('title')}</h1>
+        <h1 className="text-2xl font-semibold text-[#02542D]">Reading Cycles</h1>
         <button
           onClick={() => setIsCreateOpen(true)}
           className="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#0c793f] transition-colors"
         >
-          {t('createCycle')}
+          Create Cycle
         </button>
       </div>
 
@@ -227,27 +225,27 @@ export default function ReadingCyclesPage() {
       <div className="bg-white p-6 rounded-xl mb-6">
         <div className="grid grid-cols-4 gap-4 items-end">
           <div>
-            <label className="block text-sm font-medium text-[#02542D] mb-2">{t('filters.status')}</label>
+            <label className="block text-sm font-medium text-[#02542D] mb-2">Status</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as ReadingCycleStatus | 'ALL')}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
             >
-              <option value="ALL">{t('filters.all')}</option>
-              <option value="OPEN">{t('status.open')}</option>
-              <option value="IN_PROGRESS">{t('status.inProgress')}</option>
-              <option value="COMPLETED">{t('status.completed')}</option>
-              <option value="CLOSED">{t('status.closed')}</option>
+              <option value="ALL">All</option>
+              <option value="OPEN">Open</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CLOSED">Closed</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#02542D] mb-2">{t('filters.service')}</label>
+            <label className="block text-sm font-medium text-[#02542D] mb-2">Service</label>
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
             >
-              <option value="ALL">{t('filters.all')}</option>
+              <option value="ALL">All</option>
               {services.map((service) => (
                 <option key={service.code} value={service.code}>
                   {service.name} ({service.code})
@@ -256,13 +254,13 @@ export default function ReadingCyclesPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#02542D] mb-2">{t('filters.month')}</label>
+            <label className="block text-sm font-medium text-[#02542D] mb-2">Month</label>
             <select
               value={monthFilter}
               onChange={(e) => setMonthFilter(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
             >
-              <option value="ALL">{t('filters.allMonths')}</option>
+              <option value="ALL">All months</option>
               {monthOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -279,7 +277,7 @@ export default function ReadingCyclesPage() {
               }}
               className="text-sm text-[#02542D] font-semibold hover:underline"
             >
-              {t('filters.reset')}
+              Reset filters
             </button>
           </div>
         </div>
@@ -288,17 +286,17 @@ export default function ReadingCyclesPage() {
       {/* Cycles Table */}
       {filteredCycles.length > 0 && (
         <div className="bg-white p-6 rounded-xl">
-          <h2 className="text-xl font-semibold text-[#02542D] mb-4">{t('cyclesTitle', { count: filteredCycles.length })}</h2>
+          <h2 className="text-xl font-semibold text-[#02542D] mb-4">Cycles ({filteredCycles.length})</h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b-2 border-solid border-[#14AE5C]">
-                  <th className="px-4 py-3 text-left text-sm font-bold text-[#024023] uppercase">{t('table.name')}</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('table.fromDate')}</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('table.toDate')}</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('table.status')}</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('table.createdAt')}</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('table.actions')}</th>
+                  <th className="px-4 py-3 text-left text-sm font-bold text-[#024023] uppercase">Name</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">From Date</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">To Date</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Status</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Created At</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -307,7 +305,7 @@ export default function ReadingCyclesPage() {
                     <td className="px-4 py-3 text-[#024023] font-semibold">
                       <div>{cycle.name}</div>
                       <div className="text-xs text-gray-500">
-                        {cycle.serviceName || cycle.serviceCode || t('fallbacks.unknownService')}
+                        {cycle.serviceName || cycle.serviceCode || 'Không rõ dịch vụ'}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center text-[#024023] font-semibold">
@@ -330,15 +328,7 @@ export default function ReadingCyclesPage() {
                             : 'bg-gray-100 text-gray-700'
                         }`}
                       >
-                        {(cycle.status as string) === 'IN_PROGRESS' 
-                          ? t('status.inProgress') 
-                          : (cycle.status as string) === 'OPEN'
-                          ? t('status.open')
-                          : (cycle.status as string) === 'COMPLETED'
-                          ? t('status.completed')
-                          : (cycle.status as string) === 'CLOSED'
-                          ? t('status.closed')
-                          : cycle.status}
+                        {(cycle.status as string) === 'IN_PROGRESS' ? 'In Progress' : cycle.status}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center text-[#024023] font-semibold">
@@ -350,7 +340,7 @@ export default function ReadingCyclesPage() {
                           <button
                             onClick={() => handleOpenStatusChange(cycle)}
                             className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm border border-gray-300"
-                            title={t('actions.changeStatus')}
+                            title="Đổi trạng thái"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Transfer-3-Fill--Streamline-Mingcute-Fill" height="16" width="16">
                               <g fill="none" fillRule="nonzero">
@@ -363,7 +353,7 @@ export default function ReadingCyclesPage() {
                           <button
                             disabled
                             className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md cursor-not-allowed text-sm border border-gray-200"
-                            title={t('errors.onlyCurrentMonth')}
+                            title="Chỉ có thể đổi trạng thái cycle cùng tháng hiện tại"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Transfer-3-Fill--Streamline-Mingcute-Fill" height="16" width="16">
                               <g fill="none" fillRule="nonzero">
@@ -379,7 +369,7 @@ export default function ReadingCyclesPage() {
                         >
                           <Image 
                             src={Edit} 
-                            alt={t('actions.edit')} 
+                            alt="Edit" 
                             width={24} 
                             height={24}
                             className="w-6 h-6"
@@ -391,7 +381,7 @@ export default function ReadingCyclesPage() {
                         >
                           <Image 
                             src={Delete} 
-                            alt={t('actions.delete')} 
+                            alt="Delete" 
                             width={24} 
                             height={24}
                             className="w-6 h-6"
@@ -409,14 +399,14 @@ export default function ReadingCyclesPage() {
 
       {filteredCycles.length === 0 && !loading && (
         <div className="bg-white p-6 rounded-xl text-center text-gray-500">
-          {t('empty')}
+          No reading cycles found
         </div>
       )}
 
       {loading && (
         <div className="bg-white p-6 rounded-xl text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#739559] mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('loading')}</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       )}
 
@@ -468,8 +458,8 @@ export default function ReadingCyclesPage() {
           setCycleToDelete(null);
         }}
         onConfirm={handleDeleteConfirm}
-        popupTitle={t('confirmDelete.title')}
-        popupContext={t('confirmDelete.message')}
+        popupTitle="Xác nhận xóa"
+        popupContext="Bạn có chắc chắn muốn xóa reading cycle này không?"
         isDanger={true}
       />
     </div>
