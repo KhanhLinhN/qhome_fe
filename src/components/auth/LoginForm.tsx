@@ -6,6 +6,7 @@ import {useNotifications} from "@/src/hooks/useNotifications";
 import {useAuth} from "@/src/contexts/AuthContext";
 import {login} from "@/src/services/iam";
 import {getRedirectPathByRole} from "@/src/utils/roleRedirect";
+import Link from "next/link";
 
 export default function LoginForm(){
   const t = useTranslations();
@@ -133,7 +134,7 @@ export default function LoginForm(){
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <label className="text-sm font-medium text-slate-700">{t("Login.password")}</label>
-          <a href="#" className="text-xs text-green-600 hover:text-green-700 hover:underline">{t("Login.forgot")}</a>
+          <Link href="/forgot-password" className="text-xs text-green-600 hover:text-green-700 hover:underline">{t("Login.forgot")}</Link>
         </div>
         <input 
           type="password" 

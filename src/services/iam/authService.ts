@@ -69,3 +69,25 @@ export async function logout(): Promise<void> {
   // TODO: Call backend logout API if needed
 }
 
+/**
+ * Forgot Password API
+ * POST /api/users/forgot-password
+ */
+export async function forgotPassword(email: string): Promise<void> {
+  const apiUrl = process.env.NEXT_PUBLIC_IAM_URL || 'http://localhost:8088';
+  const endpoint = `${apiUrl}/api/users/forgot-password`;
+  
+  const response = await axios.post(
+    endpoint,
+    { email },
+    {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  return response.data;
+}
+
