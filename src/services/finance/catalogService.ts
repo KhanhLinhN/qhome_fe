@@ -10,26 +10,26 @@ const BASE = "/api";
 export const CatalogApi = {
   /**
    * Lấy danh sách buildings active
-   * GET /api/buildings?tenantId=xxx&active=true
+   * GET /api/buildings?active=true
    */
-  buildings(tenantId: string) {
-    return http<Building[]>(`${BASE}/buildings?tenantId=${tenantId}&active=true`);
+  buildings() {
+    return http<Building[]>(`${BASE}/buildings?active=true`);
   },
 
   /**
    * Lấy billing cycles đang mở
-   * GET /api/billing-cycles?tenantId=xxx&status=OPEN
+   * GET /api/billing-cycles?status=OPEN
    */
-  billingCyclesOpen(tenantId: string) {
-    return http<BillingCycle[]>(`${BASE}/billing-cycles?tenantId=${tenantId}&status=OPEN`);
+  billingCyclesOpen() {
+    return http<BillingCycle[]>(`${BASE}/billing-cycles?status=OPEN`);
   },
 
   /**
    * Lấy notification templates cho phí
-   * GET /api/notification-templates?tenantId=xxx&type=FEE
+   * GET /api/notification-templates?type=FEE
    */
-  feeTemplates(tenantId: string) {
-    return http<NotificationTemplate[]>(`${BASE}/notification-templates?tenantId=${tenantId}&type=FEE`);
+  feeTemplates() {
+    return http<NotificationTemplate[]>(`${BASE}/notification-templates?type=FEE`);
   }
 };
 

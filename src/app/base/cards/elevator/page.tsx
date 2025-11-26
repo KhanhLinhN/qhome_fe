@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
 import {
   CardRegistration,
   CardRegistrationFilter,
@@ -30,81 +29,62 @@ const paymentStatusOptions = [
   { value: 'PAID', label: 'Đã thanh toán' },
 ];
 
+const statusConfig: Record<string, { label: string; className: string }> = {
+  PENDING: {
+    label: 'Chờ duyệt',
+    className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  },
+  READY_FOR_PAYMENT: {
+    label: 'Chờ thanh toán',
+    className: 'bg-orange-50 text-orange-700 border-orange-200',
+  },
+  PAYMENT_PENDING: {
+    label: 'Đang thanh toán',
+    className: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  APPROVED: {
+    label: 'Đã duyệt',
+    className: 'bg-green-50 text-green-700 border-green-200',
+  },
+  COMPLETED: {
+    label: 'Đã hoàn tất',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  REJECTED: {
+    label: 'Đã từ chối',
+    className: 'bg-red-50 text-red-600 border-red-200',
+  },
+  CANCELLED: {
+    label: 'Đã hủy',
+    className: 'bg-slate-50 text-slate-600 border-slate-200',
+  },
+};
+
+const paymentStatusConfig: Record<string, { label: string; className: string }> = {
+  UNPAID: {
+    label: 'Chưa thanh toán',
+    className: 'bg-red-50 text-red-700 border-red-200',
+  },
+  PAYMENT_PENDING: {
+    label: 'Đang thanh toán',
+    className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  },
+  PAYMENT_APPROVAL: {
+    label: 'Đang chờ xác nhận',
+    className: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  PAID: {
+    label: 'Đã thanh toán',
+    className: 'bg-green-50 text-green-700 border-green-200',
+  },
+};
+
+const requestTypeConfig: Record<string, string> = {
+  NEW_CARD: 'Thẻ mới',
+  RENEWAL: 'Gia hạn',
+};
 
 export default function ElevatorCardAdminPage() {
-  const t = useTranslations('ElevatorCards');
-  
-  const statusOptions = [
-    { value: '', label: t('filters.allStatuses') },
-    { value: 'READY_FOR_PAYMENT', label: t('statuses.readyForPayment') },
-    { value: 'PAYMENT_PENDING', label: t('statuses.paymentPending') },
-    { value: 'PENDING', label: t('statuses.pending') },
-    { value: 'APPROVED', label: t('statuses.approved') },
-    { value: 'COMPLETED', label: t('statuses.completed') },
-    { value: 'REJECTED', label: t('statuses.rejected') },
-  ];
-
-  const paymentStatusOptions = [
-    { value: '', label: t('filters.allPayments') },
-    { value: 'UNPAID', label: t('paymentStatuses.unpaid') },
-    { value: 'PAYMENT_PENDING', label: t('paymentStatuses.paymentPending') },
-    { value: 'PAID', label: t('paymentStatuses.paid') },
-  ];
-
-  const statusConfig: Record<string, { label: string; className: string }> = {
-    PENDING: {
-      label: t('statusLabels.pending'),
-      className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    },
-    READY_FOR_PAYMENT: {
-      label: t('statusLabels.readyForPayment'),
-      className: 'bg-orange-50 text-orange-700 border-orange-200',
-    },
-    PAYMENT_PENDING: {
-      label: t('statusLabels.paymentPending'),
-      className: 'bg-blue-50 text-blue-700 border-blue-200',
-    },
-    APPROVED: {
-      label: t('statusLabels.approved'),
-      className: 'bg-green-50 text-green-700 border-green-200',
-    },
-    COMPLETED: {
-      label: t('statusLabels.completed'),
-      className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    },
-    REJECTED: {
-      label: t('statusLabels.rejected'),
-      className: 'bg-red-50 text-red-600 border-red-200',
-    },
-    CANCELLED: {
-      label: t('statusLabels.cancelled'),
-      className: 'bg-slate-50 text-slate-600 border-slate-200',
-    },
-  };
-
-  const paymentStatusConfig: Record<string, { label: string; className: string }> = {
-    UNPAID: {
-      label: t('paymentStatusLabels.unpaid'),
-      className: 'bg-red-50 text-red-700 border-red-200',
-    },
-    PAYMENT_PENDING: {
-      label: t('paymentStatusLabels.paymentPending'),
-      className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    },
-    PAYMENT_APPROVAL: {
-      label: t('paymentStatusLabels.paymentApproval'),
-      className: 'bg-blue-50 text-blue-700 border-blue-200',
-    },
-    PAID: {
-      label: t('paymentStatusLabels.paid'),
-      className: 'bg-green-50 text-green-700 border-green-200',
-    },
-  };
-
-  const requestTypeConfig: Record<string, string> = {
-    NEW_CARD: t('requestTypes.newCard'),
-    RENEWAL: t('requestTypes.renewal'),
-  };
   const [registrations, setRegistrations] = useState<CardRegistration[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<CardRegistration | null>(null);
@@ -124,7 +104,7 @@ export default function ElevatorCardAdminPage() {
       setRegistrations(data);
     } catch (err) {
       console.error('Failed to load elevator card registrations', err);
-      setError(t('errors.loadError'));
+      setError('Không thể tải danh sách đăng ký thang máy. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -140,7 +120,7 @@ export default function ElevatorCardAdminPage() {
         setNote(data.adminNote ?? '');
       } catch (err) {
         console.error('Failed to load elevator card registration detail', err);
-        setDetailError(t('errors.loadDetailError'));
+        setDetailError('Không thể tải chi tiết đăng ký. Vui lòng thử lại.');
       } finally {
         setLoadingDetail(false);
       }
@@ -186,7 +166,7 @@ export default function ElevatorCardAdminPage() {
     if (!selectedId) return;
 
     if (decision === 'REJECT' && !note.trim()) {
-      alert(t('errors.rejectReasonRequired'));
+      alert('Vui lòng nhập lý do từ chối.');
       return;
     }
 
@@ -200,15 +180,15 @@ export default function ElevatorCardAdminPage() {
       await loadRegistrations();
       alert(
         decision === 'APPROVE'
-          ? t('messages.approveSuccess')
-          : t('messages.rejectSuccess')
+          ? 'Đã duyệt đăng ký thẻ thang máy.'
+          : 'Đã từ chối đăng ký thẻ thang máy.'
       );
     } catch (err: unknown) {
       console.error('Failed to submit decision', err);
       if (err instanceof Error && err.message) {
         alert(err.message);
       } else {
-        alert(t('errors.actionFailed'));
+        alert('Không thể thực hiện hành động. Vui lòng thử lại.');
       }
     } finally {
       setSubmitting(false);
@@ -219,14 +199,14 @@ export default function ElevatorCardAdminPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-[#02542D]">
-          {t('title')}
+          Quản lý đăng ký thẻ thang máy
         </h1>
         <button
           type="button"
           onClick={handleRefresh}
           className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024428] transition-colors"
         >
-          {t('actions.refresh')}
+          Làm mới
         </button>
       </div>
 
@@ -235,7 +215,7 @@ export default function ElevatorCardAdminPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-end mb-6">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('filters.registrationStatus')}
+                Trạng thái đăng ký
               </label>
               <select
                 value={filters.status ?? ''}
@@ -253,7 +233,7 @@ export default function ElevatorCardAdminPage() {
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('filters.paymentStatus')}
+                Trạng thái thanh toán
               </label>
               <select
                 value={filters.paymentStatus ?? ''}
@@ -279,7 +259,7 @@ export default function ElevatorCardAdminPage() {
             <div className="text-center text-red-600 py-12">{error}</div>
           ) : registrations.length === 0 ? (
             <div className="text-center text-gray-500 py-12">
-              {t('empty')}
+              Không có đăng ký nào phù hợp.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -287,25 +267,25 @@ export default function ElevatorCardAdminPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('table.resident')}
+                      Cư dân
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('table.apartment')}
+                      Căn hộ
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('table.building')}
+                      Tòa nhà
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('table.createdDate')}
+                      Ngày tạo
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('table.status')}
+                      Trạng thái
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('table.payment')}
+                      Thanh toán
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
-                      {t('table.actions')}
+                      Thao tác
                     </th>
                   </tr>
                 </thead>
@@ -371,7 +351,7 @@ export default function ElevatorCardAdminPage() {
                           }
                           className="text-[#02542D] hover:text-[#01391d] font-medium"
                         >
-                          {selectedId === item.id ? t('actions.close') : t('actions.viewDetails')}
+                          {selectedId === item.id ? 'Đóng' : 'Xem chi tiết'}
                         </button>
                       </td>
                     </tr>
@@ -385,7 +365,7 @@ export default function ElevatorCardAdminPage() {
         <div className="bg-white rounded-xl p-6 border border-gray-100 h-max">
           {selectedId == null ? (
             <p className="text-gray-500">
-              {t('selectRegistration')}
+              Chọn một đăng ký để xem chi tiết và duyệt.
             </p>
           ) : loadingDetail ? (
             <div className="flex justify-center py-12">
@@ -394,42 +374,45 @@ export default function ElevatorCardAdminPage() {
           ) : detailError ? (
             <p className="text-red-600">{detailError}</p>
           ) : !selected ? (
-            <p className="text-gray-500">{t('notFound')}</p>
+            <p className="text-gray-500">Không tìm thấy dữ liệu đăng ký.</p>
           ) : (
             <div className="space-y-4">
               <div>
                 <h2 className="text-xl font-semibold text-[#02542D]">
-                  {t('detail.title')}
+                  Chi tiết đăng ký
                 </h2>
                 <p className="text-sm text-gray-500">
-                  {t('detail.registrationId')}: {selected.id}
+                  Mã đăng ký: {selected.id}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3 text-sm">
-                <DetailRow label={t('detail.fullName')} value={selected.fullName} />
+                <DetailRow label="Họ tên cư dân" value={selected.fullName} />
                 <DetailRow
-                  label={t('detail.apartment')}
+                  label="Căn hộ"
                   value={selected.apartmentNumber}
                 />
                 <DetailRow
-                  label={t('detail.building')}
+                  label="Tòa nhà"
                   value={selected.buildingName}
                 />
-                <DetailRow label={t('detail.citizenId')} value={selected.citizenId} />
-                <DetailRow label={t('detail.phoneNumber')} value={selected.phoneNumber} />
+                <DetailRow label="Số CCCD" value={selected.citizenId} />
+                <DetailRow label="Số điện thoại" value={selected.phoneNumber} />
                 <DetailRow
-                  label={t('detail.requestType')}
-                  value={selected.requestType}
+                  label="Loại yêu cầu"
+                  value={requestTypeConfig[selected.requestType] ?? selected.requestType}
                 />
-                <DetailRow label={t('detail.note')} value={selected.note} />
-                <DetailRow label={t('detail.status')} value={selected.status} />
-                <DetailRow
-                  label={t('detail.paymentStatus')}
-                  value={selected.paymentStatus}
+                <DetailRow label="Ghi chú" value={selected.note} />
+                <DetailRow 
+                  label="Trạng thái" 
+                  value={statusConfig[selected.status]?.label ?? selected.status} 
                 />
                 <DetailRow
-                  label={t('detail.paymentAmount')}
+                  label="Trạng thái thanh toán"
+                  value={paymentStatusConfig[selected.paymentStatus]?.label ?? selected.paymentStatus}
+                />
+                <DetailRow
+                  label="Số tiền"
                   value={
                     selected.paymentAmount != null
                       ? `${selected.paymentAmount.toLocaleString()} VND`
@@ -437,7 +420,7 @@ export default function ElevatorCardAdminPage() {
                   }
                 />
                 <DetailRow
-                  label={t('detail.paymentDate')}
+                  label="Ngày thanh toán"
                   value={
                     selected.paymentDate
                       ? new Date(selected.paymentDate).toLocaleString()
@@ -445,7 +428,7 @@ export default function ElevatorCardAdminPage() {
                   }
                 />
                 <DetailRow
-                  label={t('detail.createdDate')}
+                  label="Ngày tạo"
                   value={
                     selected.createdAt
                       ? new Date(selected.createdAt).toLocaleString()
@@ -453,7 +436,7 @@ export default function ElevatorCardAdminPage() {
                   }
                 />
                 <DetailRow
-                  label={t('detail.updatedDate')}
+                  label="Ngày cập nhật"
                   value={
                     selected.updatedAt
                       ? new Date(selected.updatedAt).toLocaleString()
@@ -464,14 +447,14 @@ export default function ElevatorCardAdminPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('detail.adminNote')}
+                  Ghi chú quản trị viên
                 </label>
                 <textarea
                   value={note}
                   onChange={event => setNote(event.target.value)}
                   rows={4}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
-                  placeholder={t('detail.adminNotePlaceholder')}
+                  placeholder="Nhập ghi chú hoặc lý do từ chối..."
                   disabled={submitting}
                 />
               </div>
@@ -487,7 +470,7 @@ export default function ElevatorCardAdminPage() {
                       : 'bg-gray-300 cursor-not-allowed'
                   }`}
                 >
-                  {t('actions.approve')}
+                  Duyệt
                 </button>
                 <button
                   type="button"
@@ -499,7 +482,7 @@ export default function ElevatorCardAdminPage() {
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  {t('actions.reject')}
+                  Từ chối
                 </button>
               </div>
             </div>
