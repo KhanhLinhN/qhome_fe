@@ -135,3 +135,46 @@ export async function getNotificationsForRole(role: string, userId: string): Pro
 }
 
 
+export async function getNotificationsForRoleIncludingAll(userRole: string, userId: string): Promise<Notification[]> {
+    try {
+        // Get all active notifications (backend already filters deletedAt IS NULL)
+        const allNotifications = await getNotificationsList();
+        
+        // Filter: include notifications that match user role OR have targetRole = "ALL" or null
+        // Only INTERNAL scope notifications are filtered by role
+        const filtered = allNotifications.filter(noti => {
+            // For INTERNAL scope, check role matching
+            if (noti.scope === "INTERNAL") {
+                // Include if targetRole matches user role (case insensitive)
+                if (noti.targetRole && noti.targetRole.toLowerCase() === userRole.toLowerCase()) {
+                    return true;
+                }
+                // Include if targetRole is "ALL" (for all roles)
+                if (noti.targetRole && noti.targetRole.toUpperCase() === "ALL") {
+                    return true;
+                }
+                // Include if targetRole is null/undefined (for all roles)
+                if (!noti.targetRole) {
+                    return true;
+                }
+                return false;
+            }
+
+            return false;
+        });
+        
+        // Sort by createdAt DESC (newest first)
+        const sorted = filtered.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
+        
+        return sorted;
+    } catch (error) {
+        console.error('Error fetching notifications for role including all:', error);
+        throw error;
+    }
+}
+
+
