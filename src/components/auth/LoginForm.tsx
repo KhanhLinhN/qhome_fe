@@ -134,7 +134,7 @@ export default function LoginForm(){
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <label className="text-sm font-medium text-slate-700">{t("Login.password")}</label>
-          <Link href="/forgot-password" className="text-xs text-green-600 hover:text-green-700 hover:underline">{t("Login.forgot")}</Link>
+          <Link href="/forgotpassword" className="text-xs text-green-600 hover:text-green-700 hover:underline">{t("Login.forgot")}</Link>
         </div>
         <input 
           type="password" 

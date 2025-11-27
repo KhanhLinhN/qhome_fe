@@ -24,7 +24,6 @@ interface NotificationFormData {
     targetBuildingId?: string | null;
     referenceId?: string | null;
     referenceType?: string | null;
-    actionUrl?: string | null;
     iconUrl?: string | null;
 }
 
@@ -50,7 +49,6 @@ export default function NotificationEdit() {
         targetBuildingId: undefined,
         referenceId: null,
         referenceType: null,
-        actionUrl: null,
         iconUrl: null,
     });
 
@@ -74,7 +72,6 @@ export default function NotificationEdit() {
                 targetBuildingId: notification.targetBuildingId || undefined,
                 referenceId: notification.referenceId || null,
                 referenceType: notification.referenceType || null,
-                actionUrl: notification.actionUrl || null,
                 iconUrl: notification.iconUrl || null,
             });
             
@@ -180,9 +177,6 @@ export default function NotificationEdit() {
             };
 
             // Add optional fields only if they have values
-            if (formData.actionUrl && formData.actionUrl.trim()) {
-                request.actionUrl = formData.actionUrl.trim();
-            }
             if (formData.iconUrl && formData.iconUrl.trim()) {
                 request.iconUrl = formData.iconUrl.trim();
             }
@@ -429,18 +423,6 @@ export default function NotificationEdit() {
                             )}
                         </div>
                     )}
-
-                    {/* Action URL */}
-                    <div className="col-span-full">
-                        <DetailField
-                            label={t('actionUrl')}
-                            value={formData.actionUrl || ''}
-                            onChange={handleChange}
-                            name="actionUrl"
-                            placeholder={t('enterActionUrl')}
-                            readonly={false}
-                        />
-                    </div>
 
                     {/* Action Buttons */}
                     <div className="col-span-full flex justify-center space-x-3 mt-8">

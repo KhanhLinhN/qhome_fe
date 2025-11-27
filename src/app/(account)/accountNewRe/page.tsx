@@ -288,7 +288,7 @@ export default function AccountNewResidentPage() {
     }
     
     // Check length (13 digits for CCCD)
-    if (cleaned.length !== 13) {
+    if (cleaned.length !== 12) {
       return t('validation.nationalId.mustBe13Digits');
     }
     
@@ -1013,9 +1013,6 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   <h3 className="mb-2 text-base font-semibold text-emerald-800">Thông tin hộ gia đình</h3>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <p>
-                      <span className="font-medium">Hộ:</span> {householdInfo.id}
-                    </p>
-                    <p>
                       <span className="font-medium">Loại:</span> {householdInfo.kind ?? '---'}
                     </p>
                     <p>
@@ -1034,7 +1031,13 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                           <span className="font-medium">Căn hộ:</span> {unitInfo.code}
                         </p>
                         <p>
-                          <span className="font-medium">Tòa:</span> {unitInfo.buildingId ?? '—'}
+                          <span className="font-medium">Tòa:</span>{' '}
+                          {unitInfo.buildingId
+                            ? (() => {
+                                const building = buildings.find((b) => b.id === unitInfo.buildingId);
+                                return building?.name ?? unitInfo.buildingId;
+                              })()
+                            : '—'}
                         </p>
                         <p>
                           <span className="font-medium">Tầng:</span> {unitInfo.floor ?? '---'}
@@ -1132,8 +1135,8 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     type="text"
                     value={manualForm.nationalId}
                     onChange={handleManualChange('nationalId')}
-                    placeholder="Nhập số CMND/CCCD (13 số)"
-                    maxLength={13}
+                    placeholder="Nhập số CMND/CCCD (12 số)"
+                    maxLength={12}
                     className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                       manualFieldErrors.nationalId
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
