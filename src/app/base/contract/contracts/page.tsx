@@ -362,10 +362,16 @@ export default function ContractManagementPage() {
 
   const buildingOptions = useMemo(
     () =>
-      buildingsState.data.map((building) => ({
-        value: building.id,
-        label: `${building.code ? `${building.code} - ` : ''}${building.name ?? ''}`,
-      })),
+      [...buildingsState.data]
+        .sort((a, b) => {
+          const codeA = (a.code || '').toUpperCase();
+          const codeB = (b.code || '').toUpperCase();
+          return codeA.localeCompare(codeB);
+        })
+        .map((building) => ({
+          value: building.id,
+          label: `${building.code ? `${building.code} - ` : ''}${building.name ?? ''}`,
+        })),
     [buildingsState.data],
   );
 

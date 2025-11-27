@@ -13,6 +13,8 @@ import { useBuildingDetailPage } from '@/src/hooks/useBuildingDetailPage';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getUnitsByBuildingId } from '@/src/services/base/buildingService';
 import { Unit } from '@/src/types/unit';
+import { fetchCurrentHouseholdByUnit, fetchHouseholdMembersByHousehold, type HouseholdDto, type HouseholdMemberDto } from '@/src/services/base/householdService';
+import { fetchResidentById } from '@/src/services/base/residentService';
 import {
   ServiceDto,
   createMeter,
@@ -40,6 +42,8 @@ export default function BuildingDetail () {
     const [units, setUnits] = useState<Unit[]>([]);
     const [loadingUnits, setLoadingUnits] = useState(false);
     const [unitsError, setUnitsError] = useState<string | null>(null);
+    const [householdsMap, setHouseholdsMap] = useState<Record<string, HouseholdDto | null>>({});
+    const [primaryResidentNamesMap, setPrimaryResidentNamesMap] = useState<Record<string, string | null>>({});
     const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
     const { deleteBuildingById, isLoading: isDeleting } = useDeleteBuilding();    
     const [importing, setImporting] = useState(false);
@@ -72,6 +76,48 @@ export default function BuildingDetail () {
                 const data = await getUnitsByBuildingId(buildingId);
                 const activeUnits = data.filter(unit => unit.status?.toUpperCase() !== 'INACTIVE');
                 setUnits(activeUnits);
+                
+                // Load current household for each unit
+                const householdsData: Record<string, HouseholdDto | null> = {};
+                const residentNamesData: Record<string, string | null> = {};
+                
+                await Promise.all(
+                    activeUnits.map(async (unit) => {
+                        try {
+                            const household = await fetchCurrentHouseholdByUnit(unit.id);
+                            householdsData[unit.id] = household;
+                            
+                            // Get primary resident name from resident table only
+                            let primaryName: string | null = null;
+                            console.log('household', household);
+                            if (household?.primaryResidentId) {
+                                try {
+                                    const resident = await fetchResidentById(household.primaryResidentId);
+                                    console.log('resident', resident);
+                                    if (resident?.fullName) {
+                                        primaryName = resident.fullName;
+                                    }
+                                } catch (residentErr) {
+                                    console.error(`Failed to load resident ${household.primaryResidentId} for unit ${unit.id}:`, residentErr);
+                                }
+                            }
+                            
+                            residentNamesData[unit.id] = primaryName;
+                        } catch (err) {
+                            // If no current household found (404), set to null
+                            if (err && typeof err === 'object' && 'response' in err && (err as any).response?.status === 404) {
+                                householdsData[unit.id] = null;
+                                residentNamesData[unit.id] = null;
+                            } else {
+                                console.error(`Failed to load household for unit ${unit.id}:`, err);
+                                householdsData[unit.id] = null;
+                                residentNamesData[unit.id] = null;
+                            }
+                        }
+                    })
+                );
+                setHouseholdsMap(householdsData);
+                setPrimaryResidentNamesMap(residentNamesData);
             } catch (err: any) {
                 console.error('Failed to load units:', err);
                 setUnitsError(err?.message || 'Không thể tải danh sách căn hộ');
@@ -108,6 +154,11 @@ export default function BuildingDetail () {
     const filteredUnits = selectedFloor
         ? units.filter(unit => unit.floor?.toString() === selectedFloor)
         : units;
+
+    // Helper function to get primary resident name from current household
+    const getPrimaryResidentName = (unitId: string): string | null => {
+        return primaryResidentNamesMap[unitId] || null;
+    };
 
     useEffect(() => {
         if (selectedFloor && !floorOptions.includes(selectedFloor)) {
@@ -682,7 +733,9 @@ export default function BuildingDetail () {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div>
-                                                <div className="font-medium text-gray-900">{unit.ownerName ? unit.ownerName : '-'}</div>
+                                                <div className="font-medium text-gray-900">
+                                                    {getPrimaryResidentName(unit.id) || '-'}
+                                                </div>
                                                 {unit.ownerContact && (
                                                     <div className="text-xs text-gray-500">{unit.ownerContact ? unit.ownerContact : '-'}</div>
                                                 )}

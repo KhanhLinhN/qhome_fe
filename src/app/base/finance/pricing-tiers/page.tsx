@@ -105,6 +105,12 @@ export default function PricingTiersManagementPage() {
     return tier.active !== false;
   };
 
+  // Kiểm tra xem có bậc cuối cùng (maxQuantity = null) không
+  const checkHasFinalTier = (): boolean => {
+    const activeTiers = sortedTiers.filter(tier => isTierCurrentlyActive(tier));
+    return activeTiers.some(tier => tier.maxQuantity === null || tier.maxQuantity === undefined);
+  };
+
   // Kiểm tra gaps trong các bậc giá (chỉ kiểm tra các tiers đang active)
   const checkGaps = (): Array<{ from: number; to: number }> => {
     const gaps: Array<{ from: number; to: number }> = [];
@@ -142,6 +148,21 @@ export default function PricingTiersManagementPage() {
       const firstMin = Number(firstTier.minQuantity ?? 0);
       if (firstMin > 0) {
         gaps.push({ from: 0, to: firstMin });
+      }
+    }
+
+    // Kiểm tra xem có bậc cuối cùng không (maxQuantity = null)
+    const hasFinalTier = sortedByMin.some(tier => tier.maxQuantity === null || tier.maxQuantity === undefined);
+    if (!hasFinalTier && sortedByMin.length > 0) {
+      // Tìm maxQuantity lớn nhất
+      const maxQuantities = sortedByMin
+        .map(tier => tier.maxQuantity)
+        .filter(max => max !== null && max !== undefined)
+        .map(max => Number(max));
+      
+      if (maxQuantities.length > 0) {
+        const maxMax = Math.max(...maxQuantities);
+        gaps.push({ from: maxMax, to: Infinity }); // Đánh dấu cần bậc cuối cùng
       }
     }
 
@@ -219,6 +240,7 @@ export default function PricingTiersManagementPage() {
 
   const gaps = checkGaps();
   const overlaps = checkOverlaps();
+  const hasFinalTier = checkHasFinalTier();
 
   const startCreate = () => {
     const maxOrder = tiers.length > 0 ? Math.max(...tiers.map((t) => t.tierOrder ?? 0)) : 0;
@@ -310,6 +332,24 @@ export default function PricingTiersManagementPage() {
   const handleSave = async () => {
     if (!editingTier || !validateForm()) {
       return;
+    }
+
+    // Kiểm tra xem sau khi save có bậc cuối cùng không
+    const willHaveFinalTier = editingTier.maxQuantity === null || editingTier.maxQuantity === undefined;
+    const otherActiveTiers = sortedTiers.filter(tier => 
+      isTierCurrentlyActive(tier) && 
+      (isCreateMode || tier.id !== editingTier.id)
+    );
+    const otherHasFinalTier = otherActiveTiers.some(tier => tier.maxQuantity === null || tier.maxQuantity === undefined);
+    
+    // Nếu đang edit một tier có maxQuantity và không có tier nào khác có maxQuantity = null
+    if (!willHaveFinalTier && !otherHasFinalTier && editingTier.active) {
+      const confirmMessage = 'Cảnh báo: Sau khi lưu, hệ thống sẽ không có bậc giá cuối cùng (maxQuantity = null).\n\n' +
+        'Bạn có muốn tiếp tục? Hệ thống yêu cầu phải có ít nhất một bậc cuối cùng để bao phủ tất cả các trường hợp.';
+      
+      if (!confirm(confirmMessage)) {
+        return;
+      }
     }
 
     setSaving(true);
@@ -493,6 +533,41 @@ export default function PricingTiersManagementPage() {
         </div>
       )}
 
+      {/* Missing Final Tier Warning */}
+      {!hasFinalTier && sortedTiers.filter(tier => isTierCurrentlyActive(tier)).length > 0 && (
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-red-800">
+                ⚠️ Thiếu bậc giá cuối cùng
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p className="mb-2">
+                  Hệ thống yêu cầu phải có ít nhất một bậc giá cuối cùng với <strong>maxQuantity = null</strong> (không giới hạn) 
+                  để bao phủ tất cả các trường hợp còn lại.
+                </p>
+                <p className="text-xs mt-2">
+                  Ví dụ: Bậc cuối cùng có thể là "≥ 50 kWh" hoặc "≥ 50 m³" với maxQuantity để trống.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Gap Warning */}
       {gaps.length > 0 && (
         <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -521,9 +596,18 @@ export default function PricingTiersManagementPage() {
                 <ul className="list-disc list-inside space-y-1">
                   {gaps.map((gap, index) => (
                     <li key={index}>
-                      Từ <strong>{gap.from.toLocaleString('vi-VN')}</strong> đến{' '}
-                      <strong>{gap.to.toLocaleString('vi-VN')}</strong>{' '}
-                      {selectedService === 'ELECTRIC' ? 'kWh' : 'm³'}
+                      {gap.to === Infinity ? (
+                        <>
+                          Từ <strong>{gap.from.toLocaleString('vi-VN')}</strong> trở lên{' '}
+                          {selectedService === 'ELECTRIC' ? 'kWh' : 'm³'} - <strong>Cần bậc cuối cùng (maxQuantity = null)</strong>
+                        </>
+                      ) : (
+                        <>
+                          Từ <strong>{gap.from.toLocaleString('vi-VN')}</strong> đến{' '}
+                          <strong>{gap.to.toLocaleString('vi-VN')}</strong>{' '}
+                          {selectedService === 'ELECTRIC' ? 'kWh' : 'm³'}
+                        </>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -666,7 +750,7 @@ export default function PricingTiersManagementPage() {
                       <p className="text-red-500 text-xs mt-1">{formErrors.maxQuantity}</p>
                     )}
                     <p className="text-xs text-gray-500 mt-1">
-                      Để trống nếu không giới hạn
+                      Để trống nếu không giới hạn (bậc cuối cùng - bắt buộc phải có ít nhất 1 bậc)
                     </p>
                   </div>
                 </div>

@@ -25,9 +25,7 @@ const BASE_URL = 'http://localhost:8086/api';
  */
 export async function getNotificationsList(): Promise<Notification[]> {
     try {
-        const response = await axios.get(`${BASE_URL}/notifications`, {
-            withCredentials: true
-        });
+        const response = await axios.get(`${BASE_URL}/notifications`);
         console.log(response.data);
         return response.data;
     } catch (error) {
@@ -42,9 +40,7 @@ export async function getNotificationsList(): Promise<Notification[]> {
  */
 export async function getNotificationDetail(id: string): Promise<Notification> {
     try {
-        const response = await axios.get(`${BASE_URL}/notifications/${id}`, {
-            withCredentials: true
-        });
+        const response = await axios.get(`${BASE_URL}/notifications/${id}`);
         return response.data;
     } catch (error) {
         console.error('Error fetching notification detail:', error);
@@ -59,9 +55,7 @@ export async function getNotificationDetail(id: string): Promise<Notification> {
 export async function createNotification(data: CreateNotificationRequest): Promise<Notification> {
     try {
         console.log(data);
-        const response = await axios.post(`${BASE_URL}/notifications`, data, {
-            withCredentials: true
-        });
+        const response = await axios.post(`${BASE_URL}/notifications`, data);
         return response.data;
     } catch (error) {
         console.error('Error creating notification:', error);
@@ -75,9 +69,7 @@ export async function createNotification(data: CreateNotificationRequest): Promi
  */
 export async function updateNotification(id: string, data: UpdateNotificationRequest): Promise<Notification> {
     try {
-        const response = await axios.put(`${BASE_URL}/notifications/${id}`, data, {
-            withCredentials: true
-        });
+        const response = await axios.put(`${BASE_URL}/notifications/${id}`, data);
         return response.data;
     } catch (error) {
         console.error('Error updating notification:', error);
@@ -91,9 +83,7 @@ export async function updateNotification(id: string, data: UpdateNotificationReq
  */
 export async function deleteNotification(id: string): Promise<void> {
     try {
-        await axios.delete(`${BASE_URL}/notifications/${id}`, {
-            withCredentials: true
-        });
+        await axios.delete(`${BASE_URL}/notifications/${id}`);
     } catch (error) {
         console.error('Error deleting notification:', error);
         throw error;
@@ -107,8 +97,7 @@ export async function deleteNotification(id: string): Promise<void> {
 export async function getNotificationsForResident(residentId: string, buildingId: string): Promise<Notification[]> {
     try {
         const response = await axios.get(`${BASE_URL}/notifications/resident`, {
-            params: { residentId, buildingId },
-            withCredentials: true
+            params: { residentId, buildingId }
         });
         return response.data;
     } catch (error) {
@@ -124,8 +113,7 @@ export async function getNotificationsForResident(residentId: string, buildingId
 export async function getNotificationsForRole(role: string, userId: string): Promise<Notification[]> {
     try {
         const response = await axios.get(`${BASE_URL}/notifications/role`, {
-            params: { role, userId },
-            withCredentials: true
+            params: { role, userId }
         });
         return response.data;
     } catch (error) {

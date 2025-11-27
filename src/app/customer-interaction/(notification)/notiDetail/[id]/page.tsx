@@ -184,21 +184,6 @@ export default function NotificationDetail() {
                         <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{notification.message}</p>
                     </div>
 
-                    {/* Action URL */}
-                    {notification.actionUrl && (
-                        <div className="mb-6">
-                            <h2 className="text-xl font-semibold text-[#02542D] mb-2">{t('actionUrl')}</h2>
-                            <a
-                                href={notification.actionUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 underline"
-                            >
-                                {notification.actionUrl}
-                            </a>
-                        </div>
-                    )}
-
                     {/* Metadata */}
                     <div className="border-t pt-6 mt-6">
                         <h2 className="text-lg font-semibold text-[#02542D] mb-4">{t('detail.information')}</h2>

@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// Set default withCredentials
+axios.defaults.withCredentials = true;
+
 // Axios interceptor - Tự động thêm JWT token vào mọi request
 axios.interceptors.request.use(
   (config) => {
