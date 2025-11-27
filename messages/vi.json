@@ -118,6 +118,7 @@
   "support": "Cần trợ giúp?"
   },
   "Sidebar": {
+    "staffContent": "Nội dung dành cho nhân viên",
     "overview": "Tổng quan",
     "dashboard": "Dashboard",
     "systemAdmin": "Quản trị hệ thống",
@@ -1650,7 +1651,7 @@
     },
     "scope": {
       "internal": "Nội bộ",
-      "external": "Bên ngoài"
+      "external": "Ngoại bộ"
     },
     "roles": {
       "admin": "Admin",
@@ -2741,7 +2742,7 @@
       "nationalId": {
         "required": "CMND/CCCD không được để trống.",
         "specialChars": "CMND/CCCD không được chứa ký tự đặc biệt.",
-        "mustBe13Digits": "CMND/CCCD phải có đúng 13 số."
+        "mustBe13Digits": "CMND/CCCD phải có đúng 12 số."
       },
       "username": {
         "noWhitespace": "Tên đăng nhập không được chứa khoảng trắng.",

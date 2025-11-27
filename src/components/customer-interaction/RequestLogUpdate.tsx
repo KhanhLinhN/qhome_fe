@@ -29,6 +29,14 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
     const [adminResponse, setAdminResponse] = useState<string>('');
     const [acceptFee, setAcceptFee] = useState<string>('');
     const [denyNote, setDenyNote] = useState('');
+    
+    // Error states
+    const [errors, setErrors] = useState<{
+        adminResponse?: string;
+        acceptFee?: string;
+        note?: string;
+        denyNote?: string;
+    }>({});
 
     const isNewStatus = initialStatusValue === 'New' || initialStatusValue === 'new';
     const isPendingStatus = initialStatusValue === 'Pending' || initialStatusValue === 'pending';
@@ -111,10 +119,22 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                             <textarea
                                 rows={5}
                                 value={adminResponse}
-                                onChange={(e) => setAdminResponse(e.target.value)}
-                                className="w-full p-3 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                                onChange={(e) => {
+                                    setAdminResponse(e.target.value);
+                                    if (errors.adminResponse) {
+                                        setErrors(prev => ({ ...prev, adminResponse: undefined }));
+                                    }
+                                }}
+                                className={`w-full p-3 border rounded-md focus:outline-none shadow-inner transition duration-150 ${
+                                    errors.adminResponse 
+                                        ? 'border-red-500 focus:ring-1 focus:ring-red-500' 
+                                        : 'border-gray-300 focus:ring-green-500 focus:border-green-500'
+                                }`}
                                 placeholder={t('adminResponsePlaceholder') || 'Nhập mô tả vấn đề hỏng hóc...'}
                             ></textarea>
+                            {errors.adminResponse && (
+                                <span className="text-red-500 text-xs mt-1">{errors.adminResponse}</span>
+                            )}
                         </div>
                         <div className="mb-4">
                             <h3 className="text-lg font-semibold text-gray-800 mb-2">
@@ -125,10 +145,22 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                                 min="0"
                                 step="0.01"
                                 value={acceptFee}
-                                onChange={(e) => setAcceptFee(e.target.value)}
-                                className="w-full p-3 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                                onChange={(e) => {
+                                    setAcceptFee(e.target.value);
+                                    if (errors.acceptFee) {
+                                        setErrors(prev => ({ ...prev, acceptFee: undefined }));
+                                    }
+                                }}
+                                className={`w-full p-3 border rounded-md focus:outline-none shadow-inner transition duration-150 ${
+                                    errors.acceptFee 
+                                        ? 'border-red-500 focus:ring-1 focus:ring-red-500' 
+                                        : 'border-gray-300 focus:ring-green-500 focus:border-green-500'
+                                }`}
                                 placeholder={t('enterFee')}
                             />
+                            {errors.acceptFee && (
+                                <span className="text-red-500 text-xs mt-1">{errors.acceptFee}</span>
+                            )}
                         </div>
                         <div className="mb-4">
                             <h3 className="text-lg font-semibold text-gray-800 mb-2">
@@ -137,10 +169,22 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                             <textarea
                                 rows={5}
                                 value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                                className="w-full p-3 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                                onChange={(e) => {
+                                    setNote(e.target.value);
+                                    if (errors.note) {
+                                        setErrors(prev => ({ ...prev, note: undefined }));
+                                    }
+                                }}
+                                className={`w-full p-3 border rounded-md focus:outline-none resize-none shadow-inner transition duration-150 ${
+                                    errors.note 
+                                        ? 'border-red-500 focus:ring-1 focus:ring-red-500' 
+                                        : 'border-gray-300 focus:ring-green-500 focus:border-green-500'
+                                }`}
                                 placeholder={t('enterNote')}
                             ></textarea>
+                            {errors.note && (
+                                <span className="text-red-500 text-xs mt-1">{errors.note}</span>
+                            )}
                         </div>
                     </>
                 ) : (
@@ -151,10 +195,22 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                         <textarea
                             rows={5}
                             value={denyNote}
-                            onChange={(e) => setDenyNote(e.target.value)}
-                            className="w-full p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                            onChange={(e) => {
+                                setDenyNote(e.target.value);
+                                if (errors.denyNote) {
+                                    setErrors(prev => ({ ...prev, denyNote: undefined }));
+                                }
+                            }}
+                            className={`w-full p-3 border rounded-md focus:outline-none resize-none shadow-inner transition duration-150 ${
+                                errors.denyNote 
+                                    ? 'border-red-500 focus:ring-1 focus:ring-red-500' 
+                                    : 'border-gray-300 focus:ring-red-500 focus:border-red-500'
+                            }`}
                             placeholder={t('enterDenyReason')}
                         ></textarea>
+                        {errors.denyNote && (
+                            <span className="text-red-500 text-xs mt-1">{errors.denyNote}</span>
+                        )}
                     </div>
                 )}
 
@@ -166,6 +222,7 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                             setAdminResponse('');
                             setNote('');
                             setDenyNote('');
+                            setErrors({});
                         }}
                         disabled={isSubmitting}
                         className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition disabled:opacity-50"
@@ -175,49 +232,63 @@ const RequestLogUpdate = ({ initialStatusValue, onSave, onAcceptDeny, unactive, 
                     <button
                         onClick={async () => {
                             if (action === 'accept') {
-                                // Validate all required fields
-                                if (!adminResponse.trim() || !acceptFee.trim() || !note.trim()) {
-                                    alert(t('allFieldsRequired'));
-                                    return;
-                                }
+                                // Reset errors
+                                setErrors({});
                                 
-                                // Validate fee is a valid number and not null
-                                const fee = parseFloat(acceptFee.trim());
-                                if (isNaN(fee) || fee < 0) {
-                                    alert(t('invalidFee'));
-                                    return;
-                                }
+                                // Validate all required fields
+                                const newErrors: typeof errors = {};
                                 
                                 // Validate adminResponse is not empty
                                 if (!adminResponse.trim()) {
-                                    alert(t('adminResponseRequired'));
-                                    return;
+                                    newErrors.adminResponse = t('adminResponseRequired');
+                                }
+                                
+                                // Validate fee is a valid number and not null
+                                if (!acceptFee.trim()) {
+                                    newErrors.acceptFee = t('allFieldsRequired');
+                                } else {
+                                    const fee = parseFloat(acceptFee.trim());
+                                    if (isNaN(fee) || fee < 0) {
+                                        newErrors.acceptFee = t('invalidFee');
+                                    }
                                 }
                                 
                                 // Validate note is not empty
                                 if (!note.trim()) {
-                                    alert(t('noteRequired'));
+                                    newErrors.note = t('noteRequired');
+                                }
+                                
+                                // If there are errors, set them and return
+                                if (Object.keys(newErrors).length > 0) {
+                                    setErrors(newErrors);
                                     return;
                                 }
                                 
+                                // All validations passed
+                                const fee = parseFloat(acceptFee.trim());
                                 try {
                                     await onAcceptDeny('accept', adminResponse.trim(), fee, note.trim());
                                     setAcceptFee('');
                                     setAdminResponse('');
                                     setNote('');
+                                    setErrors({});
                                 } catch (error) {
                                     console.error('Accept failed:', error);
                                 }
                             } else {
+                                // Reset errors
+                                setErrors({});
+                                
                                 // Validate deny note is not empty
                                 if (!denyNote.trim()) {
-                                    alert(t('denyReasonRequired'));
+                                    setErrors({ denyNote: t('denyReasonRequired') });
                                     return;
                                 }
                                 
                                 try {
                                     await onAcceptDeny('deny', null, null, denyNote.trim());
                                     setDenyNote('');
+                                    setErrors({});
                                 } catch (error) {
                                     console.error('Deny failed:', error);
                                 }

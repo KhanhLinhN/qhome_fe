@@ -35,6 +35,7 @@ export default function BuildingAdd () {
         district?: string;
         ward?: string;
         addressDetail?: string;
+        numberOfFloors?: string;
     }>({});
 
     const { addBuilding, loading, error, isSubmitting } = useBuildingAdd();
@@ -427,6 +428,19 @@ export default function BuildingAdd () {
                 if (!trimmed) newErrors.addressDetail = t('addressDetailError') || 'Địa chỉ chi tiết không được để trống'; else delete newErrors.addressDetail;
                 break;
             }
+            case 'numberOfFloors': {
+                const numValue = typeof value === 'number' ? value : (value ? parseInt(String(value)) : null);
+                if (numValue === null || numValue === undefined || isNaN(numValue)) {
+                    newErrors.numberOfFloors = 'Số tầng không được để trống';
+                } else if (numValue < 1) {
+                    newErrors.numberOfFloors = 'Số tầng phải lớn hơn 0';
+                } else if (numValue >= 100) {
+                    newErrors.numberOfFloors = 'Số tầng phải nhỏ hơn 100';
+                } else {
+                    delete newErrors.numberOfFloors;
+                }
+                break;
+            }
         }
         setErrors(newErrors);
     };
@@ -439,6 +453,7 @@ export default function BuildingAdd () {
             district?: string;
             ward?: string;
             addressDetail?: string;
+            numberOfFloors?: string;
         } = {};
         const nameMsg = validateBuildingName(String(formData.name ?? ''));
         if (nameMsg) newErrors.name = nameMsg;
@@ -447,6 +462,15 @@ export default function BuildingAdd () {
         if (!selectedDistrict) newErrors.district = t('districtRequired') || 'Vui lòng chọn quận/huyện';
         if (!selectedWard) newErrors.ward = t('wardRequired') || 'Vui lòng chọn phường/xã';
         if (!addressDetail.trim()) newErrors.addressDetail = t('addressDetailError') || 'Địa chỉ chi tiết không được để trống';
+        
+        const floorsValue = formData.numberOfFloors;
+        if (floorsValue === null || floorsValue === undefined || isNaN(floorsValue)) {
+            newErrors.numberOfFloors = 'Số tầng không được để trống';
+        } else if (floorsValue < 1) {
+            newErrors.numberOfFloors = 'Số tầng phải lớn hơn 0';
+        } else if (floorsValue >= 100) {
+            newErrors.numberOfFloors = 'Số tầng phải nhỏ hơn 100';
+        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -515,22 +539,22 @@ export default function BuildingAdd () {
                         error={errors.name}
                     />
 
-                    <div className="flex flex-col">
-                        <label className="text-md font-bold text-[#02542D] mb-1">
-                            Số tầng
-                        </label>
-                        <input
-                            type="number"
-                            min="1"
-                            value={formData.numberOfFloors ?? ''}
-                            onChange={(e) => {
-                                const value = e.target.value ? parseInt(e.target.value) : null;
-                                setFormData(prev => ({ ...prev, numberOfFloors: value }));
-                            }}
-                            placeholder="Nhập số tầng (tùy chọn)"
-                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:border-emerald-500 focus:ring-emerald-100"
-                        />
-                    </div>
+                    <DetailField 
+                        label="Số tầng"
+                        value={formData.numberOfFloors !== null && formData.numberOfFloors !== undefined ? String(formData.numberOfFloors) : ''}
+                        onChange={(e) => {
+                            const value = e.target.value ? parseInt(e.target.value) : null;
+                            setFormData(prev => ({ ...prev, numberOfFloors: value }));
+                            if (errors.numberOfFloors) {
+                                validateField('numberOfFloors', value ?? '');
+                            }
+                        }}
+                        name="numberOfFloors"
+                        inputType="number"
+                        placeholder="Nhập số tầng"
+                        readonly={false}
+                        error={errors.numberOfFloors}
+                    />
 
                     {/* <div className={`flex flex-col mb-4 col-span-1`}>
                         <label className="text-md font-bold text-[#02542D] mb-1">

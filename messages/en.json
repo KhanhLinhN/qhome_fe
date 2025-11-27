@@ -113,6 +113,7 @@
   },
   "Common": { "language": "Language", "support": "Need help?" },
   "Sidebar": {
+    "staffContent": "Staff Content",
     "overview": "Overview",
     "dashboard": "Dashboard",
     "systemAdmin": "System Administration",
@@ -2673,7 +2674,7 @@
       "nationalId": {
         "required": "ID card/Citizen ID cannot be empty.",
         "specialChars": "ID card/Citizen ID cannot contain special characters.",
-        "mustBe13Digits": "ID card/Citizen ID must be exactly 13 digits."
+        "mustBe13Digits": "ID card/Citizen ID must be exactly 12 digits."
       },
       "username": {
         "noWhitespace": "Username cannot contain whitespace.",
