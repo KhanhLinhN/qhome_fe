@@ -2569,7 +2569,7 @@
     "changeScope": "Thay đổi phạm vi",
     "scope": "Phạm vi",
     "internal": "Nội bộ",
-    "external": "Bên ngoài",
+    "external": "Ngoại bộ",
     "selectScope": "Chọn phạm vi",
     "targetRole": "Vai trò đích",
     "selectTargetRole": "Chọn vai trò",

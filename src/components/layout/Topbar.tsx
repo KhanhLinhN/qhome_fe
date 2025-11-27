@@ -489,7 +489,7 @@ export default function Topbar(){
                     <div>
                       <div className="text-xs text-slate-500 mb-1">Phạm vi</div>
                       <div className="text-sm text-slate-900">
-                        {selectedNotification.scope === "INTERNAL" ? "Nội bộ" : "Bên ngoài"}
+                        {selectedNotification.scope === "INTERNAL" ? "Nội bộ" : "Ngoại bộ"}
                       </div>
                     </div>
                     {selectedNotification.targetRole && (
@@ -561,7 +561,7 @@ export default function Topbar(){
                       <div>
                         <div className="text-xs text-slate-500 mb-1">Phạm vi</div>
                         <div className="text-sm text-slate-900">
-                          {selectedNews.scope === "INTERNAL" ? "Nội bộ" : "Bên ngoài"}
+                          {selectedNews.scope === "INTERNAL" ? "Nội bộ" : "Ngoại bộ"}
                         </div>
                       </div>
                     )}
