@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from "@/src/hooks/useNotifications";
-import { forgotPassword } from "@/src/services/iam";
+import { requestPasswordReset } from "@/src/services/iam/authService";
 import LocaleSwitcher from "@/src/components/common/LocaleSwitcher";
 
 export default function Page() {
@@ -39,16 +39,16 @@ export default function Page() {
     setLoading(true);
     
     try {
-      await forgotPassword(email);
-      show("Mật khẩu mới đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.", "success");
+      await requestPasswordReset(email);
+      show("Nếu email tồn tại trong hệ thống, mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.", "success");
       setTimeout(() => {
-        router.push("/login");
-      }, 2000);
+        router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
+      }, 1000);
     } catch (e: any) {
       let errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
       
-      if (e?.response?.status === 404) {
-        errorMessage = "Email bạn nhập không có trong hệ thống.";
+      if (e?.response?.status === 429) {
+        errorMessage = e?.response?.data?.message || "Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi một chút trước khi thử lại.";
       } else if (e?.response?.status === 400) {
         errorMessage = e?.response?.data?.message || "Email không hợp lệ.";
       } else if (e?.code === 'ERR_NETWORK' || e?.message?.includes('Network')) {

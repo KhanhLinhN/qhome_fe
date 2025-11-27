@@ -70,16 +70,66 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * Forgot Password API
- * POST /api/users/forgot-password
+ * Request Password Reset API
+ * POST /api/auth/request-reset
  */
-export async function forgotPassword(email: string): Promise<void> {
+export async function requestPasswordReset(email: string): Promise<{ message: string }> {
   const apiUrl = process.env.NEXT_PUBLIC_IAM_URL || 'http://localhost:8088';
-  const endpoint = `${apiUrl}/api/users/forgot-password`;
+  const endpoint = `${apiUrl}/api/auth/request-reset`;
   
   const response = await axios.post(
     endpoint,
     { email },
+    {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  return response.data;
+}
+
+/**
+ * Verify OTP API
+ * POST /api/auth/verify-otp
+ * Xác thực OTP đã nhận
+ */
+export async function verifyOtp(email: string, otp: string): Promise<{ message: string }> {
+  const apiUrl = process.env.NEXT_PUBLIC_IAM_URL || 'http://localhost:8088';
+  const endpoint = `${apiUrl}/api/auth/verify-otp`;
+  
+  const response = await axios.post(
+    endpoint,
+    { email, otp },
+    {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  return response.data;
+}
+
+/**
+ * Confirm Password Reset API
+ * POST /api/auth/confirm-reset
+ * Reset password với OTP và password mới
+ */
+export async function confirmPasswordReset(
+  email: string, 
+  otp: string, 
+  newPassword: string
+): Promise<{ message: string }> {
+  const apiUrl = process.env.NEXT_PUBLIC_IAM_URL || 'http://localhost:8088';
+  const endpoint = `${apiUrl}/api/auth/confirm-reset`;
+  
+  const response = await axios.post(
+    endpoint,
+    { email, otp, newPassword },
     {
       withCredentials: true,
       headers: {
