@@ -27,6 +27,7 @@ import {
 import { getUnit, getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import { checkEmailExists } from '@/src/services/iam/userService';
+import { checkNationalIdExists } from '@/src/services/base/residentService';
 import Select from '@/src/components/customer-interaction/Select';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import CCCDUpload from '@/src/components/account/CCCDUpload';
@@ -512,6 +513,17 @@ export default function AccountNewResidentPage() {
     if (nationalIdError) {
       errors.nationalId = nationalIdError;
       isValid = false;
+    } else if (manualForm.nationalId.trim()) {
+      // Check if national ID already exists in system
+      try {
+        const exists = await checkNationalIdExists(manualForm.nationalId.trim());
+        if (exists) {
+          errors.nationalId = 'Số căn cước công dân đã tồn tại trong hệ thống.';
+          isValid = false;
+        }
+      } catch (err) {
+        console.error('Error checking national ID:', err as Error);
+      }
     }
 
     // Validate username (optional field)
