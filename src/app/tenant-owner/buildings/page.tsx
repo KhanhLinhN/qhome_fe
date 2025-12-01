@@ -5,6 +5,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import Topbar from '@/src/components/layout/Topbar';
 import Sidebar from '@/src/components/layout/Sidebar';
 import axios from '@/src/lib/axios';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
@@ -35,6 +36,12 @@ export default function TenantOwnerBuildingsPage() {
   const [buildingStatuses, setBuildingStatuses] = useState<Record<string, BuildingTargetsStatus>>({});
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState<string | null>(null);
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [pendingComplete, setPendingComplete] = useState<{ requestId: string; buildingName: string } | null>(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadDeletingBuildings();
@@ -74,25 +81,32 @@ export default function TenantOwnerBuildingsPage() {
     }
   };
 
-  const handleCompleteDeletion = async (requestId: string, buildingName: string) => {
-    if (!confirm(t('confirm.complete', { name: buildingName }))) {
-      return;
-    }
+  const handleCompleteDeletionClick = (requestId: string, buildingName: string) => {
+    setPendingComplete({ requestId, buildingName });
+    setShowConfirmPopup(true);
+  };
 
+  const handleCompleteDeletion = async () => {
+    if (!pendingComplete) return;
+
+    setShowConfirmPopup(false);
     try {
-      setCompleting(requestId);
+      setCompleting(pendingComplete.requestId);
       await axios.post(
-        `${BASE_URL}/api/buildings/${requestId}/complete`,
+        `${BASE_URL}/api/buildings/${pendingComplete.requestId}/complete`,
         {},
         { withCredentials: true }
       );
-      alert(t('messages.completeSuccess', { name: buildingName }));
+      setSuccessMessage(t('messages.completeSuccess', { name: pendingComplete.buildingName }));
+      setShowSuccessPopup(true);
       loadDeletingBuildings(); // Reload
     } catch (error: any) {
       console.error('Failed to complete deletion:', error);
-      alert(t('messages.completeError', { message: error?.response?.data?.message || error.message }));
+      setErrorMessage(t('messages.completeError', { message: error?.response?.data?.message || error.message }));
+      setShowErrorPopup(true);
     } finally {
       setCompleting(null);
+      setPendingComplete(null);
     }
   };
 
@@ -191,10 +205,10 @@ export default function TenantOwnerBuildingsPage() {
                         <div className="border-t border-slate-200 pt-4">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-slate-700">
-                              Tiến trình xóa Units:
+                              {t('building.progress.title')}
                             </span>
                             <span className="text-sm font-bold text-slate-800">
-                              {unitsDeleted} / {unitsRemaining} units
+                              {t('building.progress.units', { deleted: unitsDeleted, total: unitsRemaining })}
                             </span>
                           </div>
                           
@@ -213,22 +227,22 @@ export default function TenantOwnerBuildingsPage() {
                               <div className="flex items-center gap-2 text-green-700">
                                 <span className="text-2xl">✅</span>
                                 <span className="text-sm font-medium">
-                                  Đã xóa hết units! Có thể hoàn tất xóa building.
+                                  {t('building.progress.completed')}
                                 </span>
                               </div>
                               <button
-                                onClick={() => handleCompleteDeletion(building.id, building.buildingName)}
+                                onClick={() => handleCompleteDeletionClick(building.id, building.buildingName)}
                                 disabled={completing === building.id}
                                 className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                {completing === building.id ? '⏳ Đang xử lý...' : '✅ Hoàn tất xóa'}
+                                {completing === building.id ? t('building.progress.completing') : t('building.progress.complete')}
                               </button>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 text-amber-700">
                               <span className="text-xl">⏳</span>
                               <span className="text-sm">
-                                Còn {unitsRemaining - unitsDeleted} units cần xóa...
+                                {t('building.progress.remaining', { remaining: unitsRemaining - unitsDeleted })}
                               </span>
                             </div>
                           )}
@@ -239,6 +253,39 @@ export default function TenantOwnerBuildingsPage() {
                 })}
               </div>
             )}
+
+            {/* Confirm Popup */}
+            <PopupComfirm
+              isOpen={showConfirmPopup}
+              onClose={() => {
+                setShowConfirmPopup(false);
+                setPendingComplete(null);
+              }}
+              onConfirm={handleCompleteDeletion}
+              popupTitle={pendingComplete ? t('confirm.complete', { name: pendingComplete.buildingName }) : ''}
+              popupContext=""
+              isDanger={false}
+            />
+
+            {/* Success Popup */}
+            <PopupComfirm
+              isOpen={showSuccessPopup}
+              onClose={() => setShowSuccessPopup(false)}
+              onConfirm={() => setShowSuccessPopup(false)}
+              popupTitle={successMessage}
+              popupContext=""
+              isDanger={false}
+            />
+
+            {/* Error Popup */}
+            <PopupComfirm
+              isOpen={showErrorPopup}
+              onClose={() => setShowErrorPopup(false)}
+              onConfirm={() => setShowErrorPopup(false)}
+              popupTitle={errorMessage}
+              popupContext=""
+              isDanger={true}
+            />
           </div>
         </main>
       </div>

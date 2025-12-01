@@ -22,6 +22,8 @@ export default function NewsList() {
     const [selectedStatus, setSelectedStatus] = useState<NewsStatus | ''>('');
     const [pageNo, setPageNo] = useState<number>(0);
     const [pageSize] = useState<number>(10);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     
     const { newsList, loading, error, refetch } = useNewsList(selectedStatus || undefined);
 
@@ -149,10 +151,16 @@ export default function NewsList() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm(t('confirmDelete'))) {
-            return;
-        }
+    const handleDeleteClick = (id: string) => {
+        setPendingDeleteId(id);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleDelete = async () => {
+        if (!pendingDeleteId) return;
+        setShowDeleteConfirm(false);
+        const id = pendingDeleteId;
+        setPendingDeleteId(null);
 
         try {
             await deleteNews(id);
@@ -278,7 +286,7 @@ export default function NewsList() {
                             headers={headers}
                             type="news"
                             onEdit={handleEdit}
-                            onDelete={handleDelete}
+                            onDelete={handleDeleteClick}
                             onNewsChangeStatusAndTarget={handleOpenChangeStatusTarget}
                         />
                         <Pagination
@@ -401,6 +409,19 @@ export default function NewsList() {
                     </>
                 )}
             </div>
+
+            {/* Delete Confirm Popup */}
+            <PopupComfirm
+                isOpen={showDeleteConfirm}
+                onClose={() => {
+                    setShowDeleteConfirm(false);
+                    setPendingDeleteId(null);
+                }}
+                onConfirm={handleDelete}
+                popupTitle={t('confirmDelete')}
+                popupContext=""
+                isDanger={true}
+            />
         </div>
     );
 }

@@ -11,6 +11,7 @@ import {
 } from '@/src/services/card/vehicleRegistrationService';
 import { VehicleKind } from '@/src/types/vehicle';
 import { VehicleRegistrationRequest } from '@/src/types/vehicleRegistration';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 const approveIcon = (
   <svg
@@ -84,6 +85,8 @@ export default function VehicleRegistrationPage() {
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const loadRegistrations = useCallback(async () => {
     setLoading(true);
@@ -218,7 +221,8 @@ export default function VehicleRegistrationPage() {
       );
     } catch (err: any) {
       const message = err?.response?.data?.message ?? err?.message ?? t('error');
-      window.alert(message);
+      setErrorMessage(message);
+      setShowErrorPopup(true);
     } finally {
       setProcessingId(null);
     }
@@ -241,7 +245,8 @@ export default function VehicleRegistrationPage() {
       );
     } catch (err: any) {
       const message = err?.response?.data?.message ?? err?.message ?? t('error');
-      window.alert(message);
+      setErrorMessage(message);
+      setShowErrorPopup(true);
     } finally {
       setProcessingId(null);
     }
@@ -465,6 +470,16 @@ export default function VehicleRegistrationPage() {
           )}
         </div>
       </div>
+
+      {/* Error Popup */}
+      <PopupComfirm
+        isOpen={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        onConfirm={() => setShowErrorPopup(false)}
+        popupTitle={errorMessage}
+        popupContext=""
+        isDanger={true}
+      />
     </div>
   );
 }

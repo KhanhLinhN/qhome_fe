@@ -14,6 +14,8 @@ export default function AdminDeletionRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadRequests();
@@ -29,7 +31,8 @@ export default function AdminDeletionRequestsPage() {
       setRequests(data);
     } catch (error) {
       console.error('Failed to load deletion requests:', error);
-      alert(t('messages.loadError'));
+      setErrorMessage(t('messages.loadError'));
+      setShowErrorPopup(true);
     } finally {
       setLoading(false);
     }
@@ -230,6 +233,16 @@ export default function AdminDeletionRequestsPage() {
           </div>
         </div>
       )}
+
+      {/* Error Popup */}
+      <PopupComfirm
+        isOpen={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        onConfirm={() => setShowErrorPopup(false)}
+        popupTitle={errorMessage}
+        popupContext=""
+        isDanger={true}
+      />
     </div>
   );
 }

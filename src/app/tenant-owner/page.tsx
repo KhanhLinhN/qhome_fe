@@ -9,6 +9,7 @@ import Link from 'next/link';
 import Topbar from '@/src/components/layout/Topbar';
 import Sidebar from '@/src/components/layout/Sidebar';
 import Delete from '@/src/assets/Delete.svg';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 export default function TenantOwnerHomePage() {
   const t = useTranslations('TenantOwner');
@@ -21,6 +22,10 @@ export default function TenantOwnerHomePage() {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TenantDeletionRequest | null>(null);
   const [approveNote, setApproveNote] = useState('');
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadData();
@@ -60,12 +65,14 @@ export default function TenantOwnerHomePage() {
     try {
       setApproving(selectedRequest.id);
       await approveDeletionRequest(selectedRequest.id, { note: approveNote });
-      alert(t('messages.approveSuccess'));
+      setSuccessMessage(t('messages.approveSuccess'));
+      setShowSuccessPopup(true);
       setShowApproveModal(false);
       loadData(); // Reload to show updated status
     } catch (error: any) {
       console.error('Failed to approve request:', error);
-      alert(t('messages.approveError', { message: error?.response?.data?.message || error.message }));
+      setErrorMessage(t('messages.approveError', { message: error?.response?.data?.message || error.message }));
+      setShowErrorPopup(true);
     } finally {
       setApproving(null);
     }
@@ -369,6 +376,26 @@ export default function TenantOwnerHomePage() {
                 </div>
               </div>
             )}
+
+            {/* Success Popup */}
+            <PopupComfirm
+              isOpen={showSuccessPopup}
+              onClose={() => setShowSuccessPopup(false)}
+              onConfirm={() => setShowSuccessPopup(false)}
+              popupTitle={successMessage}
+              popupContext=""
+              isDanger={false}
+            />
+
+            {/* Error Popup */}
+            <PopupComfirm
+              isOpen={showErrorPopup}
+              onClose={() => setShowErrorPopup(false)}
+              onConfirm={() => setShowErrorPopup(false)}
+              popupTitle={errorMessage}
+              popupContext=""
+              isDanger={true}
+            />
           </div>
         </main>
       </div>

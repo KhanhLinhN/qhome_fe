@@ -6,6 +6,7 @@ import Topbar from '@/src/components/layout/Topbar';
 import Sidebar from '@/src/components/layout/Sidebar';
 import axios from '@/src/lib/axios';
 import Delete from '@/src/assets/Delete.svg';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 const IAM_URL = process.env.NEXT_PUBLIC_IAM_URL || 'http://localhost:8088';
@@ -42,6 +43,13 @@ export default function TenantOwnerEmployeesPage() {
   const [deletionStatus, setDeletionStatus] = useState<TenantDeletionTargetsStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [unassigning, setUnassigning] = useState<string | null>(null);
+  const [showConfirmUnassignPopup, setShowConfirmUnassignPopup] = useState(false);
+  const [showConfirmUnassignAllPopup, setShowConfirmUnassignAllPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [pendingUnassign, setPendingUnassign] = useState<{ userId: string; username: string } | null>(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadData();
@@ -84,36 +92,43 @@ export default function TenantOwnerEmployeesPage() {
     }
   };
 
-  const handleUnassignEmployee = async (userId: string, username: string) => {
-    if (!confirm(`Bạn có chắc muốn gỡ bỏ "${username}" khỏi tenant?\n\nHọ sẽ không còn quyền truy cập vào tenant này.`)) {
-      return;
-    }
+  const handleUnassignEmployeeClick = (userId: string, username: string) => {
+    setPendingUnassign({ userId, username });
+    setShowConfirmUnassignPopup(true);
+  };
 
+  const handleUnassignEmployee = async () => {
+    if (!pendingUnassign) return;
+
+    setShowConfirmUnassignPopup(false);
     try {
-      setUnassigning(userId);
+      setUnassigning(pendingUnassign.userId);
       // Note: Individual unassign API not available, using remove role instead
       await axios.post(
         `${IAM_URL}/api/employee-roles/remove`,
-        { userId, tenantId: user?.tenantId, roles: [] }, // Remove all roles
+        { userId: pendingUnassign.userId, tenantId: user?.tenantId, roles: [] }, // Remove all roles
         { withCredentials: true }
       );
-      alert(`✅ Đã gỡ bỏ "${username}" khỏi tenant!`);
+      setSuccessMessage(`✅ Đã gỡ bỏ "${pendingUnassign.username}" khỏi tenant!`);
+      setShowSuccessPopup(true);
       loadData(); // Reload
     } catch (error: any) {
       console.error('Failed to unassign employee:', error);
-      alert(`❌ Gỡ bỏ thất bại: ${error?.response?.data?.message || error.message}`);
+      setErrorMessage(`❌ Gỡ bỏ thất bại: ${error?.response?.data?.message || error.message}`);
+      setShowErrorPopup(true);
     } finally {
       setUnassigning(null);
+      setPendingUnassign(null);
     }
   };
 
-  const handleUnassignAllEmployees = async () => {
+  const handleUnassignAllEmployeesClick = () => {
     if (employees.length === 0) return;
-    
-    if (!confirm(`Bạn có chắc muốn gỡ bỏ TẤT CẢ ${employees.length} nhân viên khỏi tenant?\n\nHọ sẽ không còn quyền truy cập vào tenant này.`)) {
-      return;
-    }
+    setShowConfirmUnassignAllPopup(true);
+  };
 
+  const handleUnassignAllEmployees = async () => {
+    setShowConfirmUnassignAllPopup(false);
     try {
       setUnassigning('all');
       await axios.post(
@@ -121,11 +136,13 @@ export default function TenantOwnerEmployeesPage() {
         {},
         { withCredentials: true }
       );
-      alert(`✅ Đã gỡ bỏ tất cả ${employees.length} nhân viên khỏi tenant!`);
+      setSuccessMessage(`✅ Đã gỡ bỏ tất cả ${employees.length} nhân viên khỏi tenant!`);
+      setShowSuccessPopup(true);
       loadData(); // Reload
     } catch (error: any) {
       console.error('Failed to unassign all employees:', error);
-      alert(`❌ Gỡ bỏ thất bại: ${error?.response?.data?.message || error.message}`);
+      setErrorMessage(`❌ Gỡ bỏ thất bại: ${error?.response?.data?.message || error.message}`);
+      setShowErrorPopup(true);
     } finally {
       setUnassigning(null);
     }
@@ -228,7 +245,7 @@ export default function TenantOwnerEmployeesPage() {
                 </h2>
                 {employees.length > 0 && (
                   <button
-                    onClick={handleUnassignAllEmployees}
+                    onClick={handleUnassignAllEmployeesClick}
                     disabled={unassigning === 'all'}
                     className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
@@ -280,7 +297,7 @@ export default function TenantOwnerEmployeesPage() {
                           )}
                         </div>
                         <button
-                          onClick={() => handleUnassignEmployee(employee.userId, employee.username)}
+                          onClick={() => handleUnassignEmployeeClick(employee.userId, employee.username)}
                           disabled={unassigning === employee.userId}
                           className="px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
@@ -297,6 +314,49 @@ export default function TenantOwnerEmployeesPage() {
                 </div>
               )}
             </div>
+
+            {/* Confirm Unassign Popup */}
+            <PopupComfirm
+              isOpen={showConfirmUnassignPopup}
+              onClose={() => {
+                setShowConfirmUnassignPopup(false);
+                setPendingUnassign(null);
+              }}
+              onConfirm={handleUnassignEmployee}
+              popupTitle={pendingUnassign ? `Bạn có chắc muốn gỡ bỏ "${pendingUnassign.username}" khỏi tenant?` : ''}
+              popupContext="Họ sẽ không còn quyền truy cập vào tenant này."
+              isDanger={true}
+            />
+
+            {/* Confirm Unassign All Popup */}
+            <PopupComfirm
+              isOpen={showConfirmUnassignAllPopup}
+              onClose={() => setShowConfirmUnassignAllPopup(false)}
+              onConfirm={handleUnassignAllEmployees}
+              popupTitle={employees.length > 0 ? `Bạn có chắc muốn gỡ bỏ TẤT CẢ ${employees.length} nhân viên khỏi tenant?` : ''}
+              popupContext="Họ sẽ không còn quyền truy cập vào tenant này."
+              isDanger={true}
+            />
+
+            {/* Success Popup */}
+            <PopupComfirm
+              isOpen={showSuccessPopup}
+              onClose={() => setShowSuccessPopup(false)}
+              onConfirm={() => setShowSuccessPopup(false)}
+              popupTitle={successMessage}
+              popupContext=""
+              isDanger={false}
+            />
+
+            {/* Error Popup */}
+            <PopupComfirm
+              isOpen={showErrorPopup}
+              onClose={() => setShowErrorPopup(false)}
+              onConfirm={() => setShowErrorPopup(false)}
+              popupTitle={errorMessage}
+              popupContext=""
+              isDanger={true}
+            />
           </div>
         </main>
       </div>

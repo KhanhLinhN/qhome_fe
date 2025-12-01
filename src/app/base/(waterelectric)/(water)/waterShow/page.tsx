@@ -30,6 +30,7 @@ import {
 import { useNotifications } from '@/src/hooks/useNotifications';
 import WaterSettingsPopup, { WaterFormula } from '@/src/components/water/WaterSettingsPopup';
 import { useTranslations } from 'next-intl';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 interface WaterCycle {
   fromDate: string;
@@ -48,6 +49,9 @@ export default function WaterShowPage() {
   const [isMeterModalOpen, setIsMeterModalOpen] = useState(false);
   const [isEditMeterModalOpen, setIsEditMeterModalOpen] = useState(false);
   const [waterCycle, setWaterCycle] = useState<ReadingCycleDto | null>(null);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingMeterId, setPendingMeterId] = useState<string | null>(null);
   const [waterFormula, setWaterFormula] = useState<WaterFormula[] | undefined>();
   const [meters, setMeters] = useState<MeterDto[]>([]);
   const [selectedMeter, setSelectedMeter] = useState<MeterDto | null>(null);
@@ -300,8 +304,16 @@ export default function WaterShowPage() {
     }
   };
 
-  const handleDeactivateMeter = async (meterId: string) => {
-    if (!confirm(t('confirm.deactivateMeter'))) return;
+  const handleDeactivateMeterClick = (meterId: string) => {
+    setPendingMeterId(meterId);
+    setShowDeactivateConfirm(true);
+  };
+
+  const handleDeactivateMeter = async () => {
+    if (!pendingMeterId) return;
+    setShowDeactivateConfirm(false);
+    const meterId = pendingMeterId;
+    setPendingMeterId(null);
 
     try {
       await deactivateMeter(meterId);
@@ -321,8 +333,16 @@ export default function WaterShowPage() {
     }
   };
 
-  const handleDeleteMeter = async (meterId: string) => {
-    if (!confirm(t('confirm.deleteMeter'))) return;
+  const handleDeleteMeterClick = (meterId: string) => {
+    setPendingMeterId(meterId);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteMeter = async () => {
+    if (!pendingMeterId) return;
+    setShowDeleteConfirm(false);
+    const meterId = pendingMeterId;
+    setPendingMeterId(null);
 
     try {
       await deleteMeter(meterId);
@@ -504,14 +524,14 @@ export default function WaterShowPage() {
                         </button>
                         {meter.active ? (
                           <button
-                            onClick={() => handleDeactivateMeter(meter.id)}
+                            onClick={() => handleDeactivateMeterClick(meter.id)}
                             className="px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 text-sm"
                           >
                             {t('deactivate')}
                           </button>
                         ) : (
                           <button
-                            onClick={() => handleDeleteMeter(meter.id)}
+                            onClick={() => handleDeleteMeterClick(meter.id)}
                             className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm"
                           >
                             {t('delete')}
@@ -655,6 +675,32 @@ export default function WaterShowPage() {
           initialData={selectedMeter}
         />
       )}
+
+      {/* Deactivate Meter Confirm Popup */}
+      <PopupComfirm
+        isOpen={showDeactivateConfirm}
+        onClose={() => {
+          setShowDeactivateConfirm(false);
+          setPendingMeterId(null);
+        }}
+        onConfirm={handleDeactivateMeter}
+        popupTitle={t('confirm.deactivateMeter')}
+        popupContext=""
+        isDanger={true}
+      />
+
+      {/* Delete Meter Confirm Popup */}
+      <PopupComfirm
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setPendingMeterId(null);
+        }}
+        onConfirm={handleDeleteMeter}
+        popupTitle={t('confirm.deleteMeter')}
+        popupContext=""
+        isDanger={true}
+      />
     </div>
   );
 }

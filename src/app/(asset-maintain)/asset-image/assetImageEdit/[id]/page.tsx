@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { uploadAssetImages, deleteAssetImage, setPrimaryImage, getAssetImageUrl, AssetResponse } from '@/src/services/asset-maintenance/assetImageService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 export default function AssetImageEdit() {
     const t = useTranslations('AssetImage.edit'); 
@@ -19,6 +20,8 @@ export default function AssetImageEdit() {
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
     
     const handleBack = () => {
         router.push(`/asset-maintain/asset-image/assetImageDetail/${assetId}`);
@@ -48,8 +51,16 @@ export default function AssetImageEdit() {
         }
     };
 
-    const handleDeleteImage = async (imageUrl: string) => {
-        if (!confirm(t('messages.deleteConfirm'))) return;
+    const handleDeleteImageClick = (imageUrl: string) => {
+        setPendingImageUrl(imageUrl);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleDeleteImage = async () => {
+        if (!pendingImageUrl) return;
+        setShowDeleteConfirm(false);
+        const imageUrl = pendingImageUrl;
+        setPendingImageUrl(null);
 
         try {
             setLoading(true);
@@ -182,7 +193,7 @@ export default function AssetImageEdit() {
                                                 </button>
                                             )}
                                             <button
-                                                onClick={() => handleDeleteImage(imageUrl)}
+                                                onClick={() => handleDeleteImageClick(imageUrl)}
                                                 disabled={loading}
                                                 className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
                                             >
@@ -219,6 +230,19 @@ export default function AssetImageEdit() {
                     </button>
                 </div>
             </div>
+
+            {/* Delete Image Confirm Popup */}
+            <PopupComfirm
+                isOpen={showDeleteConfirm}
+                onClose={() => {
+                    setShowDeleteConfirm(false);
+                    setPendingImageUrl(null);
+                }}
+                onConfirm={handleDeleteImage}
+                popupTitle={t('messages.deleteConfirm')}
+                popupContext=""
+                isDanger={true}
+            />
         </div>
     );
 }

@@ -28,6 +28,8 @@ export default function ReadingSessionsPage() {
   const { show } = useNotifications();
   const [sessions, setSessions] = useState<MeterReadingSessionDto[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<MeterReadingSessionDto[]>([]);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
   const [myActiveSession, setMyActiveSession] = useState<MeterReadingSessionDto | null>(null);
   const [assignments, setAssignments] = useState<MeterReadingAssignmentDto[]>([]);
   const [cycles, setCycles] = useState<ReadingCycleDto[]>([]);
@@ -117,8 +119,16 @@ export default function ReadingSessionsPage() {
     }
   };
 
-  const handleCompleteSession = async (sessionId: string) => {
-    if (!confirm(t('confirm.completeMessage'))) return;
+  const handleCompleteSessionClick = (sessionId: string) => {
+    setPendingSessionId(sessionId);
+    setShowCompleteConfirm(true);
+  };
+
+  const handleCompleteSession = async () => {
+    if (!pendingSessionId) return;
+    setShowCompleteConfirm(false);
+    const sessionId = pendingSessionId;
+    setPendingSessionId(null);
 
     try {
       await completeMeterReadingSession(sessionId);
@@ -155,7 +165,7 @@ export default function ReadingSessionsPage() {
               ({myActiveSession.unitsRead} {t('activeSession.unitsRead')})
             </div>
             <button
-              onClick={() => handleCompleteSession(myActiveSession.id)}
+              onClick={() => handleCompleteSessionClick(myActiveSession.id)}
               className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
             >
               {t('buttons.completeSession')}
@@ -266,7 +276,7 @@ export default function ReadingSessionsPage() {
                     <td className="px-4 py-3 text-center">
                       {!session.isCompleted && (
                         <button
-                          onClick={() => handleCompleteSession(session.id)}
+                          onClick={() => handleCompleteSessionClick(session.id)}
                           className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm"
                         >
                           Complete
@@ -400,6 +410,19 @@ function StartSessionModal({ isOpen, onClose, onSubmit, assignments }: StartSess
           </div>
         </form>
       </div>
+
+      {/* Complete Session Confirm Popup */}
+      <PopupComfirm
+        isOpen={showCompleteConfirm}
+        onClose={() => {
+          setShowCompleteConfirm(false);
+          setPendingSessionId(null);
+        }}
+        onConfirm={handleCompleteSession}
+        popupTitle={t('confirm.completeMessage')}
+        popupContext=""
+        isDanger={false}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   fetchResidentCardRegistration,
   fetchResidentCardRegistrations,
 } from '@/src/services/card';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 export default function ResidentCardAdminPage() {
   const t = useTranslations('ResidentCards');
@@ -24,6 +25,13 @@ export default function ResidentCardAdminPage() {
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [showValidationPopup, setShowValidationPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [popupMessage, setPopupMessage] = useState('');
 
   const statusOptions = useMemo(() => [
     { value: '', label: t('filters.allStatuses') },
@@ -168,7 +176,8 @@ export default function ResidentCardAdminPage() {
     if (!selectedId) return;
 
     if (decision === 'REJECT' && !note.trim()) {
-      alert(t('errors.rejectReasonRequired'));
+      setPopupMessage(t('errors.rejectReasonRequired'));
+      setShowValidationPopup(true);
       return;
     }
 
@@ -180,18 +189,20 @@ export default function ResidentCardAdminPage() {
       });
       setSelected(updated);
       await loadRegistrations();
-      alert(
+      setPopupMessage(
         decision === 'APPROVE'
           ? t('messages.approveSuccess')
           : t('messages.rejectSuccess')
       );
+      setShowSuccessPopup(true);
     } catch (err: unknown) {
       console.error('Failed to submit decision', err);
       if (err instanceof Error && err.message) {
-        alert(err.message);
+        setPopupMessage(err.message);
       } else {
-        alert(t('errors.actionFailed'));
+        setPopupMessage(t('errors.actionFailed'));
       }
+      setShowErrorPopup(true);
     } finally {
       setSubmitting(false);
     }
@@ -491,6 +502,36 @@ export default function ResidentCardAdminPage() {
           )}
         </div>
       </div>
+
+      {/* Validation Popup */}
+      <PopupComfirm
+        isOpen={showValidationPopup}
+        onClose={() => setShowValidationPopup(false)}
+        onConfirm={() => setShowValidationPopup(false)}
+        popupTitle={popupMessage}
+        popupContext=""
+        isDanger={true}
+      />
+
+      {/* Success Popup */}
+      <PopupComfirm
+        isOpen={showSuccessPopup}
+        onClose={() => setShowSuccessPopup(false)}
+        onConfirm={() => setShowSuccessPopup(false)}
+        popupTitle={popupMessage}
+        popupContext=""
+        isDanger={false}
+      />
+
+      {/* Error Popup */}
+      <PopupComfirm
+        isOpen={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        onConfirm={() => setShowErrorPopup(false)}
+        popupTitle={popupMessage}
+        popupContext=""
+        isDanger={true}
+      />
     </div>
   );
 }

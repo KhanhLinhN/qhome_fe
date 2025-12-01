@@ -10,6 +10,7 @@ import {
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { useTranslations } from 'next-intl';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 export default function ReadingExportPage() {
   const { user } = useAuth();
@@ -21,6 +22,8 @@ export default function ReadingExportPage() {
   const [exporting, setExporting] = useState<string | null>(null);
   const [exportResults, setExportResults] = useState<Map<string, MeterReadingImportResponse>>(new Map());
   const [statusFilter, setStatusFilter] = useState<ReadingCycleStatus | "ALL">();
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
+  const [pendingCycleId, setPendingCycleId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCycles();
@@ -47,8 +50,16 @@ export default function ReadingExportPage() {
     }
   };
 
-  const handleExport = async (cycleId: string) => {
-    if (!confirm(t('confirm.exportReadings'))) return;
+  const handleExportClick = (cycleId: string) => {
+    setPendingCycleId(cycleId);
+    setShowExportConfirm(true);
+  };
+
+  const handleExport = async () => {
+    if (!pendingCycleId) return;
+    setShowExportConfirm(false);
+    const cycleId = pendingCycleId;
+    setPendingCycleId(null);
 
     try {
       setExporting(cycleId);
@@ -155,7 +166,7 @@ export default function ReadingExportPage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
-                          onClick={() => handleExport(cycle.id)}
+                          onClick={() => handleExportClick(cycle.id)}
                           disabled={exporting === cycle.id || cycle.status === 'CANCELLED'}
                           className="px-3 py-1 bg-[#739559] text-white rounded-md hover:bg-[#5a7347] disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                         >
@@ -183,6 +194,19 @@ export default function ReadingExportPage() {
           <p className="text-gray-600">{t('loading')}</p>
         </div>
       )}
+
+      {/* Export Confirm Popup */}
+      <PopupComfirm
+        isOpen={showExportConfirm}
+        onClose={() => {
+          setShowExportConfirm(false);
+          setPendingCycleId(null);
+        }}
+        onConfirm={handleExport}
+        popupTitle={t('confirm.exportReadings')}
+        popupContext=""
+        isDanger={false}
+      />
     </div>
   );
 }

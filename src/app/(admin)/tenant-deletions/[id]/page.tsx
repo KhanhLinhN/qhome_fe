@@ -13,6 +13,7 @@ import {
   type TenantDeletionTargetsStatus,
   TenantDeletionStatus,
 } from '@/src/services/base';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 export default function DeletionRequestDetailPage() {
   const params = useParams();
@@ -24,6 +25,10 @@ export default function DeletionRequestDetailPage() {
   const [targetsStatus, setTargetsStatus] = useState<TenantDeletionTargetsStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Modal states
   const [showApproveModal, setShowApproveModal] = useState(false);
@@ -45,7 +50,8 @@ export default function DeletionRequestDetailPage() {
       setTargetsStatus(statusData);
     } catch (error) {
       console.error('Failed to load request:', error);
-      alert(t('messages.loadError'));
+      setErrorMessage(t('messages.loadError'));
+      setShowErrorPopup(true);
     } finally {
       setLoading(false);
     }
@@ -63,36 +69,42 @@ export default function DeletionRequestDetailPage() {
   const handleApprove = async (note: string) => {
     try {
       await approveDeletionRequest(requestId, { note });
-      alert(t('messages.approveSuccess'));
+      setSuccessMessage(t('messages.approveSuccess'));
+      setShowSuccessPopup(true);
       setShowApproveModal(false);
       await loadData();
     } catch (error: any) {
       console.error('Failed to approve:', error);
-      alert(t('messages.error', { message: error.response?.data?.message || error.message }));
+      setErrorMessage(t('messages.error', { message: error.response?.data?.message || error.message }));
+      setShowErrorPopup(true);
     }
   };
 
   const handleReject = async (note: string) => {
     try {
       await rejectDeletionRequest(requestId, { note });
-      alert(t('messages.rejectSuccess'));
+      setSuccessMessage(t('messages.rejectSuccess'));
+      setShowSuccessPopup(true);
       setShowRejectModal(false);
       await loadData();
     } catch (error: any) {
       console.error('Failed to reject:', error);
-      alert(t('messages.error', { message: error.response?.data?.message || error.message }));
+      setErrorMessage(t('messages.error', { message: error.response?.data?.message || error.message }));
+      setShowErrorPopup(true);
     }
   };
 
   const handleComplete = async () => {
     try {
       await completeDeletion(requestId);
-      alert(t('messages.completeSuccess'));
+      setSuccessMessage(t('messages.completeSuccess'));
+      setShowSuccessPopup(true);
       setShowCompleteModal(false);
       await loadData();
     } catch (error: any) {
       console.error('Failed to complete:', error);
-      alert(t('messages.error', { message: error.response?.data?.message || error.message }));
+      setErrorMessage(t('messages.error', { message: error.response?.data?.message || error.message }));
+      setShowErrorPopup(true);
     }
   };
 
@@ -478,10 +490,11 @@ function RejectModal({ onConfirm, onClose }: { onConfirm: (note: string) => void
   const t = useTranslations('AdminTenantDeletionDetail');
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showValidationPopup, setShowValidationPopup] = useState(false);
 
   const handleSubmit = async () => {
     if (note.trim().length < 10) {
-      alert(t('modals.reject.minLengthError'));
+      setShowValidationPopup(true);
       return;
     }
     setIsSubmitting(true);
@@ -518,6 +531,16 @@ function RejectModal({ onConfirm, onClose }: { onConfirm: (note: string) => void
           </button>
         </div>
       </div>
+
+      {/* Validation Popup */}
+      <PopupComfirm
+        isOpen={showValidationPopup}
+        onClose={() => setShowValidationPopup(false)}
+        onConfirm={() => setShowValidationPopup(false)}
+        popupTitle={t('modals.reject.minLengthError')}
+        popupContext=""
+        isDanger={true}
+      />
     </div>
   );
 }
@@ -529,9 +552,11 @@ function CompleteModal({ tenantId, onConfirm, onClose }: { tenantId: string; onC
   const [isSubmitting, setIsSubmitting] = useState(false);
   const expectedText = tenantId.slice(0, 8);
 
+  const [showValidationPopup, setShowValidationPopup] = useState(false);
+
   const handleSubmit = async () => {
     if (confirmText !== expectedText) {
-      alert(t('modals.complete.invalidCode'));
+      setShowValidationPopup(true);
       return;
     }
     setIsSubmitting(true);

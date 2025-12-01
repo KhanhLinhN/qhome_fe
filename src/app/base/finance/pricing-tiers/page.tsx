@@ -12,6 +12,7 @@ import {
   CreatePricingTierRequest,
   UpdatePricingTierRequest,
 } from '@/src/services/finance/pricingTierService';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 // SERVICE_OPTIONS will be created inside component with translations
 
@@ -65,6 +66,9 @@ export default function PricingTiersManagementPage() {
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [showForm, setShowForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showNoLastTierConfirm, setShowNoLastTierConfirm] = useState(false);
+  const [pendingDeleteTier, setPendingDeleteTier] = useState<PricingTierDto | null>(null);
 
   useEffect(() => {
     loadTiers();
@@ -278,10 +282,16 @@ export default function PricingTiersManagementPage() {
     setFormErrors({});
   };
 
-  const handleDelete = async (tier: PricingTierDto) => {
-    if (!confirm(t('confirm.deleteMessage', { tierOrder: tier.tierOrder }))) return;
+  const handleDeleteClick = (tier: PricingTierDto) => {
+    setPendingDeleteTier(tier);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDeleteTier) return;
+    setShowDeleteConfirm(false);
     try {
-      await deletePricingTier(tier.id);
+      await deletePricingTier(pendingDeleteTier.id);
       show(t('messages.deleteSuccess'), 'success');
       await loadTiers();
     } catch (error: any) {
@@ -333,7 +343,7 @@ export default function PricingTiersManagementPage() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSave = async () => {
+  const handleSave = async (skipWarning = false) => {
     if (!editingTier || !validateForm()) {
       return;
     }
@@ -347,10 +357,9 @@ export default function PricingTiersManagementPage() {
     const otherHasFinalTier = otherActiveTiers.some(tier => tier.maxQuantity === null || tier.maxQuantity === undefined);
     
     // Nếu đang edit một tier có maxQuantity và không có tier nào khác có maxQuantity = null
-    if (!willHaveFinalTier && !otherHasFinalTier && editingTier.active) {
-      if (!confirm(t('confirm.noLastTierWarning'))) {
-        return;
-      }
+    if (!willHaveFinalTier && !otherHasFinalTier && editingTier.active && !skipWarning) {
+      setShowNoLastTierConfirm(true);
+      return;
     }
 
     setSaving(true);
@@ -1012,7 +1021,7 @@ export default function PricingTiersManagementPage() {
                           {t('buttons.edit')}
                         </button>
                         <button
-                          onClick={() => handleDelete(tier)}
+                          onClick={() => handleDeleteClick(tier)}
                           className="text-red-600 hover:text-red-900"
                         >
                           {t('buttons.delete')}
@@ -1037,6 +1046,35 @@ export default function PricingTiersManagementPage() {
           <li>{t('notes.effectiveDate')}</li>
         </ul>
       </div>
+
+      {/* Delete Confirm Popup */}
+      <PopupComfirm
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setPendingDeleteTier(null);
+        }}
+        onConfirm={handleDelete}
+        popupTitle={pendingDeleteTier ? t('confirm.deleteMessage', { tierOrder: pendingDeleteTier.tierOrder }) : ''}
+        popupContext=""
+        isDanger={true}
+      />
+
+      {/* No Last Tier Warning Popup */}
+      <PopupComfirm
+        isOpen={showNoLastTierConfirm}
+        onClose={() => setShowNoLastTierConfirm(false)}
+        onConfirm={() => {
+          setShowNoLastTierConfirm(false);
+          // Retry save after confirmation with skipWarning flag
+          if (editingTier) {
+            handleSave(true);
+          }
+        }}
+        popupTitle={t('confirm.noLastTierWarning')}
+        popupContext=""
+        isDanger={false}
+      />
     </div>
   );
 }
