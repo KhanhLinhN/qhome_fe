@@ -263,11 +263,11 @@ export default function BuildingEdit() {
             case 'numberOfFloors': {
                 const numValue = typeof value === 'number' ? value : (value ? parseInt(String(value)) : null);
                 if (numValue === null || numValue === undefined || isNaN(numValue)) {
-                    newErrors.numberOfFloors = 'Số tầng không được để trống';
+                    newErrors.numberOfFloors = t('floorsRequired');
                 } else if (numValue < 1) {
-                    newErrors.numberOfFloors = 'Số tầng phải lớn hơn 0';
+                    newErrors.numberOfFloors = t('floorsMustBeGreaterThanZero');
                 } else if (numValue >= 100) {
-                    newErrors.numberOfFloors = 'Số tầng phải nhỏ hơn 100';
+                    newErrors.numberOfFloors = t('floorsMustBeLessThan100');
                 } else {
                     delete newErrors.numberOfFloors;
                 }
@@ -289,11 +289,11 @@ export default function BuildingEdit() {
         
         const floorsValue = formData.numberOfFloors;
         if (floorsValue === null || floorsValue === undefined || isNaN(floorsValue)) {
-            newErrors.numberOfFloors = 'Số tầng không được để trống';
+            newErrors.numberOfFloors = t('floorsRequired');
         } else if (floorsValue < 1) {
-            newErrors.numberOfFloors = 'Số tầng phải lớn hơn 0';
+            newErrors.numberOfFloors = t('floorsMustBeGreaterThanZero');
         } else if (floorsValue >= 100) {
-            newErrors.numberOfFloors = 'Số tầng phải nhỏ hơn 100';
+            newErrors.numberOfFloors = t('floorsMustBeLessThan100');
         }
         
         setErrors(newErrors);
@@ -358,11 +358,11 @@ export default function BuildingEdit() {
                 payload.numberOfFloors = formData.numberOfFloors;
             }
             await editBuilding(buildingId, payload);
-            show('Cập nhật tòa nhà thành công!', 'success');
+            show(t('updateBuildingSuccess'), 'success');
             router.push(`/base/building/buildingDetail/${buildingId}`);
         } catch (submitError) {
-            console.error('Lỗi khi cập nhật:', submitError);
-            show('Có lỗi xảy ra khi cập nhật tòa nhà!', 'error');
+            console.error(t('updateError'), submitError);
+            show(t('updateBuildingError'), 'error');
         }
     };
 
@@ -450,7 +450,7 @@ export default function BuildingEdit() {
                     />
 
                     <DetailField 
-                        label="Số tầng"
+                        label={t('numberOfFloors')}
                         value={formData.numberOfFloors !== null && formData.numberOfFloors !== undefined ? String(formData.numberOfFloors) : ''}
                         onChange={(e) => {
                             const value = e.target.value ? parseInt(e.target.value) : null;
@@ -461,7 +461,7 @@ export default function BuildingEdit() {
                         }}
                         name="numberOfFloors"
                         inputType="number"
-                        placeholder="Nhập số tầng"
+                        placeholder={t('enterNumberOfFloors')}
                         readonly={false}
                         error={errors.numberOfFloors}
                     />

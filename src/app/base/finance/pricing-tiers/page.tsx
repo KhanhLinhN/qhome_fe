@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import {
   PricingTierDto,
@@ -12,10 +13,7 @@ import {
   UpdatePricingTierRequest,
 } from '@/src/services/finance/pricingTierService';
 
-const SERVICE_OPTIONS = [
-  { value: 'ELECTRIC', label: 'Điện', icon: '⚡' },
-  { value: 'WATER', label: 'Nước', icon: '💧' },
-];
+// SERVICE_OPTIONS will be created inside component with translations
 
 interface TierFormState {
   id?: string;
@@ -52,7 +50,13 @@ const EMPTY_FORM: TierFormState = {
 };
 
 export default function PricingTiersManagementPage() {
+  const t = useTranslations('PricingTiers');
   const { show } = useNotifications();
+  
+  const SERVICE_OPTIONS = [
+    { value: 'ELECTRIC', label: t('services.electric'), icon: '⚡' },
+    { value: 'WATER', label: t('services.water'), icon: '💧' },
+  ];
   const [selectedService, setSelectedService] = useState<'ELECTRIC' | 'WATER'>('ELECTRIC');
   const [tiers, setTiers] = useState<PricingTierDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,7 +78,7 @@ export default function PricingTiersManagementPage() {
     } catch (error: any) {
       console.error('Failed to load pricing tiers:', error);
       show(
-        error?.response?.data?.message || error?.message || 'Không thể tải danh sách bậc giá',
+        error?.response?.data?.message || error?.message || t('errors.loadFailed'),
         'error'
       );
     } finally {
@@ -226,8 +230,8 @@ export default function PricingTiersManagementPage() {
           const hasRealOverlap = overlapTo === null || (overlapTo !== null && overlapFrom < overlapTo);
           if (hasRealOverlap) {
             overlaps.push({
-              tier1: `Bậc ${tier1.tierOrder}`,
-              tier2: `Bậc ${tier2.tierOrder}`,
+              tier1: t('table.tierOrder', { order: tier1.tierOrder }),
+              tier2: t('table.tierOrder', { order: tier2.tierOrder }),
               overlap: { from: overlapFrom, to: overlapTo },
             });
           }
@@ -275,15 +279,15 @@ export default function PricingTiersManagementPage() {
   };
 
   const handleDelete = async (tier: PricingTierDto) => {
-    if (!confirm(`Bạn có chắc muốn xóa bậc giá ${tier.tierOrder}?`)) return;
+    if (!confirm(t('confirm.deleteMessage', { tierOrder: tier.tierOrder }))) return;
     try {
       await deletePricingTier(tier.id);
-      show('Xóa bậc giá thành công', 'success');
+      show(t('messages.deleteSuccess'), 'success');
       await loadTiers();
     } catch (error: any) {
       console.error('Failed to delete pricing tier:', error);
       show(
-        error?.response?.data?.message || error?.message || 'Không thể xóa bậc giá',
+        error?.response?.data?.message || error?.message || t('errors.deleteFailed'),
         'error'
       );
     }
@@ -294,11 +298,11 @@ export default function PricingTiersManagementPage() {
     if (!editingTier) return false;
 
     if (editingTier.tierOrder < 1) {
-      errors.tierOrder = 'Thứ tự bậc phải >= 1';
+      errors.tierOrder = t('validation.tierOrderMin');
     }
 
     if (editingTier.minQuantity !== null && editingTier.minQuantity < 0) {
-      errors.minQuantity = 'Số lượng tối thiểu phải >= 0';
+      errors.minQuantity = t('validation.minQuantityNonNegative');
     }
 
     if (
@@ -306,15 +310,15 @@ export default function PricingTiersManagementPage() {
       editingTier.minQuantity !== null &&
       editingTier.maxQuantity <= editingTier.minQuantity
     ) {
-      errors.maxQuantity = 'Số lượng tối đa phải > số lượng tối thiểu';
+      errors.maxQuantity = t('validation.maxQuantityGreater');
     }
 
     if (editingTier.unitPrice === null || editingTier.unitPrice <= 0) {
-      errors.unitPrice = 'Đơn giá phải > 0';
+      errors.unitPrice = t('validation.unitPricePositive');
     }
 
     if (!editingTier.effectiveFrom) {
-      errors.effectiveFrom = 'Ngày hiệu lực là bắt buộc';
+      errors.effectiveFrom = t('validation.effectiveFromRequired');
     }
 
     if (
@@ -322,7 +326,7 @@ export default function PricingTiersManagementPage() {
       editingTier.effectiveFrom &&
       new Date(editingTier.effectiveUntil) < new Date(editingTier.effectiveFrom)
     ) {
-      errors.effectiveUntil = 'Ngày kết thúc phải >= ngày bắt đầu';
+      errors.effectiveUntil = t('validation.effectiveUntilAfterFrom');
     }
 
     setFormErrors(errors);
@@ -344,10 +348,7 @@ export default function PricingTiersManagementPage() {
     
     // Nếu đang edit một tier có maxQuantity và không có tier nào khác có maxQuantity = null
     if (!willHaveFinalTier && !otherHasFinalTier && editingTier.active) {
-      const confirmMessage = 'Cảnh báo: Sau khi lưu, hệ thống sẽ không có bậc giá cuối cùng (maxQuantity = null).\n\n' +
-        'Bạn có muốn tiếp tục? Hệ thống yêu cầu phải có ít nhất một bậc cuối cùng để bao phủ tất cả các trường hợp.';
-      
-      if (!confirm(confirmMessage)) {
+      if (!confirm(t('confirm.noLastTierWarning'))) {
         return;
       }
     }
@@ -367,7 +368,7 @@ export default function PricingTiersManagementPage() {
           description: editingTier.description || undefined,
         };
         await createPricingTier(payload);
-        show('Tạo bậc giá thành công', 'success');
+        show(t('messages.createSuccess'), 'success');
       } else {
         const payload: UpdatePricingTierRequest = {
           tierOrder: editingTier.tierOrder,
@@ -380,7 +381,7 @@ export default function PricingTiersManagementPage() {
           description: editingTier.description || undefined,
         };
         await updatePricingTier(editingTier.id!, payload);
-        show('Cập nhật bậc giá thành công', 'success');
+        show(t('messages.updateSuccess'), 'success');
       }
       setShowForm(false);
       setEditingTier(null);
@@ -390,7 +391,7 @@ export default function PricingTiersManagementPage() {
       console.error('Error response:', error?.response);
       console.error('Error response data:', error?.response?.data);
       
-      let errorMessage = 'Không thể lưu bậc giá';
+      let errorMessage = t('errors.saveFailed');
       
       // Thử nhiều cách để lấy error message
       if (error?.response?.data) {
@@ -438,7 +439,7 @@ export default function PricingTiersManagementPage() {
   };
 
   const formatCurrency = (amount: number | null): string => {
-    if (amount === null) return 'N/A';
+    if (amount === null) return t('common.notAvailable');
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND',
@@ -449,8 +450,8 @@ export default function PricingTiersManagementPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Quản lý bậc giá</h1>
-        <p className="text-gray-600 mt-2">Cấu hình bậc giá cho điện và nước</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+        <p className="text-gray-600 mt-2">{t('description')}</p>
       </div>
 
       {/* Service Selection */}
@@ -476,13 +477,13 @@ export default function PricingTiersManagementPage() {
       {/* Actions */}
       <div className="mb-4 flex justify-between items-center">
         <div className="text-sm text-gray-600">
-          Tổng số bậc giá: <strong>{tiers.length}</strong>
+          {t('summary.totalTiers', { count: tiers.length })}
         </div>
         <button
           onClick={startCreate}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
-          + Thêm bậc giá mới
+          {t('buttons.addNewTier')}
         </button>
       </div>
 
@@ -505,27 +506,48 @@ export default function PricingTiersManagementPage() {
             </div>
             <div className="ml-3 flex-1">
               <h3 className="text-sm font-medium text-red-800">
-                Cảnh báo: Có khoảng giá bị trùng
+                {t('warnings.overlappingTiers')}
               </h3>
               <div className="mt-2 text-sm text-red-700">
                 <p className="mb-2">
-                  Các bậc giá sau có khoảng trùng nhau:
+                  {t('warnings.overlappingDescription')}
                 </p>
                 <ul className="list-disc list-inside space-y-1">
-                  {overlaps.map((overlap, index) => (
-                    <li key={index}>
-                      <strong>{overlap.tier1}</strong> và <strong>{overlap.tier2}</strong> trùng khoảng{' '}
-                      {overlap.overlap.to === null
-                        ? `từ ${overlap.overlap.from.toLocaleString('vi-VN')} trở đi`
-                        : overlap.overlap.from === overlap.overlap.to
-                        ? `tại ${overlap.overlap.from.toLocaleString('vi-VN')}`
-                        : `từ ${overlap.overlap.from.toLocaleString('vi-VN')} đến ${overlap.overlap.to.toLocaleString('vi-VN')}`}{' '}
-                      {selectedService === 'ELECTRIC' ? 'kWh' : 'm³'}
-                    </li>
-                  ))}
+                  {overlaps.map((overlap, index) => {
+                    const unit = selectedService === 'ELECTRIC' ? 'kWh' : 'm³';
+                    let overlapText = '';
+                    if (overlap.overlap.to === null) {
+                      overlapText = t('warnings.overlappingRangeFrom', {
+                        tier1: overlap.tier1,
+                        tier2: overlap.tier2,
+                        from: overlap.overlap.from.toLocaleString('vi-VN'),
+                        unit
+                      });
+                    } else if (overlap.overlap.from === overlap.overlap.to) {
+                      overlapText = t('warnings.overlappingRangeAt', {
+                        tier1: overlap.tier1,
+                        tier2: overlap.tier2,
+                        from: overlap.overlap.from.toLocaleString('vi-VN'),
+                        unit
+                      });
+                    } else {
+                      overlapText = t('warnings.overlappingRange', {
+                        tier1: overlap.tier1,
+                        tier2: overlap.tier2,
+                        from: overlap.overlap.from.toLocaleString('vi-VN'),
+                        to: overlap.overlap.to.toLocaleString('vi-VN'),
+                        unit
+                      });
+                    }
+                    return (
+                      <li key={index}>
+                        {overlapText}
+                      </li>
+                    );
+                  })}
                 </ul>
                 <p className="mt-2 text-xs">
-                  Vui lòng điều chỉnh min/max của các bậc để tránh trùng lặp.
+                  {t('warnings.overlappingAdjust')}
                 </p>
               </div>
             </div>
@@ -552,15 +574,14 @@ export default function PricingTiersManagementPage() {
             </div>
             <div className="ml-3 flex-1">
               <h3 className="text-sm font-medium text-red-800">
-                ⚠️ Thiếu bậc giá cuối cùng
+                {t('warnings.missingFinalTier')}
               </h3>
               <div className="mt-2 text-sm text-red-700">
                 <p className="mb-2">
-                  Hệ thống yêu cầu phải có ít nhất một bậc giá cuối cùng với <strong>maxQuantity = null</strong> (không giới hạn) 
-                  để bao phủ tất cả các trường hợp còn lại.
+                  {t('warnings.missingFinalTierDescription')}
                 </p>
                 <p className="text-xs mt-2">
-                  Ví dụ: Bậc cuối cùng có thể là "≥ 50 kWh" hoặc "≥ 50 m³" với maxQuantity để trống.
+                  {t('warnings.missingFinalTierExample')}
                 </p>
               </div>
             </div>
@@ -587,32 +608,39 @@ export default function PricingTiersManagementPage() {
             </div>
             <div className="ml-3 flex-1">
               <h3 className="text-sm font-medium text-yellow-800">
-                Cảnh báo: Có khoảng giá bị thiếu
+                {t('warnings.missingTiers')}
               </h3>
               <div className="mt-2 text-sm text-yellow-700">
                 <p className="mb-2">
-                  Các khoảng sau chưa được phủ bởi bất kỳ bậc giá nào:
+                  {t('warnings.gapsDescription')}
                 </p>
                 <ul className="list-disc list-inside space-y-1">
-                  {gaps.map((gap, index) => (
-                    <li key={index}>
-                      {gap.to === Infinity ? (
-                        <>
-                          Từ <strong>{gap.from.toLocaleString('vi-VN')}</strong> trở lên{' '}
-                          {selectedService === 'ELECTRIC' ? 'kWh' : 'm³'} - <strong>Cần bậc cuối cùng (maxQuantity = null)</strong>
-                        </>
-                      ) : (
-                        <>
-                          Từ <strong>{gap.from.toLocaleString('vi-VN')}</strong> đến{' '}
-                          <strong>{gap.to.toLocaleString('vi-VN')}</strong>{' '}
-                          {selectedService === 'ELECTRIC' ? 'kWh' : 'm³'}
-                        </>
-                      )}
-                    </li>
-                  ))}
+                  {gaps.map((gap, index) => {
+                    const unit = selectedService === 'ELECTRIC' ? 'kWh' : 'm³';
+                    return (
+                      <li key={index}>
+                        {gap.to === Infinity ? (
+                          <>
+                            {t('warnings.gapFromUp', {
+                              from: gap.from.toLocaleString('vi-VN'),
+                              unit
+                            })}
+                          </>
+                        ) : (
+                          <>
+                            {t('warnings.gapFromTo', {
+                              from: gap.from.toLocaleString('vi-VN'),
+                              to: gap.to.toLocaleString('vi-VN'),
+                              unit
+                            })}
+                          </>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
                 <p className="mt-2 text-xs">
-                  Vui lòng thêm bậc giá để phủ các khoảng này hoặc điều chỉnh max của bậc trước đó.
+                  {t('warnings.gapsAdjust')}
                 </p>
               </div>
             </div>
@@ -626,7 +654,7 @@ export default function PricingTiersManagementPage() {
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
-                {isCreateMode ? 'Thêm bậc giá mới' : 'Chỉnh sửa bậc giá'}
+                {isCreateMode ? t('form.addTitle') : t('form.editTitle')}
               </h2>
 
               {/* Error Messages */}
@@ -679,7 +707,7 @@ export default function PricingTiersManagementPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thứ tự bậc *
+                    {t('form.tierOrder')}
                   </label>
                   <input
                     type="number"
@@ -701,7 +729,7 @@ export default function PricingTiersManagementPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Số lượng tối thiểu (kWh/m³)
+                      {t('form.minQuantity')}
                     </label>
                     <input
                       type="number"
@@ -727,7 +755,7 @@ export default function PricingTiersManagementPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Số lượng tối đa (kWh/m³)
+                      {t('form.maxQuantity')}
                     </label>
                     <input
                       type="number"
@@ -744,20 +772,20 @@ export default function PricingTiersManagementPage() {
                       }
                     }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Không giới hạn"
+                      placeholder={t('form.maxQuantityPlaceholder')}
                     />
                     {formErrors.maxQuantity && (
                       <p className="text-red-500 text-xs mt-1">{formErrors.maxQuantity}</p>
                     )}
                     <p className="text-xs text-gray-500 mt-1">
-                      Để trống nếu không giới hạn (bậc cuối cùng - bắt buộc phải có ít nhất 1 bậc)
+                      {t('form.maxQuantityHint')}
                     </p>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Đơn giá (VNĐ/kWh hoặc VNĐ/m³) *
+                    {t('form.unitPrice')}
                   </label>
                   <input
                     type="number"
@@ -780,7 +808,7 @@ export default function PricingTiersManagementPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="relative z-50">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ngày hiệu lực từ *
+                      {t('form.effectiveFrom')}
                     </label>
                     <input
                       type="date"
@@ -800,7 +828,7 @@ export default function PricingTiersManagementPage() {
 
                   <div className="relative z-50">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ngày hiệu lực đến
+                      {t('form.effectiveUntil')}
                     </label>
                     <input
                       type="date"
@@ -819,13 +847,13 @@ export default function PricingTiersManagementPage() {
                     {formErrors.effectiveUntil && (
                       <p className="text-red-500 text-xs mt-1">{formErrors.effectiveUntil}</p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">Để trống nếu không có hạn</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('form.effectiveUntilHint')}</p>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mô tả
+                    {t('form.description')}
                   </label>
                   <textarea
                     value={editingTier.description}
@@ -834,7 +862,7 @@ export default function PricingTiersManagementPage() {
                     }
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Mô tả bậc giá (tùy chọn)"
+                    placeholder={t('form.descriptionPlaceholder')}
                   />
                 </div>
 
@@ -849,7 +877,7 @@ export default function PricingTiersManagementPage() {
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <label htmlFor="active" className="ml-2 text-sm text-gray-700">
-                    Kích hoạt bậc giá này
+                    {t('form.active')}
                   </label>
                 </div>
               </div>
@@ -860,7 +888,7 @@ export default function PricingTiersManagementPage() {
                   disabled={saving}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 relative z-10"
                 >
-                  {saving ? 'Đang lưu...' : 'Lưu'}
+                  {saving ? t('buttons.saving') : t('buttons.save')}
                 </button>
                 <button
                   onClick={() => {
@@ -870,7 +898,7 @@ export default function PricingTiersManagementPage() {
                   }}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 relative z-10"
                 >
-                  Hủy
+                  {t('buttons.cancel')}
                 </button>
               </div>
             </div>
@@ -881,16 +909,16 @@ export default function PricingTiersManagementPage() {
       {/* Tiers List */}
       {loading ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-          <div className="text-gray-500">Đang tải...</div>
+          <div className="text-gray-500">{t('loading.data')}</div>
         </div>
       ) : sortedTiers.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-          <p className="text-gray-500 mb-4">Chưa có bậc giá nào</p>
+          <p className="text-gray-500 mb-4">{t('empty.noTiers')}</p>
           <button
             onClick={startCreate}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            Thêm bậc giá đầu tiên
+            {t('buttons.addFirstTier')}
           </button>
         </div>
       ) : (
@@ -900,22 +928,22 @@ export default function PricingTiersManagementPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bậc
+                    {t('table.tier')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Khoảng lượng
+                    {t('table.quantityRange')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Đơn giá
+                    {t('table.unitPrice')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hiệu lực
+                    {t('table.effective')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trạng thái
+                    {t('table.status')}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thao tác
+                    {t('table.actions')}
                   </th>
                 </tr>
               </thead>
@@ -932,7 +960,7 @@ export default function PricingTiersManagementPage() {
                     <tr key={tier.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          Bậc {tier.tierOrder}
+                          {t('table.tierOrder', { order: tier.tierOrder })}
                         </div>
                         {tier.description && (
                           <div className="text-xs text-gray-500">{tier.description}</div>
@@ -956,11 +984,11 @@ export default function PricingTiersManagementPage() {
                         <div className="text-sm text-gray-900">
                           {tier.effectiveFrom
                             ? new Date(tier.effectiveFrom).toLocaleDateString('vi-VN')
-                            : 'N/A'}
+                            : t('common.notAvailable')}
                         </div>
                         {tier.effectiveUntil && (
                           <div className="text-xs text-gray-500">
-                            đến{' '}
+                            {t('table.to')}{' '}
                             {new Date(tier.effectiveUntil).toLocaleDateString('vi-VN')}
                           </div>
                         )}
@@ -973,7 +1001,7 @@ export default function PricingTiersManagementPage() {
                               : 'bg-gray-100 text-gray-700'
                           }`}
                         >
-                          {isActive ? 'Đang áp dụng' : 'Không áp dụng'}
+                          {isActive ? t('table.active') : t('table.inactive')}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -981,13 +1009,13 @@ export default function PricingTiersManagementPage() {
                           onClick={() => startEdit(tier)}
                           className="text-blue-600 hover:text-blue-900 mr-4"
                         >
-                          Sửa
+                          {t('buttons.edit')}
                         </button>
                         <button
                           onClick={() => handleDelete(tier)}
                           className="text-red-600 hover:text-red-900"
                         >
-                          Xóa
+                          {t('buttons.delete')}
                         </button>
                       </td>
                     </tr>
@@ -1001,12 +1029,12 @@ export default function PricingTiersManagementPage() {
 
       {/* Info Box */}
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2">Lưu ý:</h3>
+        <h3 className="text-sm font-semibold text-blue-900 mb-2">{t('notes.title')}</h3>
         <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-          <li>Bậc giá được áp dụng theo thứ tự từ thấp đến cao</li>
-          <li>Bậc giá sẽ được tính khi số lượng sử dụng nằm trong khoảng min - max</li>
-          <li>Nếu max = null, bậc giá áp dụng cho tất cả số lượng từ min trở lên</li>
-          <li>Ngày hiệu lực quyết định bậc giá nào được sử dụng tại thời điểm tính toán</li>
+          <li>{t('notes.orderApplied')}</li>
+          <li>{t('notes.rangeCalculation')}</li>
+          <li>{t('notes.unlimitedMax')}</li>
+          <li>{t('notes.effectiveDate')}</li>
         </ul>
       </div>
     </div>

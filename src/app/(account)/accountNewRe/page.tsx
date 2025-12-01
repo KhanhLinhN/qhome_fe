@@ -157,7 +157,7 @@ export default function AccountNewResidentPage() {
         setBuildings(data);
       } catch (err: any) {
         const message =
-          err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+          err?.response?.data?.message || err?.message || t('errors.loadBuildingsFailed');
         setBuildingsError(message);
       } finally {
         setBuildingsLoading(false);
@@ -191,7 +191,7 @@ export default function AccountNewResidentPage() {
       setUnits(data);
     } catch (err: any) {
       const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải danh sách căn hộ.';
+        err?.response?.data?.message || err?.message || t('errors.loadUnitsFailed');
       setUnitsError(message);
     } finally {
       setUnitsLoading(false);
@@ -388,7 +388,7 @@ export default function AccountNewResidentPage() {
     }
     
     // Show success message
-    setManualSuccess('Đã đọc thông tin từ ảnh CCCD. Vui lòng kiểm tra và điền các thông tin còn thiếu.');
+    setManualSuccess(t('success.cccdReadSuccess'));
   };
 
   const resetManualMessages = () => {
@@ -412,14 +412,14 @@ export default function AccountNewResidentPage() {
         setContractDetailState({
           data: null,
           loading: false,
-          error: 'Không tìm thấy thông tin hợp đồng.',
+          error: t('errors.loadContractNotFound'),
         });
         return;
       }
       setContractDetailState({ data: detail, loading: false, error: null });
     } catch (error: any) {
       const message =
-        error?.response?.data?.message || error?.message || 'Không thể tải chi tiết hợp đồng.';
+        error?.response?.data?.message || error?.message || t('errors.loadContractDetailFailed');
       setContractDetailState({ data: null, loading: false, error: message });
     }
   };
@@ -433,30 +433,30 @@ export default function AccountNewResidentPage() {
     let isValid = true;
 
     if (!selectedBuildingId) {
-      setBuildingSelectionError('Vui lòng chọn tòa nhà.');
+      setBuildingSelectionError(t('validation.building.required'));
       isValid = false;
     } else {
       setBuildingSelectionError(null);
     }
 
     if (!selectedUnitId) {
-      setUnitSelectionError('Vui lòng chọn căn hộ.');
+      setUnitSelectionError(t('validation.unit.required'));
       isValid = false;
     } else if (!manualForm.householdId.trim()) {
-      setUnitSelectionError('Căn hộ này chưa có hộ gia đình. Vui lòng tạo trước.');
+      setUnitSelectionError(t('validation.unit.noHousehold'));
       isValid = false;
     } else if (!householdInfo || householdInfo.id !== manualForm.householdId.trim()) {
-      setUnitSelectionError('Vui lòng kiểm tra lại thông tin hộ gia đình.');
+      setUnitSelectionError(t('validation.unit.householdInvalid'));
       isValid = false;
     } else if (householdInfo.primaryResidentId) {
-      setUnitSelectionError('Hộ gia đình đã có chủ hộ.');
+      setUnitSelectionError(t('validation.unit.hasOwner'));
       isValid = false;
     } else {
       setUnitSelectionError(null);
     }
 
     if (!contractInfo) {
-      setUnitSelectionError('Căn hộ này chưa có hợp đồng hợp lệ. Vui lòng tạo hợp đồng trước.');
+      setUnitSelectionError(t('validation.unit.noContract'));
       isValid = false;
     }
 
@@ -469,23 +469,23 @@ export default function AccountNewResidentPage() {
 
     // Validate email
     if (!manualForm.email.trim()) {
-      errors.email = 'Email không được để trống.';
+      errors.email = t('validation.email.required');
       isValid = false;
     } else if (/\s/.test(manualForm.email)) {
-      errors.email = 'Email không được chứa ký tự trắng.';
+      errors.email = t('validation.email.noWhitespace');
       isValid = false;
     } else if (manualForm.email.length > 40) {
-      errors.email = 'Email không được vượt quá 40 ký tự.';
+      errors.email = t('validation.email.maxLength');
       isValid = false;
     } else if (!validateEmailFormat(manualForm.email)) {
-      errors.email = 'Email không hợp lệ.';
+      errors.email = t('validation.email.invalid');
       isValid = false;
     } else {
       // Check email exists in database
       try {
         const exists = await checkEmailExists(manualForm.email.trim());
         if (exists) {
-          errors.email = 'Email đã tồn tại trong hệ thống.';
+          errors.email = t('validation.email.exists');
           isValid = false;
         }
       } catch (err: any) {
@@ -518,7 +518,7 @@ export default function AccountNewResidentPage() {
       try {
         const exists = await checkNationalIdExists(manualForm.nationalId.trim());
         if (exists) {
-          errors.nationalId = 'Số căn cước công dân đã tồn tại trong hệ thống.';
+          errors.nationalId = t('validation.nationalId.exists');
           isValid = false;
         }
       } catch (err) {
@@ -573,7 +573,7 @@ export default function AccountNewResidentPage() {
         activeContract = selectPrimaryContract(contracts);
         if (!activeContract) {
           setContractInfo(null);
-          setUnitSelectionError('Căn hộ này chưa có hợp đồng hợp lệ. Vui lòng tạo hợp đồng trước.');
+          setUnitSelectionError(t('validation.unit.noContract'));
           return;
         }
         setContractInfo(activeContract);
@@ -582,9 +582,9 @@ export default function AccountNewResidentPage() {
         const message =
           contractErr?.response?.data?.message ||
           contractErr?.message ||
-          'Không thể tải hợp đồng của căn hộ.';
+          t('errors.loadContractByUnitFailed');
         setContractError(message);
-        setUnitSelectionError('Không thể tải thông tin hợp đồng. Vui lòng thử lại.');
+        setUnitSelectionError(t('errors.loadContractInfoFailed'));
         return;
       }
 
@@ -600,7 +600,7 @@ export default function AccountNewResidentPage() {
     } catch (err: any) {
       console.error('Không thể tải thông tin hộ gia đình theo căn hộ:', err);
       setHouseholdError(
-        err?.response?.data?.message || err?.message || 'Không thể tải thông tin hộ gia đình.',
+        err?.response?.data?.message || err?.message || t('errors.loadHouseholdFailed'),
       );
     } finally {
       setHouseholdLoading(false);
@@ -655,13 +655,13 @@ export default function AccountNewResidentPage() {
         endDate: contract.endDate ?? undefined,
       });
       applyHouseholdInfo(created, contract);
-      setManualSuccess('Đã tạo hộ gia đình mới cho căn hộ.');
+      setManualSuccess(t('messages.createHouseholdSuccess'));
     } catch (createErr: any) {
       console.error('Không thể tự động tạo hộ gia đình:', createErr);
       const message =
         createErr?.response?.data?.message ||
         createErr?.message ||
-        'Không thể tạo hộ gia đình cho căn hộ này.';
+        t('errors.createHouseholdFailed');
       setUnitSelectionError(message);
     }
   };
@@ -699,7 +699,7 @@ export default function AccountNewResidentPage() {
       const response = await provisionPrimaryResident(targetUnitId, payload);
       setProvisionResponse(response);
       setLastSubmittedEmail(fallbackEmail);
-      setManualSuccess('Tạo chủ hộ và tài khoản cư dân thành công.');
+      setManualSuccess(t('success.createAccountSuccess'));
       setManualForm({
         householdId: '',
         fullName: '',
@@ -718,7 +718,7 @@ export default function AccountNewResidentPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tạo tài khoản cư dân. Vui lòng thử lại.';
+        t('messages.createAccountError');
       setManualError(message);
     } finally {
       setManualSubmitting(false);
@@ -735,7 +735,7 @@ export default function AccountNewResidentPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tải danh sách yêu cầu tạo tài khoản.';
+        t('requestsTab.rejectError');
       setRequestError(message);
     } finally {
       setLoadingRequests(false);
@@ -755,7 +755,7 @@ export default function AccountNewResidentPage() {
   }, [activeTab, initialLoad]);
 
   const formatDate = (value?: string | null) => {
-    if (!value) return 'Chưa cập nhật';
+    if (!value) return t('common.notUpdated');
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
       return value;
@@ -775,7 +775,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
 };
 
   const formatDateTime = (value: string | null) => {
-    if (!value) return 'Chưa cập nhật';
+    if (!value) return t('common.notUpdated');
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
       return value;
@@ -815,7 +815,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể xử lý yêu cầu. Vui lòng thử lại.';
+        t('errors.processRequestFailed');
       setRequestError(message);
     } finally {
       setRequestActionState((prev) => ({ ...prev, [requestId]: false }));
@@ -968,7 +968,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   <div className="mt-2 grid gap-2 text-sm text-blue-900 sm:grid-cols-2">
                     <p>
                       <span className="font-medium">Số hợp đồng:</span>{' '}
-                      {contractInfo.contractNumber ?? 'Chưa cập nhật'}
+                      {contractInfo.contractNumber ?? t('common.notUpdated')}
                     </p>
                     <p>
                       <span className="font-medium">Trạng thái:</span>{' '}
@@ -980,16 +980,16 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     </p>
                     <p>
                       <span className="font-medium">Hiệu lực đến:</span>{' '}
-                      {contractInfo.endDate ? formatDate(contractInfo.endDate) : 'Không giới hạn'}
+                      {contractInfo.endDate ? formatDate(contractInfo.endDate) : t('manualForm.contractInfo.unlimited')}
                     </p>
                   </div>
                 ) : selectedUnitId ? (
                   <p className="mt-2 text-sm text-blue-700">
-                    Chưa có hợp đồng hợp lệ cho căn hộ này. Vui lòng tạo hợp đồng trước khi cấp tài khoản chủ hộ.
+                    {t('manualForm.contractInfo.noContract')}
                   </p>
                 ) : (
                   <p className="mt-2 text-sm text-blue-700">
-                    Chọn tòa nhà và căn hộ để xem thông tin hợp đồng.
+                    {t('manualForm.contractInfo.selectFirst')}
                   </p>
                 )}
                 {contractInfo && (
@@ -998,7 +998,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     onClick={handleOpenContractDetail}
                     className="mt-4 inline-flex items-center justify-center rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
                   >
-                    Xem chi tiết hợp đồng
+                    {t('manualForm.contractInfo.viewDetail')}
                   </button>
                 )}
                 {contractError && (
@@ -1193,7 +1193,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
               </div>
 
               <p className="text-sm text-slate-500">
-                Mật khẩu tạm thời sẽ được hệ thống tạo tự động và gửi tới email cư dân ngay sau khi
+                {t('manualForm.passwordNote')}
                 tài khoản được tạo.
               </p>
 
@@ -1203,14 +1203,14 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   onClick={handleBack}
                   className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
                 >
-                  Huỷ bỏ
+                  {t('manualForm.buttons.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={manualSubmitting || !contractInfo}
                   className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {manualSubmitting ? 'Đang tạo...' : 'Tạo tài khoản'}
+                  {manualSubmitting ? t('manualForm.buttons.creating') : t('manualForm.buttons.create')}
                 </button>
               </div>
             </form>

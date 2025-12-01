@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import {
   getMyAssignments,
@@ -15,6 +16,7 @@ import {
 import { useNotifications } from '@/src/hooks/useNotifications';
 
 export default function ShowAssignPage() {
+  const t = useTranslations('ShowAssign');
   const router = useRouter();
   const { user } = useAuth();
   const { show } = useNotifications();
@@ -66,7 +68,7 @@ export default function ShowAssignPage() {
       setReminders(data);
     } catch (error: any) {
       console.error("Failed to load reminders:", error);
-      show(error?.response?.data?.message || error?.message || "Không thể tải nhắc nhở", "error");
+      show(error?.response?.data?.message || error?.message || t('errors.loadRemindersFailed'), "error");
     } finally {
       setRemindersLoading(false);
     }

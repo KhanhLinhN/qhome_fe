@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getAllTenants, getBuildingsByTenant, type Tenant, type Building } from '@/src/services/base';
 import { getMyDeletionRequests, approveDeletionRequest, type TenantDeletionRequest } from '@/src/services/base';
@@ -10,6 +11,7 @@ import Sidebar from '@/src/components/layout/Sidebar';
 import Delete from '@/src/assets/Delete.svg';
 
 export default function TenantOwnerHomePage() {
+  const t = useTranslations('TenantOwner');
   const { user } = useAuth();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -58,12 +60,12 @@ export default function TenantOwnerHomePage() {
     try {
       setApproving(selectedRequest.id);
       await approveDeletionRequest(selectedRequest.id, { note: approveNote });
-      alert('✅ Đã approve yêu cầu xóa tenant! Hệ thống sẽ bắt đầu xử lý.');
+      alert(t('messages.approveSuccess'));
       setShowApproveModal(false);
       loadData(); // Reload to show updated status
     } catch (error: any) {
       console.error('Failed to approve request:', error);
-      alert(`❌ Approve thất bại: ${error?.response?.data?.message || error.message}`);
+      alert(t('messages.approveError', { message: error?.response?.data?.message || error.message }));
     } finally {
       setApproving(null);
     }
@@ -74,7 +76,7 @@ export default function TenantOwnerHomePage() {
       <div className="min-h-screen bg-[#F5F5F0]">
         <div className="flex">
           <main className="flex-1 p-6">
-            <div className="text-center py-12 text-slate-500">⏳ Đang tải...</div>
+            <div className="text-center py-12 text-slate-500">⏳ {t('loading')}</div>
           </main>
         </div>
       </div>
@@ -86,7 +88,7 @@ export default function TenantOwnerHomePage() {
       <div className="min-h-screen bg-[#F5F5F0]">
         <div className="flex">
           <main className="flex-1 p-6">
-            <div className="text-center py-12 text-red-500">❌ Không tìm thấy thông tin tenant</div>
+            <div className="text-center py-12 text-red-500">❌ {t('notFound')}</div>
           </main>
         </div>
       </div>
@@ -112,10 +114,10 @@ export default function TenantOwnerHomePage() {
                     <path fill="#1e293b" d="M10 2a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v2.6666666666666665h1.3333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v5.333333333333333a0.6666666666666666 0.6666666666666666 0 1 1 0 1.3333333333333333H2a0.6666666666666666 0.6666666666666666 0 1 1 0 -1.3333333333333333V6a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h1.3333333333333333V3.333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h4ZM4.666666666666666 6H3.333333333333333v6.666666666666666h1.3333333333333333V6Zm8 1.3333333333333333h-1.3333333333333333v5.333333333333333h1.3333333333333333v-5.333333333333333Zm-4 2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333V4.666666666666666Z" strokeWidth="0.6667"></path>
                   </g>
                 </svg>
-                Trang chủ - {tenant.name}
+                {t('title', { name: tenant.name })}
               </h1>
               <p className="text-sm text-slate-600">
-                Chào mừng, {user?.username}! Quản lý thông tin tenant của bạn.
+                {t('welcome', { username: user?.username || '' })}
               </p>
             </div>
 
@@ -124,9 +126,9 @@ export default function TenantOwnerHomePage() {
               <div className="bg-white rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-slate-600 mb-1">Tòa nhà</div>
+                    <div className="text-sm text-slate-600 mb-1">{t('stats.buildings')}</div>
                     <div className="text-3xl font-bold text-[#02542D]">{activeBuildings}</div>
-                    <div className="text-xs text-slate-500 mt-1">Đang hoạt động</div>
+                    <div className="text-xs text-slate-500 mt-1">{t('stats.active')}</div>
                   </div>
                   <div className="text-4xl">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Building-5-Fill--Streamline-Mingcute-Fill" height="40" width="40">
@@ -142,9 +144,9 @@ export default function TenantOwnerHomePage() {
               <div className="bg-white rounded-lg border border-slate-200 p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-slate-600 mb-1">Căn hộ</div>
+                    <div className="text-sm text-slate-600 mb-1">{t('stats.units')}</div>
                     <div className="text-3xl font-bold text-blue-600">{totalUnits}</div>
-                    <div className="text-xs text-slate-500 mt-1">Tổng số căn hộ</div>
+                    <div className="text-xs text-slate-500 mt-1">{t('stats.totalUnits')}</div>
                   </div>
                   <div className="text-4xl">🏠</div>
                 </div>
@@ -153,9 +155,9 @@ export default function TenantOwnerHomePage() {
               <div className="bg-white rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-slate-600 mb-1">Yêu cầu xóa</div>
+                    <div className="text-sm text-slate-600 mb-1">{t('stats.deletionRequests')}</div>
                     <div className="text-3xl font-bold text-amber-600">{pendingRequests}</div>
-                    <div className="text-xs text-slate-500 mt-1">Đang chờ duyệt</div>
+                    <div className="text-xs text-slate-500 mt-1">{t('stats.pending')}</div>
                   </div>
                   <div className="text-4xl">
                     <Image src={Delete} alt="Delete" width={40} height={40} />
@@ -166,14 +168,14 @@ export default function TenantOwnerHomePage() {
 
             {/* Tenant Info Card */}
             <div className="bg-white rounded-xl p-6 mb-6">
-              <h2 className="text-lg font-semibold text-slate-800 mb-4">📋 Thông tin Tenant</h2>
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">{t('tenantInfo.title')}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm text-slate-600">Tên Tenant</div>
+                  <div className="text-sm text-slate-600">{t('tenantInfo.name')}</div>
                   <div className="font-medium text-slate-800">{tenant.name}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-slate-600">Mã Tenant</div>
+                  <div className="text-sm text-slate-600">{t('tenantInfo.code')}</div>
                   <code className="text-sm bg-slate-100 px-2 py-1 rounded">{tenant.code || tenant.id}</code>
                 </div>
               </div>
@@ -189,14 +191,14 @@ export default function TenantOwnerHomePage() {
                       <path fill="#1e293b" d="M10 2a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v2.6666666666666665h1.3333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v5.333333333333333a0.6666666666666666 0.6666666666666666 0 1 1 0 1.3333333333333333H2a0.6666666666666666 0.6666666666666666 0 1 1 0 -1.3333333333333333V6a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h1.3333333333333333V3.333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h4ZM4.666666666666666 6H3.333333333333333v6.666666666666666h1.3333333333333333V6Zm8 1.3333333333333333h-1.3333333333333333v5.333333333333333h1.3333333333333333v-5.333333333333333Zm-4 2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333V4.666666666666666Z" strokeWidth="0.6667"></path>
                     </g>
                   </svg>
-                  Danh sách Tòa nhà
+                  {t('buildings.title')}
                 </h2>
-                <span className="text-sm text-slate-600">{buildings.length} tòa nhà</span>
+                <span className="text-sm text-slate-600">{t('buildings.count', { count: buildings.length })}</span>
               </div>
               
               {buildings.length === 0 ? (
                 <div className="text-center py-8 text-slate-500">
-                  📭 Chưa có tòa nhà nào
+                  {t('buildings.empty')}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -206,7 +208,7 @@ export default function TenantOwnerHomePage() {
                         <div>
                           <div className="font-medium text-slate-800">{building.name}</div>
                           <div className="text-sm text-slate-600 mt-1">
-                            📍 {building.address || 'Không có địa chỉ'}
+                            {t('buildings.address')} {building.address || t('buildings.noAddress')}
                           </div>
                         </div>
                         <div className="text-right">
@@ -216,7 +218,7 @@ export default function TenantOwnerHomePage() {
                             {building.status}
                           </span>
                           <div className="text-sm text-slate-600 mt-1">
-                            {building.totalUnits || 0} căn hộ
+                            {t('buildings.units', { count: building.totalUnits || 0 })}
                           </div>
                         </div>
                       </div>
@@ -231,23 +233,23 @@ export default function TenantOwnerHomePage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                   <Image src={Delete} alt="Delete" width={20} height={20} />
-                  Yêu cầu Xóa Tenant
+                  {t('deletionRequests.title')}
                 </h2>
-                <span className="text-sm text-slate-600">{deletionRequests.length} yêu cầu</span>
+                <span className="text-sm text-slate-600">{t('deletionRequests.count', { count: deletionRequests.length })}</span>
               </div>
               
               {deletionRequests.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-4xl mb-3">📭</div>
-                  <div className="text-slate-800 font-medium mb-2">Chưa có yêu cầu xóa tenant</div>
+                  <div className="text-slate-800 font-medium mb-2">{t('deletionRequests.empty.title')}</div>
                   <p className="text-sm text-slate-600 mb-4">
-                    Bạn có thể tạo yêu cầu xóa tenant nếu cần thiết
+                    {t('deletionRequests.empty.description')}
                   </p>
                   <Link
                     href="/tenants"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-[#02542D] text-white rounded-lg hover:bg-[#024030] transition"
                   >
-                    ➕ Tạo yêu cầu mới
+                    {t('deletionRequests.empty.button')}
                   </Link>
                 </div>
               ) : (
@@ -262,12 +264,12 @@ export default function TenantOwnerHomePage() {
                       CANCELLED: 'bg-slate-100 text-slate-800 border-slate-200',
                     };
                     const statusLabels: Record<string, string> = {
-                      PENDING: '⏳ Chờ duyệt',
-                      APPROVED: '✅ Đã duyệt',
-                      IN_PROGRESS: '🔄 Đang xử lý',
-                      COMPLETED: '✔️ Hoàn thành',
-                      REJECTED: '❌ Từ chối',
-                      CANCELLED: '🚫 Đã hủy',
+                      PENDING: t('deletionRequests.status.pending'),
+                      APPROVED: t('deletionRequests.status.approved'),
+                      IN_PROGRESS: t('deletionRequests.status.inProgress'),
+                      COMPLETED: t('deletionRequests.status.completed'),
+                      REJECTED: t('deletionRequests.status.rejected'),
+                      CANCELLED: t('deletionRequests.status.cancelled'),
                     };
 
                     return (
@@ -289,7 +291,7 @@ export default function TenantOwnerHomePage() {
                             )}
                             {request.status === 'REJECTED' && request.rejectionReason && (
                               <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
-                                <strong>Lý do từ chối:</strong> {request.rejectionReason}
+                                <strong>{t('deletionRequests.rejectionReason')}</strong> {request.rejectionReason}
                               </div>
                             )}
                           </div>
@@ -300,14 +302,14 @@ export default function TenantOwnerHomePage() {
                                 disabled={approving === request.id}
                                 className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                {approving === request.id ? '⏳ Đang xử lý...' : '✅ Approve'}
+                                {approving === request.id ? t('deletionRequests.buttons.approving') : t('deletionRequests.buttons.approve')}
                               </button>
                             )}
                             <Link
                               href={`/tenant-deletions/${request.id}`}
                               className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition"
                             >
-                              Chi tiết
+                              {t('deletionRequests.buttons.details')}
                             </Link>
                           </div>
                         </div>
@@ -323,29 +325,29 @@ export default function TenantOwnerHomePage() {
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
                   <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                    ✅ Xác nhận Approve Yêu cầu Xóa Tenant
+                    {t('modals.approve.title')}
                   </h3>
                   <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded">
                     <p className="text-sm text-amber-800 mb-2">
-                      <strong>⚠️ Lưu ý quan trọng:</strong>
+                      <strong>{t('modals.approve.warning')}</strong>
                     </p>
                     <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
-                      <li>Hệ thống sẽ tự động đặt trạng thái buildings thành <strong>DELETING</strong></li>
-                      <li>Tất cả units sẽ được xóa dần</li>
-                      <li>Sau khi xóa hết units → Building status = <strong>ARCHIVED</strong></li>
-                      <li>Sau khi xóa hết buildings → Tenant status = <strong>ARCHIVED</strong></li>
+                      <li>{t('modals.approve.notes.buildingStatus')}</li>
+                      <li>{t('modals.approve.notes.unitsDeleted')}</li>
+                      <li>{t('modals.approve.notes.buildingArchived')}</li>
+                      <li>{t('modals.approve.notes.tenantArchived')}</li>
                     </ul>
                   </div>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Ghi chú (tùy chọn):
+                      {t('modals.approve.noteLabel')}
                     </label>
                     <textarea
                       value={approveNote}
                       onChange={(e) => setApproveNote(e.target.value)}
                       className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                       rows={3}
-                      placeholder="Nhập lý do approve..."
+                      placeholder={t('modals.approve.notePlaceholder')}
                     />
                   </div>
                   <div className="flex gap-3 justify-end">
@@ -354,14 +356,14 @@ export default function TenantOwnerHomePage() {
                       disabled={approving !== null}
                       className="px-4 py-2 border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition disabled:opacity-50"
                     >
-                      Hủy
+                      {t('modals.approve.cancel')}
                     </button>
                     <button
                       onClick={handleApprove}
                       disabled={approving !== null}
                       className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {approving ? '⏳ Đang xử lý...' : '✅ Xác nhận Approve'}
+                      {approving ? t('modals.approve.confirming') : t('modals.approve.confirm')}
                     </button>
                   </div>
                 </div>

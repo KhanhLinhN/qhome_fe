@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import {
   BillingCycleDto,
@@ -29,6 +30,7 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 export default function BillingCycleManagePage() {
+  const t = useTranslations('BillingCyclesManage');
   const { show } = useNotifications();
   const [year, setYear] = useState(new Date().getFullYear());
   const [cycles, setCycles] = useState<BillingCycleDto[]>([]);
@@ -66,7 +68,7 @@ export default function BillingCycleManagePage() {
       setCycles(data);
     } catch (error: any) {
       console.error('Loading billing cycles failed', error);
-      show('Không thể tải billing cycles', 'error');
+      show(t('errors.loadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -194,7 +196,7 @@ export default function BillingCycleManagePage() {
         }
       } catch (error) {
         console.error('Failed to load building summaries', error);
-        show('Không thể tải dữ liệu tòa nhà', 'error');
+        show(t('errors.loadBuildingsFailed'), 'error');
       } finally {
         setLoadingSummaries(false);
       }
@@ -230,7 +232,7 @@ export default function BillingCycleManagePage() {
         setBuildingInvoices(invoices);
       } catch (error) {
         console.error('Failed to load invoices', error);
-        show('Không thể tải hóa đơn', 'error');
+        show(t('errors.loadInvoicesFailed'), 'error');
       } finally {
         setLoadingInvoices(false);
       }
@@ -261,7 +263,7 @@ export default function BillingCycleManagePage() {
         setUnitNamesMap(map);
       } catch (error) {
         console.error('Failed to load units', error);
-        show('Không thể tải danh sách căn hộ', 'error');
+        show(t('errors.loadUnitsFailed'), 'error');
       } finally {
         setLoadingUnits(false);
       }
@@ -320,7 +322,7 @@ export default function BillingCycleManagePage() {
 
   const handleExportExcel = async () => {
     if (!selectedCycle) {
-      show('Vui lòng chọn một billing cycle', 'error');
+      show(t('errors.selectCycleRequired'), 'error');
       return;
     }
 
@@ -352,10 +354,10 @@ export default function BillingCycleManagePage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      show('Xuất Excel thành công', 'success');
+      show(t('messages.exportSuccess'), 'success');
     } catch (error: any) {
       console.error('Export Excel failed', error);
-      show(error?.response?.data?.message || 'Xuất Excel thất bại', 'error');
+      show(error?.response?.data?.message || t('errors.exportFailed'), 'error');
     } finally {
       setExporting(false);
     }
@@ -365,20 +367,20 @@ export default function BillingCycleManagePage() {
     <div className="px-[41px] py-12 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wide text-gray-500">Quản lý tài chính</p>
-          <h1 className="text-3xl font-semibold text-[#02542D]">Quản lý chi tiết billing</h1>
+          <p className="text-xs uppercase tracking-wide text-gray-500">{t('subtitle')}</p>
+          <h1 className="text-3xl font-semibold text-[#02542D]">{t('title')}</h1>
         </div>
         <Link
           href="/base/billingCycles"
           className="px-4 py-2 border border-[#02542D] text-[#02542D] rounded-md hover:bg-[#f2fff6]"
         >
-          Quay lại tổng quan
+          {t('buttons.backToOverview')}
         </Link>
       </div>
 
       <div className="flex items-center gap-3">
         <div className="border border-gray-300 rounded-md px-3 py-2 flex items-center gap-2">
-          <span className="text-xs text-gray-500">Năm</span>
+          <span className="text-xs text-gray-500">{t('year')}</span>
           <input
             type="number"
             min={2000}
@@ -392,7 +394,7 @@ export default function BillingCycleManagePage() {
           onClick={() => loadCycles()}
           className="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#0c793f] transition-colors text-sm"
         >
-          Làm mới
+          {t('buttons.refresh')}
         </button>
         <button
           onClick={handleExportExcel}
@@ -402,12 +404,12 @@ export default function BillingCycleManagePage() {
           {exporting ? (
             <>
               <span className="animate-spin">⏳</span>
-              <span>Đang xuất...</span>
+              <span>{t('buttons.exporting')}</span>
             </>
           ) : (
             <>
               <span>📥</span>
-              <span>Xuất Excel</span>
+              <span>{t('buttons.exportExcel')}</span>
             </>
           )}
         </button>
@@ -415,7 +417,7 @@ export default function BillingCycleManagePage() {
 
       {filteredCycles.length > 0 && (
         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <label className="block text-xs font-semibold text-gray-500 mb-2">Chọn Billing Cycle</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-2">{t('labels.selectCycle')}</label>
           <select
             value={selectedCycle?.id || ''}
             onChange={(event) => {
@@ -425,7 +427,7 @@ export default function BillingCycleManagePage() {
             }}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
           >
-            <option value="">-- Chọn cycle --</option>
+            <option value="">{t('selectCycle.placeholder')}</option>
             {filteredCycles.map((cycle) => (
               <option key={cycle.id} value={cycle.id}>
                 {cycle.name} ({new Date(cycle.periodFrom).toLocaleDateString()} - {new Date(cycle.periodTo).toLocaleDateString()})
@@ -438,13 +440,13 @@ export default function BillingCycleManagePage() {
 
       <div className="grid grid-cols-5 gap-3">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Dịch vụ</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">{t('filters.service')}</label>
           <select
             value={serviceFilter}
             onChange={(event) => setServiceFilter(event.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
           >
-            <option value="ALL">Tất cả dịch vụ</option>
+            <option value="ALL">{t('filters.allServices')}</option>
             {services.map((service) => (
               <option key={service.code} value={service.code}>
                 {service.name} ({service.code})
@@ -453,13 +455,13 @@ export default function BillingCycleManagePage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Tháng</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">{t('filters.month')}</label>
           <select
             value={monthFilter}
             onChange={(event) => setMonthFilter(event.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
           >
-            <option value="ALL">Tất cả tháng</option>
+            <option value="ALL">{t('filters.allMonths')}</option>
             {monthOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -468,7 +470,7 @@ export default function BillingCycleManagePage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Tòa nhà</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">{t('filters.building')}</label>
           <select
             value={selectedBuildingFilter ?? ''}
             onChange={(event) => {
@@ -477,7 +479,7 @@ export default function BillingCycleManagePage() {
             }}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
           >
-            <option value="">Tất cả tòa nhà</option>
+            <option value="">{t('filters.allBuildings')}</option>
             {allBuildings.map((building) => (
               <option key={building.id} value={building.id}>
                 {building.code} - {building.name}
@@ -486,29 +488,29 @@ export default function BillingCycleManagePage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Tầng</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">{t('filters.floor')}</label>
           <select
             value={selectedFloorFilter ?? ''}
             onChange={(event) => setSelectedFloorFilter(event.target.value ? Number(event.target.value) : null)}
             disabled={!selectedBuildingFilter || loadingUnits || floorOptions.length === 0}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559] disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
-            <option value="">Tất cả tầng</option>
+            <option value="">{t('filters.allFloors')}</option>
             {floorOptions.map((floor) => (
               <option key={floor} value={floor}>
-                Tầng {floor}
+                {t('labels.floor', { floor })}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Trạng thái hóa đơn</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">{t('filters.invoiceStatus')}</label>
           <select
             value={invoiceStatusFilter}
             onChange={(event) => setInvoiceStatusFilter(event.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
           >
-            <option value="ALL">Tất cả trạng thái</option>
+            <option value="ALL">{t('filters.allStatuses')}</option>
             <option value="PUBLISHED">PUBLISHED</option>
             <option value="PAID">PAID</option>
             <option value="VOID">VOID</option>
@@ -520,18 +522,18 @@ export default function BillingCycleManagePage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
             <div className="text-sm text-gray-600">
-              <span className="font-semibold">Chu kỳ hiện tại:</span>{' '}
+              <span className="font-semibold">{t('labels.currentCycle')}</span>{' '}
               {selectedCycle.name} ({new Date(selectedCycle.periodFrom).toLocaleDateString()} - {new Date(selectedCycle.periodTo).toLocaleDateString()})
             </div>
           </div>
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
             <div className="text-sm text-gray-600 mb-2">
-              <span className="font-semibold">Dịch vụ chưa có hóa đơn:</span>
+              <span className="font-semibold">{t('labels.missingServices')}</span>
             </div>
             {loadingMissingServices ? (
-              <div className="text-xs text-gray-500">Đang tải...</div>
+              <div className="text-xs text-gray-500">{t('loading.missingServices')}</div>
             ) : missingServices.length === 0 ? (
-              <div className="text-xs text-green-600 font-semibold">✓ Tất cả dịch vụ đã có hóa đơn</div>
+              <div className="text-xs text-green-600 font-semibold">{t('labels.allServicesHaveInvoices')}</div>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {missingServices.map((service) => (
@@ -550,10 +552,10 @@ export default function BillingCycleManagePage() {
 
       <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
         <div className="text-sm text-gray-600">
-          {totalStats.count} toà nhà | Tổng hóa đơn: {totalStats.totalAmount.toLocaleString('vi-VN')} VNĐ
+          {t('summary.buildingsCount', { count: totalStats.count, amount: totalStats.totalAmount.toLocaleString('vi-VN') })}
         </div>
         {loadingSummaries ? (
-          <div className="text-sm text-gray-500">Đang tổng hợp dữ liệu theo tòa...</div>
+          <div className="text-sm text-gray-500">{t('loading.summaries')}</div>
         ) : (
           <>
             <div className="grid grid-cols-3 gap-4">
@@ -567,13 +569,13 @@ export default function BillingCycleManagePage() {
                   }`}
                   onClick={() => setSelectedBuildingId(summary.buildingId)}
                 >
-                  <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Tòa</div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">{t('labels.building')}</div>
                   <div className="text-lg font-semibold text-[#02542D]">
                     {summary.buildingCode || summary.buildingName || summary.buildingId?.slice(0, 8)}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">Trạng thái: {summary.status}</div>
+                  <div className="text-xs text-gray-500 mt-1">{t('labels.status')} {summary.status}</div>
                   <div className="text-sm text-gray-600 mt-2">
-                    {summary.invoiceCount} hóa đơn · {summary.totalAmount?.toLocaleString('vi-VN') ?? 0} VNĐ
+                    {t('summary.invoicesCount', { count: summary.invoiceCount, amount: (summary.totalAmount?.toLocaleString('vi-VN') ?? 0) })}
                   </div>
                 </div>
               ))}
@@ -584,24 +586,24 @@ export default function BillingCycleManagePage() {
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-[#02542D]">Danh sách hóa đơn</h2>
+          <h2 className="text-xl font-semibold text-[#02542D]">{t('labels.invoiceList')}</h2>
           <span className="text-sm text-gray-500">
             {(() => {
-              if (!selectedBuildingId) return 'Chưa chọn tòa';
+              if (!selectedBuildingId) return t('labels.noBuildingSelected');
               const buildingSummary = buildingSummaries.find(s => s.buildingId === selectedBuildingId);
               const building = allBuildings.find(b => b.id === selectedBuildingId);
               const buildingName = buildingSummary?.buildingCode || buildingSummary?.buildingName || building?.code || building?.name;
-              return buildingName ? `Tòa ${buildingName}` : `Tòa ${selectedBuildingId.slice(0, 8)}`;
+              return buildingName ? `${t('labels.building')} ${buildingName}` : `${t('labels.building')} ${selectedBuildingId.slice(0, 8)}`;
             })()}
           </span>
         </div>
         {loadingInvoices ? (
-          <div className="text-sm text-gray-500">Đang tải hóa đơn...</div>
+          <div className="text-sm text-gray-500">{t('loading.invoices')}</div>
         ) : filteredBuildingInvoices.length === 0 ? (
           <div className="text-sm text-gray-500">
             {selectedFloorFilter 
-              ? `Chưa có hóa đơn cho tầng ${selectedFloorFilter} của tòa được chọn`
-              : 'Chưa có hóa đơn cho tòa được chọn'}
+              ? t('empty.noInvoicesForFloor', { floor: selectedFloorFilter })
+              : t('empty.noInvoicesForBuilding')}
           </div>
         ) : (
           <div className="space-y-3">
@@ -622,8 +624,8 @@ export default function BillingCycleManagePage() {
                     </div>
                     {unit && (
                       <div className="text-xs text-gray-500 mt-1">
-                        Căn: {unit.name || unit.code || invoice.payerUnitId} 
-                        {unit.floor != null && ` · Tầng ${unit.floor}`}
+                        {t('labels.unit')} {unit.name || unit.code || invoice.payerUnitId} 
+                        {unit.floor != null && ` · ${t('labels.floor', { floor: unit.floor })}`}
                       </div>
                     )}
                   </div>
@@ -632,7 +634,7 @@ export default function BillingCycleManagePage() {
                   </div>
                 </div>
                 <div className="text-xs text-gray-500 mt-2">
-                  Due: {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '–'}
+                  {t('labels.due')} {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '–'}
                 </div>
               </div>
               );

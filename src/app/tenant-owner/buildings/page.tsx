@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import Topbar from '@/src/components/layout/Topbar';
 import Sidebar from '@/src/components/layout/Sidebar';
@@ -28,6 +29,7 @@ interface BuildingTargetsStatus {
 }
 
 export default function TenantOwnerBuildingsPage() {
+  const t = useTranslations('TenantOwnerBuildings');
   const { user } = useAuth();
   const [deletingBuildings, setDeletingBuildings] = useState<BuildingDeletionRequest[]>([]);
   const [buildingStatuses, setBuildingStatuses] = useState<Record<string, BuildingTargetsStatus>>({});
@@ -73,7 +75,7 @@ export default function TenantOwnerBuildingsPage() {
   };
 
   const handleCompleteDeletion = async (requestId: string, buildingName: string) => {
-    if (!confirm(`Bạn có chắc muốn hoàn tất xóa building "${buildingName}"?\n\nBuilding sẽ chuyển sang trạng thái ARCHIVED.`)) {
+    if (!confirm(t('confirm.complete', { name: buildingName }))) {
       return;
     }
 
@@ -84,11 +86,11 @@ export default function TenantOwnerBuildingsPage() {
         {},
         { withCredentials: true }
       );
-      alert(`✅ Đã hoàn tất xóa building "${buildingName}"!`);
+      alert(t('messages.completeSuccess', { name: buildingName }));
       loadDeletingBuildings(); // Reload
     } catch (error: any) {
       console.error('Failed to complete deletion:', error);
-      alert(`❌ Hoàn tất xóa thất bại: ${error?.response?.data?.message || error.message}`);
+      alert(t('messages.completeError', { message: error?.response?.data?.message || error.message }));
     } finally {
       setCompleting(null);
     }
@@ -99,7 +101,7 @@ export default function TenantOwnerBuildingsPage() {
       <div className="min-h-screen bg-[#F5F5F0]">
         <div className="flex">
           <main className="flex-1 p-6">
-            <div className="text-center py-12 text-slate-500">⏳ Đang tải...</div>
+            <div className="text-center py-12 text-slate-500">⏳ {t('loading')}</div>
           </main>
         </div>
       </div>
@@ -122,22 +124,22 @@ export default function TenantOwnerBuildingsPage() {
                     <path fill="#1e293b" d="M10 2a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v2.6666666666666665h1.3333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v5.333333333333333a0.6666666666666666 0.6666666666666666 0 1 1 0 1.3333333333333333H2a0.6666666666666666 0.6666666666666666 0 1 1 0 -1.3333333333333333V6a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h1.3333333333333333V3.333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h4ZM4.666666666666666 6H3.333333333333333v6.666666666666666h1.3333333333333333V6Zm8 1.3333333333333333h-1.3333333333333333v5.333333333333333h1.3333333333333333v-5.333333333333333Zm-4 2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333V4.666666666666666Z" strokeWidth="0.6667"></path>
                   </g>
                 </svg>
-                Buildings Đang Xóa
+                {t('title')}
               </h1>
               <p className="text-sm text-slate-600">
-                Quản lý các building đang trong quá trình xóa. Khi đã xóa hết units, bạn có thể hoàn tất việc xóa building.
+                {t('description')}
               </p>
             </div>
 
             {/* Buildings List */}
             {deletingBuildings.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">
-                <div className="text-6xl mb-4">✅</div>
+                <div className="text-6xl mb-4">{t('empty.icon')}</div>
                 <div className="text-lg font-medium text-slate-800 mb-2">
-                  Không có tòa nhà nào đang xóa
+                  {t('empty.title')}
                 </div>
                 <p className="text-sm text-slate-600">
-                  Tất cả tòa nhà của bạn đang hoạt động bình thường
+                  {t('empty.description')}
                 </p>
               </div>
             ) : (
@@ -160,18 +162,18 @@ export default function TenantOwnerBuildingsPage() {
                               {building.buildingName}
                             </h3>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
-                              🔄 ĐANG XÓA
+                              {t('building.status')}
                             </span>
                           </div>
                           <div className="text-sm text-slate-600 space-y-1">
                             <div>
-                              <span className="font-medium">Mã building:</span> {building.buildingCode}
+                              <span className="font-medium">{t('building.code')}</span> {building.buildingCode}
                             </div>
                             <div>
-                              <span className="font-medium">Yêu cầu bởi:</span> {building.requestedBy}
+                              <span className="font-medium">{t('building.requestedBy')}</span> {building.requestedBy}
                             </div>
                             <div>
-                              <span className="font-medium">Ngày yêu cầu:</span>{' '}
+                              <span className="font-medium">{t('building.requestedAt')}</span>{' '}
                               {new Date(building.requestedAt).toLocaleDateString('vi-VN', {
                                 year: 'numeric',
                                 month: 'long',

@@ -205,8 +205,9 @@ export default function SupplierDetail() {
                 isOpen={isPopupOpen}
                 onClose={handleClosePopup}
                 onConfirm={handleConfirmDelete}
-                title={t('delete.title')}
-                message={t('delete.message')}
+                popupTitle={t('delete.title')}
+                popupContext={t('delete.message')}
+                isDanger={true}
             />
         </div>
     );

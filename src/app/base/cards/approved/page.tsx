@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   fetchApprovedCards,
   type CardRegistrationSummaryDto,
@@ -9,6 +10,7 @@ import { getBuildings, type Building } from '@/src/services/base/buildingService
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 
 export default function ApprovedCardsAdminPage() {
+  const t = useTranslations('ApprovedCards');
   const [cards, setCards] = useState<CardRegistrationSummaryDto[]>([]);
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -59,7 +61,7 @@ export default function ApprovedCardsAdminPage() {
       setCards(response.data);
     } catch (err: any) {
       console.error('Failed to load approved cards', err);
-      setError(err?.response?.data?.message || 'Không thể tải danh sách thẻ đã duyệt');
+      setError(err?.response?.data?.message || t('errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -72,11 +74,11 @@ export default function ApprovedCardsAdminPage() {
   const getCardTypeLabel = (cardType: string) => {
     switch (cardType) {
       case 'RESIDENT_CARD':
-        return 'Thẻ cư dân';
+        return t('cardTypes.resident');
       case 'ELEVATOR_CARD':
-        return 'Thẻ thang máy';
+        return t('cardTypes.elevator');
       case 'VEHICLE_CARD':
-        return 'Thẻ xe';
+        return t('cardTypes.vehicle');
       default:
         return cardType;
     }
@@ -85,9 +87,9 @@ export default function ApprovedCardsAdminPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return 'Đã duyệt';
+        return t('statusLabels.approved');
       case 'COMPLETED':
-        return 'Đã hoàn tất';
+        return t('statusLabels.completed');
       default:
         return status;
     }
@@ -107,13 +109,13 @@ export default function ApprovedCardsAdminPage() {
   const getPaymentStatusLabel = (paymentStatus: string) => {
     switch (paymentStatus) {
       case 'PAID':
-        return 'Đã thanh toán';
+        return t('paymentStatusLabels.paid');
       case 'PAYMENT_PENDING':
-        return 'Đang thanh toán';
+        return t('paymentStatusLabels.paymentPending');
       case 'PAYMENT_APPROVAL':
-        return 'Đang chờ xác nhận';
+        return t('paymentStatusLabels.paymentApproval');
       case 'UNPAID':
-        return 'Chưa thanh toán';
+        return t('paymentStatusLabels.unpaid');
       default:
         return paymentStatus;
     }
@@ -152,14 +154,14 @@ export default function ApprovedCardsAdminPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-[#02542D]">
-          Quản lý thẻ đã duyệt
+          {t('title')}
         </h1>
         <button
           type="button"
           onClick={loadCards}
           className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024428] transition-colors"
         >
-          Làm mới
+          {t('actions.refresh')}
         </button>
       </div>
 
@@ -167,22 +169,22 @@ export default function ApprovedCardsAdminPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end mb-6">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Loại thẻ
+              {t('filters.cardType')}
             </label>
             <select
               value={selectedCardType}
               onChange={(e) => setSelectedCardType(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
             >
-              <option value="">Tất cả loại thẻ</option>
-              <option value="RESIDENT_CARD">Thẻ cư dân</option>
-              <option value="ELEVATOR_CARD">Thẻ thang máy</option>
-              <option value="VEHICLE_CARD">Thẻ xe</option>
+              <option value="">{t('filters.allCardTypes')}</option>
+              <option value="RESIDENT_CARD">{t('cardTypes.resident')}</option>
+              <option value="ELEVATOR_CARD">{t('cardTypes.elevator')}</option>
+              <option value="VEHICLE_CARD">{t('cardTypes.vehicle')}</option>
             </select>
           </div>
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tòa nhà
+              {t('filters.building')}
             </label>
             <select
               value={selectedBuildingId}
@@ -192,7 +194,7 @@ export default function ApprovedCardsAdminPage() {
               }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
             >
-              <option value="">Tất cả tòa nhà</option>
+              <option value="">{t('filters.allBuildings')}</option>
               {buildings.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.code ? `${b.code} - ` : ''}{b.name}
@@ -202,7 +204,7 @@ export default function ApprovedCardsAdminPage() {
           </div>
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Căn hộ/Phòng
+              {t('filters.unit')}
             </label>
             <select
               value={selectedUnitId}
@@ -210,7 +212,7 @@ export default function ApprovedCardsAdminPage() {
               disabled={!selectedBuildingId}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E] disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
-              <option value="">Tất cả căn hộ</option>
+              <option value="">{t('filters.allUnits')}</option>
               {units.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.code}
@@ -228,7 +230,7 @@ export default function ApprovedCardsAdminPage() {
           <div className="text-center text-red-600 py-12">{error}</div>
         ) : filteredCards.length === 0 ? (
           <div className="text-center text-gray-500 py-12">
-            Không có thẻ đã duyệt nào phù hợp.
+            {t('empty')}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -236,25 +238,25 @@ export default function ApprovedCardsAdminPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Loại thẻ
+                    {t('table.cardType')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Tên hiển thị
+                    {t('table.displayName')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Căn hộ
+                    {t('table.apartment')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Tòa nhà
+                    {t('table.building')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Trạng thái
+                    {t('table.status')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Thanh toán
+                    {t('table.payment')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Ngày duyệt
+                    {t('table.approvedDate')}
                   </th>
                 </tr>
               </thead>
@@ -305,7 +307,7 @@ export default function ApprovedCardsAdminPage() {
 
         {filteredCards.length > 0 && (
           <div className="mt-4 text-sm text-gray-600">
-            Hiển thị: <strong>{filteredCards.length}</strong> / <strong>{cards.length}</strong> thẻ đã duyệt
+            {t('showing', { filtered: filteredCards.length, total: cards.length })}
           </div>
         )}
       </div>

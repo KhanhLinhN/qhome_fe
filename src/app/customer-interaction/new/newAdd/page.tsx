@@ -116,8 +116,8 @@ export default function NewsAdd() {
                     const allBuildings = await getBuildings();
                     setBuildings(allBuildings);
                 } catch (error) {
-                    console.error('Lỗi khi tải danh sách tòa nhà:', error);
-                    show(t('fetchBuildingError'), 'error');
+                    console.error(t('errors.loadBuildings'), error);
+                    show(t('errors.loadBuildings'), 'error');
                 } finally {
                     setLoadingBuildings(false);
                 }

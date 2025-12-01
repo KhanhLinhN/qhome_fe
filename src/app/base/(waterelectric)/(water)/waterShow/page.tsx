@@ -76,7 +76,7 @@ export default function WaterShowPage() {
         setBuildings(data);
       } catch (error) {
         console.error('Failed to load buildings:', error);
-        show('Failed to load buildings', 'error');
+        show(t('messages.failedToLoadBuildings'), 'error');
       } finally {
         setLoading(false);
       }
@@ -134,7 +134,7 @@ export default function WaterShowPage() {
         }
       } catch (error) {
         console.error('Failed to load meters:', error);
-        show('Failed to load meters', 'error');
+        show(t('messages.failedToLoadMeters'), 'error');
       } finally {
         setLoading(false);
       }
@@ -212,7 +212,7 @@ export default function WaterShowPage() {
 
   const handleSaveSettings = async (cycle: WaterCycle, formula: WaterFormula[]) => {
     if (!waterServiceId) {
-      show('Water service ID is required', 'error');
+      show(t('messages.waterServiceIdRequired'), 'error');
       return;
     }
 
@@ -223,7 +223,7 @@ export default function WaterShowPage() {
           toDate: cycle.toDate,
         };
         await updateReadingCycle(waterCycle.id, updateReq);
-        show('Water settings updated successfully', 'success');
+        show(t('messages.waterSettingsUpdated'), 'success');
       } else {
         const createReq: ReadingCycleCreateReq = {
           name: `Water Cycle ${cycle.fromDate} - ${cycle.toDate}`,
@@ -233,20 +233,20 @@ export default function WaterShowPage() {
         };
         const newCycle = await createReadingCycle(createReq);
         setWaterCycle(newCycle);
-        show('Water settings created successfully', 'success');
+        show(t('messages.waterSettingsCreated'), 'success');
       }
 
       setWaterFormula(formula);
       refresh();
     } catch (error: any) {
       console.error('Failed to save settings:', error);
-      show(error?.message || 'Failed to save settings', 'error');
+      show(error?.message || t('messages.failedToSaveSettings'), 'error');
     }
   };
 
   const handleCreateMeter = async (meterData: Partial<MeterCreateReq>) => {
     if (!selectedBuildingId || !waterServiceId) {
-      show('Please select building first', 'error');
+      show(t('messages.pleaseSelectBuilding'), 'error');
       return;
     }
 
@@ -260,7 +260,7 @@ export default function WaterShowPage() {
       };
       
       await createMeter(req);
-      show('Meter created successfully', 'success');
+      show(t('messages.meterCreated'), 'success');
       setIsMeterModalOpen(false);
       refresh();
       
@@ -273,7 +273,7 @@ export default function WaterShowPage() {
         setMeters(metersData);
       }
     } catch (error: any) {
-      show(error?.message || 'Failed to create meter', 'error');
+      show(error?.message || t('messages.failedToCreateMeter'), 'error');
     }
   };
 
@@ -282,7 +282,7 @@ export default function WaterShowPage() {
 
     try {
       await updateMeter(selectedMeter.id, meterData);
-      show('Meter updated successfully', 'success');
+      show(t('messages.meterUpdated'), 'success');
       setIsEditMeterModalOpen(false);
       setSelectedMeter(null);
       refresh();
@@ -296,16 +296,16 @@ export default function WaterShowPage() {
         setMeters(metersData);
       }
     } catch (error: any) {
-      show(error?.message || 'Failed to update meter', 'error');
+      show(error?.message || t('messages.failedToUpdateMeter'), 'error');
     }
   };
 
   const handleDeactivateMeter = async (meterId: string) => {
-    if (!confirm('Are you sure you want to deactivate this meter?')) return;
+    if (!confirm(t('confirm.deactivateMeter'))) return;
 
     try {
       await deactivateMeter(meterId);
-      show('Meter deactivated successfully', 'success');
+      show(t('messages.meterDeactivated'), 'success');
       refresh();
       
       // Reload meters
@@ -317,16 +317,16 @@ export default function WaterShowPage() {
         setMeters(metersData);
       }
     } catch (error: any) {
-      show(error?.message || 'Failed to deactivate meter', 'error');
+      show(error?.message || t('messages.failedToDeactivateMeter'), 'error');
     }
   };
 
   const handleDeleteMeter = async (meterId: string) => {
-    if (!confirm('Are you sure you want to delete this meter? This action cannot be undone.')) return;
+    if (!confirm(t('confirm.deleteMeter'))) return;
 
     try {
       await deleteMeter(meterId);
-      show('Meter deleted successfully', 'success');
+      show(t('messages.meterDeleted'), 'success');
       refresh();
       
       // Reload meters
@@ -338,7 +338,7 @@ export default function WaterShowPage() {
         setMeters(metersData);
       }
     } catch (error: any) {
-      show(error?.message || 'Failed to delete meter', 'error');
+      show(error?.message || t('messages.failedToDeleteMeter'), 'error');
     }
   };
 
@@ -369,7 +369,7 @@ export default function WaterShowPage() {
               onClick={() => setIsMeterModalOpen(true)}
               className="px-4 py-2 bg-[#739559] text-white rounded-md hover:bg-[#5a7347] transition-colors"
             >
-              Add Meter
+              {t('addMeter')}
             </button>
           )}
         </div>
@@ -391,10 +391,10 @@ export default function WaterShowPage() {
       {/* Filter Meters */}
       {selectedBuildingId && (
         <div className="bg-white p-6 rounded-xl mb-6">
-          <h3 className="text-lg font-semibold text-[#02542D] mb-4">Filters</h3>
+          <h3 className="text-lg font-semibold text-[#02542D] mb-4">{t('filters')}</h3>
           <div className="grid grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('status')}</label>
               <div className="flex gap-2">
                 <button
                   onClick={() => setFilterActive(null)}
@@ -404,7 +404,7 @@ export default function WaterShowPage() {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  All
+                  {t('all')}
                 </button>
                 <button
                   onClick={() => setFilterActive(true)}
@@ -414,7 +414,7 @@ export default function WaterShowPage() {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  Active
+                  {t('active')}
                 </button>
                 <button
                   onClick={() => setFilterActive(false)}
@@ -424,21 +424,21 @@ export default function WaterShowPage() {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  Inactive
+                  {t('inactive')}
                 </button>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Unit</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('filterByUnit')}</label>
               <Select
-                options={[{ id: '', name: 'All Units', code: '' }, ...units]}
+                options={[{ id: '', name: t('allUnits'), code: '' }, ...units]}
                 value=""
                 onSelect={(unit) => {
                   // Reset filter for now - can add unit filter if needed
                 }}
-                renderItem={(u) => u.name || 'All Units'}
+                renderItem={(u) => u.name || t('allUnits')}
                 getValue={(u) => u.id}
-                placeholder="All Units"
+                placeholder={t('allUnits')}
               />
             </div>
           </div>
@@ -455,18 +455,18 @@ export default function WaterShowPage() {
       {/* Meters Table */}
       {selectedBuildingId && meters.length > 0 && (
         <div className="bg-white p-6 rounded-xl mb-6">
-          <h2 className="text-xl font-semibold text-[#02542D] mb-4">Meters</h2>
+          <h2 className="text-xl font-semibold text-[#02542D] mb-4">{t('meters')}</h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b-2 border-solid border-[#14AE5C]">
-                  <th className="px-4 py-3 text-left text-sm font-bold text-[#024023] uppercase">Meter Code</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Type</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Location</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Last Reading</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Last Reading Date</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Status</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">Actions</th>
+                  <th className="px-4 py-3 text-left text-sm font-bold text-[#024023] uppercase">{t('meterCode')}</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('type')}</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('location')}</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('lastReading')}</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('lastReadingDate')}</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('status')}</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-[#024023] uppercase">{t('actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -491,7 +491,7 @@ export default function WaterShowPage() {
                             : 'bg-gray-100 text-gray-700'
                         }`}
                       >
-                        {meter.active ? 'Active' : 'Inactive'}
+                        {meter.active ? t('active') : t('inactive')}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -500,21 +500,21 @@ export default function WaterShowPage() {
                           onClick={() => handleEditMeter(meter)}
                           className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
                         >
-                          Edit
+                          {t('edit')}
                         </button>
                         {meter.active ? (
                           <button
                             onClick={() => handleDeactivateMeter(meter.id)}
                             className="px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 text-sm"
                           >
-                            Deactivate
+                            {t('deactivate')}
                           </button>
                         ) : (
                           <button
                             onClick={() => handleDeleteMeter(meter.id)}
                             className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm"
                           >
-                            Delete
+                            {t('delete')}
                           </button>
                         )}
                       </div>
@@ -573,10 +573,10 @@ export default function WaterShowPage() {
                             }`}
                           >
                             {readingData.status === 'measured' 
-                              ? 'Measured' 
+                              ? t('measured') 
                               : readingData.status === 'pending'
-                              ? 'Pending'
-                              : 'No Meter'}
+                              ? t('pending')
+                              : t('noMeter')}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -594,7 +594,7 @@ export default function WaterShowPage() {
                 ) : (
                   <tr>
                     <td colSpan={6} className="px-4 py-3 text-center text-gray-500">
-                      No readings available
+                      {t('noReadingsAvailable')}
                     </td>
                   </tr>
                 )}
@@ -606,7 +606,7 @@ export default function WaterShowPage() {
 
       {selectedBuildingId && meters.length === 0 && waterReadings.length === 0 && !displayLoading && (
         <div className="bg-white p-6 rounded-xl text-center text-gray-500">
-          No meters or apartments found for this building
+          {t('noMetersOrApartments')}
         </div>
       )}
 
@@ -670,6 +670,7 @@ interface MeterModalProps {
 }
 
 function MeterModal({ isOpen, onClose, units, onSubmit, mode, initialData }: MeterModalProps) {
+  const t = useTranslations('Water');
   const [meterCode, setMeterCode] = useState('');
   const [meterType, setMeterType] = useState('WATER');
   const [location, setLocation] = useState('');
@@ -723,24 +724,24 @@ function MeterModal({ isOpen, onClose, units, onSubmit, mode, initialData }: Met
         </button>
 
         <h2 className="text-2xl font-bold text-[#02542D] mb-6">
-          {mode === 'create' ? 'Create Meter' : 'Edit Meter'}
+          {mode === 'create' ? t('createMeter') : t('editMeter')}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('unit')}</label>
             <Select
               options={units}
               value={unitId}
               onSelect={(unit) => setUnitId(unit.id)}
               renderItem={(u) => `${u.name} (${u.code})`}
               getValue={(u) => u.id}
-              placeholder="Select unit"
+              placeholder={t('selectUnit')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Meter Code</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('meterCode')}</label>
             <input
               type="text"
               value={meterCode}
@@ -751,7 +752,7 @@ function MeterModal({ isOpen, onClose, units, onSubmit, mode, initialData }: Met
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Meter Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('meterType')}</label>
             <input
               type="text"
               value={meterType}
@@ -762,7 +763,7 @@ function MeterModal({ isOpen, onClose, units, onSubmit, mode, initialData }: Met
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('location')}</label>
             <input
               type="text"
               value={location}
@@ -777,14 +778,14 @@ function MeterModal({ isOpen, onClose, units, onSubmit, mode, initialData }: Met
               onClick={onClose}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="px-4 py-2 bg-[#739559] text-white rounded-md hover:bg-[#5a7347] disabled:opacity-50"
             >
-              {loading ? 'Saving...' : mode === 'create' ? 'Create' : 'Update'}
+              {loading ? t('saving') : mode === 'create' ? t('create') : t('update')}
             </button>
           </div>
         </form>

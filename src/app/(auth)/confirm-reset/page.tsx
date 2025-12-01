@@ -25,23 +25,23 @@ export default function Page() {
     const emailParam = searchParams.get('email');
     const otpParam = searchParams.get('otp');
     if (!emailParam || !otpParam) {
-      show("Thông tin không hợp lệ. Vui lòng quay lại trang quên mật khẩu.", "error");
+      show(t('confirmReset.errors.invalidInfo'), "error");
       router.push("/forgot-password");
       return;
     }
     setEmail(emailParam);
     setOtp(otpParam);
-  }, [searchParams, router, show]);
+  }, [searchParams, router, show, t]);
 
   const validatePassword = (pwd: string): string => {
     if (!pwd.trim()) {
-      return "Mật khẩu không được để trống";
+      return t('confirmReset.errors.passwordRequired');
     }
     if (pwd.length < 6) {
-      return "Mật khẩu phải có ít nhất 6 ký tự";
+      return t('confirmReset.errors.passwordMinLength');
     }
     if (pwd.length > 100) {
-      return "Mật khẩu không được vượt quá 100 ký tự";
+      return t('confirmReset.errors.passwordMaxLength');
     }
     return "";
   };
@@ -50,7 +50,7 @@ export default function Page() {
     e.preventDefault();
     
     if (!email || !otp) {
-      show("Thông tin không hợp lệ. Vui lòng quay lại trang quên mật khẩu.", "error");
+      show(t('confirmReset.errors.invalidInfo'), "error");
       router.push("/forgot-password");
       return;
     }
@@ -65,7 +65,7 @@ export default function Page() {
     
     // Validate confirm password
     if (password !== confirmPassword) {
-      setConfirmPasswordError("Mật khẩu xác nhận không khớp");
+      setConfirmPasswordError(t('confirmReset.errors.passwordMismatch'));
       return;
     }
     setConfirmPasswordError("");
@@ -74,21 +74,21 @@ export default function Page() {
     
     try {
       await confirmPasswordReset(email, otp, password);
-      show("Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại.", "success");
+      show(t('confirmReset.messages.resetSuccess'), "success");
       setTimeout(() => {
         router.push("/login");
       }, 2000);
     } catch (e: any) {
-      let errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+      let errorMessage = t('confirmReset.errors.genericError');
       
       if (e?.response?.status === 400) {
-        errorMessage = e?.response?.data?.message || "Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng thử lại từ đầu.";
+        errorMessage = e?.response?.data?.message || t('confirmReset.errors.invalidOtp');
       } else if (e?.code === 'ERR_NETWORK' || e?.message?.includes('Network')) {
-        errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra backend đang chạy.";
+        errorMessage = t('confirmReset.errors.networkError');
       }
       
       show(errorMessage, "error");
-      if (errorMessage.includes("OTP") || errorMessage.includes("hết hạn")) {
+      if (errorMessage.includes("OTP") || errorMessage.includes("expired") || errorMessage.includes("hết hạn")) {
         setTimeout(() => {
           router.push("/forgot-password");
         }, 2000);
@@ -109,21 +109,21 @@ export default function Page() {
         <div className="flex flex-col items-center mb-10">
           <div className="flex flex-col items-center select-none">
             <img src="/logo.svg" alt="Qhome Base Logo" className="h-28 w-24 mb-4" />
-            <span className="text-3xl font-semibold tracking-tight text-slate-800">Đặt lại mật khẩu</span>
+            <span className="text-3xl font-semibold tracking-tight text-slate-800">{t('confirmReset.title')}</span>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-8">
           <form onSubmit={onSubmit} className="space-y-5">
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-semibold text-slate-800">Đặt lại mật khẩu mới</h1>
+              <h1 className="text-2xl font-semibold text-slate-800">{t('confirmReset.heading')}</h1>
               <p className="text-sm text-slate-500 mt-1">
-                Nhập mật khẩu mới cho tài khoản <span className="font-medium text-slate-700">{email}</span>
+                {t('confirmReset.description', { email })}
               </p>
             </div>
 
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-1.5">
-                Mật khẩu mới
+                {t('confirmReset.newPasswordLabel')}
               </label>
               <div className="relative">
                 <input 
@@ -135,7 +135,7 @@ export default function Page() {
                       setPasswordError("");
                     }
                   }}
-                  placeholder="Nhập mật khẩu mới"
+                  placeholder={t('confirmReset.newPasswordPlaceholder')}
                   className={`w-full border-0 bg-[#E8E5DC] rounded-md px-4 py-2.5 pr-10 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
                     passwordError 
                       ? "focus:ring-red-500/30 ring-2 ring-red-500/30" 
@@ -153,12 +153,12 @@ export default function Page() {
               {passwordError && (
                 <p className="text-xs text-red-600 mt-1">{passwordError}</p>
               )}
-              <p className="text-xs text-slate-500 mt-1">Mật khẩu phải có ít nhất 6 ký tự</p>
+              <p className="text-xs text-slate-500 mt-1">{t('confirmReset.passwordHint')}</p>
             </div>
 
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-1.5">
-                Xác nhận mật khẩu
+                {t('confirmReset.confirmPasswordLabel')}
               </label>
               <div className="relative">
                 <input 
@@ -170,7 +170,7 @@ export default function Page() {
                       setConfirmPasswordError("");
                     }
                   }}
-                  placeholder="Nhập lại mật khẩu mới"
+                  placeholder={t('confirmReset.confirmPasswordPlaceholder')}
                   className={`w-full border-0 bg-[#E8E5DC] rounded-md px-4 py-2.5 pr-10 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
                     confirmPasswordError 
                       ? "focus:ring-red-500/30 ring-2 ring-red-500/30" 
@@ -195,7 +195,7 @@ export default function Page() {
               disabled={loading}
               className="w-full rounded-md px-4 py-2.5 text-sm font-medium bg-[#6B9B6E] text-white hover:bg-[#5d8660] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? "Đang xử lý..." : "Đặt lại mật khẩu"}
+              {loading ? t('confirmReset.submitting') : t('confirmReset.submit')}
             </button>
 
             <div className="text-center">
@@ -203,13 +203,13 @@ export default function Page() {
                 href="/login" 
                 className="text-sm text-slate-600 hover:text-slate-700 hover:underline"
               >
-                Quay lại đăng nhập
+                {t('confirmReset.backToLogin')}
               </a>
             </div>
           </form>
         </div>
         <div className="mt-6 text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} Qhome Base. All rights reserved.
+          {t('login.copyright', { year: new Date().getFullYear() })}
         </div>
       </div>
     </div>

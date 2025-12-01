@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import {
   getAssignmentById,
@@ -33,6 +34,7 @@ interface UnitReadingData {
 }
 
 export default function IndexReadingPage() {
+  const t = useTranslations('IndexReading');
   const router = useRouter();
   const { user } = useAuth();
   const { show } = useNotifications();
@@ -191,7 +193,7 @@ export default function IndexReadingPage() {
       setExistingReadingsByUnit(existingReadingsMap);
     } catch (error: any) {
       console.error('Failed to load data:', error);
-      show(error?.response?.data?.message || error?.message || 'Failed to load data', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.loadFailed'), 'error');
       router.back();
     } finally {
       setLoading(false);
