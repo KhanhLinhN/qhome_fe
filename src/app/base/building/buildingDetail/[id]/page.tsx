@@ -630,10 +630,22 @@ export default function BuildingDetail () {
                     <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 rounded-lg p-4 text-sm space-y-1">
                         <div className="font-semibold text-base text-yellow-900">{t('meterImportGuide')}</div>
                         <div>
-                            {t('meterImportGuideDesc1', { buildingCode: buildingData?.code })}
+                            {t.rich('meterImportGuideDesc1', { 
+                                buildingCode: buildingData?.code,
+                                bold: (chunks) => <b>{chunks}</b>,
+                                mono: (chunks) => <span className="font-mono">{chunks}</span>
+                            })}
                         </div>
-                        <div>{t('meterImportGuideDesc2')}</div>
-                        <div>{t('meterImportGuideDesc3')}</div>
+                        <div>
+                            {t.rich('meterImportGuideDesc2', {
+                                bold: (chunks) => <b>{chunks}</b>
+                            })}
+                        </div>
+                        <div>
+                            {t.rich('meterImportGuideDesc3', {
+                                bold: (chunks) => <b>{chunks}</b>
+                            })}
+                        </div>
                     </div>
                 )}
 

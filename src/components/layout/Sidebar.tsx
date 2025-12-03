@@ -43,7 +43,6 @@ const adminSections: NavSection[] = [
       {href: "/accountList", labelKey: "accountList", icon: "👥"},
       {href: "/accountNewStaff", labelKey: "createStaffAccount", icon: "🧑‍💼"},
       {href: "/accountNewRe", labelKey: "createResidentAccount", icon: "🏘️"},
-      {href: "/staffProfile", labelKey: "personalInfo", icon: "👤"},
     ],
   },
   {

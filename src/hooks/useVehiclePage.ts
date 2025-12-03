@@ -94,26 +94,22 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
         for (const building of buildingsData) {
           const units = await getUnitsByBuilding(building.id);
           
-          // Filter units có vehicles và map unitCode vào vehicles
-          const unitsWithVehicles = units
-            .filter(unit => vehiclesByUnit[unit.id]?.length > 0)
-            .map(unit => ({
-              ...unit,
-              vehicles: (vehiclesByUnit[unit.id] || []).map(vehicle => ({
-                ...vehicle,
-                unitCode: unit.code, // Map unitCode vào vehicle
-              })),
-              isExpanded: false
-            }));
+          // Map tất cả units (kể cả không có vehicles) và map unitCode vào vehicles nếu có
+          const unitsWithVehicles = units.map(unit => ({
+            ...unit,
+            vehicles: (vehiclesByUnit[unit.id] || []).map(vehicle => ({
+              ...vehicle,
+              unitCode: unit.code, // Map unitCode vào vehicle
+            })),
+            isExpanded: false
+          }));
 
-          // Chỉ thêm building nếu có ít nhất 1 unit có vehicles
-          if (unitsWithVehicles.length > 0) {
-            buildingsWithData.push({
-              ...building,
-              units: unitsWithVehicles,
-              isExpanded: false
-            });
-          }
+          // Thêm tất cả buildings (kể cả không có units có vehicles)
+          buildingsWithData.push({
+            ...building,
+            units: unitsWithVehicles,
+            isExpanded: false
+          });
         }
 
         setBuildings(buildingsWithData);
@@ -217,24 +213,22 @@ export const useVehiclePage = (type: 'active' | 'pending') => {
       for (const building of buildingsData) {
         const units = await getUnitsByBuilding(building.id);
         
-        const unitsWithVehicles = units
-          .filter(unit => vehiclesByUnit[unit.id]?.length > 0)
-          .map(unit => ({
-            ...unit,
-            vehicles: (vehiclesByUnit[unit.id] || []).map(vehicle => ({
-              ...vehicle,
-              unitCode: unit.code,
-            })),
-            isExpanded: false
-          }));
+        // Map tất cả units (kể cả không có vehicles) và map unitCode vào vehicles nếu có
+        const unitsWithVehicles = units.map(unit => ({
+          ...unit,
+          vehicles: (vehiclesByUnit[unit.id] || []).map(vehicle => ({
+            ...vehicle,
+            unitCode: unit.code,
+          })),
+          isExpanded: false
+        }));
 
-        if (unitsWithVehicles.length > 0) {
-          buildingsWithData.push({
-            ...building,
-            units: unitsWithVehicles,
-            isExpanded: false
-          });
-        }
+        // Thêm tất cả buildings (kể cả không có units có vehicles)
+        buildingsWithData.push({
+          ...building,
+          units: unitsWithVehicles,
+          isExpanded: false
+        });
       }
 
       setBuildings(buildingsWithData);
