@@ -53,28 +53,32 @@ export interface FileUploadResponse {
  */
 export async function getNewsList(): Promise<News[]> {
     try {
-        const response = await axios.get(`${BASE_URL}/news`);
+        const response = await axios.get(`${BASE_URL}/news`, {
+            withCredentials: true
+        });
         console.log(response.data);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching news list:', error);
-        throw error;
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching news list:', error);
+            throw error;
+        }
     }
-}
 
     /**
  * GET /api/news/:id
  * Get news detail by ID (for management)
      */
 export async function getNewsDetail(id: string): Promise<News> {
-    try {
-        const response = await axios.get(`${BASE_URL}/news/${id}`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching news detail:', error);
-        throw error;
+        try {
+        const response = await axios.get(`${BASE_URL}/news/${id}`, {
+            withCredentials: true
+        });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching news detail:', error);
+            throw error;
+        }
     }
-}
 
     /**
  * POST /api/news
@@ -82,40 +86,46 @@ export async function getNewsDetail(id: string): Promise<News> {
  */
 export async function createNews(data: CreateNewsRequest): Promise<News> {
     try {
-        const response = await axios.post(`${BASE_URL}/news`, data);
-        return response.data;
-    } catch (error) {
-        console.error('Error creating news:', error);
-        throw error;
+        const response = await axios.post(`${BASE_URL}/news`, data, {
+            withCredentials: true
+        });
+            return response.data;
+        } catch (error) {
+            console.error('Error creating news:', error);
+            throw error;
+        }
     }
-}
 
     /**
  * PUT /api/news/:id
  * Update existing news
      */
 export async function updateNews(id: string, data: UpdateNewsRequest): Promise<News> {
-    try {
-        const response = await axios.put(`${BASE_URL}/news/${id}`, data);
-        return response.data;
-    } catch (error) {
-        console.error('Error updating news:', error);
-        throw error;
+        try {
+        const response = await axios.put(`${BASE_URL}/news/${id}`, data, {
+            withCredentials: true
+        });
+            return response.data;
+        } catch (error) {
+            console.error('Error updating news:', error);
+            throw error;
+        }
     }
-}
 
     /**
  * DELETE /api/news/:id
  * Delete news
      */
-export async function deleteNews(id: string): Promise<void> {
-    try {
-        await axios.delete(`${BASE_URL}/news/${id}`);
-    } catch (error) {
-        console.error('Error deleting news:', error);
-        throw error;
+    export async function deleteNews(id: string): Promise<void> {
+        try {
+        await axios.delete(`${BASE_URL}/news/${id}`, {
+            withCredentials: true
+        });
+        } catch (error) {
+            console.error('Error deleting news:', error);
+            throw error;
+        }
     }
-}
 
     /**
  * GET /api/news/resident?residentId={id}
@@ -124,7 +134,8 @@ export async function deleteNews(id: string): Promise<void> {
 export async function getNewsForResident(residentId: string): Promise<News[]> {
     try {
         const response = await axios.get(`${BASE_URL}/news/resident`, {
-            params: { residentId }
+            params: { residentId },
+            withCredentials: true
         });
         return response.data;
     } catch (error) {
@@ -140,7 +151,8 @@ export async function getNewsForResident(residentId: string): Promise<News[]> {
 export async function getNewsDetailForResident(newsId: string, residentId: string): Promise<News> {
     try {
         const response = await axios.get(`${BASE_URL}/news/${newsId}/resident`, {
-            params: { residentId }
+            params: { residentId },
+            withCredentials: true
         });
         return response.data;
     } catch (error) {
@@ -159,7 +171,9 @@ export async function getNewsDetailForResident(newsId: string, residentId: strin
  */
 export async function uploadNewsImage(data: NewsImageDto): Promise<UploadImageResponse> {
     try {
-        const response = await axios.post(`${BASE_URL}/news/images`, data);
+        const response = await axios.post(`${BASE_URL}/news/images`, data, {
+            withCredentials: true
+        });
         return response.data;
     } catch (error) {
         console.error('Error uploading news image:', error);
@@ -173,7 +187,9 @@ export async function uploadNewsImage(data: NewsImageDto): Promise<UploadImageRe
  */
 export async function uploadMultipleNewsImages(images: NewsImageDto[]): Promise<UploadImageResponse[]> {
     try {
-        const response = await axios.post(`${BASE_URL}/news/images/batch`, images);
+        const response = await axios.post(`${BASE_URL}/news/images/batch`, images, {
+            withCredentials: true
+        });
         return response.data;
     } catch (error) {
         console.error('Error uploading multiple news images:', error);
@@ -187,7 +203,9 @@ export async function uploadMultipleNewsImages(images: NewsImageDto[]): Promise<
  */
 export async function getNewsImages(newsId: string): Promise<UploadImageResponse[]> {
     try {
-        const response = await axios.get(`${BASE_URL}/news/images/news/${newsId}`);
+        const response = await axios.get(`${BASE_URL}/news/images/news/${newsId}`, {
+            withCredentials: true
+        });
         return response.data;
     } catch (error) {
         console.error('Error fetching news images:', error);
@@ -201,7 +219,9 @@ export async function getNewsImages(newsId: string): Promise<UploadImageResponse
  */
 export async function updateNewsImage(imageId: string, data: UpdateImageRequest): Promise<UploadImageResponse> {
     try {
-        const response = await axios.put(`${BASE_URL}/news/images/${imageId}`, data);
+        const response = await axios.put(`${BASE_URL}/news/images/${imageId}`, data, {
+            withCredentials: true
+        });
         return response.data;
     } catch (error) {
         console.error('Error updating news image:', error);
@@ -219,7 +239,8 @@ export async function updateNewsImageCaption(imageId: string, caption: string): 
             `${BASE_URL}/news/images/${imageId}/caption`,
             null,
             {
-                params: { caption }
+                params: { caption },
+                withCredentials: true
             }
         );
         return response.data;
@@ -239,7 +260,8 @@ export async function updateNewsImageSortOrder(imageId: string, sortOrder: numbe
             `${BASE_URL}/news/images/${imageId}/sort-order`,
             null,
             {
-                params: { sortOrder }
+                params: { sortOrder },
+                withCredentials: true
             }
         );
         return response.data;
@@ -255,7 +277,9 @@ export async function updateNewsImageSortOrder(imageId: string, sortOrder: numbe
  */
 export async function deleteNewsImage(imageId: string): Promise<void> {
     try {
-        await axios.delete(`${BASE_URL}/news/images/${imageId}`);
+        await axios.delete(`${BASE_URL}/news/images/${imageId}`, {
+            withCredentials: true
+        });
     } catch (error) {
         console.error('Error deleting news image:', error);
         throw error;
@@ -315,6 +339,7 @@ export async function uploadNewsImageFile(
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
+                withCredentials: true,
                 timeout: 30000, // 30 seconds timeout
             }
         );
@@ -364,6 +389,7 @@ export async function uploadNewsImageFiles(
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
+                    withCredentials: true,
                     timeout: 30000, // 30 seconds timeout
                 }
             );

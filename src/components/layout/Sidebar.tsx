@@ -43,7 +43,6 @@ const adminSections: NavSection[] = [
       {href: "/accountList", labelKey: "accountList", icon: "👥"},
       {href: "/accountNewStaff", labelKey: "createStaffAccount", icon: "🧑‍💼"},
       {href: "/accountNewRe", labelKey: "createResidentAccount", icon: "🏘️"},
-      {href: "/staffProfile", label: "Thông tin cá nhân", icon: "👤"},
     ],
   },
   {
@@ -59,7 +58,6 @@ const adminSections: NavSection[] = [
       {href: "/base/cards/elevator", label: "Thẻ thang máy", icon: "🛗"},
       {href: "/base/cards/resident", label: "Thẻ cư dân", icon: "🔑"},
       {href: "/base/cards/approved", label: "Thẻ đã duyệt", icon: "✅"},
-      {href: "/base/cards/pricing", label: "Quản lý giá thẻ", icon: "💰"},
     ],
   },
   {
@@ -88,14 +86,11 @@ const adminSections: NavSection[] = [
       // {href: "/base/showAssign", labelKey: "assignmentList", icon: "📋"},
       // {href: "/base/waterShow", labelKey: "waterMonitoring", icon: "💧"},
       {href: "/base/billingCycles", labelKey: "billingCycles", icon: "💡"},
-      {href: "/base/finance/invoices", label: "Quản lý Thu Chi", icon: "💰"},
-      {href: "/base/finance/pricing-tiers", label: "Quản lý bậc giá", icon: "📊"},
     ],
   },
   {
     titleKey: "residentInteraction",
     items: [
-      {href: "/customer-interaction/staff", labelKey: "staffContent", icon: "👥"},
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
       {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
@@ -109,12 +104,6 @@ const technicianSections: NavSection[] = [
     titleKey: "overview",
     items: [
       {href: "/dashboard", labelKey: "dashboard", icon: "📊"},
-    ],
-  },
-  {
-    titleKey: "accounts",
-    items: [
-      {href: "/staffProfile", label: "Thông tin cá nhân", icon: "👤"},
     ],
   },
   {
@@ -132,7 +121,6 @@ const technicianSections: NavSection[] = [
   {
     titleKey: "residentInteraction",
     items: [
-      {href: "/customer-interaction/staff", labelKey: "staffContent", icon: "👥"},
       {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
     ],
   },

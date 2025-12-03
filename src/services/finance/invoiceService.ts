@@ -15,6 +15,7 @@ export const InvoiceApi = {
    * GET /api/invoices
    */
   list(params: {
+    tenantId: string; 
     billingCycleId: string;
     buildingIds?: string[]; 
     status?: "PUBLISHED";
@@ -23,6 +24,7 @@ export const InvoiceApi = {
     sort?: string;
   }) {
     const q = new URLSearchParams({
+      tenantId: params.tenantId,
       billingCycleId: params.billingCycleId,
       ...(params.buildingIds?.length ? { buildingIds: params.buildingIds.join(",") } : {}),
       ...(params.status ? { status: params.status } : {}),

@@ -69,7 +69,9 @@ export async function createNotification(data: CreateNotificationRequest): Promi
  */
 export async function updateNotification(id: string, data: UpdateNotificationRequest): Promise<Notification> {
     try {
-        const response = await axios.put(`${BASE_URL}/notifications/${id}`, data);
+        const response = await axios.put(`${BASE_URL}/notifications/${id}`, data, {
+            withCredentials: true
+        });
         return response.data;
     } catch (error) {
         console.error('Error updating notification:', error);
@@ -83,7 +85,9 @@ export async function updateNotification(id: string, data: UpdateNotificationReq
  */
 export async function deleteNotification(id: string): Promise<void> {
     try {
-        await axios.delete(`${BASE_URL}/notifications/${id}`);
+        await axios.delete(`${BASE_URL}/notifications/${id}`, {
+            withCredentials: true
+        });
     } catch (error) {
         console.error('Error deleting notification:', error);
         throw error;
@@ -97,7 +101,8 @@ export async function deleteNotification(id: string): Promise<void> {
 export async function getNotificationsForResident(residentId: string, buildingId: string): Promise<Notification[]> {
     try {
         const response = await axios.get(`${BASE_URL}/notifications/resident`, {
-            params: { residentId, buildingId }
+            params: { residentId, buildingId },
+            withCredentials: true
         });
         return response.data;
     } catch (error) {
@@ -113,7 +118,8 @@ export async function getNotificationsForResident(residentId: string, buildingId
 export async function getNotificationsForRole(role: string, userId: string): Promise<Notification[]> {
     try {
         const response = await axios.get(`${BASE_URL}/notifications/role`, {
-            params: { role, userId }
+            params: { role, userId },
+            withCredentials: true
         });
         return response.data;
     } catch (error) {
@@ -122,7 +128,12 @@ export async function getNotificationsForRole(role: string, userId: string): Pro
     }
 }
 
-
+/**
+ * Get notifications for role including "ALL" notifications
+ * This function fetches all active notifications and filters them on the frontend
+ * to include notifications that match the user role OR have targetRole = "ALL" or null
+ * Only INTERNAL scope notifications are filtered by role
+ */
 export async function getNotificationsForRoleIncludingAll(userRole: string, userId: string): Promise<Notification[]> {
     try {
         // Get all active notifications (backend already filters deletedAt IS NULL)
