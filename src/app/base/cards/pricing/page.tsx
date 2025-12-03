@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   CardPricingDto,
   createOrUpdateCardPricing,
@@ -8,20 +9,23 @@ import {
 } from '@/src/services/card/cardPricingService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 
-const CARD_TYPE_OPTIONS = [
-  { value: 'VEHICLE', label: 'Thẻ xe', description: 'Phí đăng ký thẻ xe' },
-  { value: 'RESIDENT', label: 'Thẻ cư dân', description: 'Phí đăng ký thẻ cư dân' },
-  { value: 'ELEVATOR', label: 'Thẻ thang máy', description: 'Phí đăng ký thẻ thang máy' },
-];
-
-const CARD_TYPE_LABELS: Record<string, string> = {
-  VEHICLE: 'Thẻ xe',
-  RESIDENT: 'Thẻ cư dân',
-  ELEVATOR: 'Thẻ thang máy',
-};
+// Options will be created inside component with translations
 
 export default function CardPricingManagementPage() {
+  const t = useTranslations('CardPricing');
   const { show } = useNotifications();
+  
+  const CARD_TYPE_OPTIONS = [
+    { value: 'VEHICLE', label: t('cardTypes.vehicle'), description: t('descriptions.vehicle') },
+    { value: 'RESIDENT', label: t('cardTypes.resident'), description: t('descriptions.resident') },
+    { value: 'ELEVATOR', label: t('cardTypes.elevator'), description: t('descriptions.elevator') },
+  ];
+
+  const CARD_TYPE_LABELS: Record<string, string> = {
+    VEHICLE: t('cardTypes.vehicle'),
+    RESIDENT: t('cardTypes.resident'),
+    ELEVATOR: t('cardTypes.elevator'),
+  };
   const [pricingList, setPricingList] = useState<CardPricingDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
@@ -49,7 +53,7 @@ export default function CardPricingManagementPage() {
       setEditingDescription(descMap);
     } catch (error: any) {
       console.error('Failed to load card pricing:', error);
-      show('Không thể tải danh sách giá thẻ', 'error');
+      show(t('errors.loadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -72,17 +76,17 @@ export default function CardPricingManagementPage() {
       };
 
       if (request.price <= 0) {
-        show('Giá phải lớn hơn 0', 'error');
+        show(t('validation.priceMustBePositive'), 'error');
         return;
       }
 
       await createOrUpdateCardPricing(request);
-      show('Cập nhật giá thành công', 'success');
+      show(t('messages.updateSuccess'), 'success');
       await loadPricing();
     } catch (error: any) {
       console.error('Failed to save pricing:', error);
       show(
-        error?.response?.data?.message || 'Không thể cập nhật giá',
+        error?.response?.data?.message || t('errors.updateFailed'),
         'error'
       );
     } finally {
@@ -101,7 +105,7 @@ export default function CardPricingManagementPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Đang tải...</div>
+        <div className="text-lg">{t('loading')}</div>
       </div>
     );
   }
@@ -109,9 +113,9 @@ export default function CardPricingManagementPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Quản lý giá thẻ</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
         <p className="text-gray-600 mt-2">
-          Cấu hình giá đăng ký cho các loại thẻ trong hệ thống
+          {t('description')}
         </p>
       </div>
 
@@ -141,12 +145,12 @@ export default function CardPricingManagementPage() {
                     <div className="flex items-center gap-2">
                       {pricing?.isActive === false && (
                         <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded">
-                          Tạm ngưng
+                          {t('status.inactive')}
                         </span>
                       )}
                       {pricing?.isActive !== false && (
                         <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded">
-                          Đang áp dụng
+                          {t('status.active')}
                         </span>
                       )}
                     </div>
@@ -155,7 +159,7 @@ export default function CardPricingManagementPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Giá (VND)
+                        {t('fields.price')}
                       </label>
                       <div className="flex items-center gap-2">
                         <input
@@ -170,7 +174,7 @@ export default function CardPricingManagementPage() {
                             })
                           }
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Nhập giá"
+                          placeholder={t('placeholders.enterPrice')}
                         />
                         <span className="text-sm text-gray-500 whitespace-nowrap">
                           = {formatCurrency(currentPrice)}
@@ -180,7 +184,7 @@ export default function CardPricingManagementPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mô tả
+                        {t('fields.description')}
                       </label>
                       <input
                         type="text"
@@ -192,7 +196,7 @@ export default function CardPricingManagementPage() {
                           })
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Nhập mô tả"
+                        placeholder={t('placeholders.enterDescription')}
                       />
                     </div>
                   </div>
@@ -200,10 +204,10 @@ export default function CardPricingManagementPage() {
                   {pricing && (
                     <div className="mt-4 text-xs text-gray-500">
                       <div>
-                        Cập nhật lần cuối:{' '}
+                        {t('fields.lastUpdated')}:{' '}
                         {pricing.updatedAt
                           ? new Date(pricing.updatedAt).toLocaleString('vi-VN')
-                          : 'Chưa có'}
+                          : t('common.notSet')}
                       </div>
                     </div>
                   )}
@@ -214,7 +218,7 @@ export default function CardPricingManagementPage() {
                       disabled={isSaving || currentPrice <= 0}
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
-                      {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                      {isSaving ? t('buttons.saving') : t('buttons.saveChanges')}
                     </button>
                   </div>
                 </div>
@@ -226,12 +230,12 @@ export default function CardPricingManagementPage() {
 
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="text-sm font-semibold text-blue-900 mb-2">
-          Lưu ý:
+          {t('notes.title')}:
         </h3>
         <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-          <li>Giá mới sẽ được áp dụng cho các đăng ký thẻ mới</li>
-          <li>Giá hiện tại đang được sử dụng cho các đăng ký đang chờ thanh toán</li>
-          <li>Bạn có thể tạm ngưng áp dụng giá bằng cách đặt isActive = false</li>
+          <li>{t('notes.newPriceApplies')}</li>
+          <li>{t('notes.currentPriceUsed')}</li>
+          <li>{t('notes.suspendPrice')}</li>
         </ul>
       </div>
     </div>

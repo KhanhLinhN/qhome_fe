@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import {
   getMyAssignments,
@@ -13,8 +14,10 @@ import {
   MeterReadingReminderDto
 } from '@/src/services/base/meterReminderService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 export default function ShowAssignPage() {
+  const t = useTranslations('ShowAssign');
   const router = useRouter();
   const { user } = useAuth();
   const { show } = useNotifications();
@@ -26,6 +29,8 @@ export default function ShowAssignPage() {
   const [reminders, setReminders] = useState<MeterReadingReminderDto[]>([]);
   const [remindersLoading, setRemindersLoading] = useState(false);
   const [includeAcknowledged] = useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [pendingAssignmentId, setPendingAssignmentId] = useState<string | null>(null);
 
   // Group assignments by cycle
   const assignmentsByCycle = assignments.reduce((acc, assignment) => {
@@ -66,7 +71,7 @@ export default function ShowAssignPage() {
       setReminders(data);
     } catch (error: any) {
       console.error("Failed to load reminders:", error);
-      show(error?.response?.data?.message || error?.message || "Không thể tải nhắc nhở", "error");
+      show(error?.response?.data?.message || error?.message || t('errors.loadRemindersFailed'), "error");
     } finally {
       setRemindersLoading(false);
     }
@@ -135,8 +140,16 @@ export default function ShowAssignPage() {
     router.push(url);
   };
 
-  const handleCompleteAssignment = async (assignmentId: string) => {
-    if (!confirm('Are you sure you want to mark this assignment as completed?')) return;
+  const handleCompleteAssignmentClick = (assignmentId: string) => {
+    setPendingAssignmentId(assignmentId);
+    setShowCompleteConfirm(true);
+  };
+
+  const handleCompleteAssignment = async () => {
+    if (!pendingAssignmentId) return;
+    setShowCompleteConfirm(false);
+    const assignmentId = pendingAssignmentId;
+    setPendingAssignmentId(null);
 
     try {
       await completeAssignment(assignmentId);
@@ -317,7 +330,7 @@ export default function ShowAssignPage() {
                               const isProgressComplete = progressPercent === 100;
                               return (
                                 <button
-                                  onClick={() => handleCompleteAssignment(assignment.id)}
+                                  onClick={() => handleCompleteAssignmentClick(assignment.id)}
                                   disabled={!isProgressComplete}
                                   className={`px-3 py-2 w-10 h-10 rounded-md text-xs font-semibold transition ${
                                     isProgressComplete 
@@ -346,6 +359,19 @@ export default function ShowAssignPage() {
           })}
         </div>
       )}
+
+      {/* Complete Assignment Confirm Popup */}
+      <PopupComfirm
+        isOpen={showCompleteConfirm}
+        onClose={() => {
+          setShowCompleteConfirm(false);
+          setPendingAssignmentId(null);
+        }}
+        onConfirm={handleCompleteAssignment}
+        popupTitle="Are you sure you want to mark this assignment as completed?"
+        popupContext=""
+        isDanger={false}
+      />
     </div>
   );
 }

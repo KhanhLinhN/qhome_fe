@@ -27,6 +27,7 @@ import {
 import { getUnit, getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import { checkEmailExists } from '@/src/services/iam/userService';
+import { checkNationalIdExists } from '@/src/services/base/residentService';
 import Select from '@/src/components/customer-interaction/Select';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import CCCDUpload from '@/src/components/account/CCCDUpload';
@@ -156,7 +157,7 @@ export default function AccountNewResidentPage() {
         setBuildings(data);
       } catch (err: any) {
         const message =
-          err?.response?.data?.message || err?.message || 'Không thể tải danh sách tòa nhà.';
+          err?.response?.data?.message || err?.message || t('errors.loadBuildingsFailed');
         setBuildingsError(message);
       } finally {
         setBuildingsLoading(false);
@@ -190,7 +191,7 @@ export default function AccountNewResidentPage() {
       setUnits(data);
     } catch (err: any) {
       const message =
-        err?.response?.data?.message || err?.message || 'Không thể tải danh sách căn hộ.';
+        err?.response?.data?.message || err?.message || t('errors.loadUnitsFailed');
       setUnitsError(message);
     } finally {
       setUnitsLoading(false);
@@ -288,7 +289,7 @@ export default function AccountNewResidentPage() {
     }
     
     // Check length (13 digits for CCCD)
-    if (cleaned.length !== 13) {
+    if (cleaned.length !== 12) {
       return t('validation.nationalId.mustBe13Digits');
     }
     
@@ -387,7 +388,7 @@ export default function AccountNewResidentPage() {
     }
     
     // Show success message
-    setManualSuccess('Đã đọc thông tin từ ảnh CCCD. Vui lòng kiểm tra và điền các thông tin còn thiếu.');
+    setManualSuccess(t('success.cccdReadSuccess'));
   };
 
   const resetManualMessages = () => {
@@ -411,14 +412,14 @@ export default function AccountNewResidentPage() {
         setContractDetailState({
           data: null,
           loading: false,
-          error: 'Không tìm thấy thông tin hợp đồng.',
+          error: t('errors.loadContractNotFound'),
         });
         return;
       }
       setContractDetailState({ data: detail, loading: false, error: null });
     } catch (error: any) {
       const message =
-        error?.response?.data?.message || error?.message || 'Không thể tải chi tiết hợp đồng.';
+        error?.response?.data?.message || error?.message || t('errors.loadContractDetailFailed');
       setContractDetailState({ data: null, loading: false, error: message });
     }
   };
@@ -432,30 +433,30 @@ export default function AccountNewResidentPage() {
     let isValid = true;
 
     if (!selectedBuildingId) {
-      setBuildingSelectionError('Vui lòng chọn tòa nhà.');
+      setBuildingSelectionError(t('validation.building.required'));
       isValid = false;
     } else {
       setBuildingSelectionError(null);
     }
 
     if (!selectedUnitId) {
-      setUnitSelectionError('Vui lòng chọn căn hộ.');
+      setUnitSelectionError(t('validation.unit.required'));
       isValid = false;
     } else if (!manualForm.householdId.trim()) {
-      setUnitSelectionError('Căn hộ này chưa có hộ gia đình. Vui lòng tạo trước.');
+      setUnitSelectionError(t('validation.unit.noHousehold'));
       isValid = false;
     } else if (!householdInfo || householdInfo.id !== manualForm.householdId.trim()) {
-      setUnitSelectionError('Vui lòng kiểm tra lại thông tin hộ gia đình.');
+      setUnitSelectionError(t('validation.unit.householdInvalid'));
       isValid = false;
     } else if (householdInfo.primaryResidentId) {
-      setUnitSelectionError('Hộ gia đình đã có chủ hộ.');
+      setUnitSelectionError(t('validation.unit.hasOwner'));
       isValid = false;
     } else {
       setUnitSelectionError(null);
     }
 
     if (!contractInfo) {
-      setUnitSelectionError('Căn hộ này chưa có hợp đồng hợp lệ. Vui lòng tạo hợp đồng trước.');
+      setUnitSelectionError(t('validation.unit.noContract'));
       isValid = false;
     }
 
@@ -468,23 +469,23 @@ export default function AccountNewResidentPage() {
 
     // Validate email
     if (!manualForm.email.trim()) {
-      errors.email = 'Email không được để trống.';
+      errors.email = t('validation.email.required');
       isValid = false;
     } else if (/\s/.test(manualForm.email)) {
-      errors.email = 'Email không được chứa ký tự trắng.';
+      errors.email = t('validation.email.noWhitespace');
       isValid = false;
     } else if (manualForm.email.length > 40) {
-      errors.email = 'Email không được vượt quá 40 ký tự.';
+      errors.email = t('validation.email.maxLength');
       isValid = false;
     } else if (!validateEmailFormat(manualForm.email)) {
-      errors.email = 'Email không hợp lệ.';
+      errors.email = t('validation.email.invalid');
       isValid = false;
     } else {
       // Check email exists in database
       try {
         const exists = await checkEmailExists(manualForm.email.trim());
         if (exists) {
-          errors.email = 'Email đã tồn tại trong hệ thống.';
+          errors.email = t('validation.email.exists');
           isValid = false;
         }
       } catch (err: any) {
@@ -512,6 +513,17 @@ export default function AccountNewResidentPage() {
     if (nationalIdError) {
       errors.nationalId = nationalIdError;
       isValid = false;
+    } else if (manualForm.nationalId.trim()) {
+      // Check if national ID already exists in system
+      try {
+        const exists = await checkNationalIdExists(manualForm.nationalId.trim());
+        if (exists) {
+          errors.nationalId = t('validation.nationalId.exists');
+          isValid = false;
+        }
+      } catch (err) {
+        console.error('Error checking national ID:', err as Error);
+      }
     }
 
     // Validate username (optional field)
@@ -561,7 +573,7 @@ export default function AccountNewResidentPage() {
         activeContract = selectPrimaryContract(contracts);
         if (!activeContract) {
           setContractInfo(null);
-          setUnitSelectionError('Căn hộ này chưa có hợp đồng hợp lệ. Vui lòng tạo hợp đồng trước.');
+          setUnitSelectionError(t('validation.unit.noContract'));
           return;
         }
         setContractInfo(activeContract);
@@ -570,9 +582,9 @@ export default function AccountNewResidentPage() {
         const message =
           contractErr?.response?.data?.message ||
           contractErr?.message ||
-          'Không thể tải hợp đồng của căn hộ.';
+          t('errors.loadContractByUnitFailed');
         setContractError(message);
-        setUnitSelectionError('Không thể tải thông tin hợp đồng. Vui lòng thử lại.');
+        setUnitSelectionError(t('errors.loadContractInfoFailed'));
         return;
       }
 
@@ -588,7 +600,7 @@ export default function AccountNewResidentPage() {
     } catch (err: any) {
       console.error('Không thể tải thông tin hộ gia đình theo căn hộ:', err);
       setHouseholdError(
-        err?.response?.data?.message || err?.message || 'Không thể tải thông tin hộ gia đình.',
+        err?.response?.data?.message || err?.message || t('errors.loadHouseholdFailed'),
       );
     } finally {
       setHouseholdLoading(false);
@@ -604,7 +616,7 @@ export default function AccountNewResidentPage() {
     setHouseholdInfo(household);
     setManualForm((prev) => ({ ...prev, householdId: household.id }));
     if (household.primaryResidentId) {
-      setUnitSelectionError('Hộ gia đình đã có chủ hộ.');
+      setUnitSelectionError(t('validation.unit.hasOwner'));
     } else {
       setUnitSelectionError(null);
     }
@@ -643,13 +655,13 @@ export default function AccountNewResidentPage() {
         endDate: contract.endDate ?? undefined,
       });
       applyHouseholdInfo(created, contract);
-      setManualSuccess('Đã tạo hộ gia đình mới cho căn hộ.');
+      setManualSuccess(t('messages.createHouseholdSuccess'));
     } catch (createErr: any) {
       console.error('Không thể tự động tạo hộ gia đình:', createErr);
       const message =
         createErr?.response?.data?.message ||
         createErr?.message ||
-        'Không thể tạo hộ gia đình cho căn hộ này.';
+        t('errors.createHouseholdFailed');
       setUnitSelectionError(message);
     }
   };
@@ -687,7 +699,7 @@ export default function AccountNewResidentPage() {
       const response = await provisionPrimaryResident(targetUnitId, payload);
       setProvisionResponse(response);
       setLastSubmittedEmail(fallbackEmail);
-      setManualSuccess('Tạo chủ hộ và tài khoản cư dân thành công.');
+      setManualSuccess(t('success.createAccountSuccess'));
       setManualForm({
         householdId: '',
         fullName: '',
@@ -706,7 +718,7 @@ export default function AccountNewResidentPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tạo tài khoản cư dân. Vui lòng thử lại.';
+        t('messages.createAccountError');
       setManualError(message);
     } finally {
       setManualSubmitting(false);
@@ -723,7 +735,7 @@ export default function AccountNewResidentPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tải danh sách yêu cầu tạo tài khoản.';
+        t('requestsTab.rejectError');
       setRequestError(message);
     } finally {
       setLoadingRequests(false);
@@ -743,7 +755,7 @@ export default function AccountNewResidentPage() {
   }, [activeTab, initialLoad]);
 
   const formatDate = (value?: string | null) => {
-    if (!value) return 'Chưa cập nhật';
+    if (!value) return t('common.notUpdated');
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
       return value;
@@ -763,7 +775,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
 };
 
   const formatDateTime = (value: string | null) => {
-    if (!value) return 'Chưa cập nhật';
+    if (!value) return t('common.notUpdated');
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
       return value;
@@ -803,7 +815,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể xử lý yêu cầu. Vui lòng thử lại.';
+        t('errors.processRequestFailed');
       setRequestError(message);
     } finally {
       setRequestActionState((prev) => ({ ...prev, [requestId]: false }));
@@ -873,13 +885,13 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     {provisionResponse?.account && (
                       <div className="mt-2 space-y-1 text-xs text-emerald-800">
                         <p>
-                          Tên đăng nhập:{' '}
+                          {t('success.accountInfo.username')}{' '}
                           <span className="font-semibold">
-                            {provisionResponse.account.username || 'Được tạo tự động'}
+                            {provisionResponse.account.username || t('success.accountInfo.autoGenerated')}
                           </span>
                         </p>
                         <p>
-                          Email đăng nhập:{' '}
+                          {t('success.accountInfo.email')}{' '}
                           <span className="font-semibold">
                             {provisionResponse.account.email || lastSubmittedEmail}
                           </span>
@@ -899,7 +911,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
             <form onSubmit={handleManualSubmit} className="mt-6 space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-slate-700">Tòa nhà</label>
+                  <label className="text-sm font-medium text-slate-700">{t('manualForm.fields.building')}</label>
                   <Select<Building | null>
                     options={buildingSelectOptions}
                     value={selectedBuildingId}
@@ -907,14 +919,14 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     renderItem={(item) =>
                       item
                         ? `${item.code ? `${item.code} - ` : ''}${item.name ?? ''}`
-                        : '-- Chọn tòa nhà --'
+                        : t('manualForm.placeholders.selectBuilding')
                     }
                     getValue={(item) => item?.id ?? ''}
-                    placeholder="-- Chọn tòa nhà --"
+                    placeholder={t('manualForm.placeholders.selectBuilding')}
                     disable={buildingsLoading}
                   />
                   {buildingsLoading && (
-                    <span className="text-xs text-slate-500">Đang tải danh sách tòa nhà...</span>
+                    <span className="text-xs text-slate-500">{t('manualForm.loading.buildings')}</span>
                   )}
                   {buildingsError && (
                     <span className="text-xs text-red-500">{buildingsError}</span>
@@ -924,7 +936,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-slate-700">Căn hộ</label>
+                  <label className="text-sm font-medium text-slate-700">{t('manualForm.fields.unit')}</label>
                   <Select<Unit | null>
                     options={unitSelectOptions}
                     value={selectedUnitId}
@@ -932,7 +944,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     renderItem={(item) =>
                       item
                         ? `${item.code ?? ''}${
-                            item.floor !== undefined ? ` (Tầng ${item.floor})` : ''
+                            item.floor !== undefined ? t('manualForm.floorFormat', { floor: item.floor }) : ''
                           }`
                         : unitPlaceholder
                     }
@@ -941,7 +953,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     disable={!selectedBuildingId || unitsLoading}
                   />
                   {unitsLoading && (
-                    <span className="text-xs text-slate-500">Đang tải danh sách căn hộ...</span>
+                    <span className="text-xs text-slate-500">{t('manualForm.loading.units')}</span>
                   )}
                   {unitsError && <span className="text-xs text-red-500">{unitsError}</span>}
                   {unitSelectionError && (
@@ -951,33 +963,33 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
               </div>
 
               <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-                <h3 className="text-sm font-semibold text-blue-800">Thông tin hợp đồng</h3>
+                <h3 className="text-sm font-semibold text-blue-800">{t('manualForm.contractInfo.title')}</h3>
                 {contractInfo ? (
                   <div className="mt-2 grid gap-2 text-sm text-blue-900 sm:grid-cols-2">
                     <p>
-                      <span className="font-medium">Số hợp đồng:</span>{' '}
-                      {contractInfo.contractNumber ?? 'Chưa cập nhật'}
+                      <span className="font-medium">{t('manualForm.contractInfo.contractNumber')}</span>{' '}
+                      {contractInfo.contractNumber ?? t('common.notUpdated')}
                     </p>
                     <p>
-                      <span className="font-medium">Trạng thái:</span>{' '}
-                      {contractInfo.status ?? 'Không xác định'}
+                      <span className="font-medium">{t('manualForm.contractInfo.status')}</span>{' '}
+                      {contractInfo.status ?? t('contractModal.values.unknown')}
                     </p>
                     <p>
-                      <span className="font-medium">Hiệu lực từ:</span>{' '}
+                      <span className="font-medium">{t('manualForm.contractInfo.effectiveFrom')}</span>{' '}
                       {formatDate(contractInfo.startDate)}
                     </p>
                     <p>
-                      <span className="font-medium">Hiệu lực đến:</span>{' '}
-                      {contractInfo.endDate ? formatDate(contractInfo.endDate) : 'Không giới hạn'}
+                      <span className="font-medium">{t('manualForm.contractInfo.effectiveTo')}</span>{' '}
+                      {contractInfo.endDate ? formatDate(contractInfo.endDate) : t('manualForm.contractInfo.unlimited')}
                     </p>
                   </div>
                 ) : selectedUnitId ? (
                   <p className="mt-2 text-sm text-blue-700">
-                    Chưa có hợp đồng hợp lệ cho căn hộ này. Vui lòng tạo hợp đồng trước khi cấp tài khoản chủ hộ.
+                    {t('manualForm.contractInfo.noContract')}
                   </p>
                 ) : (
                   <p className="mt-2 text-sm text-blue-700">
-                    Chọn tòa nhà và căn hộ để xem thông tin hợp đồng.
+                    {t('manualForm.contractInfo.selectFirst')}
                   </p>
                 )}
                 {contractInfo && (
@@ -986,7 +998,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     onClick={handleOpenContractDetail}
                     className="mt-4 inline-flex items-center justify-center rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
                   >
-                    Xem chi tiết hợp đồng
+                    {t('manualForm.contractInfo.viewDetail')}
                   </button>
                 )}
                 {contractError && (
@@ -1004,43 +1016,46 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
 
               {householdLoading && (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-                  Đang tải thông tin hộ gia đình...
+                  {t('manualForm.loading.household')}
                 </div>
               )}
 
               {householdInfo && !householdLoading && !unitSelectionError && (
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-900 shadow-inner">
-                  <h3 className="mb-2 text-base font-semibold text-emerald-800">Thông tin hộ gia đình</h3>
+                  <h3 className="mb-2 text-base font-semibold text-emerald-800">{t('manualForm.householdInfo.title')}</h3>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <p>
-                      <span className="font-medium">Hộ:</span> {householdInfo.id}
+                      <span className="font-medium">{t('manualForm.householdInfo.kind')}</span> {householdInfo.kind ?? '---'}
                     </p>
                     <p>
-                      <span className="font-medium">Loại:</span> {householdInfo.kind ?? '---'}
-                    </p>
-                    <p>
-                      <span className="font-medium">Ngày bắt đầu:</span>{' '}
+                      <span className="font-medium">{t('manualForm.householdInfo.startDate')}</span>{' '}
                       {new Date(householdInfo.startDate).toLocaleDateString('vi-VN')}
                     </p>
                     <p>
-                      <span className="font-medium">Ngày kết thúc:</span>{' '}
+                      <span className="font-medium">{t('manualForm.householdInfo.endDate')}</span>{' '}
                       {householdInfo.endDate
                         ? new Date(householdInfo.endDate).toLocaleDateString('vi-VN')
-                        : 'Chưa thiết lập'}
+                        : t('manualForm.householdInfo.notSet')}
                     </p>
                     {unitInfo && (
                       <>
                         <p>
-                          <span className="font-medium">Căn hộ:</span> {unitInfo.code}
+                          <span className="font-medium">{t('manualForm.householdInfo.unit')}</span> {unitInfo.code}
                         </p>
                         <p>
-                          <span className="font-medium">Tòa:</span> {unitInfo.buildingId ?? '—'}
+                          <span className="font-medium">{t('manualForm.householdInfo.building')}</span>{' '}
+                          {unitInfo.buildingId
+                            ? (() => {
+                                const building = buildings.find((b) => b.id === unitInfo.buildingId);
+                                return building?.name ?? unitInfo.buildingId;
+                              })()
+                            : '—'}
                         </p>
                         <p>
-                          <span className="font-medium">Tầng:</span> {unitInfo.floor ?? '---'}
+                          <span className="font-medium">{t('manualForm.householdInfo.floor')}</span> {unitInfo.floor ?? '---'}
                         </p>
                         <p>
-                          <span className="font-medium">Diện tích:</span>{' '}
+                          <span className="font-medium">{t('manualForm.householdInfo.area')}</span>{' '}
                           {unitInfo.areaM2 ? `${unitInfo.areaM2} m²` : '---'}
                         </p>
                       </>
@@ -1056,12 +1071,12 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-slate-700">Họ và tên cư dân</label>
+                  <label className="text-sm font-medium text-slate-700">{t('manualForm.fields.fullName')}</label>
                   <input
                     type="text"
                     value={manualForm.fullName}
                     onChange={handleManualChange('fullName')}
-                    placeholder="Nhập họ tên đầy đủ"
+                    placeholder={t('manualForm.placeholders.fullName')}
                     maxLength={40}
                     className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                       manualFieldErrors.fullName
@@ -1074,12 +1089,12 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-slate-700">Email</label>
+                  <label className="text-sm font-medium text-slate-700">{t('manualForm.fields.email')}</label>
                   <input
                     type="email"
                     value={manualForm.email}
                     onChange={handleManualChange('email')}
-                    placeholder="example@domain.com"
+                    placeholder={t('manualForm.placeholders.email')}
                     maxLength={40}
                     className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                       manualFieldErrors.email
@@ -1095,12 +1110,12 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-slate-700">Số điện thoại</label>
+                  <label className="text-sm font-medium text-slate-700">{t('manualForm.fields.phone')}</label>
                   <input
                     type="tel"
                     value={manualForm.phone}
                     onChange={handleManualChange('phone')}
-                    placeholder="Nhập số điện thoại (10 số, bắt đầu bằng 0)"
+                    placeholder={t('manualForm.placeholders.phone')}
                     maxLength={10}
                     className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                       manualFieldErrors.phone
@@ -1113,11 +1128,11 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-slate-700">Ngày sinh</label>
+                  <label className="text-sm font-medium text-slate-700">{t('manualForm.fields.dob')}</label>
                   <DateBox
                     value={manualForm.dob}
                     onChange={handleManualChange('dob')}
-                    placeholderText="Chọn ngày sinh"
+                    placeholderText={t('manualForm.placeholders.dob')}
                   />
                   {manualFieldErrors.dob && (
                     <span className="text-xs text-red-500">{manualFieldErrors.dob}</span>
@@ -1127,13 +1142,13 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-slate-700">CMND / CCCD</label>
+                  <label className="text-sm font-medium text-slate-700">{t('manualForm.fields.nationalId')}</label>
                   <input
                     type="text"
                     value={manualForm.nationalId}
                     onChange={handleManualChange('nationalId')}
-                    placeholder="Nhập số CMND/CCCD (13 số)"
-                    maxLength={13}
+                    placeholder={t('manualForm.placeholders.nationalId')}
+                    maxLength={12}
                     className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                       manualFieldErrors.nationalId
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
@@ -1146,13 +1161,13 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-slate-700">
-                    Tên đăng nhập (tùy chọn)
+                    {t('manualForm.fields.username')}
                   </label>
                   <input
                     type="text"
                     value={manualForm.username}
                     onChange={handleManualChange('username')}
-                    placeholder="Để trống để hệ thống tự tạo"
+                    placeholder={t('manualForm.placeholders.username')}
                     maxLength={40}
                     className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                       manualFieldErrors.username
@@ -1167,19 +1182,18 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-700">Quan hệ</label>
+                <label className="text-sm font-medium text-slate-700">{t('manualForm.fields.relation')}</label>
                 <input
                   type="text"
                   value={manualForm.relation}
                   readOnly
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-800"
                 />
-                <span className="text-xs text-slate-500">Mặc định là Chủ hộ cho quy trình này.</span>
+                <span className="text-xs text-slate-500">{t('manualForm.relationNote')}</span>
               </div>
 
               <p className="text-sm text-slate-500">
-                Mật khẩu tạm thời sẽ được hệ thống tạo tự động và gửi tới email cư dân ngay sau khi
-                tài khoản được tạo.
+                {t('manualForm.passwordNote')}
               </p>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
@@ -1188,14 +1202,14 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   onClick={handleBack}
                   className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
                 >
-                  Huỷ bỏ
+                  {t('manualForm.buttons.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={manualSubmitting || !contractInfo}
                   className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {manualSubmitting ? 'Đang tạo...' : 'Tạo tài khoản'}
+                  {manualSubmitting ? t('manualForm.buttons.creating') : t('manualForm.buttons.create')}
                 </button>
               </div>
             </form>
@@ -1207,9 +1221,9 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
             <div className="relative max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800">Chi tiết hợp đồng</h3>
+                  <h3 className="text-lg font-semibold text-slate-800">{t('contractModal.title')}</h3>
                   {contractInfo?.contractNumber && (
-                    <p className="text-sm text-slate-500">Số hợp đồng: {contractInfo.contractNumber}</p>
+                    <p className="text-sm text-slate-500">{t('contractModal.contractNumber')} {contractInfo.contractNumber}</p>
                   )}
                 </div>
                 <button
@@ -1222,7 +1236,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
               </div>
               <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
                 {contractDetailState.loading && (
-                  <p className="text-sm text-slate-500">Đang tải chi tiết hợp đồng...</p>
+                  <p className="text-sm text-slate-500">{t('contractModal.loading')}</p>
                 )}
                 {contractDetailState.error && (
                   <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -1235,51 +1249,51 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     <div className="space-y-5 text-sm text-slate-700">
                       <div className="grid gap-3 sm:grid-cols-2">
                         <p>
-                          <span className="font-medium text-slate-900">Loại hợp đồng:</span>{' '}
-                          {contractDetailState.data.contractType ?? 'Không xác định'}
+                          <span className="font-medium text-slate-900">{t('contractModal.fields.contractType')}</span>{' '}
+                          {contractDetailState.data.contractType ?? t('contractModal.values.unknown')}
                         </p>
                         <p>
-                          <span className="font-medium text-slate-900">Trạng thái:</span>{' '}
-                          {contractDetailState.data.status ?? 'Không xác định'}
+                          <span className="font-medium text-slate-900">{t('contractModal.fields.status')}</span>{' '}
+                          {contractDetailState.data.status ?? t('contractModal.values.unknown')}
                         </p>
                         <p>
-                          <span className="font-medium text-slate-900">Ngày bắt đầu:</span>{' '}
+                          <span className="font-medium text-slate-900">{t('contractModal.fields.startDate')}</span>{' '}
                           {formatDate(contractDetailState.data.startDate)}
                         </p>
                         <p>
-                          <span className="font-medium text-slate-900">Ngày kết thúc:</span>{' '}
+                          <span className="font-medium text-slate-900">{t('contractModal.fields.endDate')}</span>{' '}
                           {contractDetailState.data.endDate
                             ? formatDate(contractDetailState.data.endDate)
-                            : 'Không giới hạn'}
+                            : t('contractModal.values.unlimited')}
                         </p>
                         {contractDetailState.data.monthlyRent != null && (
                           <p>
-                            <span className="font-medium text-slate-900">Giá thuê / tháng:</span>{' '}
+                            <span className="font-medium text-slate-900">{t('contractModal.fields.monthlyRent')}</span>{' '}
                             {contractDetailState.data.monthlyRent.toLocaleString('vi-VN')} đ
                           </p>
                         )}
                         {contractDetailState.data.purchasePrice != null && (
                           <p>
-                            <span className="font-medium text-slate-900">Giá mua:</span>{' '}
+                            <span className="font-medium text-slate-900">{t('contractModal.fields.purchasePrice')}</span>{' '}
                             {contractDetailState.data.purchasePrice.toLocaleString('vi-VN')} đ
                           </p>
                         )}
                         {contractDetailState.data.purchaseDate && (
                           <p>
-                            <span className="font-medium text-slate-900">Ngày mua:</span>{' '}
+                            <span className="font-medium text-slate-900">{t('contractModal.fields.purchaseDate')}</span>{' '}
                             {formatDate(contractDetailState.data.purchaseDate)}
                           </p>
                         )}
                         {contractDetailState.data.paymentMethod && (
                           <p>
-                            <span className="font-medium text-slate-900">Phương thức thanh toán:</span>{' '}
+                            <span className="font-medium text-slate-900">{t('contractModal.fields.paymentMethod')}</span>{' '}
                             {contractDetailState.data.paymentMethod}
                           </p>
                         )}
                       </div>
                       {contractDetailState.data.notes && (
                         <div>
-                          <p className="font-medium text-slate-900">Ghi chú</p>
+                          <p className="font-medium text-slate-900">{t('contractModal.fields.notes')}</p>
                           <p className="mt-1 whitespace-pre-line text-slate-600">
                             {contractDetailState.data.notes}
                           </p>
@@ -1287,7 +1301,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                       )}
                       {contractDetailState.data.files && contractDetailState.data.files.length > 0 && (
                         <div>
-                          <p className="font-medium text-slate-900">Tệp đính kèm</p>
+                          <p className="font-medium text-slate-900">{t('contractModal.fields.attachments')}</p>
                           <ul className="mt-2 space-y-2 text-sm">
                             {contractDetailState.data.files.map((file) => (
                               <li
@@ -1296,15 +1310,15 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                               >
                                 <div>
                                   <p className="font-medium text-slate-800">
-                                    {file.originalFileName ?? file.fileName ?? 'Tệp không tên'}
+                                    {file.originalFileName ?? file.fileName ?? t('contractModal.values.unnamedFile')}
                                   </p>
                                   <p className="text-xs text-slate-500">
-                                    {file.contentType ?? 'Không rõ định dạng'} •{' '}
-                                    {file.fileSize ? `${(file.fileSize / 1024).toFixed(1)} KB` : 'Kích thước không rõ'}
+                                    {file.contentType ?? t('contractModal.values.unknownFormat')} •{' '}
+                                    {file.fileSize ? `${(file.fileSize / 1024).toFixed(1)} KB` : t('contractModal.values.unknownSize')}
                                   </p>
                                   {file.isPrimary && (
                                     <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                                      Tệp chính
+                                      {t('contractModal.values.primaryFile')}
                                     </span>
                                   )}
                                 </div>
@@ -1315,7 +1329,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center rounded-md border border-blue-300 px-3 py-1 text-sm text-blue-600 transition hover:bg-blue-50"
                                   >
-                                    Xem / tải
+                                    {t('contractModal.values.viewDownload')}
                                   </a>
                                 )}
                               </li>
@@ -1332,7 +1346,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   onClick={handleCloseContractDetail}
                   className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-white"
                 >
-                  Đóng
+                  {t('contractModal.close')}
                 </button>
               </div>
             </div>
@@ -1343,14 +1357,14 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
           <div className="mt-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-800">
-                Danh sách yêu cầu tạo tài khoản từ cư dân
+                {t('requestsTab.title')}
               </h2>
               <button
                 type="button"
                 onClick={() => refreshPendingRequests()}
                 className="inline-flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
               >
-                Làm mới
+                {t('requestsTab.refresh')}
               </button>
             </div>
 
@@ -1365,22 +1379,22 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                      Cư dân
+                      {t('requestsTab.table.resident')}
                     </th>
                     <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                      Liên hệ
+                      {t('requestsTab.table.contact')}
                     </th>
                     <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                      Tài khoản đề xuất
+                      {t('requestsTab.table.proposedAccount')}
                     </th>
                     <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                      Tùy chọn
+                      {t('requestsTab.table.options')}
                     </th>
                     <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                      Thời gian
+                      {t('requestsTab.table.time')}
                     </th>
                     <th className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-slate-600">
-                      Hành động
+                      {t('requestsTab.table.action')}
                     </th>
                   </tr>
                 </thead>
@@ -1388,13 +1402,13 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                   {loadingRequests ? (
                     <tr>
                       <td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">
-                        Đang tải danh sách yêu cầu...
+                        {t('requestsTab.loading')}
                       </td>
                     </tr>
                   ) : pendingRequests.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">
-                        Hiện không có yêu cầu đang chờ duyệt.
+                        {t('requestsTab.empty')}
                       </td>
                     </tr>
                   ) : (
@@ -1404,34 +1418,34 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                         <tr key={request.id} className="hover:bg-emerald-50/40">
                           <td className="px-4 py-3 font-medium text-slate-800">
                             <div className="flex flex-col">
-                              <span>{request.residentName || 'Cư dân chưa cập nhật tên'}</span>
+                              <span>{request.residentName || t('requestsTab.columns.notProvided')}</span>
                               <span className="text-xs text-slate-500">
-                                Mã yêu cầu: {request.id}
+                                {t('requestsTab.columns.requestId')} {request.id}
                               </span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-slate-600">
                             <div className="flex flex-col">
-                              <span>{request.residentPhone || 'Chưa cung cấp'}</span>
+                              <span>{request.residentPhone || t('requestsTab.columns.notProvided')}</span>
                               <span className="text-xs text-slate-500">
-                                {request.residentEmail || 'Chưa cung cấp'}
+                                {request.residentEmail || t('requestsTab.columns.notProvided')}
                               </span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-slate-600">
                             <div className="flex flex-col">
                               <span>
-                                <strong>Tên đăng nhập:</strong> {request.username || 'Không có'}
+                                <strong>{t('requestsTab.columns.username')}</strong> {request.username || t('requestsTab.columns.noData')}
                               </span>
                               <span>
-                                <strong>Email:</strong> {request.email || 'Không có'}
+                                <strong>{t('requestsTab.columns.email')}</strong> {request.email || t('requestsTab.columns.noData')}
                               </span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-slate-600">
                             <div className="flex flex-col gap-1">
                               <span>
-                                <strong>Quan hệ:</strong> {request.relation || 'Không rõ'}
+                                <strong>{t('requestsTab.columns.relation')}</strong> {request.relation || t('requestsTab.columns.unknown')}
                               </span>
                             </div>
                           </td>
@@ -1445,7 +1459,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                                 onClick={() => handleRequestAction(request.id, true)}
                                 disabled={isProcessing}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-emerald-200 text-emerald-600 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                title="Phê duyệt"
+                                title={t('requestsTab.actions.approve')}
                               >
                                 {approveIcon}
                               </button>
@@ -1454,7 +1468,7 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                                 onClick={() => handleRequestAction(request.id, false)}
                                 disabled={isProcessing}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                title="Từ chối"
+                                title={t('requestsTab.actions.reject')}
                               >
                                 {rejectIcon}
                               </button>

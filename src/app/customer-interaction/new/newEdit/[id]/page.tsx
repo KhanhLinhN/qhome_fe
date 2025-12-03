@@ -435,8 +435,8 @@ export default function NewsEdit() {
             // Redirect to news detail
             router.push(`/customer-interaction/new/newDetail/${newsId}`);
         } catch (error) {
-            console.error('Lỗi khi cập nhật tin tức:', error);
-            show(t('errorUpdatingNews'), 'error');
+            console.error(t('errors.updateFailed'), error);
+            show(t('errors.updateFailed'), 'error');
         }
     };
 

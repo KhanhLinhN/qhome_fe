@@ -70,6 +70,16 @@ export default function AccountNewStaffPage() {
   const [importResult, setImportResult] = useState<StaffImportResponse | null>(null);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
+  // IMPORTANT: All hooks must be called before any conditional returns
+  const importSummary = useMemo(() => {
+    if (!importResult) return null;
+    return t('messages.importResult', { 
+      totalRows: importResult.totalRows, 
+      successCount: importResult.successCount, 
+      failureCount: importResult.failureCount 
+    });
+  }, [importResult, t]);
+
   const handleBack = () => {
     router.push('/accountList');
   };
@@ -90,10 +100,12 @@ export default function AccountNewStaffPage() {
           setUsernameError(t('validation.username.required'));
         } else if (/\s/.test(value)) {
           setUsernameError(t('validation.username.noWhitespace'));
-        } else if (!validateUsernameFormat(value)) {
-          setUsernameError(t('validation.username.invalidFormat') || 'Tên đăng nhập chỉ được chứa chữ cái không dấu, số và các ký tự @, _, -, .');
-        } else if (value.length > 40) {
+        } else if (value.length < 6) {
+          setUsernameError(t('validation.username.minLength'));
+        } else if (value.length > 16) {
           setUsernameError(t('validation.username.maxLength'));
+        } else if (!validateUsernameFormat(value)) {
+          setUsernameError(t('validation.username.invalidFormat'));
         } else {
           // Check username tồn tại trong database
           try {
@@ -185,11 +197,14 @@ export default function AccountNewStaffPage() {
     } else if (/\s/.test(form.username)) {
       setUsernameError(t('validation.username.noWhitespace'));
       isValid = false;
-    } else if (!validateUsernameFormat(form.username)) {
-      setUsernameError(t('validation.username.invalidFormat') || 'Tên đăng nhập chỉ được chứa chữ cái không dấu, số và các ký tự @, _, -, .');
+    } else if (form.username.length < 6) {
+      setUsernameError(t('validation.username.minLength'));
       isValid = false;
-    } else if (form.username.length > 40) {
+    } else if (form.username.length > 16) {
       setUsernameError(t('validation.username.maxLength'));
+      isValid = false;
+    } else if (!validateUsernameFormat(form.username)) {
+      setUsernameError(t('validation.username.invalidFormat'));
       isValid = false;
     } else {
       // Check username tồn tại trong database
@@ -310,12 +325,12 @@ export default function AccountNewStaffPage() {
     setImportResult(null);
 
     if (!importFile) {
-      setImportError('Vui lòng chọn file Excel (.xlsx).');
+      setImportError(t('validation.excelFileRequired'));
       return;
     }
 
     if (!importFile.name.toLowerCase().endsWith('.xlsx')) {
-      setImportError('File phải có định dạng .xlsx.');
+      setImportError(t('validation.excelFileFormat'));
       return;
     }
 
@@ -327,7 +342,7 @@ export default function AccountNewStaffPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể import tài khoản nhân viên. Vui lòng thử lại.';
+        t('errors.importFailed');
       setImportError(message);
     } finally {
       setImporting(false);
@@ -351,17 +366,12 @@ export default function AccountNewStaffPage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tải file template. Vui lòng thử lại.';
+        t('errors.templateDownloadFailed');
       setImportError(message);
     } finally {
       setDownloadingTemplate(false);
     }
   };
-
-  const importSummary = useMemo(() => {
-    if (!importResult) return null;
-    return `Đã xử lý ${importResult.totalRows} dòng: ${importResult.successCount} thành công, ${importResult.failureCount} thất bại.`;
-  }, [importResult]);
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
@@ -413,7 +423,7 @@ export default function AccountNewStaffPage() {
                   }
                 }}
                 placeholder={t('placeholders.username')}
-                maxLength={40}
+                maxLength={16}
                 className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                   usernameError
                     ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
@@ -494,10 +504,9 @@ export default function AccountNewStaffPage() {
 
         <div className="rounded-2xl border border-dashed border-emerald-200 bg-white/70 p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex flex-col gap-2">
-            <h2 className="text-xl font-semibold text-slate-800">Import nhanh bằng Excel</h2>
+            <h2 className="text-xl font-semibold text-slate-800">{t('import.title')}</h2>
             <p className="text-sm text-slate-500">
-              Sử dụng file Excel với các cột: <code>username</code>, <code>email</code>,{' '}
-              <code>role</code>, <code>active</code>. Role có thể chứa nhiều giá trị, phân tách bằng dấu phẩy.
+              {t('import.description')}
             </p>
             <button
               type="button"
@@ -505,13 +514,13 @@ export default function AccountNewStaffPage() {
               disabled={downloadingTemplate}
               className="inline-flex w-fit items-center justify-center rounded-md border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {downloadingTemplate ? 'Đang tải template...' : 'Tải file template'}
+              {downloadingTemplate ? t('buttons.downloadingTemplate') : t('buttons.downloadTemplate')}
             </button>
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-slate-700">File Excel (.xlsx)</label>
+              <label className="block text-sm font-medium text-slate-700">{t('import.fileLabel')}</label>
               <input
                 type="file"
                 accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -520,7 +529,7 @@ export default function AccountNewStaffPage() {
               />
               {importFile && (
                 <p className="mt-2 text-xs text-slate-500">
-                  Đã chọn: <span className="font-medium text-slate-700">{importFile.name}</span>
+                  {t('import.fileSelected')} <span className="font-medium text-slate-700">{importFile.name}</span>
                 </p>
               )}
             </div>
@@ -531,7 +540,7 @@ export default function AccountNewStaffPage() {
               disabled={importing}
               className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {importing ? 'Đang import...' : 'Import nhân viên'}
+              {importing ? t('buttons.importing') : t('buttons.import')}
             </button>
           </div>
 
@@ -555,12 +564,12 @@ export default function AccountNewStaffPage() {
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Dòng</th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Username</th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Email</th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Role(s)</th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Kích hoạt</th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Kết quả</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">{t('import.tableHeaders.row')}</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">{t('import.tableHeaders.username')}</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">{t('import.tableHeaders.email')}</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">{t('import.tableHeaders.roles')}</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">{t('import.tableHeaders.active')}</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">{t('import.tableHeaders.result')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -571,16 +580,16 @@ export default function AccountNewStaffPage() {
                       <td className="px-3 py-2 text-slate-700">{row.email}</td>
                       <td className="px-3 py-2 text-slate-600">{row.roles.join(', ')}</td>
                       <td className="px-3 py-2 text-slate-600">
-                        {row.active === null ? '-' : row.active ? 'Có' : 'Không'}
+                        {row.active === null ? '-' : row.active ? t('import.status.yes') : t('import.status.no')}
                       </td>
                       <td className="px-3 py-2">
                         {row.success ? (
                           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                            Thành công
+                            {t('import.status.success')}
                           </span>
                         ) : (
                           <div className="text-xs text-red-600">
-                            Thất bại
+                            {t('import.status.failure')}
                             {row.message && <p className="mt-1 text-[11px] text-red-500">{row.message}</p>}
                           </div>
                         )}

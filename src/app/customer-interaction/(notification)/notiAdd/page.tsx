@@ -24,7 +24,6 @@ interface NotificationFormData {
     targetBuildingId?: string | null;
     referenceId?: string | null;
     referenceType?: string | null;
-    actionUrl?: string | null;
     iconUrl?: string | null;
 }
 
@@ -48,7 +47,6 @@ export default function NotificationAdd() {
         targetBuildingId: undefined,
         referenceId: null,
         referenceType: null,
-        actionUrl: null,
         iconUrl: null,
     });
 
@@ -68,8 +66,8 @@ export default function NotificationAdd() {
                     const allBuildings = await getBuildings();
                     setBuildings(allBuildings);
                 } catch (error) {
-                    console.error('Lỗi khi tải danh sách tòa nhà:', error);
-                    show(t('fetchBuildingError'), 'error');
+                    console.error(t('errors.loadBuildings'), error);
+                    show(t('errors.loadBuildings'), 'error');
                 } finally {
                     setLoadingBuildings(false);
                 }
@@ -186,9 +184,6 @@ export default function NotificationAdd() {
             if (formData.referenceType && formData.referenceType.trim()) {
                 request.referenceType = formData.referenceType.trim();
             }
-            if (formData.actionUrl && formData.actionUrl.trim()) {
-                request.actionUrl = formData.actionUrl.trim();
-            }
             if (formData.iconUrl && formData.iconUrl.trim()) {
                 request.iconUrl = formData.iconUrl.trim();
             }
@@ -202,7 +197,7 @@ export default function NotificationAdd() {
             // Redirect to notification list
             router.push(`/customer-interaction/notiList`);
         } catch (error) {
-            console.error('Lỗi khi tạo thông báo:', error);
+            console.error(t('errors.createFailed'), error);
             show(t('createNotificationError'), 'error');
         }
     };
@@ -415,18 +410,6 @@ export default function NotificationAdd() {
                             )}
                         </div>
                     )}
-
-                    {/* Action URL */}
-                    <div className="col-span-1">
-                        <DetailField
-                            label={t('actionUrl')}
-                            value={formData.actionUrl || ''}
-                            onChange={handleChange}
-                            name="actionUrl"
-                            placeholder={t('enterActionUrl')}
-                            readonly={false}
-                        />
-                    </div>
 
                     {/* Icon URL */}
                     {/* <div className="col-span-1">

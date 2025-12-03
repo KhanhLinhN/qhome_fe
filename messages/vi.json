@@ -118,6 +118,7 @@
   "support": "Cần trợ giúp?"
   },
   "Sidebar": {
+    "staffContent": "Nội dung dành cho nhân viên",
     "overview": "Tổng quan",
     "dashboard": "Dashboard",
     "systemAdmin": "Quản trị hệ thống",
@@ -164,7 +165,11 @@
     "unitManagement": "Quản lý Unit",
     "elevatorCard": "Thẻ thang máy",
     "residentCard": "Thẻ cư dân",
-    "approvedCard": "Thẻ đã duyệt"
+    "approvedCard": "Thẻ đã duyệt",
+    "personalInfo": "Thông tin cá nhân",
+    "cardPricingManagement": "Quản lý giá thẻ",
+    "incomeExpenseManagement": "Quản lý Thu Chi",
+    "pricingTiersManagement": "Quản lý bậc giá"
   },
   "Account": {
     "selectBuilding": "Chọn tòa nhà",
@@ -231,14 +236,20 @@
     "buttons": {
       "cancel": "Huỷ bỏ",
       "create": "Tạo tài khoản",
-      "creating": "Đang tạo..."
+      "creating": "Đang tạo...",
+      "downloadingTemplate": "Đang tải template...",
+      "downloadTemplate": "Tải file template",
+      "importing": "Đang import...",
+      "import": "Import nhân viên"
     },
     "validation": {
       "username": {
         "required": "Tên đăng nhập không được để trống.",
         "noWhitespace": "Tên đăng nhập không được chứa ký tự trắng.",
-        "maxLength": "Tên đăng nhập không được vượt quá 40 ký tự.",
-        "exists": "Tên đăng nhập đã tồn tại trong hệ thống."
+        "minLength": "Tên đăng nhập phải có ít nhất 6 ký tự.",
+        "maxLength": "Tên đăng nhập không được vượt quá 16 ký tự.",
+        "exists": "Tên đăng nhập đã tồn tại trong hệ thống.",
+        "invalidFormat": "Tên đăng nhập chỉ được chứa chữ cái không dấu, số và các ký tự @, _, -, ."
       },
       "email": {
         "required": "Email không được để trống.",
@@ -249,11 +260,38 @@
       },
       "role": {
         "required": "Vui lòng chọn vai trò cho nhân viên."
-      }
+      },
+      "excelFileRequired": "Vui lòng chọn file Excel (.xlsx).",
+      "excelFileFormat": "File phải có định dạng .xlsx."
     },
     "messages": {
       "createSuccess": "Tạo tài khoản nhân viên thành công.",
-      "createError": "Không thể tạo tài khoản nhân viên. Vui lòng thử lại."
+      "createError": "Không thể tạo tài khoản nhân viên. Vui lòng thử lại.",
+      "importResult": "Đã xử lý {totalRows} dòng: {successCount} thành công, {failureCount} thất bại."
+    },
+    "errors": {
+      "importFailed": "Không thể import tài khoản nhân viên. Vui lòng thử lại.",
+      "templateDownloadFailed": "Không thể tải file template. Vui lòng thử lại."
+    },
+    "import": {
+      "title": "Import nhanh bằng Excel",
+      "description": "Sử dụng file Excel với các cột: username, email, role, active. Role có thể chứa nhiều giá trị, phân tách bằng dấu phẩy.",
+      "fileLabel": "File Excel (.xlsx)",
+      "fileSelected": "Đã chọn:",
+      "tableHeaders": {
+        "row": "Dòng",
+        "username": "Username",
+        "email": "Email",
+        "roles": "Role(s)",
+        "active": "Kích hoạt",
+        "result": "Kết quả"
+      },
+      "status": {
+        "yes": "Có",
+        "no": "Không",
+        "success": "Thành công",
+        "failure": "Thất bại"
+      }
     }
   },
   "AccountList": {
@@ -454,6 +492,97 @@
     },
     "common": {
       "editProfile": "Chỉnh sửa hồ sơ"
+    }
+  },
+  "StaffProfile": {
+    "title": "Thông tin cá nhân",
+    "subtitle": "Quản lý thông tin tài khoản của bạn",
+    "loading": "Đang tải...",
+    "errors": {
+      "loadFailed": "Không thể tải thông tin profile",
+      "updateFailed": "Không thể cập nhật thông tin",
+      "changePasswordFailed": "Không thể đổi mật khẩu"
+    },
+    "messages": {
+      "updateSuccess": "Cập nhật thông tin thành công",
+      "changePasswordSuccess": "Đổi mật khẩu thành công",
+      "passwordMismatch": "Mật khẩu xác nhận không khớp",
+      "passwordMinLength": "Mật khẩu phải có ít nhất 6 ký tự"
+    },
+    "restricted": {
+      "title": "Trang này chỉ dành cho nhân viên",
+      "backToDashboard": "Quay về Dashboard"
+    },
+    "retry": "Thử lại",
+    "sections": {
+      "basicInfo": "Thông tin cơ bản",
+      "changePassword": "Đổi mật khẩu",
+      "workDashboard": "Dashboard công việc",
+      "accountInfo": "Thông tin tài khoản"
+    },
+    "fields": {
+      "username": "Tên đăng nhập",
+      "email": "Email",
+      "phoneNumber": "Số điện thoại",
+      "department": "Phòng ban",
+      "position": "Chức vụ",
+      "role": "Vai trò",
+      "status": "Trạng thái",
+      "lastLogin": "Lần đăng nhập cuối:",
+      "failedLoginAttempts": "Số lần đăng nhập sai:",
+      "newPassword": "Mật khẩu mới",
+      "confirmPassword": "Xác nhận mật khẩu"
+    },
+    "placeholders": {
+      "newPassword": "Nhập mật khẩu mới (tối thiểu 6 ký tự)",
+      "confirmPassword": "Nhập lại mật khẩu mới"
+    },
+    "buttons": {
+      "edit": "Chỉnh sửa",
+      "save": "Lưu thay đổi",
+      "saving": "Đang lưu...",
+      "cancel": "Hủy",
+      "changePassword": "Đổi mật khẩu",
+      "processing": "Đang xử lý...",
+      "changePasswordButton": "Đổi mật khẩu"
+    },
+    "status": {
+      "active": "Hoạt động",
+      "inactive": "Tạm khóa",
+      "notSet": "Chưa có"
+    },
+    "roles": {
+      "technician": "Kỹ thuật viên",
+      "supporter": "Nhân viên hỗ trợ",
+      "accountant": "Kế toán",
+      "admin": "Quản trị viên"
+    },
+    "dashboard": {
+      "totalAssignments": "Tổng số assignments",
+      "inProgress": "Đang xử lý",
+      "completed": "Đã hoàn thành",
+      "processedRequests": "Requests đã xử lý",
+      "activeAssignments": "Assignments đang xử lý",
+      "recentRequests": "Requests đã xử lý gần đây",
+      "noWork": "Chưa có công việc nào được giao",
+      "andMore": "Và {count} khác...",
+      "floor": "Tầng {floor}",
+      "processedAt": "Đã xử lý: {date}",
+      "assignmentStatus": {
+        "pending": "Chờ xử lý",
+        "inProgress": "Đang xử lý",
+        "overdue": "Quá hạn"
+      },
+      "requestStatus": {
+        "completed": "Hoàn thành",
+        "inProgress": "Đang xử lý"
+      }
+    },
+    "accountStatus": {
+      "accountLocked": "⚠️ Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
+    },
+    "validation": {
+      "usernameCannotChange": "Tên đăng nhập không thể thay đổi"
     }
   },
   "Login": {
@@ -734,8 +863,68 @@
   "saving": "Đang lưu",
   "nameError": "Tên tòa nhà là bắt buộc",
   "addressError": "Địa chỉ là bắt buộc",
-  "floorsError": "Số tầng phải lớn hơn 0",
-  "codeError": "Mã tòa nhà đã tồn tại",
+    "floorsError": "Số tầng phải lớn hơn 0",
+    "downloadUnitTemplate": "Tải template import căn hộ",
+    "selectExcelFile": "Chọn file Excel",
+    "importing": "Đang import...",
+    "exportExcel": "Xuất Excel",
+    "addMeter": "Thêm công tơ",
+    "unit": "Căn hộ",
+    "selectUnit": "-- Chọn căn hộ --",
+    "service": "Dịch vụ",
+    "selectService": "-- Chọn dịch vụ --",
+    "installedDate": "Ngày lắp đặt (tùy chọn)",
+    "downloadMeterTemplate": "Tải template import công tơ",
+    "selectMeterExcelFile": "Chọn file Excel công tơ",
+    "exportMeterExcel": "Xuất Excel công tơ",
+    "processedRows": "Đã xử lý {totalRows} dòng:",
+    "success": "thành công",
+    "errors": "lỗi",
+    "row": "Dòng",
+    "rowNumber": "Dòng {rowNumber}",
+    "totalRows": "Tổng dòng: {totalRows} | Thành công: {successCount} | Lỗi: {errorCount}",
+    "saveMeter": "Lưu công tơ",
+    "creating": "Đang tạo...",
+    "meterImportGuide": "Hướng dẫn template import công tơ",
+    "meterImportGuideDesc1": "Vui lòng để cột <bold>buildingCode</bold> = <mono>{buildingCode}</mono> để tải đúng công tơ của tòa này.",
+    "meterImportGuideDesc2": "Giữ nguyên tên cột <bold>unitCode</bold>, <bold>serviceCode</bold>, <bold>installedAt</bold> và không đổi định dạng.",
+    "meterImportGuideDesc3": "Mỗi template có sẵn bảng <bold>Available services</bold> ở dưới cùng giúp bạn chọn mã dịch vụ hợp lệ.",
+    "messages": {
+      "failedToLoadUnits": "Không thể tải danh sách căn hộ",
+      "failedToDownloadTemplate": "Tải template thất bại",
+      "failedToExportExcel": "Xuất Excel thất bại",
+      "importFailed": "Import thất bại",
+      "failedToDownloadMeterTemplate": "Tải template công tơ thất bại",
+      "meterImportFailed": "Import công tơ thất bại",
+      "failedToExportMeterExcel": "Xuất Excel công tơ thất bại",
+      "pleaseSelectUnitAndService": "Vui lòng chọn căn hộ và dịch vụ",
+      "meterAddedSuccess": "Thêm công tơ thành công",
+      "failedToCreateMeter": "Không thể tạo công tơ"
+    },
+    "selectCity": "Chọn thành phố",
+    "selectDistrict": "Chọn quận/huyện",
+    "selectWard": "Chọn phường/xã",
+    "roadVillage": "Đường/Thôn (tuỳ chọn)",
+    "selectRoadVillage": "Chọn đường/thôn (có thể để trống)",
+    "noRoadVillageData": "Không có dữ liệu đường/thôn",
+    "createBuildingError": "Lỗi khi tạo building",
+    "city": "Thành phố",
+    "district": "Quận/Huyện",
+    "ward": "Phường/Xã",
+    "numberOfFloors": "Số tầng",
+    "enterNumberOfFloors": "Nhập số tầng",
+    "floorsRequired": "Số tầng không được để trống",
+    "floorsMustBeGreaterThanZero": "Số tầng phải lớn hơn 0",
+    "floorsMustBeLessThan100": "Số tầng phải nhỏ hơn 100",
+    "updateBuildingSuccess": "Cập nhật tòa nhà thành công!",
+    "updateBuildingError": "Có lỗi xảy ra khi cập nhật tòa nhà!",
+    "updateError": "Lỗi khi cập nhật",
+    "placeholders": {
+      "selectCity": "Chọn thành phố",
+      "selectDistrict": "Chọn quận/huyện",
+      "selectWard": "Chọn phường/xã"
+    },
+    "codeError": "Mã tòa nhà đã tồn tại",
   "projectError": "Vui lòng chọn dự án",
   "error": "Vui lòng sửa các lỗi trước khi lưu",
   "success": "Tạo tòa nhà thành công",
@@ -1064,10 +1253,15 @@
   "save": "Lưu",
   "cancel": "Hủy",
   "newDescription": "Mô tả mới",
-  "load": "Đang tải dữ liệu...",
-  "error": "Lỗi tải dữ liệu",
-  "retry": "Vui lòng thử lại",
-  "clear": "Xóa",
+    "load": "Đang tải dữ liệu...",
+    "error": "Lỗi tải dữ liệu",
+    "retry": "Vui lòng thử lại",
+    "createUnitError": "Lỗi khi tạo unit",
+    "errorUnit": "Có lỗi xảy ra khi tạo căn hộ",
+    "updateUnitError": "Lỗi khi cập nhật",
+    "updateUnitSuccess": "Cập nhật căn hộ thành công!",
+    "updateUnitFailed": "Có lỗi xảy ra khi cập nhật căn hộ!",
+    "clear": "Xóa",
   "yes": "Có",
   "no": "Không",
   "deleteUnitT": "Xóa căn hộ?",
@@ -1139,7 +1333,8 @@
       "nameMaxError": "Tên căn hộ không được vượt quá 40 ký tự",
       "nameSpecialCharError": "Tên căn hộ không được chứa ký tự đặc biệt",
       "bedroomsErrorRange": "Số phòng ngủ phải trong khoảng 1-9",
-      "areaErrorRange": "Diện tích phải > 0 và < 150"
+      "areaErrorRange": "Diện tích phải > 0 và < 150",
+      "floorMaxError": "Số tầng không được vượt quá số tầng tối đa của tòa nhà ({floorsMax})"
     },
     "loading": {
       "building": "Đang tải..."
@@ -1208,9 +1403,18 @@
   "rejectionReason": "Lý do từ chối",
   "statusLabels": {
     "PENDING": "Đang chờ duyệt",
+    "READY_FOR_PAYMENT": "Chờ thanh toán",
+    "PAYMENT_PENDING": "Đang thanh toán",
+    "COMPLETED": "Hoàn thành",
     "APPROVED": "Đã phê duyệt",
     "REJECTED": "Đã từ chối",
     "CANCELED": "Đã hủy"
+  },
+  "paymentStatusLabels": {
+    "UNPAID": "Chưa thanh toán",
+    "PAYMENT_APPROVAL": "Đang xử lý thanh toán",
+    "PAYMENT_PENDING": "Chờ xác nhận",
+    "PAID": "Đã thanh toán"
   },
   "promptApprovalNote": "Nhập ghi chú phê duyệt (không bắt buộc):",
   "promptRejectionReason": "Nhập lý do từ chối (bắt buộc):",
@@ -1290,6 +1494,7 @@
     "selectBuilding": "Chọn tòa nhà",
     "noApartmentFound": "Không có căn hộ nào cho tòa nhà này",
     "loading": "Đang tải dữ liệu...",
+    "waterMeterList": "Danh sách đồng hồ nước",
     "waterMêtrList": "Danh sách chỉ số nước",
     "settings": "Cài đặt",
     "assignTask": "Gán công việc",
@@ -1305,7 +1510,95 @@
     "fromAmount": "Từ số (m³)",
     "toAmount": "Đến số (m³)",
     "price": "Giá (VND)",
-    "addRow": "Thêm hàng"
+    "addRow": "Thêm hàng",
+    "addMeter": "Thêm đồng hồ",
+    "filters": "Bộ lọc",
+    "status": "Trạng thái",
+    "all": "Tất cả",
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "filterByUnit": "Lọc theo căn hộ",
+    "allUnits": "Tất cả căn hộ",
+    "meters": "Đồng hồ",
+    "meterCode": "Mã đồng hồ",
+    "type": "Loại",
+    "location": "Vị trí",
+    "lastReading": "Chỉ số cuối",
+    "lastReadingDate": "Ngày đọc cuối",
+    "actions": "Hành động",
+    "edit": "Chỉnh sửa",
+    "deactivate": "Vô hiệu hóa",
+    "delete": "Xóa",
+    "measured": "Đã đo",
+    "pending": "Chờ xử lý",
+    "noMeter": "Không có đồng hồ",
+    "noReadingsAvailable": "Không có chỉ số nào",
+    "noMetersOrApartments": "Không tìm thấy đồng hồ hoặc căn hộ cho tòa nhà này",
+    "createMeter": "Tạo đồng hồ",
+    "editMeter": "Chỉnh sửa đồng hồ",
+    "unit": "Căn hộ",
+    "selectUnit": "Chọn căn hộ",
+    "meterType": "Loại đồng hồ",
+    "cancel": "Hủy",
+    "saving": "Đang lưu...",
+    "create": "Tạo",
+    "update": "Cập nhật",
+    "apartmentWaterReadings": "Chỉ số nước căn hộ",
+    "date": "Ngày",
+    "messages": {
+      "failedToLoadBuildings": "Không thể tải danh sách tòa nhà",
+      "failedToLoadMeters": "Không thể tải danh sách đồng hồ",
+      "waterServiceIdRequired": "Cần ID dịch vụ nước",
+      "waterSettingsUpdated": "Cập nhật cài đặt nước thành công",
+      "waterSettingsCreated": "Tạo cài đặt nước thành công",
+      "failedToSaveSettings": "Không thể lưu cài đặt",
+      "pleaseSelectBuilding": "Vui lòng chọn tòa nhà trước",
+      "meterCreated": "Tạo đồng hồ thành công",
+      "meterUpdated": "Cập nhật đồng hồ thành công",
+      "meterDeactivated": "Vô hiệu hóa đồng hồ thành công",
+      "meterDeleted": "Xóa đồng hồ thành công",
+      "failedToCreateMeter": "Không thể tạo đồng hồ",
+      "failedToUpdateMeter": "Không thể cập nhật đồng hồ",
+      "failedToDeactivateMeter": "Không thể vô hiệu hóa đồng hồ",
+      "failedToDeleteMeter": "Không thể xóa đồng hồ"
+    },
+    "confirm": {
+      "deactivateMeter": "Bạn có chắc chắn muốn vô hiệu hóa đồng hồ này?",
+      "deleteMeter": "Bạn có chắc chắn muốn xóa đồng hồ này? Hành động này không thể hoàn tác."
+    }
+  },
+  "ReadingExport": {
+    "title": "Xuất chỉ số đồng hồ",
+    "exportProcess": "Quy trình xuất:",
+    "exportProcessDescription": "Xuất chỉ số từ một chu kỳ sẽ chuyển tất cả chỉ số đồng hồ sang hệ thống thanh toán và tạo hóa đơn. Hành động này nên được thực hiện sau khi hoàn thành tất cả việc đọc chỉ số cho một chu kỳ.",
+    "filterByStatus": "Lọc theo trạng thái",
+    "all": "Tất cả",
+    "draft": "Nháp",
+    "active": "Hoạt động",
+    "closed": "Đã đóng",
+    "cancelled": "Đã hủy",
+    "readingCycles": "Chu kỳ đọc",
+    "cycleName": "Tên chu kỳ",
+    "period": "Kỳ",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "exportResult": "Kết quả xuất",
+    "actions": "Hành động",
+    "readings": "chỉ số",
+    "invoices": "hóa đơn",
+    "notExported": "Chưa xuất",
+    "exporting": "Đang xuất...",
+    "export": "Xuất",
+    "noReadingCycles": "Không tìm thấy chu kỳ đọc",
+    "loading": "Đang tải...",
+    "messages": {
+      "failedToLoadCycles": "Không thể tải chu kỳ đọc",
+      "exportCompleted": "Xuất hoàn tất: {totalReadings} chỉ số, {invoicesCreated} hóa đơn đã tạo",
+      "failedToExport": "Không thể xuất chỉ số"
+    },
+    "confirm": {
+      "exportReadings": "Bạn có chắc chắn muốn xuất chỉ số từ chu kỳ này? Hành động này sẽ tạo hóa đơn."
+    }
   },
   "News" : {
     "newsList": "Danh sách tin tức",
@@ -1481,6 +1774,10 @@
     "errorUploadingDetailImages": "Lỗi khi tải lên ảnh chi tiết",
     "newsUpdateSuccess": "Cập nhật tin tức thành công",
     "errorUpdatingNews": "Lỗi khi cập nhật tin tức",
+    "errors": {
+      "loadBuildings": "Lỗi khi tải danh sách tòa nhà",
+      "updateFailed": "Lỗi khi cập nhật tin tức"
+    },
     "newsNotFound": "Không tìm thấy tin tức",
     "publishDate": "Ngày xuất bản",
     "notAvailable": "N/A"
@@ -1650,7 +1947,7 @@
     },
     "scope": {
       "internal": "Nội bộ",
-      "external": "Bên ngoài"
+      "external": "Ngoại bộ"
     },
     "roles": {
       "admin": "Admin",
@@ -1884,7 +2181,8 @@
       "uploadFilesFailed": "Không thể tải tệp đính kèm. Vui lòng thử lại.",
       "loadContractDetailFailed": "Đã xảy ra lỗi khi tải chi tiết hợp đồng. Vui lòng thử lại.",
       "contractNotFound": "Không tìm thấy hợp đồng.",
-      "createSuccessWithFileError": "Tạo hợp đồng thành công nhưng tải tệp đính kèm thất bại."
+      "createSuccessWithFileError": "Tạo hợp đồng thành công nhưng tải tệp đính kèm thất bại.",
+      "imageLoadFailed": "Không thể tải ảnh"
     },
     "messages": {
       "createSuccess": "Đã tạo hợp đồng thành công.",
@@ -1976,6 +2274,12 @@
       "deleteSuccess": "Xóa chu kỳ đọc thành công",
       "deleteError": "Không thể xóa chu kỳ đọc"
     },
+    "deleteConfirm": {
+      "title": "Xác nhận xóa",
+      "message": "Bạn có chắc chắn muốn xóa reading cycle này không?",
+      "deleteSuccess": "Xóa chu kỳ đọc thành công",
+      "deleteError": "Không thể xóa chu kỳ đọc"
+    },
     "confirmDelete": {
       "title": "Xác nhận xóa",
       "message": "Bạn có chắc chắn muốn xóa reading cycle này không?"
@@ -2027,6 +2331,7 @@
       "additionalNotes": "Ghi chú bổ sung..."
     },
     "errors": {
+      "loadDataFailed": "Không thể tải dữ liệu",
       "selectCycle": "Vui lòng chọn chu kỳ",
       "selectService": "Vui lòng chọn dịch vụ",
       "selectStaff": "Vui lòng chọn nhân viên để phân công",
@@ -2113,8 +2418,13 @@
     },
     "showing": "Hiển thị: {filtered} / {total} thẻ đã duyệt",
     "empty": "Không có thẻ đã duyệt nào phù hợp.",
+    "statusLabels": {
+      "approved": "Đã duyệt",
+      "completed": "Đã hoàn tất"
+    },
     "errors": {
-      "loadError": "Không thể tải danh sách thẻ đã duyệt"
+      "loadError": "Không thể tải danh sách thẻ đã duyệt",
+      "loadFailed": "Không thể tải danh sách thẻ đã duyệt"
     }
   },
   "ElevatorCards": {
@@ -2568,7 +2878,7 @@
     "changeScope": "Thay đổi phạm vi",
     "scope": "Phạm vi",
     "internal": "Nội bộ",
-    "external": "Bên ngoài",
+    "external": "Ngoại bộ",
     "selectScope": "Chọn phạm vi",
     "targetRole": "Vai trò đích",
     "selectTargetRole": "Chọn vai trò",
@@ -2647,6 +2957,11 @@
     "fetchDetailError": "Không thể tải chi tiết thông báo",
     "createNotificationSuccess": "Tạo thông báo thành công!",
     "createNotificationError": "Có lỗi xảy ra khi tạo thông báo!",
+    "errors": {
+      "loadBuildings": "Lỗi khi tải danh sách tòa nhà",
+      "createFailed": "Lỗi khi tạo thông báo",
+      "updateFailed": "Lỗi khi cập nhật thông báo"
+    },
     "information": "Thông tin",
     "warning": "Cảnh báo",
     "alert": "Báo động",
@@ -2714,6 +3029,8 @@
         "area": "Diện tích:"
       },
       "passwordNote": "Mật khẩu tạm thời sẽ được hệ thống tạo tự động và gửi tới email cư dân ngay sau khi tài khoản được tạo.",
+      "relationNote": "Mặc định là Chủ hộ cho quy trình này.",
+      "floorFormat": " (Tầng {floor})",
       "buttons": {
         "cancel": "Huỷ bỏ",
         "create": "Tạo tài khoản",
@@ -2741,7 +3058,7 @@
       "nationalId": {
         "required": "CMND/CCCD không được để trống.",
         "specialChars": "CMND/CCCD không được chứa ký tự đặc biệt.",
-        "mustBe13Digits": "CMND/CCCD phải có đúng 13 số."
+        "mustBe13Digits": "CMND/CCCD phải có đúng 12 số."
       },
       "username": {
         "noWhitespace": "Tên đăng nhập không được chứa khoảng trắng.",
@@ -2842,10 +3159,113 @@
     "common": {
       "notUpdated": "Chưa cập nhật",
       "defaultRejectionReason": "Thông tin không đầy đủ"
+    },
+    "errors": {
+      "loadBuildingsFailed": "Không thể tải danh sách tòa nhà.",
+      "loadUnitsFailed": "Không thể tải danh sách căn hộ.",
+      "loadContractDetailFailed": "Không thể tải chi tiết hợp đồng.",
+      "loadContractNotFound": "Không tìm thấy thông tin hợp đồng.",
+      "loadUnitFailed": "Không thể tải thông tin căn hộ",
+      "loadContractByUnitFailed": "Không thể tải hợp đồng của căn hộ.",
+      "loadContractInfoFailed": "Không thể tải thông tin hợp đồng. Vui lòng thử lại.",
+      "loadHouseholdFailed": "Không thể tải thông tin hộ gia đình.",
+      "createHouseholdFailed": "Không thể tạo hộ gia đình cho căn hộ này.",
+      "processRequestFailed": "Không thể xử lý yêu cầu. Vui lòng thử lại."
+    },
+    "success": {
+      "cccdReadSuccess": "Đã đọc thông tin từ ảnh CCCD. Vui lòng kiểm tra và điền các thông tin còn thiếu.",
+      "createAccountSuccess": "Tạo chủ hộ và tài khoản cư dân thành công.",
+      "accountInfo": {
+        "username": "Tên đăng nhập:",
+        "email": "Email đăng nhập:",
+        "autoGenerated": "Được tạo tự động"
+      }
+    },
+    "validation": {
+      "nationalId": {
+        "exists": "Số căn cước công dân đã tồn tại trong hệ thống."
+      }
     }
   },
   "AccountingDashboard": {
     "title": "Bảng điều khiển kế toán",
+    "sections": {
+      "financeManagement": {
+        "title": "💰 Quản lý Tài chính",
+        "invoices": {
+          "title": "Hóa đơn",
+          "description": "Quản lý thu chi"
+        },
+        "pricingTiers": {
+          "title": "Bậc giá",
+          "description": "Quản lý bậc giá"
+        },
+        "billingCycles": {
+          "title": "Kỳ thu",
+          "description": "Quản lý kỳ thu"
+        }
+      },
+      "waterElectric": {
+        "title": "💧⚡ Quản lý Điện Nước",
+        "readingCycles": {
+          "title": "Kỳ đọc",
+          "description": "Kỳ đọc chỉ số"
+        },
+        "readingAssign": {
+          "title": "Phân công",
+          "description": "Phân công đọc"
+        },
+        "meterManagement": {
+          "title": "Đồng hồ",
+          "description": "Quản lý đồng hồ"
+        },
+        "billingCyclesManage": {
+          "title": "Quản lý kỳ",
+          "description": "Quản lý kỳ thu"
+        }
+      },
+      "buildingUnit": {
+        "title": "🏢 Quản lý Tòa nhà & Căn hộ",
+        "buildings": {
+          "title": "Tòa nhà",
+          "description": "Quản lý tòa nhà"
+        },
+        "units": {
+          "title": "Căn hộ",
+          "description": "Quản lý căn hộ"
+        },
+        "households": {
+          "title": "Hộ dân",
+          "description": "Quản lý hộ dân"
+        }
+      },
+      "accountManagement": {
+        "title": "👥 Quản lý Tài khoản",
+        "accountList": {
+          "title": "Danh sách",
+          "description": "Danh sách tài khoản"
+        },
+        "createStaff": {
+          "title": "Nhân viên",
+          "description": "Tạo tài khoản NV"
+        },
+        "createResident": {
+          "title": "Cư dân",
+          "description": "Tạo tài khoản CĐ"
+        }
+      },
+      "adminFunctions": {
+        "title": "⚙️ Chức năng Quản trị",
+        "permissions": {
+          "title": "Phân quyền",
+          "description": "Quản lý phân quyền"
+        },
+        "roles": {
+          "title": "Vai trò",
+          "description": "Quản lý vai trò"
+        }
+      }
+    },
     "quickActions": {
       "title": "⚡ Thao tác nhanh",
       "rolesPermissions": {
@@ -3166,6 +3586,85 @@
       "logoAlt": "QHome Logo",
       "title": "QHome PMS",
       "copyright": "© {year} QHome. All rights reserved."
+    },
+    "verifyOtp": {
+      "title": "Xác thực OTP",
+      "heading": "Xác thực mã OTP",
+      "description": "Nhập mã OTP đã được gửi đến email {email}",
+      "otpLabel": "Mã OTP (6 chữ số)",
+      "otpPlaceholder": "000000",
+      "submit": "Xác thực OTP",
+      "submitting": "Đang xác thực...",
+      "resendOtp": "Gửi lại mã OTP",
+      "backToLogin": "Quay lại đăng nhập",
+      "errors": {
+        "invalidEmail": "Email không hợp lệ. Vui lòng quay lại trang quên mật khẩu.",
+        "otpRequired": "Mã OTP không được để trống",
+        "otpLength": "Mã OTP phải là 6 chữ số",
+        "invalidOtp": "Mã OTP không hợp lệ hoặc đã hết hạn.",
+        "networkError": "Không thể kết nối đến server. Vui lòng kiểm tra backend đang chạy.",
+        "genericError": "Có lỗi xảy ra. Vui lòng thử lại."
+      },
+      "messages": {
+        "verifySuccess": "Mã OTP đã được xác thực thành công."
+      }
+    },
+    "forgotPassword": {
+      "title": "Quên mật khẩu",
+      "heading": "Quên mật khẩu",
+      "description": "Nhập email của bạn để nhận mật khẩu mới",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "logoAlt": "Logo Qhome Base",
+      "copyright": "© {year} Qhome Base. Bảo lưu mọi quyền.",
+      "buttons": {
+        "submit": "Gửi mật khẩu mới",
+        "processing": "Đang xử lý..."
+      },
+      "backToLogin": "Quay lại đăng nhập",
+      "validation": {
+        "emailRequired": "Email không được để trống",
+        "emailInvalid": "Email không đúng định dạng"
+      },
+      "messages": {
+        "otpSent": "Nếu email tồn tại trong hệ thống, mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
+        "success": "Nếu email tồn tại trong hệ thống, mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư."
+      },
+      "errors": {
+        "general": "Có lỗi xảy ra. Vui lòng thử lại.",
+        "emailRequired": "Email không được để trống",
+        "emailInvalid": "Email không đúng định dạng",
+        "tooManyRequests": "Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi một chút trước khi thử lại.",
+        "invalidEmail": "Email không hợp lệ.",
+        "networkError": "Không thể kết nối đến server. Vui lòng kiểm tra backend đang chạy.",
+        "genericError": "Có lỗi xảy ra. Vui lòng thử lại."
+      }
+    },
+    "confirmReset": {
+      "title": "Đặt lại mật khẩu",
+      "heading": "Đặt lại mật khẩu mới",
+      "description": "Nhập mật khẩu mới cho tài khoản {email}",
+      "newPasswordLabel": "Mật khẩu mới",
+      "newPasswordPlaceholder": "Nhập mật khẩu mới",
+      "confirmPasswordLabel": "Xác nhận mật khẩu",
+      "confirmPasswordPlaceholder": "Nhập lại mật khẩu mới",
+      "passwordHint": "Mật khẩu phải có ít nhất 6 ký tự",
+      "submit": "Đặt lại mật khẩu",
+      "submitting": "Đang xử lý...",
+      "backToLogin": "Quay lại đăng nhập",
+      "errors": {
+        "invalidInfo": "Thông tin không hợp lệ. Vui lòng quay lại trang quên mật khẩu.",
+        "passwordRequired": "Mật khẩu không được để trống",
+        "passwordMinLength": "Mật khẩu phải có ít nhất 6 ký tự",
+        "passwordMaxLength": "Mật khẩu không được vượt quá 100 ký tự",
+        "passwordMismatch": "Mật khẩu xác nhận không khớp",
+        "invalidOtp": "Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng thử lại từ đầu.",
+        "networkError": "Không thể kết nối đến server. Vui lòng kiểm tra backend đang chạy.",
+        "genericError": "Có lỗi xảy ra. Vui lòng thử lại."
+      },
+      "messages": {
+        "resetSuccess": "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại."
+      }
     }
   },
   "Supplier": {
@@ -3324,6 +3823,521 @@
         "setPrimarySuccess": "Đặt hình ảnh chính thành công",
         "setPrimaryError": "Đặt hình ảnh chính thất bại: {error}"
       }
+    }
+  },
+  "NotFound": {
+    "title": "404",
+    "heading": "Không tìm thấy trang",
+    "description": "Trang bạn đang tìm kiếm không tồn tại hoặc bạn không có quyền truy cập.",
+    "backButton": "Quay về trang chủ",
+    "backAlt": "Quay lại"
+  },
+  "HomePage": {
+    "title": "QHome PMS",
+    "description": "Chọn một module trong sidebar để tiếp tục."
+  },
+  "BillingCycles": {
+    "title": "Chu kỳ thanh toán",
+    "subtitle": "Quản lý tài chính",
+    "year": "Năm",
+    "filters": {
+      "service": "Dịch vụ",
+      "month": "Tháng",
+      "all": "Tất cả",
+      "allServices": "Tất cả dịch vụ",
+      "allMonths": "Tất cả tháng",
+      "clearFilters": "Xóa bộ lọc"
+    },
+    "summary": {
+      "cyclesInYear": "Có {count} billing cycles trong năm {year}",
+      "missingReadingCycles": "Chu kỳ đọc chưa có billing",
+      "cycles": "{count} chu kỳ",
+      "allCyclesHaveBilling": "Tất cả chu kỳ đã có billing"
+    },
+    "buttons": {
+      "creating": "Đang tạo...",
+      "createMissing": "Tạo billing thiếu",
+      "refresh": "Làm mới",
+      "manageDetails": "Quản lý chi tiết"
+    },
+    "loading": {
+      "data": "Đang lấy dữ liệu...",
+      "statistics": "Đang tải thống kê..."
+    },
+    "empty": {
+      "noCycles": "Không tìm thấy billing cycle"
+    },
+    "statistics": {
+      "overview": "Thống kê tổng quan",
+      "totalInvoices": "Tổng số hóa đơn",
+      "paid": "Đã thanh toán (PAID)",
+      "unpaid": "Chưa thanh toán (PUBLISHED)",
+      "void": "Đã hủy (VOID)",
+      "buildingSummary": "Tổng hợp theo tòa nhà"
+    },
+    "errors": {
+      "loadFailed": "Không thể tải billing cycles",
+      "loadMissingFailed": "Không thể tải chu kỳ đọc thiếu",
+      "syncFailed": "Đồng bộ chu kỳ thất bại"
+    },
+    "messages": {
+      "syncSuccess": "Đồng bộ chu kỳ đọc thành công",
+      "syncSuccessWithCount": "Đã tạo thêm {count} billing cycle",
+      "noCyclesToCreate": "Không có chu kỳ nào cần tạo",
+      "allCyclesHaveBilling": "Tất cả chu kỳ đã có billing"
+    },
+    "fallbacks": {
+      "unknownService": "Không rõ dịch vụ"
+    },
+    "detail": {
+      "title": "Thống kê Billing Cycle",
+      "name": "Tên:",
+      "status": "Trạng thái:",
+      "service": "Dịch vụ:",
+      "period": "Chu kỳ:",
+      "readingCycle": "Chu kỳ đọc:",
+      "id": "ID billing:",
+      "relatedCycle": "Chu kỳ đọc liên quan:",
+      "viewDetails": "Xem chi tiết",
+      "noData": "Không có dữ liệu"
+    }
+  },
+  "BillingCyclesManage": {
+    "title": "Quản lý chu kỳ thanh toán",
+    "subtitle": "Quản lý tài chính",
+    "year": "Năm",
+    "filters": {
+      "service": "Dịch vụ",
+      "month": "Tháng",
+      "building": "Tòa nhà",
+      "floor": "Tầng",
+      "invoiceStatus": "Trạng thái hóa đơn",
+      "all": "Tất cả",
+      "allServices": "Tất cả dịch vụ",
+      "allMonths": "Tất cả tháng",
+      "allBuildings": "Tất cả tòa nhà",
+      "allFloors": "Tất cả tầng",
+      "allStatuses": "Tất cả trạng thái"
+    },
+    "buttons": {
+      "exporting": "Đang xuất...",
+      "exportExcel": "Xuất Excel",
+      "refresh": "Làm mới",
+      "backToOverview": "Quay lại tổng quan"
+    },
+    "loading": {
+      "data": "Đang tải...",
+      "invoices": "Đang tải hóa đơn...",
+      "summaries": "Đang tổng hợp dữ liệu theo tòa...",
+      "missingServices": "Đang tải..."
+    },
+    "labels": {
+      "selectCycle": "Chọn Billing Cycle",
+      "currentCycle": "Chu kỳ hiện tại:",
+      "missingServices": "Dịch vụ chưa có hóa đơn:",
+      "allServicesHaveInvoices": "✓ Tất cả dịch vụ đã có hóa đơn",
+      "building": "Tòa",
+      "status": "Trạng thái:",
+      "invoiceList": "Danh sách hóa đơn",
+      "floor": "Tầng {floor}",
+      "unit": "Căn:",
+      "due": "Due:",
+      "noBuildingSelected": "Chưa chọn tòa"
+    },
+    "summary": {
+      "buildingsCount": "{count} toà nhà | Tổng hóa đơn: {amount} VNĐ",
+      "invoicesCount": "{count} hóa đơn · {amount} VNĐ"
+    },
+    "empty": {
+      "noInvoicesForFloor": "Chưa có hóa đơn cho tầng {floor} của tòa được chọn",
+      "noInvoicesForBuilding": "Chưa có hóa đơn cho tòa được chọn",
+      "noBuildingSelected": "Chưa chọn tòa"
+    },
+    "errors": {
+      "loadFailed": "Không thể tải billing cycles",
+      "loadBuildingsFailed": "Không thể tải dữ liệu tòa nhà",
+      "loadInvoicesFailed": "Không thể tải hóa đơn",
+      "loadUnitsFailed": "Không thể tải danh sách căn hộ",
+      "selectCycleRequired": "Vui lòng chọn một billing cycle",
+      "exportFailed": "Xuất Excel thất bại"
+    },
+    "messages": {
+      "exportSuccess": "Xuất Excel thành công"
+    }
+  },
+  "ShowAssign": {
+    "title": "Phân công của tôi",
+    "errors": {
+      "loadRemindersFailed": "Không thể tải nhắc nhở"
+    }
+  },
+  "ReadingSessions": {
+    "title": "Phiên đọc chỉ số",
+    "buttons": {
+      "startSession": "Bắt đầu phiên",
+      "completeSession": "Hoàn thành phiên"
+    },
+    "filters": {
+      "viewMode": "Chế độ xem",
+      "assignment": "Phân công",
+      "staff": "Nhân viên",
+      "mySessions": "Phiên của tôi",
+      "myActive": "Phiên đang hoạt động",
+      "allSessions": "Tất cả phiên",
+      "selectAssignment": "Chọn phân công",
+      "selectStaff": "Chọn nhân viên",
+      "enterStaffId": "Nhập ID nhân viên"
+    },
+    "activeSession": {
+      "label": "Phiên đang hoạt động:",
+      "startedAt": "Bắt đầu lúc",
+      "unitsRead": "căn hộ đã đọc"
+    },
+    "confirm": {
+      "completeMessage": "Bạn có chắc chắn muốn hoàn thành phiên này không?"
+    },
+    "errors": {
+      "loadFailed": "Không thể tải phiên đọc chỉ số",
+      "startFailed": "Không thể bắt đầu phiên",
+      "completeFailed": "Không thể hoàn thành phiên"
+    },
+    "messages": {
+      "startSuccess": "Bắt đầu phiên thành công",
+      "completeSuccess": "Hoàn thành phiên thành công"
+    }
+  },
+  "IndexReading": {
+    "title": "Đọc chỉ số đồng hồ",
+    "errors": {
+      "loadFailed": "Không thể tải dữ liệu"
+    }
+  },
+  "PricingTiers": {
+    "title": "Quản lý bậc giá",
+    "description": "Cấu hình bậc giá cho điện và nước",
+    "services": {
+      "electric": "Điện",
+      "water": "Nước"
+    },
+    "summary": {
+      "totalTiers": "Tổng số bậc giá: {count}"
+    },
+    "buttons": {
+      "addNewTier": "+ Thêm bậc giá mới",
+      "addFirstTier": "Thêm bậc giá đầu tiên",
+      "edit": "Sửa",
+      "delete": "Xóa",
+      "save": "Lưu",
+      "saving": "Đang lưu...",
+      "cancel": "Hủy"
+    },
+    "form": {
+      "addTitle": "Thêm bậc giá mới",
+      "editTitle": "Chỉnh sửa bậc giá",
+      "tierOrder": "Thứ tự bậc *",
+      "minQuantity": "Số lượng tối thiểu (kWh/m³)",
+      "maxQuantity": "Số lượng tối đa (kWh/m³)",
+      "unitPrice": "Đơn giá (VNĐ/kWh hoặc VNĐ/m³) *",
+      "effectiveFrom": "Ngày hiệu lực từ *",
+      "effectiveUntil": "Ngày hiệu lực đến",
+      "description": "Mô tả",
+      "active": "Kích hoạt bậc giá này",
+      "maxQuantityPlaceholder": "Không giới hạn",
+      "maxQuantityHint": "Để trống nếu không giới hạn (bậc cuối cùng - bắt buộc phải có ít nhất 1 bậc)",
+      "effectiveUntilHint": "Để trống nếu không có hạn",
+      "descriptionPlaceholder": "Mô tả bậc giá (tùy chọn)"
+    },
+    "table": {
+      "tier": "Bậc",
+      "quantityRange": "Khoảng lượng",
+      "unitPrice": "Đơn giá",
+      "effective": "Hiệu lực",
+      "status": "Trạng thái",
+      "actions": "Thao tác",
+      "tierOrder": "Bậc {order}",
+      "to": "đến",
+      "active": "Đang áp dụng",
+      "inactive": "Không áp dụng"
+    },
+    "validation": {
+      "tierOrderMin": "Thứ tự bậc phải >= 1",
+      "minQuantityNonNegative": "Số lượng tối thiểu phải >= 0",
+      "maxQuantityGreater": "Số lượng tối đa phải > số lượng tối thiểu",
+      "unitPricePositive": "Đơn giá phải > 0",
+      "effectiveFromRequired": "Ngày hiệu lực là bắt buộc",
+      "effectiveUntilAfterFrom": "Ngày kết thúc phải >= ngày bắt đầu"
+    },
+    "warnings": {
+      "overlappingTiers": "Cảnh báo: Có khoảng giá bị trùng",
+      "missingTiers": "Cảnh báo: Có khoảng giá bị thiếu",
+      "missingFinalTier": "⚠️ Thiếu bậc giá cuối cùng",
+      "missingFinalTierDescription": "Hệ thống yêu cầu phải có ít nhất một bậc giá cuối cùng với maxQuantity = null (không giới hạn) để bao phủ tất cả các trường hợp còn lại.",
+      "missingFinalTierExample": "Ví dụ: Bậc cuối cùng có thể là \"≥ 50 kWh\" hoặc \"≥ 50 m³\" với maxQuantity để trống.",
+      "overlappingDescription": "Các bậc giá sau có khoảng trùng nhau:",
+      "overlappingRange": "{tier1} và {tier2} trùng khoảng từ {from} đến {to} {unit}",
+      "overlappingRangeFrom": "{tier1} và {tier2} trùng khoảng từ {from} trở đi {unit}",
+      "overlappingRangeAt": "{tier1} và {tier2} trùng khoảng tại {from} {unit}",
+      "overlappingAdjust": "Vui lòng điều chỉnh min/max của các bậc để tránh trùng lặp.",
+      "gapsDescription": "Các khoảng sau chưa được phủ bởi bất kỳ bậc giá nào:",
+      "gapFromTo": "Từ {from} đến {to} {unit}",
+      "gapFromUp": "Từ {from} trở lên {unit} - Cần bậc cuối cùng (maxQuantity = null)",
+      "gapsAdjust": "Vui lòng thêm bậc giá để phủ các khoảng này hoặc điều chỉnh max của bậc trước đó."
+    },
+    "common": {
+      "notAvailable": "N/A"
+    },
+    "loading": {
+      "data": "Đang tải..."
+    },
+    "empty": {
+      "noTiers": "Chưa có bậc giá nào"
+    },
+    "notes": {
+      "title": "Lưu ý:",
+      "orderApplied": "Bậc giá được áp dụng theo thứ tự từ thấp đến cao",
+      "rangeCalculation": "Bậc giá sẽ được tính khi số lượng sử dụng nằm trong khoảng min - max",
+      "unlimitedMax": "Nếu max = null, bậc giá áp dụng cho tất cả số lượng từ min trở lên",
+      "effectiveDate": "Ngày hiệu lực quyết định bậc giá nào được sử dụng tại thời điểm tính toán"
+    },
+    "errors": {
+      "loadFailed": "Không thể tải danh sách bậc giá",
+      "deleteFailed": "Không thể xóa bậc giá",
+      "saveFailed": "Không thể lưu bậc giá"
+    },
+    "messages": {
+      "deleteSuccess": "Xóa bậc giá thành công",
+      "createSuccess": "Tạo bậc giá thành công",
+      "updateSuccess": "Cập nhật bậc giá thành công"
+    },
+    "confirm": {
+      "deleteMessage": "Bạn có chắc muốn xóa bậc giá {tierOrder}?",
+      "noLastTierWarning": "Cảnh báo: Sau khi lưu, hệ thống sẽ không có bậc giá cuối cùng (maxQuantity = null).\n\nBạn có muốn tiếp tục? Hệ thống yêu cầu phải có ít nhất một bậc cuối cùng để bao phủ tất cả các trường hợp."
+    }
+  },
+  "Invoices": {
+    "title": "Quản lý Thu Chi",
+    "description": "Xem và quản lý tất cả các hóa đơn trong hệ thống",
+    "buttons": {
+      "exportExcel": "Xuất Excel",
+      "viewDetails": "Xem chi tiết"
+    },
+    "filters": {
+      "allServices": "Tất cả dịch vụ",
+      "allStatuses": "Tất cả trạng thái",
+      "allMonths": "Tất cả tháng",
+      "search": "Tìm kiếm",
+      "serviceType": "Loại dịch vụ",
+      "status": "Trạng thái",
+      "month": "Tháng",
+      "searchPlaceholder": "Mã hóa đơn, tên, địa chỉ..."
+    },
+    "statistics": {
+      "totalInvoices": "Tổng số hóa đơn",
+      "totalValue": "Tổng giá trị",
+      "paid": "Đã thanh toán",
+      "unpaid": "Chưa thanh toán"
+    },
+    "table": {
+      "invoiceCode": "Mã HĐ",
+      "issuedDate": "Ngày phát hành",
+      "payer": "Người thanh toán",
+      "service": "Dịch vụ",
+      "totalAmount": "Tổng tiền",
+      "status": "Trạng thái",
+      "actions": "Thao tác",
+      "empty": "Không có hóa đơn nào"
+    },
+    "modal": {
+      "title": "Chi tiết hóa đơn",
+      "invoiceCode": "Mã hóa đơn",
+      "status": "Trạng thái",
+      "issuedDate": "Ngày phát hành",
+      "dueDate": "Hạn thanh toán",
+      "payer": "Người thanh toán",
+      "address": "Địa chỉ",
+      "paidDate": "Ngày thanh toán",
+      "paymentMethod": "Phương thức thanh toán",
+      "serviceDetails": "Chi tiết dịch vụ",
+      "service": "Dịch vụ",
+      "description": "Mô tả",
+      "quantity": "Số lượng",
+      "unitPrice": "Đơn giá",
+      "lineTotal": "Thành tiền",
+      "total": "Tổng cộng"
+    },
+    "services": {
+      "electricity": "Điện",
+      "water": "Nước",
+      "vehicleCard": "Thẻ xe",
+      "elevatorCard": "Thẻ thang máy",
+      "residentCard": "Thẻ cư dân"
+    },
+    "statuses": {
+      "draft": "Nháp",
+      "published": "Đã phát hành",
+      "paid": "Đã thanh toán",
+      "void": "Đã hủy"
+    },
+    "loading": "Đang tải...",
+    "errors": {
+      "loadFailed": "Không thể tải danh sách hóa đơn",
+      "exportFailed": "Không thể xuất file Excel"
+    },
+    "messages": {
+      "exportSuccess": "Xuất file Excel thành công"
+    }
+  },
+  "CardPricing": {
+    "title": "Quản lý giá thẻ",
+    "description": "Cấu hình giá đăng ký cho các loại thẻ trong hệ thống",
+    "cardTypes": {
+      "vehicle": "Thẻ xe",
+      "resident": "Thẻ cư dân",
+      "elevator": "Thẻ thang máy"
+    },
+    "descriptions": {
+      "vehicle": "Phí đăng ký thẻ xe",
+      "resident": "Phí đăng ký thẻ cư dân",
+      "elevator": "Phí đăng ký thẻ thang máy"
+    },
+    "status": {
+      "active": "Đang áp dụng",
+      "inactive": "Tạm ngưng"
+    },
+    "fields": {
+      "price": "Giá (VND)",
+      "description": "Mô tả",
+      "lastUpdated": "Cập nhật lần cuối"
+    },
+    "placeholders": {
+      "enterPrice": "Nhập giá",
+      "enterDescription": "Nhập mô tả"
+    },
+    "buttons": {
+      "saving": "Đang lưu...",
+      "saveChanges": "Lưu thay đổi"
+    },
+    "notes": {
+      "title": "Lưu ý",
+      "newPriceApplies": "Giá mới sẽ được áp dụng cho các đăng ký thẻ mới",
+      "currentPriceUsed": "Giá hiện tại đang được sử dụng cho các đăng ký đang chờ thanh toán",
+      "suspendPrice": "Bạn có thể tạm ngưng áp dụng giá bằng cách đặt isActive = false"
+    },
+    "loading": "Đang tải...",
+    "common": {
+      "notSet": "Chưa có"
+    },
+    "errors": {
+      "loadFailed": "Không thể tải danh sách giá thẻ",
+      "updateFailed": "Không thể cập nhật giá"
+    },
+    "messages": {
+      "updateSuccess": "Cập nhật giá thành công"
+    },
+    "validation": {
+      "priceMustBePositive": "Giá phải lớn hơn 0"
+    }
+  },
+  "TenantOwner": {
+    "loading": "Đang tải...",
+    "notFound": "Không tìm thấy thông tin tenant",
+    "title": "Trang chủ - {name}",
+    "welcome": "Chào mừng, {username}! Quản lý thông tin tenant của bạn.",
+    "stats": {
+      "buildings": "Tòa nhà",
+      "active": "Đang hoạt động",
+      "units": "Căn hộ",
+      "totalUnits": "Tổng số căn hộ",
+      "deletionRequests": "Yêu cầu xóa",
+      "pending": "Đang chờ duyệt"
+    },
+    "tenantInfo": {
+      "title": "📋 Thông tin Tenant",
+      "name": "Tên Tenant",
+      "code": "Mã Tenant"
+    },
+    "buildings": {
+      "title": "Danh sách Tòa nhà",
+      "count": "{count} tòa nhà",
+      "empty": "📭 Chưa có tòa nhà nào",
+      "address": "📍",
+      "noAddress": "Không có địa chỉ",
+      "units": "{count} căn hộ"
+    },
+    "deletionRequests": {
+      "title": "Yêu cầu Xóa Tenant",
+      "count": "{count} yêu cầu",
+      "empty": {
+        "title": "Chưa có yêu cầu xóa tenant",
+        "description": "Bạn có thể tạo yêu cầu xóa tenant nếu cần thiết",
+        "button": "➕ Tạo yêu cầu mới"
+      },
+      "status": {
+        "pending": "⏳ Chờ duyệt",
+        "approved": "✅ Đã duyệt",
+        "inProgress": "🔄 Đang xử lý",
+        "completed": "✔️ Hoàn thành",
+        "rejected": "❌ Từ chối",
+        "cancelled": "🚫 Đã hủy"
+      },
+      "rejectionReason": "Lý do từ chối:",
+      "buttons": {
+        "approve": "✅ Approve",
+        "approving": "⏳ Đang xử lý...",
+        "details": "Chi tiết"
+      }
+    },
+    "modals": {
+      "approve": {
+        "title": "✅ Xác nhận Approve Yêu cầu Xóa Tenant",
+        "warning": "⚠️ Lưu ý quan trọng:",
+        "notes": {
+          "buildingStatus": "Hệ thống sẽ tự động đặt trạng thái buildings thành DELETING",
+          "unitsDeleted": "Tất cả units sẽ được xóa dần",
+          "buildingArchived": "Sau khi xóa hết units → Building status = ARCHIVED",
+          "tenantArchived": "Sau khi xóa hết buildings → Tenant status = ARCHIVED"
+        },
+        "noteLabel": "Ghi chú (tùy chọn):",
+        "notePlaceholder": "Nhập lý do approve...",
+        "cancel": "Hủy",
+        "confirm": "✅ Xác nhận Approve",
+        "confirming": "⏳ Đang xử lý..."
+      }
+    },
+    "messages": {
+      "approveSuccess": "✅ Đã approve yêu cầu xóa tenant! Hệ thống sẽ bắt đầu xử lý.",
+      "approveError": "❌ Approve thất bại: {message}"
+    }
+  },
+  "TenantOwnerBuildings": {
+    "loading": "Đang tải...",
+    "title": "Buildings Đang Xóa",
+    "description": "Quản lý các building đang trong quá trình xóa. Khi đã xóa hết units, bạn có thể hoàn tất việc xóa building.",
+    "empty": {
+      "icon": "✅",
+      "title": "Không có tòa nhà nào đang xóa",
+      "description": "Tất cả tòa nhà của bạn đang hoạt động bình thường"
+    },
+    "building": {
+      "status": "🔄 ĐANG XÓA",
+      "code": "Mã building:",
+      "requestedBy": "Yêu cầu bởi:",
+      "requestedAt": "Ngày yêu cầu:",
+      "progress": {
+        "title": "Tiến trình xóa Units:",
+        "units": "{deleted} / {total} units",
+        "completed": "Đã xóa hết units! Có thể hoàn tất xóa building.",
+        "remaining": "Còn {remaining} units cần xóa...",
+        "complete": "✅ Hoàn tất xóa",
+        "completing": "⏳ Đang xử lý..."
+      }
+    },
+    "confirm": {
+      "complete": "Bạn có chắc muốn hoàn tất xóa building \"{name}\"?\n\nBuilding sẽ chuyển sang trạng thái ARCHIVED."
+    },
+    "messages": {
+      "completeSuccess": "✅ Đã hoàn tất xóa building \"{name}\"!",
+      "completeError": "❌ Hoàn tất xóa thất bại: {message}"
     }
   }
 }

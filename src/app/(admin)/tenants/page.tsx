@@ -6,6 +6,7 @@ import { getAllTenants, type Tenant } from '@/src/services/base';
 import CreateDeletionRequestModal from '@/src/components/tenant/CreateDeletionRequestModal';
 import { useAuth } from '@/src/contexts/AuthContext';
 import Delete from '@/src/assets/Delete.svg';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 export default function TenantsPage() {
   const { user, hasRole } = useAuth();
@@ -15,6 +16,8 @@ export default function TenantsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadTenants();
@@ -35,7 +38,8 @@ export default function TenantsPage() {
       setTenants(filteredData);
     } catch (error) {
       console.error('Failed to load tenants:', error);
-      alert(t('error'));
+      setErrorMessage(t('error'));
+      setShowErrorPopup(true);
     } finally {
       setLoading(false);
     }
@@ -208,6 +212,16 @@ export default function TenantsPage() {
             onSuccess={handleDeletionSuccess}
           />
         )}
+
+        {/* Error Popup */}
+        <PopupComfirm
+          isOpen={showErrorPopup}
+          onClose={() => setShowErrorPopup(false)}
+          onConfirm={() => setShowErrorPopup(false)}
+          popupTitle={errorMessage}
+          popupContext=""
+          isDanger={true}
+        />
       </div>
     </div>
   );

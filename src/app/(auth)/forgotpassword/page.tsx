@@ -16,11 +16,11 @@ export default function Page() {
 
   const validateEmail = (email: string): string => {
     if (!email.trim()) {
-      return t('forgotPassword.errors.emailRequired');
+      return t('forgotPassword.validation.emailRequired');
     }
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(email)) {
-      return t('forgotPassword.errors.emailInvalid');
+      return t('forgotPassword.validation.emailInvalid');
     }
     return "";
   };
@@ -40,12 +40,12 @@ export default function Page() {
     
     try {
       await requestPasswordReset(email);
-      show(t('forgotPassword.messages.success'), "success");
+      show(t('forgotPassword.messages.otpSent'), "success");
       setTimeout(() => {
         router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
       }, 1000);
     } catch (e: any) {
-      let errorMessage = t('forgotPassword.errors.genericError');
+      let errorMessage = t('forgotPassword.errors.general');
       
       if (e?.response?.status === 429) {
         errorMessage = e?.response?.data?.message || t('forgotPassword.errors.tooManyRequests');
@@ -68,14 +68,14 @@ export default function Page() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-10">
           <div className="flex flex-col items-center select-none">
-            <img src="/logo.svg" alt="Qhome Base Logo" className="h-28 w-24 mb-4" />
+            <img src="/logo.svg" alt={t('forgotPassword.logoAlt')} className="h-28 w-24 mb-4" />
             <span className="text-3xl font-semibold tracking-tight text-slate-800">{t('forgotPassword.title')}</span>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-8">
           <form onSubmit={onSubmit} className="space-y-5">
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-semibold text-slate-800">{t('forgotPassword.heading')}</h1>
+              <h1 className="text-2xl font-semibold text-slate-800">{t('forgotPassword.title')}</h1>
               <p className="text-sm text-slate-500 mt-1">
                 {t('forgotPassword.description')}
               </p>
@@ -111,7 +111,7 @@ export default function Page() {
               disabled={loading}
               className="w-full rounded-md px-4 py-2.5 text-sm font-medium bg-[#6B9B6E] text-white hover:bg-[#5d8660] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? t('forgotPassword.submitting') : t('forgotPassword.submit')}
+              {loading ? t('forgotPassword.buttons.processing') : t('forgotPassword.buttons.submit')}
             </button>
 
             <div className="text-center">
@@ -125,7 +125,7 @@ export default function Page() {
           </form>
         </div>
         <div className="mt-6 text-center text-xs text-slate-500">
-          {t('login.copyright', { year: new Date().getFullYear() })}
+          {t('forgotPassword.copyright', { year: new Date().getFullYear() })}
         </div>
       </div>
     </div>

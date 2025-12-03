@@ -48,23 +48,24 @@ const adminSections: NavSection[] = [
   {
     titleKey: "buildingsAndResidents",
     items: [
-      {href: "/base/building/buildingList", label: "Quản lý Building", icon: "🏢"},
-      {href: "/base/unit/unitList", label: "Quản lý Unit", icon: "🏠"},
-      {href: "/base/residentView", label: "Danh sách cư dân", icon: "👨‍👩‍👧‍👦"},
-      {href: "/base/regisresiView", label: "Duyệt tài khoản cư dân", icon: "📝"},
-      {href: "/base/household/householdMemberRequests", label: "Duyệt thành viên gia đình", icon: "👪"},
-      {href: "/base/contract/contracts", label: "Hợp đồng căn hộ", icon: "📄"},
-      {href: "/base/vehicles/vehicleAll", label: "Quản lý phương tiện", icon: "🚗"},
-      {href: "/base/cards/elevator", label: "Thẻ thang máy", icon: "🛗"},
-      {href: "/base/cards/resident", label: "Thẻ cư dân", icon: "🔑"},
-      {href: "/base/cards/approved", label: "Thẻ đã duyệt", icon: "✅"},
+      {href: "/base/building/buildingList", labelKey: "buildingManagement", icon: "🏢"},
+      {href: "/base/unit/unitList", labelKey: "unitManagement", icon: "🏠"},
+      {href: "/base/residentView", labelKey: "residentList", icon: "👨‍👩‍👧‍👦"},
+      {href: "/base/regisresiView", labelKey: "approveResidentAccount", icon: "📝"},
+      {href: "/base/household/householdMemberRequests", labelKey: "approveFamilyMember", icon: "👪"},
+      {href: "/base/contract/contracts", labelKey: "unitContracts", icon: "📄"},
+      {href: "/base/vehicles/vehicleAll", labelKey: "vehicleManagement", icon: "🚗"},
+      {href: "/base/cards/elevator", labelKey: "elevatorCard", icon: "🛗"},
+      {href: "/base/cards/resident", labelKey: "residentCard", icon: "🔑"},
+      {href: "/base/cards/approved", labelKey: "approvedCard", icon: "✅"},
+      {href: "/base/cards/pricing", labelKey: "cardPricingManagement", icon: "💰"},
     ],
   },
   {
     titleKey: "assetManagement",
     items: [
-      {href: "/base/asset-management", labelKey: undefined, label: "Quản lý tài sản", icon: "🏘️"},
-      {href: "/base/meter-management", labelKey: undefined, label: "Quản lý meter", icon: "⚙️"},
+      {href: "/base/asset-management", labelKey: "assetManagement", icon: "🏘️"},
+      {href: "/base/meter-management", labelKey: "meterManagement", icon: "⚙️"},
     ],
   },
   {
@@ -86,6 +87,8 @@ const adminSections: NavSection[] = [
       // {href: "/base/showAssign", labelKey: "assignmentList", icon: "📋"},
       // {href: "/base/waterShow", labelKey: "waterMonitoring", icon: "💧"},
       {href: "/base/billingCycles", labelKey: "billingCycles", icon: "💡"},
+      {href: "/base/finance/invoices", labelKey: "incomeExpenseManagement", icon: "💰"},
+      {href: "/base/finance/pricing-tiers", labelKey: "pricingTiersManagement", icon: "📊"},
     ],
   },
   {
@@ -104,6 +107,12 @@ const technicianSections: NavSection[] = [
     titleKey: "overview",
     items: [
       {href: "/dashboard", labelKey: "dashboard", icon: "📊"},
+    ],
+  },
+  {
+    titleKey: "accounts",
+    items: [
+      {href: "/staffProfile", labelKey: "personalInfo", icon: "👤"},
     ],
   },
   {

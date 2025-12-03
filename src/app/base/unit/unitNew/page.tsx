@@ -26,6 +26,7 @@ export default function UnitAdd () {
     // Get buildingId from URL params
     const buildingIdFromParams = searchParams.get('buildingId') || '';
     const [selectedBuildingId, setSelectedBuildingId] = useState<string>(buildingIdFromParams);
+    const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
     const [buildings, setBuildings] = useState<Building[]>([]);
     const [loadingBuildings, setLoadingBuildings] = useState(false);
     const [buildingCode, setBuildingCode] = useState<string>('');
@@ -68,6 +69,7 @@ export default function UnitAdd () {
                     // If buildingId is in params, fetch that specific building and add to list
                     const building = await getBuilding(buildingIdFromParams);
                     setBuildings([building]);
+                    setSelectedBuilding(building);
                 } else {
                     // Otherwise, fetch all buildings
                     const buildingsList = await getBuildings();
@@ -88,15 +90,18 @@ export default function UnitAdd () {
         const fetchBuildingCode = async () => {
             if (!selectedBuildingId) {
                 setBuildingCode('');
+                setSelectedBuilding(null);
                 return;
             }
             try {
                 const building = await getBuilding(selectedBuildingId);
                 console.log("building", building);
                 setBuildingCode(building.code);
+                setSelectedBuilding(building);
             } catch (err) {
                 console.error('Failed to fetch building:', err);
                 setBuildingCode('');
+                setSelectedBuilding(null);
             }
         };
         fetchBuildingCode();
@@ -193,8 +198,13 @@ export default function UnitAdd () {
             }
             case 'floor': {
                 const floor = typeof value === 'number' ? value : parseInt(String(value));
-                if (!floor || floor <= 0) newErrors.floor = t('floorError');
-                else delete newErrors.floor;
+                if (!floor || floor <= 0) {
+                    newErrors.floor = t('floorError');
+                } else if (selectedBuilding && floor > selectedBuilding.floorsMax) {
+                    newErrors.floor = t('unitNew.floorMaxError', { floorsMax: selectedBuilding.floorsMax });
+                } else {
+                    delete newErrors.floor;
+                }
                 break;
             }
             case 'bedrooms': {
@@ -242,6 +252,8 @@ export default function UnitAdd () {
         // Validate floor
         if (formData.floor === undefined || formData.floor <= 0) {
             newErrors.floor = t('floorError');
+        } else if (selectedBuilding && formData.floor > selectedBuilding.floorsMax) {
+            newErrors.floor = t('unitNew.floorMaxError', { floorsMax: selectedBuilding.floorsMax });
         }
         
         // Validate bedrooms
@@ -311,9 +323,16 @@ export default function UnitAdd () {
 
     const handleBuildingChange = (building: Building) => {
         setSelectedBuildingId(building.id);
+        setSelectedBuilding(building);
         setErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors.building;
+            // Re-validate floor if building changed
+            if (formData.floor && building.floorsMax && formData.floor > building.floorsMax) {
+                newErrors.floor = t('unitNew.floorMaxError', { floorsMax: building.floorsMax });
+            } else if (newErrors.floor && formData.floor && building.floorsMax && formData.floor <= building.floorsMax) {
+                delete newErrors.floor;
+            }
             return newErrors;
         });
     };

@@ -3,7 +3,7 @@ import axios from "@/src/lib/axios";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
 // Types for Reading Cycle
-export type ReadingCycleStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED';
+export type ReadingCycleStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' | 'CANCELLED';
 
 export interface ReadingCycleDto {
   id: string;

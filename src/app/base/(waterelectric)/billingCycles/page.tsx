@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   BillingCycleDto,
   BuildingInvoiceSummaryDto,
@@ -24,7 +25,7 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 export default function BillingCyclesPage() {
-
+  const t = useTranslations('BillingCycles');
   const { show } = useNotifications();
   const [year, setYear] = useState(new Date().getFullYear());
   const [cycles, setCycles] = useState<BillingCycleDto[]>([]);
@@ -104,7 +105,7 @@ export default function BillingCyclesPage() {
       setExpandedCycle(data.length ? data[0].id : null);
     } catch (error: any) {
       console.error('Failed to load billing cycles:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể tải billing cycles', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.loadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -117,7 +118,7 @@ export default function BillingCyclesPage() {
       setMissingReadingCycles(data);
     } catch (error: any) {
       console.error('Failed to load missing billing cycles', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể tải chu kỳ đọc thiếu', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.loadMissingFailed'), 'error');
     } finally {
       setLoadingMissingCycles(false);
     }
@@ -187,14 +188,13 @@ export default function BillingCyclesPage() {
   return (
     <div className="px-[41px] py-12">
       <div className="mb-6 flex items-center justify-between">
-
         <div>
-          <p className="text-xs uppercase tracking-wide text-gray-500">Quản lý tài chính</p>
-          <h1 className="text-3xl font-semibold text-[#02542D]">Billing Cycles</h1>
+          <p className="text-xs uppercase tracking-wide text-gray-500">{t('subtitle')}</p>
+          <h1 className="text-3xl font-semibold text-[#02542D]">{t('title')}</h1>
         </div>
         <div className="flex items-center gap-3">
           <div className="border border-gray-200 rounded-md px-3 py-2 flex items-center gap-2">
-            <span className="text-xs text-gray-500">Năm</span>
+            <span className="text-xs text-gray-500">{t('year')}</span>
             <input
               type="number"
               min={2000}
@@ -210,53 +210,53 @@ export default function BillingCyclesPage() {
             onClick={() => loadCycles()}
             className="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#0c793f] transition-colors text-sm leading-none whitespace-nowrap"
           >
-            Làm mới
+            {t('buttons.refresh')}
           </button>
           <button
             onClick={async () => {
               setSyncingMissing(true);
-            try {
-              const created = await syncMissingBillingCycles();
-              const msg =
-                created.length > 0
-                  ? `Đã tạo thêm ${created.length} billing cycle`
-                  : 'Không có chu kỳ nào cần tạo';
-              setSyncMissingResult(msg);
-              show('Đồng bộ chu kỳ đọc thành công', 'success');
-              await loadCycles();
-              await loadMissingCycles();
-            } catch (error: any) {
-              console.error('Sync missing billing cycles failed', error);
-              show(
-                error?.response?.data?.message || error?.message || 'Đồng bộ chu kỳ thất bại',
-                'error'
-              );
-            } finally {
-              setSyncingMissing(false);
-            }
+              try {
+                const created = await syncMissingBillingCycles();
+                const msg =
+                  created.length > 0
+                    ? t('messages.syncSuccessWithCount', { count: created.length })
+                    : t('messages.noCyclesToCreate');
+                setSyncMissingResult(msg);
+                show(t('messages.syncSuccess'), 'success');
+                await loadCycles();
+                await loadMissingCycles();
+              } catch (error: any) {
+                console.error('Sync missing billing cycles failed', error);
+                show(
+                  error?.response?.data?.message || error?.message || t('errors.syncFailed'),
+                  'error'
+                );
+              } finally {
+                setSyncingMissing(false);
+              }
             }}
             disabled={syncingMissing}
             className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors disabled:opacity-60 text-sm leading-none whitespace-nowrap"
           >
-            {syncingMissing ? 'Đang tạo...' : 'Tạo billing thiếu'}
+            {syncingMissing ? t('buttons.creating') : t('buttons.createMissing')}
           </button>
           <Link
             href="/base/billingCycles/manage"
             className="px-4 py-2 border border-[#02542D] text-[#02542D] rounded-md text-sm font-semibold hover:bg-[#f2fff6]"
           >
-            Quản lý chi tiết
+            {t('buttons.manageDetails')}
           </Link>
         </div>
       </div>
       <div className="mb-6 grid grid-cols-3 gap-3 items-end">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Dịch vụ</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">{t('filters.service')}</label>
           <select
             value={serviceFilter}
             onChange={(event) => setServiceFilter(event.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
           >
-            <option value="ALL">Tất cả dịch vụ</option>
+            <option value="ALL">{t('filters.allServices')}</option>
             {services.map((service) => (
               <option key={service.code} value={service.code}>
                 {service.name} ({service.code})
@@ -265,13 +265,13 @@ export default function BillingCyclesPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Tháng</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">{t('filters.month')}</label>
           <select
             value={monthFilter}
             onChange={(event) => setMonthFilter(event.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559]"
           >
-            <option value="ALL">Tất cả tháng</option>
+            <option value="ALL">{t('filters.allMonths')}</option>
             {monthOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -280,41 +280,38 @@ export default function BillingCyclesPage() {
           </select>
         </div>
         <div className="flex justify-end">
-        <button
-
+          <button
             onClick={() => {
               setServiceFilter('ALL');
               setMonthFilter('ALL');
             }}
             className="text-sm text-[#02542D] font-semibold hover:underline"
           >
-            Xóa bộ lọc
-        </button>
-
+            {t('filters.clearFilters')}
+          </button>
         </div>
       </div>
 
-
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
         <div className="text-sm text-gray-600">
-          Có {filteredCycles.length} billing cycles trong năm {year}
+          {t('summary.cyclesInYear', { count: filteredCycles.length, year })}
         </div>
         {syncMissingResult && (
           <div className="rounded-md bg-[#f0fdf4] border border-[#c6f6d5] text-[#0f5132] px-4 py-2 text-sm">
             {syncMissingResult}
           </div>
         )}
-            <div className="rounded-xl border border-dashed border-[#d1e7dd] bg-[#f7fcf6] p-4 space-y-2">
+        <div className="rounded-xl border border-dashed border-[#d1e7dd] bg-[#f7fcf6] p-4 space-y-2">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-[#0f5132]">Chu kỳ đọc chưa có billing</div>
+            <div className="text-sm font-medium text-[#0f5132]">{t('summary.missingReadingCycles')}</div>
             <span className="text-xs text-[#0f5132]">
-              {filteredMissingCycles.length} chu kỳ
+              {t('summary.cycles', { count: filteredMissingCycles.length })}
             </span>
           </div>
           {loadingMissingCycles ? (
-            <div className="text-sm text-[#0f5132]">Đang lấy dữ liệu...</div>
+            <div className="text-sm text-[#0f5132]">{t('loading.data')}</div>
           ) : filteredMissingCycles.length === 0 ? (
-            <div className="text-sm text-[#0f5132]">Tất cả chu kỳ đã có billing</div>
+            <div className="text-sm text-[#0f5132]">{t('messages.allCyclesHaveBilling')}</div>
           ) : (
             <ul className="space-y-2 text-sm text-[#0f5132]">
               {filteredMissingCycles.map((cycle) => (
@@ -326,7 +323,7 @@ export default function BillingCyclesPage() {
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-500">
-                    {cycle.serviceName || cycle.serviceCode || 'Unknown service'}
+                    {cycle.serviceName || cycle.serviceCode || t('fallbacks.unknownService')}
                   </p>
                   <p className="text-[11px] text-gray-500">
                     {new Date(cycle.periodFrom).toLocaleDateString()} — {new Date(cycle.periodTo).toLocaleDateString()}
@@ -337,9 +334,9 @@ export default function BillingCyclesPage() {
           )}
         </div>
         {loading ? (
-          <div className="py-6 text-center text-gray-500">Đang tải...</div>
+          <div className="py-6 text-center text-gray-500">{t('loading.data')}</div>
         ) : filteredCycles.length === 0 ? (
-          <div className="py-6 text-center text-gray-500">Không tìm thấy billing cycle</div>
+          <div className="py-6 text-center text-gray-500">{t('empty.noCycles')}</div>
         ) : (
           <div className="space-y-3">
             {filteredCycles.map((cycle) => {
@@ -361,9 +358,9 @@ export default function BillingCyclesPage() {
                   </button>
                   {isExpanded && (
                     <div className="px-4 py-3 bg-white space-y-1 text-sm text-gray-700">
-                      <div>ID billing: {cycle.id}</div>
-                      <div>Chu kỳ đọc liên quan: {cycle.externalCycleId ?? '—'}</div>
-                      <div className="text-xs text-gray-500">Trạng thái: {cycle.status}</div>
+                      <div>{t('detail.id')} {cycle.id}</div>
+                      <div>{t('detail.relatedCycle')} {cycle.externalCycleId ?? '—'}</div>
+                      <div className="text-xs text-gray-500">{t('detail.status')} {cycle.status}</div>
                     </div>
                   )}
                   <div className="px-4 py-3 bg-gray-50 flex justify-end">
@@ -374,7 +371,7 @@ export default function BillingCyclesPage() {
                       }}
                       className="px-3 py-1 rounded-md bg-white border border-[#d1e7dd] text-[#02542D] text-sm font-semibold hover:bg-[#f0f5f0]"
                     >
-                      View details
+                      {t('detail.viewDetails')}
                     </button>
                   </div>
                 </div>
@@ -384,52 +381,68 @@ export default function BillingCyclesPage() {
         )}
       </div>
       {detailCycle && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-xl shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-[#02542D]">Billing Cycle detail</h3>
-        <button
-
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-[#02542D]">{t('detail.title') || 'Billing Cycle Detail'}</h3>
+              <button
                 onClick={() => setDetailCycle(null)}
                 className="text-sm text-gray-500 hover:text-[#02542D]"
               >
-                Close
-        </button>
-
+                {t('buttons.close') || 'Close'}
+              </button>
             </div>
-            <div className="space-y-3 text-sm text-gray-700">
-              <div>
-                <span className="font-semibold">Name:</span> {detailCycle.name}
+
+            <div className="space-y-6">
+              {/* Thông tin cycle */}
+              <div className="border-b border-gray-200 pb-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">{t('detail.name') || 'Name'}</span>
+                    <div className="font-semibold text-[#02542D]">{detailCycle.name}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('detail.status') || 'Status'}</span>
+                    <div className="font-semibold">
+                      <span className={`px-2 py-1 rounded text-xs ${STATUS_BADGES[detailCycle.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {detailCycle.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('detail.service') || 'Service'}</span>
+                    <div className="font-semibold text-[#02542D]">
+                      {detailCycle.serviceName || detailCycle.serviceCode || '–'}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('detail.period') || 'Period'}</span>
+                    <div className="font-semibold text-[#02542D]">
+                      {new Date(detailCycle.periodFrom).toLocaleDateString()} – {new Date(detailCycle.periodTo).toLocaleDateString()}
+                    </div>
+                  </div>
+                  {detailCycle.externalCycleId && (
+                    <div className="col-span-2">
+                      <span className="text-gray-500">{t('detail.externalCycleId') || 'External Cycle ID'}</span>
+                      <div className="font-semibold text-[#02542D]">
+                        {detailCycle.externalCycleId}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Building Summary */}
               <div>
-                <span className="font-semibold">Status:</span> {detailCycle.status}
-              </div>
-              <div>
-                <span className="font-semibold">Service:</span>{' '}
-                {detailCycle.serviceName || detailCycle.serviceCode || '–'}
-              </div>
-              <div>
-                <span className="font-semibold">Period:</span>{' '}
-                {new Date(detailCycle.periodFrom).toLocaleDateString()} –{' '}
-                {new Date(detailCycle.periodTo).toLocaleDateString()}
-              </div>
-              <div>
-                <span className="font-semibold">External cycle:</span>{' '}
-                {detailCycle.externalCycleId ?? '–'}
-              </div>
-              <div>
-                <span className="font-semibold">Billing ID:</span> {detailCycle.id}
-              </div>
-              <div className="mt-4">
-                <h4 className="text-base font-semibold text-[#02542D] mb-2">Summary theo tòa</h4>
+                <h4 className="text-base font-semibold text-[#02542D] mb-4">{t('statistics.buildingSummary') || 'Summary theo tòa'}</h4>
                 {loadingBuildingSummaries ? (
-                  <p className="text-xs text-gray-500">Đang lấy số liệu...</p>
+                  <div className="text-sm text-gray-500">{t('loading.data') || 'Đang lấy số liệu...'}</div>
                 ) : buildingSummaries.length === 0 ? (
-                  <p className="text-xs text-gray-500">Không tìm thấy hóa đơn nào phân theo tòa</p>
+                  <div className="text-sm text-gray-500">{t('detail.noData') || 'Không tìm thấy hóa đơn nào phân theo tòa'}</div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     {buildingSummaries.map((summary) => (
-        <button
+                      <button
                         key={`${summary.buildingId}-${summary.status}`}
                         onClick={() => handleBuildingSelect(summary.buildingId)}
                         className={`border rounded-lg p-2 text-left text-xs transition ${
@@ -447,17 +460,17 @@ export default function BillingCyclesPage() {
                         <div className="text-gray-500">
                           {summary.invoiceCount} hóa đơn · {summary.totalAmount?.toLocaleString('vi-VN') ?? 0} VNĐ
                         </div>
-        </button>
+                      </button>
                     ))}
                   </div>
                 )}
-      </div>
+              </div>
               <div className="mt-4">
-                <h4 className="text-base font-semibold text-[#02542D] mb-2">Danh sách hóa đơn</h4>
+                <h4 className="text-base font-semibold text-[#02542D] mb-2">{t('detail.invoiceList') || 'Danh sách hóa đơn'}</h4>
                 {loadingBuildingInvoices ? (
-                  <p className="text-xs text-gray-500">Đang tải hóa đơn...</p>
+                  <p className="text-xs text-gray-500">{t('loading.data') || 'Đang tải hóa đơn...'}</p>
                 ) : buildingInvoices.length === 0 ? (
-                  <p className="text-xs text-gray-500">Chưa có hóa đơn cho tòa này</p>
+                  <p className="text-xs text-gray-500">{t('detail.noInvoices') || 'Chưa có hóa đơn cho tòa này'}</p>
                 ) : (
                   <div className="space-y-2 text-xs text-gray-600">
                     {buildingInvoices
@@ -533,9 +546,3 @@ export default function BillingCyclesPage() {
     </div>
   );
 }
-
-
-}
-
-
-

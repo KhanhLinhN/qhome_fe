@@ -80,7 +80,7 @@ export default function AddAssignmentPage() {
         }
       } catch (error) {
         console.error('Failed to load data:', error);
-        show('Failed to load data', 'error');
+        show(t('errors.loadDataFailed'), 'error');
       } finally {
         setLoading(false);
       }

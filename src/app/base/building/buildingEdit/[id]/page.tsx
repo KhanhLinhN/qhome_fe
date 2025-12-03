@@ -43,6 +43,7 @@ export default function BuildingEdit() {
         district?: string;
         ward?: string;
         addressDetail?: string;
+        numberOfFloors?: string;
     }>({});
 
     // Address hierarchical state
@@ -259,19 +260,41 @@ export default function BuildingEdit() {
                 if (!trimmed) newErrors.addressDetail = t('addressDetailError') || 'Địa chỉ chi tiết không được để trống'; else delete newErrors.addressDetail;
                 break;
             }
+            case 'numberOfFloors': {
+                const numValue = typeof value === 'number' ? value : (value ? parseInt(String(value)) : null);
+                if (numValue === null || numValue === undefined || isNaN(numValue)) {
+                    newErrors.numberOfFloors = t('floorsRequired');
+                } else if (numValue < 1) {
+                    newErrors.numberOfFloors = t('floorsMustBeGreaterThanZero');
+                } else if (numValue >= 100) {
+                    newErrors.numberOfFloors = t('floorsMustBeLessThan100');
+                } else {
+                    delete newErrors.numberOfFloors;
+                }
+                break;
+            }
         }
         
         setErrors(newErrors);
     };
 
     const validateAllFields = () => {
-        const newErrors: { name?: string; city?: string; district?: string; ward?: string; addressDetail?: string } = {};
+        const newErrors: { name?: string; city?: string; district?: string; ward?: string; addressDetail?: string; numberOfFloors?: string } = {};
         const nameMsg = validateBuildingName(String(formData.name ?? ''));
         if (nameMsg) newErrors.name = nameMsg;
         if (!selectedCity) newErrors.city = t('cityRequired') || 'Vui lòng chọn thành phố';
         if (!selectedDistrict) newErrors.district = t('districtRequired') || 'Vui lòng chọn quận/huyện';
         if (!selectedWard) newErrors.ward = t('wardRequired') || 'Vui lòng chọn phường/xã';
         if (!addressDetail.trim()) newErrors.addressDetail = t('addressDetailError') || 'Địa chỉ chi tiết không được để trống';
+        
+        const floorsValue = formData.numberOfFloors;
+        if (floorsValue === null || floorsValue === undefined || isNaN(floorsValue)) {
+            newErrors.numberOfFloors = t('floorsRequired');
+        } else if (floorsValue < 1) {
+            newErrors.numberOfFloors = t('floorsMustBeGreaterThanZero');
+        } else if (floorsValue >= 100) {
+            newErrors.numberOfFloors = t('floorsMustBeLessThan100');
+        }
         
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -335,11 +358,11 @@ export default function BuildingEdit() {
                 payload.numberOfFloors = formData.numberOfFloors;
             }
             await editBuilding(buildingId, payload);
-            show('Cập nhật tòa nhà thành công!', 'success');
+            show(t('updateBuildingSuccess'), 'success');
             router.push(`/base/building/buildingDetail/${buildingId}`);
         } catch (submitError) {
-            console.error('Lỗi khi cập nhật:', submitError);
-            show('Có lỗi xảy ra khi cập nhật tòa nhà!', 'error');
+            console.error(t('updateError'), submitError);
+            show(t('updateBuildingError'), 'error');
         }
     };
 
@@ -426,22 +449,22 @@ export default function BuildingEdit() {
                         error={errors.name}
                     />
 
-                    <div className="flex flex-col">
-                        <label className="text-md font-bold text-[#02542D] mb-1">
-                            Số tầng
-                        </label>
-                        <input
-                            type="number"
-                            min="1"
-                            value={formData.numberOfFloors ?? ''}
-                            onChange={(e) => {
-                                const value = e.target.value ? parseInt(e.target.value) : null;
-                                setFormData(prev => ({ ...prev, numberOfFloors: value }));
-                            }}
-                            placeholder="Nhập số tầng (tùy chọn)"
-                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:border-emerald-500 focus:ring-emerald-100"
-                        />
-                    </div>
+                    <DetailField 
+                        label={t('numberOfFloors')}
+                        value={formData.numberOfFloors !== null && formData.numberOfFloors !== undefined ? String(formData.numberOfFloors) : ''}
+                        onChange={(e) => {
+                            const value = e.target.value ? parseInt(e.target.value) : null;
+                            setFormData(prev => ({ ...prev, numberOfFloors: value }));
+                            if (errors.numberOfFloors) {
+                                validateField('numberOfFloors', value ?? '');
+                            }
+                        }}
+                        name="numberOfFloors"
+                        inputType="number"
+                        placeholder={t('enterNumberOfFloors')}
+                        readonly={false}
+                        error={errors.numberOfFloors}
+                    />
                     
                     {/* Address structured selectors */}
                     <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">

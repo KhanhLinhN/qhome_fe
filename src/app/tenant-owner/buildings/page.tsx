@@ -1,9 +1,11 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import Topbar from '@/src/components/layout/Topbar';
 import Sidebar from '@/src/components/layout/Sidebar';
 import axios from '@/src/lib/axios';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
@@ -28,11 +30,18 @@ interface BuildingTargetsStatus {
 }
 
 export default function TenantOwnerBuildingsPage() {
+  const t = useTranslations('TenantOwnerBuildings');
   const { user } = useAuth();
   const [deletingBuildings, setDeletingBuildings] = useState<BuildingDeletionRequest[]>([]);
   const [buildingStatuses, setBuildingStatuses] = useState<Record<string, BuildingTargetsStatus>>({});
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState<string | null>(null);
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [pendingComplete, setPendingComplete] = useState<{ requestId: string; buildingName: string } | null>(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadDeletingBuildings();
@@ -72,25 +81,32 @@ export default function TenantOwnerBuildingsPage() {
     }
   };
 
-  const handleCompleteDeletion = async (requestId: string, buildingName: string) => {
-    if (!confirm(`Bạn có chắc muốn hoàn tất xóa building "${buildingName}"?\n\nBuilding sẽ chuyển sang trạng thái ARCHIVED.`)) {
-      return;
-    }
+  const handleCompleteDeletionClick = (requestId: string, buildingName: string) => {
+    setPendingComplete({ requestId, buildingName });
+    setShowConfirmPopup(true);
+  };
 
+  const handleCompleteDeletion = async () => {
+    if (!pendingComplete) return;
+
+    setShowConfirmPopup(false);
     try {
-      setCompleting(requestId);
+      setCompleting(pendingComplete.requestId);
       await axios.post(
-        `${BASE_URL}/api/buildings/${requestId}/complete`,
+        `${BASE_URL}/api/buildings/${pendingComplete.requestId}/complete`,
         {},
         { withCredentials: true }
       );
-      alert(`✅ Đã hoàn tất xóa building "${buildingName}"!`);
+      setSuccessMessage(t('messages.completeSuccess', { name: pendingComplete.buildingName }));
+      setShowSuccessPopup(true);
       loadDeletingBuildings(); // Reload
     } catch (error: any) {
       console.error('Failed to complete deletion:', error);
-      alert(`❌ Hoàn tất xóa thất bại: ${error?.response?.data?.message || error.message}`);
+      setErrorMessage(t('messages.completeError', { message: error?.response?.data?.message || error.message }));
+      setShowErrorPopup(true);
     } finally {
       setCompleting(null);
+      setPendingComplete(null);
     }
   };
 
@@ -99,7 +115,7 @@ export default function TenantOwnerBuildingsPage() {
       <div className="min-h-screen bg-[#F5F5F0]">
         <div className="flex">
           <main className="flex-1 p-6">
-            <div className="text-center py-12 text-slate-500">⏳ Đang tải...</div>
+            <div className="text-center py-12 text-slate-500">⏳ {t('loading')}</div>
           </main>
         </div>
       </div>
@@ -122,22 +138,22 @@ export default function TenantOwnerBuildingsPage() {
                     <path fill="#1e293b" d="M10 2a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v2.6666666666666665h1.3333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 1.3333333333333333v5.333333333333333a0.6666666666666666 0.6666666666666666 0 1 1 0 1.3333333333333333H2a0.6666666666666666 0.6666666666666666 0 1 1 0 -1.3333333333333333V6a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h1.3333333333333333V3.333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3333333333333333 -1.3333333333333333h4ZM4.666666666666666 6H3.333333333333333v6.666666666666666h1.3333333333333333V6Zm8 1.3333333333333333h-1.3333333333333333v5.333333333333333h1.3333333333333333v-5.333333333333333Zm-4 2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333v-1.3333333333333333Zm0 -2.6666666666666665h-1.3333333333333333v1.3333333333333333h1.3333333333333333V4.666666666666666Z" strokeWidth="0.6667"></path>
                   </g>
                 </svg>
-                Buildings Đang Xóa
+                {t('title')}
               </h1>
               <p className="text-sm text-slate-600">
-                Quản lý các building đang trong quá trình xóa. Khi đã xóa hết units, bạn có thể hoàn tất việc xóa building.
+                {t('description')}
               </p>
             </div>
 
             {/* Buildings List */}
             {deletingBuildings.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">
-                <div className="text-6xl mb-4">✅</div>
+                <div className="text-6xl mb-4">{t('empty.icon')}</div>
                 <div className="text-lg font-medium text-slate-800 mb-2">
-                  Không có tòa nhà nào đang xóa
+                  {t('empty.title')}
                 </div>
                 <p className="text-sm text-slate-600">
-                  Tất cả tòa nhà của bạn đang hoạt động bình thường
+                  {t('empty.description')}
                 </p>
               </div>
             ) : (
@@ -160,18 +176,18 @@ export default function TenantOwnerBuildingsPage() {
                               {building.buildingName}
                             </h3>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
-                              🔄 ĐANG XÓA
+                              {t('building.status')}
                             </span>
                           </div>
                           <div className="text-sm text-slate-600 space-y-1">
                             <div>
-                              <span className="font-medium">Mã building:</span> {building.buildingCode}
+                              <span className="font-medium">{t('building.code')}</span> {building.buildingCode}
                             </div>
                             <div>
-                              <span className="font-medium">Yêu cầu bởi:</span> {building.requestedBy}
+                              <span className="font-medium">{t('building.requestedBy')}</span> {building.requestedBy}
                             </div>
                             <div>
-                              <span className="font-medium">Ngày yêu cầu:</span>{' '}
+                              <span className="font-medium">{t('building.requestedAt')}</span>{' '}
                               {new Date(building.requestedAt).toLocaleDateString('vi-VN', {
                                 year: 'numeric',
                                 month: 'long',
@@ -189,10 +205,10 @@ export default function TenantOwnerBuildingsPage() {
                         <div className="border-t border-slate-200 pt-4">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-slate-700">
-                              Tiến trình xóa Units:
+                              {t('building.progress.title')}
                             </span>
                             <span className="text-sm font-bold text-slate-800">
-                              {unitsDeleted} / {unitsRemaining} units
+                              {t('building.progress.units', { deleted: unitsDeleted, total: unitsRemaining })}
                             </span>
                           </div>
                           
@@ -211,22 +227,22 @@ export default function TenantOwnerBuildingsPage() {
                               <div className="flex items-center gap-2 text-green-700">
                                 <span className="text-2xl">✅</span>
                                 <span className="text-sm font-medium">
-                                  Đã xóa hết units! Có thể hoàn tất xóa building.
+                                  {t('building.progress.completed')}
                                 </span>
                               </div>
                               <button
-                                onClick={() => handleCompleteDeletion(building.id, building.buildingName)}
+                                onClick={() => handleCompleteDeletionClick(building.id, building.buildingName)}
                                 disabled={completing === building.id}
                                 className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                {completing === building.id ? '⏳ Đang xử lý...' : '✅ Hoàn tất xóa'}
+                                {completing === building.id ? t('building.progress.completing') : t('building.progress.complete')}
                               </button>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 text-amber-700">
                               <span className="text-xl">⏳</span>
                               <span className="text-sm">
-                                Còn {unitsRemaining - unitsDeleted} units cần xóa...
+                                {t('building.progress.remaining', { remaining: unitsRemaining - unitsDeleted })}
                               </span>
                             </div>
                           )}
@@ -237,6 +253,39 @@ export default function TenantOwnerBuildingsPage() {
                 })}
               </div>
             )}
+
+            {/* Confirm Popup */}
+            <PopupComfirm
+              isOpen={showConfirmPopup}
+              onClose={() => {
+                setShowConfirmPopup(false);
+                setPendingComplete(null);
+              }}
+              onConfirm={handleCompleteDeletion}
+              popupTitle={pendingComplete ? t('confirm.complete', { name: pendingComplete.buildingName }) : ''}
+              popupContext=""
+              isDanger={false}
+            />
+
+            {/* Success Popup */}
+            <PopupComfirm
+              isOpen={showSuccessPopup}
+              onClose={() => setShowSuccessPopup(false)}
+              onConfirm={() => setShowSuccessPopup(false)}
+              popupTitle={successMessage}
+              popupContext=""
+              isDanger={false}
+            />
+
+            {/* Error Popup */}
+            <PopupComfirm
+              isOpen={showErrorPopup}
+              onClose={() => setShowErrorPopup(false)}
+              onConfirm={() => setShowErrorPopup(false)}
+              popupTitle={errorMessage}
+              popupContext=""
+              isDanger={true}
+            />
           </div>
         </main>
       </div>

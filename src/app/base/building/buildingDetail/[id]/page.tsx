@@ -13,6 +13,8 @@ import { useBuildingDetailPage } from '@/src/hooks/useBuildingDetailPage';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getUnitsByBuildingId } from '@/src/services/base/buildingService';
 import { Unit } from '@/src/types/unit';
+import { fetchCurrentHouseholdByUnit, fetchHouseholdMembersByHousehold, type HouseholdDto, type HouseholdMemberDto } from '@/src/services/base/householdService';
+import { fetchResidentById } from '@/src/services/base/residentService';
 import {
   ServiceDto,
   createMeter,
@@ -40,6 +42,8 @@ export default function BuildingDetail () {
     const [units, setUnits] = useState<Unit[]>([]);
     const [loadingUnits, setLoadingUnits] = useState(false);
     const [unitsError, setUnitsError] = useState<string | null>(null);
+    const [householdsMap, setHouseholdsMap] = useState<Record<string, HouseholdDto | null>>({});
+    const [primaryResidentNamesMap, setPrimaryResidentNamesMap] = useState<Record<string, string | null>>({});
     const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
     const { deleteBuildingById, isLoading: isDeleting } = useDeleteBuilding();    
     const [importing, setImporting] = useState(false);
@@ -72,9 +76,51 @@ export default function BuildingDetail () {
                 const data = await getUnitsByBuildingId(buildingId);
                 const activeUnits = data.filter(unit => unit.status?.toUpperCase() !== 'INACTIVE');
                 setUnits(activeUnits);
+                
+                // Load current household for each unit
+                const householdsData: Record<string, HouseholdDto | null> = {};
+                const residentNamesData: Record<string, string | null> = {};
+                
+                await Promise.all(
+                    activeUnits.map(async (unit) => {
+                        try {
+                            const household = await fetchCurrentHouseholdByUnit(unit.id);
+                            householdsData[unit.id] = household;
+                            
+                            // Get primary resident name from resident table only
+                            let primaryName: string | null = null;
+                            console.log('household', household);
+                            if (household?.primaryResidentId) {
+                                try {
+                                    const resident = await fetchResidentById(household.primaryResidentId);
+                                    console.log('resident', resident);
+                                    if (resident?.fullName) {
+                                        primaryName = resident.fullName;
+                                    }
+                                } catch (residentErr) {
+                                    console.error(`Failed to load resident ${household.primaryResidentId} for unit ${unit.id}:`, residentErr);
+                                }
+                            }
+                            
+                            residentNamesData[unit.id] = primaryName;
+                        } catch (err) {
+                            // If no current household found (404), set to null
+                            if (err && typeof err === 'object' && 'response' in err && (err as any).response?.status === 404) {
+                                householdsData[unit.id] = null;
+                                residentNamesData[unit.id] = null;
+                            } else {
+                                console.error(`Failed to load household for unit ${unit.id}:`, err);
+                                householdsData[unit.id] = null;
+                                residentNamesData[unit.id] = null;
+                            }
+                        }
+                    })
+                );
+                setHouseholdsMap(householdsData);
+                setPrimaryResidentNamesMap(residentNamesData);
             } catch (err: any) {
                 console.error('Failed to load units:', err);
-                setUnitsError(err?.message || 'Không thể tải danh sách căn hộ');
+                setUnitsError(err?.message || t('messages.failedToLoadUnits'));
             } finally {
                 setLoadingUnits(false);
             }
@@ -108,6 +154,11 @@ export default function BuildingDetail () {
     const filteredUnits = selectedFloor
         ? units.filter(unit => unit.floor?.toString() === selectedFloor)
         : units;
+
+    // Helper function to get primary resident name from current household
+    const getPrimaryResidentName = (unitId: string): string | null => {
+        return primaryResidentNamesMap[unitId] || null;
+    };
 
     useEffect(() => {
         if (selectedFloor && !floorOptions.includes(selectedFloor)) {
@@ -151,7 +202,7 @@ export default function BuildingDetail () {
             a.click();
             URL.revokeObjectURL(url);
         } catch (e: any) {
-            setImportError(e?.response?.data?.message || "Tải template thất bại");
+            setImportError(e?.response?.data?.message || t('messages.failedToDownloadTemplate'));
         }
     };
 
@@ -166,7 +217,7 @@ export default function BuildingDetail () {
             a.click();
             URL.revokeObjectURL(url);
         } catch (e: any) {
-            setImportError(e?.response?.data?.message || "Xuất Excel thất bại");
+            setImportError(e?.response?.data?.message || t('messages.failedToExportExcel'));
         }
     };
 
@@ -186,7 +237,7 @@ export default function BuildingDetail () {
             const res = await importUnits(f);
             setImportResult(res);
         } catch (e: any) {
-            setImportError(e?.response?.data?.message || "Import thất bại");
+            setImportError(e?.response?.data?.message || t('messages.importFailed'));
         } finally {
             setImporting(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -203,7 +254,7 @@ export default function BuildingDetail () {
             a.click();
             URL.revokeObjectURL(url);
         } catch (e: any) {
-            setMeterImportError(e?.response?.data?.message || "Tải template công tơ thất bại");
+            setMeterImportError(e?.response?.data?.message || t('messages.failedToDownloadMeterTemplate'));
         }
     };
 
@@ -223,7 +274,7 @@ export default function BuildingDetail () {
             const result = await importMeters(file);
             setMeterImportResult(result);
         } catch (err: any) {
-            setMeterImportError(err?.response?.data?.message || 'Import công tơ thất bại');
+            setMeterImportError(err?.response?.data?.message || t('messages.meterImportFailed'));
         } finally {
             setMeterImporting(false);
             if (meterFileInputRef.current) meterFileInputRef.current.value = '';
@@ -248,7 +299,7 @@ export default function BuildingDetail () {
             a.click();
             URL.revokeObjectURL(url);
         } catch (err: any) {
-            setMeterImportError(err?.response?.data?.message || 'Xuất Excel công tơ thất bại');
+            setMeterImportError(err?.response?.data?.message || t('messages.failedToExportMeterExcel'));
         }
     };
 
@@ -370,14 +421,14 @@ export default function BuildingDetail () {
                                 onClick={onDownloadUnitTemplate}
                                 className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200 transition text-sm"
                             >
-                                Tải template import căn hộ
+                                {t('downloadUnitTemplate')}
                             </button>
                             <button
                                 onClick={onPickUnitFile}
                                 disabled={importing}
                                 className="px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition text-sm disabled:opacity-50"
                             >
-                                {importing ? 'Đang import...' : 'Chọn file Excel'}
+                                {importing ? t('importing') : t('selectExcelFile')}
                             </button>
                             <button
                                 onClick={onExportUnits}
@@ -408,7 +459,7 @@ export default function BuildingDetail () {
                                 }}
                                 className="px-4 py-2 bg-[#1f8b4e] text-white rounded-lg hover:bg-[#166333] transition text-sm flex items-center gap-2 shadow-sm"
                             >
-                                <span className="text-sm font-semibold">Thêm công tơ</span>
+                                <span className="text-sm font-semibold">{t('addMeter')}</span>
                             </button>
                         </div>
                     </div>
@@ -421,7 +472,7 @@ export default function BuildingDetail () {
                                 e.preventDefault();
                                 setMeterStatus(null);
                                 if (!meterForm.unitId || !meterForm.serviceId) {
-                                    setMeterStatus('Vui lòng chọn căn hộ và dịch vụ');
+                                    setMeterStatus(t('messages.pleaseSelectUnitAndService'));
                                     return;
                                 }
                                 setCreatingMeter(true);
@@ -431,7 +482,7 @@ export default function BuildingDetail () {
                                         serviceId: meterForm.serviceId,
                                         installedAt: meterForm.installedAt || undefined,
                                     });
-                                    setMeterStatus('Thêm công tơ thành công');
+                                    setMeterStatus(t('messages.meterAddedSuccess'));
                                     setMeterForm({
                                         unitId: meterForm.unitId,
                                         serviceId: meterForm.serviceId,
@@ -439,7 +490,7 @@ export default function BuildingDetail () {
                                     });
                                 } catch (err: any) {
                                     console.error('Failed to create meter:', err);
-                                    setMeterStatus(err?.response?.data?.message || 'Không thể tạo công tơ');
+                                    setMeterStatus(err?.response?.data?.message || t('messages.failedToCreateMeter'));
                                 } finally {
                                     setCreatingMeter(false);
                                 }
@@ -447,13 +498,13 @@ export default function BuildingDetail () {
                         >
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                                 <label className="text-sm text-gray-600">
-                                    Căn hộ
+                                    {t('unit')}
                                     <select
                                         value={meterForm.unitId}
                                         onChange={(e) => setMeterForm(prev => ({ ...prev, unitId: e.target.value }))}
                                         className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                     >
-                                        <option value="">-- Chọn căn hộ --</option>
+                                        <option value="">{t('selectUnit')}</option>
                                         {units.map(unit => (
                                             <option key={unit.id} value={unit.id}>
                                                 {unit.code}
@@ -462,13 +513,13 @@ export default function BuildingDetail () {
                                     </select>
                                 </label>
                                 <label className="text-sm text-gray-600">
-                                    Dịch vụ
+                                    {t('service')}
                                     <select
                                         value={meterForm.serviceId}
                                         onChange={(e) => setMeterForm(prev => ({ ...prev, serviceId: e.target.value }))}
                                         className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                     >
-                                        <option value="">-- Chọn dịch vụ --</option>
+                                        <option value="">{t('selectService')}</option>
                                         {services.map(service => (
                                             <option key={service.id} value={service.id}>
                                                 {service.name} ({service.code})
@@ -479,7 +530,7 @@ export default function BuildingDetail () {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                                 <div className="text-sm text-gray-600">
-                                    <span className="block mb-1">Ngày lắp đặt (tùy chọn)</span>
+                                    <span className="block mb-1">{t('installedDate')}</span>
                                     <div className="relative">
                                         <input
                                             ref={meterDateInputRef}
@@ -504,7 +555,7 @@ export default function BuildingDetail () {
                                         onClick={onDownloadMeterTemplate}
                                         className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200 transition text-sm"
                                     >
-                                        Tải template import công tơ
+                                        {t('downloadMeterTemplate')}
                                     </button>
                                     <button
                                         type="button"
@@ -512,14 +563,14 @@ export default function BuildingDetail () {
                                         disabled={meterImporting}
                                         className="px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition text-sm disabled:opacity-50"
                                     >
-                                        {meterImporting ? 'Đang import...' : 'Chọn file Excel công tơ'}
+                                        {meterImporting ? t('importing') : t('selectMeterExcelFile')}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={onExportMeters}
                                         className="px-3 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition text-sm"
                                     >
-                                        Xuất Excel công tơ
+                                        {t('exportMeterExcel')}
                                     </button>
                                     <input
                                         ref={meterFileInputRef}
@@ -532,9 +583,9 @@ export default function BuildingDetail () {
                                 {meterImportResult && (
                                     <div className="bg-green-50 border border-green-100 text-sm text-green-800 rounded-lg p-3 mb-3">
                                         <div>
-                                            Đã xử lý {meterImportResult.totalRows} dòng: 
-                                            <strong className="ml-1">{meterImportResult.successCount} thành công</strong>, 
-                                            <strong className="ml-1">{meterImportResult.errorCount} lỗi</strong>
+                                            {t('processedRows', { totalRows: meterImportResult.totalRows })} 
+                                            <strong className="ml-1">{meterImportResult.successCount} {t('success')}</strong>, 
+                                            <strong className="ml-1">{meterImportResult.errorCount} {t('errors')}</strong>
                                         </div>
                                         {meterImportResult.rows.length > 0 && (
                                             <div className="mt-2 text-xs text-gray-700">
@@ -542,7 +593,7 @@ export default function BuildingDetail () {
                                                     .filter(r => !r.success)
                                                     .map(r => (
                                                         <div key={r.rowNumber}>
-                                                            Dòng {r.rowNumber}: {r.message}
+                                                            {t('rowNumber', { rowNumber: r.rowNumber })}: {r.message}
                                                         </div>
                                                     ))}
                                             </div>
@@ -561,14 +612,14 @@ export default function BuildingDetail () {
                                     disabled={creatingMeter}
                                     className="px-4 py-2 bg-[#02542D] text-white rounded-lg text-sm hover:bg-[#024428] transition"
                                 >
-                                    {creatingMeter ? 'Đang tạo...' : 'Lưu công tơ'}
+                                    {creatingMeter ? t('creating') : t('saveMeter')}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setMeterFormVisible(false)}
                                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
                                 >
-                                    Hủy
+                                    {t('cancel')}
                                 </button>
                             </div>
                         </form>
@@ -577,12 +628,24 @@ export default function BuildingDetail () {
 
                 {buildingData?.code && (
                     <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 rounded-lg p-4 text-sm space-y-1">
-                        <div className="font-semibold text-base text-yellow-900">Hướng dẫn template import công tơ</div>
+                        <div className="font-semibold text-base text-yellow-900">{t('meterImportGuide')}</div>
                         <div>
-                            Vui lòng để cột <b>buildingCode</b> = <span className="font-mono">{buildingData?.code}</span> để tải đúng công tơ của tòa này.
+                            {t.rich('meterImportGuideDesc1', { 
+                                buildingCode: buildingData?.code,
+                                bold: (chunks) => <b>{chunks}</b>,
+                                mono: (chunks) => <span className="font-mono">{chunks}</span>
+                            })}
                         </div>
-                        <div>Giữ nguyên tên cột <b>unitCode</b>, <b>serviceCode</b>, <b>installedAt</b> và không đổi định dạng.</div>
-                        <div>Mỗi template có sẵn bảng <b>Available services</b> ở dưới cùng giúp bạn chọn mã dịch vụ hợp lệ.</div>
+                        <div>
+                            {t.rich('meterImportGuideDesc2', {
+                                bold: (chunks) => <b>{chunks}</b>
+                            })}
+                        </div>
+                        <div>
+                            {t.rich('meterImportGuideDesc3', {
+                                bold: (chunks) => <b>{chunks}</b>
+                            })}
+                        </div>
                     </div>
                 )}
 
@@ -590,7 +653,7 @@ export default function BuildingDetail () {
                 {importResult && (
                     <div className="mb-4">
                         <div className="mb-2">
-                            Tổng dòng: {importResult.totalRows} | Thành công: {importResult.successCount} | Lỗi: {importResult.errorCount}
+                            {t('totalRows', { totalRows: importResult.totalRows, successCount: importResult.successCount, errorCount: importResult.errorCount })}
                         </div>
                         <div className="max-h-64 overflow-auto border rounded">
                             <table className="min-w-full">
@@ -682,7 +745,9 @@ export default function BuildingDetail () {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div>
-                                                <div className="font-medium text-gray-900">{unit.ownerName ? unit.ownerName : '-'}</div>
+                                                <div className="font-medium text-gray-900">
+                                                    {getPrimaryResidentName(unit.id) || '-'}
+                                                </div>
                                                 {unit.ownerContact && (
                                                     <div className="text-xs text-gray-500">{unit.ownerContact ? unit.ownerContact : '-'}</div>
                                                 )}

@@ -26,6 +26,18 @@ PLEASE RUN THIS COMMAND, FIX ERROR BEFORE PUSH CODE:
 yarn build
 ````
 
+Added library
+Library for OCR (tesseract.js)
+````bash
+npm i tesseract.js@4.0.6
+yarn add tesseract.js-core
+````
+Library for image upload (ImageKit)
+```bash
+yarn add imagekit
+npm install imagekit
+```
+
 To build and run the application using Docker, use this command:
 ```bash
 docker compose up --build
