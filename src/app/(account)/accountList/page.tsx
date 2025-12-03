@@ -353,12 +353,18 @@ export default function AccountListPage() {
 
     try {
       await deleteAccount(deleteAccountId);
-      show(t('messages.deleteSuccess'), 'success');
-      window.location.reload();
       
-      // Close popup
+      // Close popup first
       setDeletePopupOpen(false);
       setDeleteAccountId(null);
+      
+      // Show success notification
+      show(t('messages.deleteSuccess'), 'success');
+      
+      // Delay reload to ensure notification is visible
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       show(t('messages.deleteError'), 'error');
       console.error('Error deleting account:', error);
@@ -409,19 +415,22 @@ export default function AccountListPage() {
         });
       }
 
+      // Close popup first
+      setPopupOpen(false);
+      setSelectedAccountId(null);
+      setSelectedAccountType(null);
+      setSelectedAccountStatus(null);
+      
+      // Show success notification
       show(
         newStatus ? t('messages.activateSuccess') : t('messages.deactivateSuccess'),
         'success'
       );
       
-      // Reload data
-      window.location.reload();
-      
-      // Close popup
-      setPopupOpen(false);
-      setSelectedAccountId(null);
-      setSelectedAccountType(null);
-      setSelectedAccountStatus(null);
+      // Delay reload to ensure notification is visible
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||

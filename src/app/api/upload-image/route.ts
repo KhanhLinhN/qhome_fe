@@ -1,59 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server';
+import ImageKit from 'imagekit';
 
-const IMGBB_API_KEY = process.env.NEXT_PUBLIC_UPLOAD_IMAGE_API_KEY || '';
-const IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload';
+// Initialize ImageKit (server-side only)
+const getImageKit = () => {
+    if (!process.env.IMAGEKIT_PRIVATE_KEY || !process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || !process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT) {
+        throw new Error('ImageKit environment variables are not configured');
+    }
+    
+    return new ImageKit({
+        publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY,
+        privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+        urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT,
+    });
+};
 
+/**
+ * Upload image API route using ImageKit
+ */
 export async function POST(request: NextRequest) {
     try {
-        if (!IMGBB_API_KEY) {
-            return NextResponse.json(
-                { error: 'NEXT_PUBLIC_UPLOAD_IMAGE_API_KEY is not configured' },
-                { status: 500 }
-            );
-        }
-
         // Get the form data from the request
         const formData = await request.formData();
         const file = formData.get('image') as File;
 
         if (!file) {
             return NextResponse.json(
-                { error: 'No image file provided' },
+                { error: 'No image file provided', success: false },
                 { status: 400 }
             );
         }
 
-        // Create new FormData for imgbb API
-        const imgbbFormData = new FormData();
-        imgbbFormData.append('image', file);
+        // Initialize ImageKit
+        const imagekit = getImageKit();
 
-        // Upload to imgbb via server (no CORS issue)
-        const imgbbResponse = await fetch(
-            `${IMGBB_UPLOAD_URL}?expiration=600&key=${IMGBB_API_KEY}`,
-            {
-                method: 'POST',
-                body: imgbbFormData,
+        // Convert File to Buffer
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Upload to ImageKit
+        const uploadResponse = await imagekit.upload({
+            file: buffer,
+            fileName: file.name,
+            useUniqueFileName: true,
+            folder: '/news-images', // Optional: organize files in folders
+        });
+
+        // Return response
+        return NextResponse.json({
+            success: true,
+            data: {
+                id: uploadResponse.fileId,
+                url: uploadResponse.url,
+                filePath: uploadResponse.filePath,
+                name: uploadResponse.name,
+                size: uploadResponse.size,
+                title: file.name,
             }
-        );
-
-        const imgbbData = await imgbbResponse.json();
-
-        if (!imgbbData.success) {
-            return NextResponse.json(
-                { error: imgbbData.error?.message || 'Failed to upload image to imgbb' },
-                { status: imgbbResponse.status }
-            );
-        }
-
-        // Return the imgbb response
-        return NextResponse.json(imgbbData);
+        });
     } catch (error: any) {
         console.error('Error in upload-image API route:', error);
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
+            { 
+                error: error.message || 'Internal server error',
+                success: false
+            },
             { status: 500 }
         );
     }
 }
-
-

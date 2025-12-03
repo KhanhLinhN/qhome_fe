@@ -1194,7 +1194,6 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
 
               <p className="text-sm text-slate-500">
                 {t('manualForm.passwordNote')}
-                tài khoản được tạo.
               </p>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">

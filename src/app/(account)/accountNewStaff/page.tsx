@@ -70,6 +70,16 @@ export default function AccountNewStaffPage() {
   const [importResult, setImportResult] = useState<StaffImportResponse | null>(null);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
+  // IMPORTANT: All hooks must be called before any conditional returns
+  const importSummary = useMemo(() => {
+    if (!importResult) return null;
+    return t('messages.importResult', { 
+      totalRows: importResult.totalRows, 
+      successCount: importResult.successCount, 
+      failureCount: importResult.failureCount 
+    });
+  }, [importResult, t]);
+
   const handleBack = () => {
     router.push('/accountList');
   };
@@ -90,10 +100,12 @@ export default function AccountNewStaffPage() {
           setUsernameError(t('validation.username.required'));
         } else if (/\s/.test(value)) {
           setUsernameError(t('validation.username.noWhitespace'));
+        } else if (value.length < 6) {
+          setUsernameError(t('validation.username.minLength'));
+        } else if (value.length > 16) {
+          setUsernameError(t('validation.username.maxLength'));
         } else if (!validateUsernameFormat(value)) {
           setUsernameError(t('validation.username.invalidFormat'));
-        } else if (value.length > 40) {
-          setUsernameError(t('validation.username.maxLength'));
         } else {
           // Check username tồn tại trong database
           try {
@@ -185,11 +197,14 @@ export default function AccountNewStaffPage() {
     } else if (/\s/.test(form.username)) {
       setUsernameError(t('validation.username.noWhitespace'));
       isValid = false;
+    } else if (form.username.length < 6) {
+      setUsernameError(t('validation.username.minLength'));
+      isValid = false;
+    } else if (form.username.length > 16) {
+      setUsernameError(t('validation.username.maxLength'));
+      isValid = false;
     } else if (!validateUsernameFormat(form.username)) {
       setUsernameError(t('validation.username.invalidFormat'));
-      isValid = false;
-    } else if (form.username.length > 40) {
-      setUsernameError(t('validation.username.maxLength'));
       isValid = false;
     } else {
       // Check username tồn tại trong database
@@ -358,15 +373,6 @@ export default function AccountNewStaffPage() {
     }
   };
 
-  const importSummary = useMemo(() => {
-    if (!importResult) return null;
-    return t('messages.importResult', { 
-      totalRows: importResult.totalRows, 
-      successCount: importResult.successCount, 
-      failureCount: importResult.failureCount 
-    });
-  }, [importResult]);
-
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
       <div
@@ -417,7 +423,7 @@ export default function AccountNewStaffPage() {
                   }
                 }}
                 placeholder={t('placeholders.username')}
-                maxLength={40}
+                maxLength={16}
                 className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                   usernameError
                     ? 'border-red-300 focus:border-red-500 focus:ring-red-100'

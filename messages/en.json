@@ -231,13 +231,18 @@
     "buttons": {
       "cancel": "Cancel",
       "create": "Create account",
-      "creating": "Creating..."
+      "creating": "Creating...",
+      "downloadingTemplate": "Downloading template...",
+      "downloadTemplate": "Download template file",
+      "importing": "Importing...",
+      "import": "Import staff"
     },
     "validation": {
       "username": {
         "required": "Username cannot be empty.",
         "noWhitespace": "Username cannot contain whitespace characters.",
-        "maxLength": "Username cannot exceed 40 characters.",
+        "minLength": "Username must be at least 6 characters.",
+        "maxLength": "Username cannot exceed 16 characters.",
         "exists": "Username already exists in the system.",
         "invalidFormat": "Username can only contain letters (no accents), numbers, and characters @, _, -, ."
       },
@@ -262,12 +267,6 @@
     "errors": {
       "importFailed": "Unable to import staff accounts. Please try again.",
       "templateDownloadFailed": "Unable to download template file. Please try again."
-    },
-    "buttons": {
-      "downloadingTemplate": "Downloading template...",
-      "downloadTemplate": "Download template file",
-      "importing": "Importing...",
-      "import": "Import staff"
     },
     "import": {
       "title": "Quick import with Excel",

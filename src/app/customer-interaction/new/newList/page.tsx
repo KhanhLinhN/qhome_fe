@@ -12,6 +12,7 @@ import { NewsStatus, NotificationScope } from '@/src/types/news';
 import { updateNews } from '@/src/services/customer-interaction/newService';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import Pagination from '@/src/components/customer-interaction/Pagination';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 export default function NewsList() {
     const t = useTranslations('News');

@@ -236,13 +236,18 @@
     "buttons": {
       "cancel": "Huỷ bỏ",
       "create": "Tạo tài khoản",
-      "creating": "Đang tạo..."
+      "creating": "Đang tạo...",
+      "downloadingTemplate": "Đang tải template...",
+      "downloadTemplate": "Tải file template",
+      "importing": "Đang import...",
+      "import": "Import nhân viên"
     },
     "validation": {
       "username": {
         "required": "Tên đăng nhập không được để trống.",
         "noWhitespace": "Tên đăng nhập không được chứa ký tự trắng.",
-        "maxLength": "Tên đăng nhập không được vượt quá 40 ký tự.",
+        "minLength": "Tên đăng nhập phải có ít nhất 6 ký tự.",
+        "maxLength": "Tên đăng nhập không được vượt quá 16 ký tự.",
         "exists": "Tên đăng nhập đã tồn tại trong hệ thống.",
         "invalidFormat": "Tên đăng nhập chỉ được chứa chữ cái không dấu, số và các ký tự @, _, -, ."
       },
@@ -267,12 +272,6 @@
     "errors": {
       "importFailed": "Không thể import tài khoản nhân viên. Vui lòng thử lại.",
       "templateDownloadFailed": "Không thể tải file template. Vui lòng thử lại."
-    },
-    "buttons": {
-      "downloadingTemplate": "Đang tải template...",
-      "downloadTemplate": "Tải file template",
-      "importing": "Đang import...",
-      "import": "Import nhân viên"
     },
     "import": {
       "title": "Import nhanh bằng Excel",
