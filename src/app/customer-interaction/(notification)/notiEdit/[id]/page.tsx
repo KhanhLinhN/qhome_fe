@@ -195,7 +195,7 @@ export default function NotificationEdit() {
             // Redirect to notification detail
             router.push(`/customer-interaction/notiDetail/${notificationId}`);
         } catch (error) {
-            console.error('Lỗi khi cập nhật thông báo:', error);
+            console.error(t('errors.updateFailed'), error);
             show(t('error.updateFailed'), 'error');
         }
     };

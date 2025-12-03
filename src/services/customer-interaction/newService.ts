@@ -28,9 +28,8 @@ export type {
 };
 
 const BASE_URL = 'http://localhost:8086/api';
-const UPLOAD_API_URL = '/api/upload-image'; // Next.js API route to proxy imgbb upload
 
-// File Upload Response interface for imgbb.com
+// File Upload Response interface
 export interface FileUploadResponse {
     fileId?: string;
     fileName: string;
@@ -264,28 +263,28 @@ export async function deleteNewsImage(imageId: string): Promise<void> {
 
 /**
  * File Upload Helper Functions
- * These functions upload files to imgbb.com and return URLs
+ * These functions upload files to ImageKit and return URLs
  * which are then used with NewsImageController APIs
  */
 
-// Helper to map imgbb response to frontend format
-function mapImgbbResponse(imgbbData: any, originalFile: File): FileUploadResponse {
+// Helper to map ImageKit response to frontend format
+function mapImageKitResponse(imageKitData: any, originalFile: File): FileUploadResponse {
     return {
-        fileId: imgbbData.id || imgbbData.delete_url?.split('/').pop(),
-        fileName: imgbbData.title || originalFile.name,
+        fileId: imageKitData.fileId || imageKitData.url?.split('/').pop() || '',
+        fileName: imageKitData.name || originalFile.name,
         originalFileName: originalFile.name,
-        fileUrl: imgbbData.url,
+        fileUrl: imageKitData.url || imageKitData.filePath,
         contentType: originalFile.type || 'image/jpeg',
-        fileSize: originalFile.size,
+        fileSize: imageKitData.size || originalFile.size,
         uploadedAt: new Date().toISOString(),
     };
 }
 
 /**
- * Upload a single news image file to imgbb.com
+ * Upload a single news image file to ImageKit
  * @param file - The image file to upload
- * @param ownerId - The owner ID (news ID or UUID) - not used by imgbb but kept for compatibility
- * @param uploadedBy - Optional uploaded by user ID - not used by imgbb but kept for compatibility
+ * @param ownerId - The owner ID (news ID or UUID) - kept for compatibility
+ * @param uploadedBy - Optional uploaded by user ID - kept for compatibility
  * @returns FileUploadResponse with fileUrl
  */
 export async function uploadNewsImageFile(
@@ -295,46 +294,46 @@ export async function uploadNewsImageFile(
 ): Promise<FileUploadResponse> {
     try {
         // Compress image before upload to reduce file size and improve speed
-        // More aggressive compression for faster uploads
         const compressedFile = await compressImage(file, {
-            maxWidth: 1600,  // Reduced from 1920 for smaller files
+            maxWidth: 1600,
             maxHeight: 1600,
-            quality: 0.7,    // Reduced from 0.8 for smaller files
-            maxSizeMB: 1     // Compress files > 1MB (reduced from 2MB)
+            quality: 0.7,
+            maxSizeMB: 1
         });
 
         console.log(`Image compressed: ${file.size} → ${compressedFile.size} bytes (${Math.round((1 - compressedFile.size / file.size) * 100)}% reduction)`);
 
+        // Upload to ImageKit via API route
         const formData = new FormData();
         formData.append('image', compressedFile);
 
         const response = await axios.post(
-            UPLOAD_API_URL,
+            '/api/upload-image',
             formData,
             {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
-                timeout: 30000, // 30 seconds timeout
+                timeout: 30000,
             }
         );
 
-        if (!response.data.success) {
-            throw new Error(response.data.error?.message || 'Failed to upload image to imgbb');
+        if (!response.data.success || !response.data.data?.url) {
+            throw new Error(response.data.error?.message || 'Failed to upload image to ImageKit');
         }
 
-        return mapImgbbResponse(response.data.data, compressedFile);
+        return mapImageKitResponse(response.data.data, compressedFile);
     } catch (error) {
-        console.error('Error uploading news image file to imgbb:', error);
+        console.error('Error uploading news image file to ImageKit:', error);
         throw error;
     }
 }
 
 /**
- * Upload multiple news image files to imgbb.com
+ * Upload multiple news image files to ImageKit
  * @param files - Array of image files to upload
- * @param ownerId - The owner ID (news ID or UUID) - not used by imgbb but kept for compatibility
- * @param uploadedBy - Optional uploaded by user ID - not used by imgbb but kept for compatibility
+ * @param ownerId - The owner ID (news ID or UUID) - kept for compatibility
+ * @param uploadedBy - Optional uploaded by user ID - kept for compatibility
  * @returns Array of FileUploadResponse with fileUrl
  */
 export async function uploadNewsImageFiles(
@@ -343,43 +342,42 @@ export async function uploadNewsImageFiles(
     uploadedBy?: string
 ): Promise<FileUploadResponse[]> {
     try {
-
-        const uploadPromises = files.map(async (file) => {
-            // Compress each file individually
-            const compressedFile = await compressImage(file, {
-                maxWidth: 1600,  // Reduced from 1920 for smaller files
+        // Compress all files first
+        const compressedFiles = await Promise.all(
+            files.map(file => compressImage(file, {
+                maxWidth: 1600,
                 maxHeight: 1600,
-                quality: 0.7,    // Reduced from 0.8 for smaller files
-                maxSizeMB: 1     // Compress files > 1MB (reduced from 2MB)
-            });
+                quality: 0.7,
+                maxSizeMB: 1
+            }))
+        );
 
-            // Upload immediately after compression (no waiting)
+        // Upload files sequentially to avoid overwhelming the server
+        const uploadPromises = compressedFiles.map(async (compressedFile) => {
             const formData = new FormData();
             formData.append('image', compressedFile);
 
             const response = await axios.post(
-                UPLOAD_API_URL,
+                '/api/upload-image',
                 formData,
                 {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
-                    timeout: 30000, // 30 seconds timeout
+                    timeout: 30000,
                 }
             );
 
-            if (!response.data.success) {
-                throw new Error(response.data.error?.message || 'Failed to upload image to imgbb');
+            if (!response.data.success || !response.data.data?.url) {
+                throw new Error(response.data.error?.message || 'Failed to upload image to ImageKit');
             }
 
-            return mapImgbbResponse(response.data.data, compressedFile);
+            return mapImageKitResponse(response.data.data, compressedFile);
         });
 
-        // All compressions and uploads happen in parallel
-        const results = await Promise.all(uploadPromises);
-        return results;
+        return await Promise.all(uploadPromises);
     } catch (error) {
-        console.error('Error uploading multiple news image files to imgbb:', error);
+        console.error('Error uploading multiple news image files to ImageKit:', error);
         throw error;
     }
 }

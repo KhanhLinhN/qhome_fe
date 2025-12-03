@@ -12,6 +12,7 @@ import {
   UserProfileInfo,
   UserStatusInfo,
 } from "@/src/services/iam/userService";
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 export default function ProfileViewPage() {
   const { user, isLoading, logout } = useAuth();
@@ -21,11 +22,16 @@ export default function ProfileViewPage() {
   const [status, setStatus] = useState<UserStatusInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogoutClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowLogoutConfirm(true);
+  };
 
   const handleLogout = () => {
-    if (confirm(t('logoutConfirm'))) {
-      logout();
-    }
+    setShowLogoutConfirm(false);
+    logout();
   };
 
   useEffect(() => {
@@ -217,7 +223,7 @@ export default function ProfileViewPage() {
                 )}
                 <Link
                   href=""
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   className="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700 transition"
                 >
                   {t('quickActions.logout')}
@@ -226,6 +232,16 @@ export default function ProfileViewPage() {
             </div>
           </aside>
         </section>
+
+        {/* Logout Confirm Popup */}
+        <PopupComfirm
+          isOpen={showLogoutConfirm}
+          onClose={() => setShowLogoutConfirm(false)}
+          onConfirm={handleLogout}
+          popupTitle={t('logoutConfirm')}
+          popupContext=""
+          isDanger={false}
+        />
       </div>
     </div>
   );

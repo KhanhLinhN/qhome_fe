@@ -66,8 +66,8 @@ export default function NotificationAdd() {
                     const allBuildings = await getBuildings();
                     setBuildings(allBuildings);
                 } catch (error) {
-                    console.error('Lỗi khi tải danh sách tòa nhà:', error);
-                    show(t('fetchBuildingError'), 'error');
+                    console.error(t('errors.loadBuildings'), error);
+                    show(t('errors.loadBuildings'), 'error');
                 } finally {
                     setLoadingBuildings(false);
                 }
@@ -197,7 +197,7 @@ export default function NotificationAdd() {
             // Redirect to notification list
             router.push(`/customer-interaction/notiList`);
         } catch (error) {
-            console.error('Lỗi khi tạo thông báo:', error);
+            console.error(t('errors.createFailed'), error);
             show(t('createNotificationError'), 'error');
         }
     };

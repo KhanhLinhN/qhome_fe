@@ -11,6 +11,7 @@ import {
 } from '@/src/services/card/vehicleRegistrationService';
 import { VehicleKind } from '@/src/types/vehicle';
 import { VehicleRegistrationRequest } from '@/src/types/vehicleRegistration';
+import PopupComfirm from '@/src/components/common/PopupComfirm';
 
 const approveIcon = (
   <svg
@@ -84,6 +85,8 @@ export default function VehicleRegistrationPage() {
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const loadRegistrations = useCallback(async () => {
     setLoading(true);
@@ -125,11 +128,11 @@ export default function VehicleRegistrationPage() {
         className: 'bg-amber-50 text-amber-700 border-amber-200',
       },
       READY_FOR_PAYMENT: {
-        label: 'Chờ thanh toán',
+        label: t('statusLabels.READY_FOR_PAYMENT'),
         className: 'bg-blue-50 text-blue-700 border-blue-200',
       },
       PAYMENT_PENDING: {
-        label: 'Đang thanh toán',
+        label: t('statusLabels.PAYMENT_PENDING'),
         className: 'bg-purple-50 text-purple-700 border-purple-200',
       },
       APPROVED: {
@@ -137,7 +140,7 @@ export default function VehicleRegistrationPage() {
         className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       },
       COMPLETED: {
-        label: 'Hoàn thành',
+        label: t('statusLabels.COMPLETED'),
         className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       },
       REJECTED: {
@@ -157,23 +160,23 @@ export default function VehicleRegistrationPage() {
   >(
     () => ({
       UNPAID: {
-        label: 'Chưa thanh toán',
+        label: t('paymentStatusLabels.UNPAID'),
         className: 'bg-orange-50 text-orange-700 border-orange-200',
       },
       PAYMENT_APPROVAL: {
-        label: 'Đang xử lý thanh toán',
+        label: t('paymentStatusLabels.PAYMENT_APPROVAL'),
         className: 'bg-purple-50 text-purple-700 border-purple-200',
       },
       PAYMENT_PENDING: {
-        label: 'Chờ xác nhận',
+        label: t('paymentStatusLabels.PAYMENT_PENDING'),
         className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
       },
       PAID: {
-        label: 'Đã thanh toán',
+        label: t('paymentStatusLabels.PAID'),
         className: 'bg-green-50 text-green-700 border-green-200',
       },
     }),
-    [],
+    [t],
   );
 
   const getVehicleKindLabel = useCallback(
@@ -218,7 +221,8 @@ export default function VehicleRegistrationPage() {
       );
     } catch (err: any) {
       const message = err?.response?.data?.message ?? err?.message ?? t('error');
-      window.alert(message);
+      setErrorMessage(message);
+      setShowErrorPopup(true);
     } finally {
       setProcessingId(null);
     }
@@ -241,7 +245,8 @@ export default function VehicleRegistrationPage() {
       );
     } catch (err: any) {
       const message = err?.response?.data?.message ?? err?.message ?? t('error');
-      window.alert(message);
+      setErrorMessage(message);
+      setShowErrorPopup(true);
     } finally {
       setProcessingId(null);
     }
@@ -289,8 +294,8 @@ export default function VehicleRegistrationPage() {
             >
               <option value="">Tất cả</option>
               <option value="PENDING">{t('statusLabels.PENDING')}</option>
-              <option value="READY_FOR_PAYMENT">Chờ thanh toán</option>
-              <option value="PAYMENT_PENDING">Đang thanh toán</option>
+              <option value="READY_FOR_PAYMENT">{t('statusLabels.READY_FOR_PAYMENT')}</option>
+              <option value="PAYMENT_PENDING">{t('statusLabels.PAYMENT_PENDING')}</option>
               <option value="APPROVED">{t('statusLabels.APPROVED')}</option>
               <option value="REJECTED">{t('statusLabels.REJECTED')}</option>
               <option value="CANCELLED">{t('statusLabels.CANCELED')}</option>
@@ -465,6 +470,16 @@ export default function VehicleRegistrationPage() {
           )}
         </div>
       </div>
+
+      {/* Error Popup */}
+      <PopupComfirm
+        isOpen={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        onConfirm={() => setShowErrorPopup(false)}
+        popupTitle={errorMessage}
+        popupContext=""
+        isDanger={true}
+      />
     </div>
   );
 }

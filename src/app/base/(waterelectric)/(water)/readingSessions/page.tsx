@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getBuildings, Building } from '@/src/services/base/buildingService';
 import Select from '@/src/components/customer-interaction/Select';
@@ -22,10 +23,13 @@ import {
 import { useNotifications } from '@/src/hooks/useNotifications';
 
 export default function ReadingSessionsPage() {
+  const t = useTranslations('ReadingSessions');
   const { user, hasRole } = useAuth();
   const { show } = useNotifications();
   const [sessions, setSessions] = useState<MeterReadingSessionDto[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<MeterReadingSessionDto[]>([]);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
   const [myActiveSession, setMyActiveSession] = useState<MeterReadingSessionDto | null>(null);
   const [assignments, setAssignments] = useState<MeterReadingAssignmentDto[]>([]);
   const [cycles, setCycles] = useState<ReadingCycleDto[]>([]);
@@ -97,7 +101,7 @@ export default function ReadingSessionsPage() {
       setFilteredSessions(sessionsData);
     } catch (error) {
       console.error('Failed to load sessions:', error);
-      show('Failed to load reading sessions', 'error');
+      show(t('errors.loadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -106,39 +110,47 @@ export default function ReadingSessionsPage() {
   const handleStartSession = async (req: MeterReadingSessionCreateReq) => {
     try {
       await startMeterReadingSession(req);
-      show('Session started successfully', 'success');
+      show(t('messages.startSuccess'), 'success');
       setIsStartOpen(false);
       loadSessions();
       loadMyActiveSession();
     } catch (error: any) {
-      show(error?.message || 'Failed to start session', 'error');
+      show(error?.message || t('errors.startFailed'), 'error');
     }
   };
 
-  const handleCompleteSession = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to complete this session?')) return;
+  const handleCompleteSessionClick = (sessionId: string) => {
+    setPendingSessionId(sessionId);
+    setShowCompleteConfirm(true);
+  };
+
+  const handleCompleteSession = async () => {
+    if (!pendingSessionId) return;
+    setShowCompleteConfirm(false);
+    const sessionId = pendingSessionId;
+    setPendingSessionId(null);
 
     try {
       await completeMeterReadingSession(sessionId);
-      show('Session completed successfully', 'success');
+      show(t('messages.completeSuccess'), 'success');
       loadSessions();
       loadMyActiveSession();
     } catch (error: any) {
-      show(error?.message || 'Failed to complete session', 'error');
+      show(error?.message || t('errors.completeFailed'), 'error');
     }
   };
 
   return (
     <div className="px-[41px] py-12">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-[#02542D]">Reading Sessions</h1>
+        <h1 className="text-2xl font-semibold text-[#02542D]">{t('title')}</h1>
         <div className="flex gap-3">
           {!myActiveSession && (
             <button
               onClick={() => setIsStartOpen(true)}
               className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024428] transition-colors"
             >
-              Start Session
+              {t('buttons.startSession')}
             </button>
           )}
         </div>
@@ -149,14 +161,14 @@ export default function ReadingSessionsPage() {
         <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <strong>Active Session:</strong> Started at {new Date(myActiveSession.startedAt).toLocaleString()} 
-              ({myActiveSession.unitsRead} units read)
+              <strong>{t('activeSession.label')}</strong> {t('activeSession.startedAt')} {new Date(myActiveSession.startedAt).toLocaleString()} 
+              ({myActiveSession.unitsRead} {t('activeSession.unitsRead')})
             </div>
             <button
-              onClick={() => handleCompleteSession(myActiveSession.id)}
+              onClick={() => handleCompleteSessionClick(myActiveSession.id)}
               className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
             >
-              Complete Session
+              {t('buttons.completeSession')}
             </button>
           </div>
         </div>
@@ -166,7 +178,7 @@ export default function ReadingSessionsPage() {
       <div className="bg-white p-6 rounded-xl mb-6">
         <div className="grid grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">View Mode</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('filters.viewMode')}</label>
             <select
               value={viewMode}
               onChange={(e) => {
@@ -176,15 +188,15 @@ export default function ReadingSessionsPage() {
               }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
             >
-              <option value="my">My Sessions</option>
-              <option value="active">My Active</option>
-              <option value="all">All Sessions</option>
+              <option value="my">{t('filters.mySessions')}</option>
+              <option value="active">{t('filters.myActive')}</option>
+              <option value="all">{t('filters.allSessions')}</option>
             </select>
           </div>
           {viewMode === 'all' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Assignment</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('filters.assignment')}</label>
                 <Select
                   options={assignments}
                   value={selectedAssignmentId}
@@ -194,12 +206,12 @@ export default function ReadingSessionsPage() {
                   }}
                   renderItem={(a) => `Assignment ${a.id.slice(0, 8)}...`}
                   getValue={(a) => a.id}
-                  placeholder="Select assignment"
+                  placeholder={t('filters.selectAssignment')}
                 />
               </div>
               {hasRole('admin') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Staff ID</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('filters.staff')}</label>
                   <input
                     type="text"
                     value={selectedStaffId}
@@ -207,7 +219,7 @@ export default function ReadingSessionsPage() {
                       setSelectedStaffId(e.target.value);
                       setSelectedAssignmentId('');
                     }}
-                    placeholder="Enter staff ID"
+                    placeholder={t('filters.enterStaffId')}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
                   />
                 </div>
@@ -264,7 +276,7 @@ export default function ReadingSessionsPage() {
                     <td className="px-4 py-3 text-center">
                       {!session.isCompleted && (
                         <button
-                          onClick={() => handleCompleteSession(session.id)}
+                          onClick={() => handleCompleteSessionClick(session.id)}
                           className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm"
                         >
                           Complete
@@ -398,6 +410,19 @@ function StartSessionModal({ isOpen, onClose, onSubmit, assignments }: StartSess
           </div>
         </form>
       </div>
+
+      {/* Complete Session Confirm Popup */}
+      <PopupComfirm
+        isOpen={showCompleteConfirm}
+        onClose={() => {
+          setShowCompleteConfirm(false);
+          setPendingSessionId(null);
+        }}
+        onConfirm={handleCompleteSession}
+        popupTitle={t('confirm.completeMessage')}
+        popupContext=""
+        isDanger={false}
+      />
     </div>
   );
 }

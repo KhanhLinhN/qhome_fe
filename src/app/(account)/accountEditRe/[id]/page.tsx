@@ -140,7 +140,7 @@ export default function AccountEditResidentPage() {
   ], [t]);
 
   const handleBack = () => {
-    router.push(`/accountDetailRe${userId}`);
+    router.back();
   };
 
   const handleChange =

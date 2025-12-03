@@ -160,7 +160,11 @@
     "unitManagement": "Unit Management",
     "elevatorCard": "Elevator Card",
     "residentCard": "Resident Card",
-    "approvedCard": "Approved Card"
+    "approvedCard": "Approved Card",
+    "personalInfo": "Personal Information",
+    "cardPricingManagement": "Card Pricing Management",
+    "incomeExpenseManagement": "Income & Expense Management",
+    "pricingTiersManagement": "Pricing Tiers Management"
   },
   "Account": {
     "selectBuilding": "Select building",
@@ -227,14 +231,20 @@
     "buttons": {
       "cancel": "Cancel",
       "create": "Create account",
-      "creating": "Creating..."
+      "creating": "Creating...",
+      "downloadingTemplate": "Downloading template...",
+      "downloadTemplate": "Download template file",
+      "importing": "Importing...",
+      "import": "Import staff"
     },
     "validation": {
       "username": {
         "required": "Username cannot be empty.",
         "noWhitespace": "Username cannot contain whitespace characters.",
-        "maxLength": "Username cannot exceed 40 characters.",
-        "exists": "Username already exists in the system."
+        "minLength": "Username must be at least 6 characters.",
+        "maxLength": "Username cannot exceed 16 characters.",
+        "exists": "Username already exists in the system.",
+        "invalidFormat": "Username can only contain letters (no accents), numbers, and characters @, _, -, ."
       },
       "email": {
         "required": "Email cannot be empty.",
@@ -245,11 +255,38 @@
       },
       "role": {
         "required": "Please select a role for the staff."
-      }
+      },
+      "excelFileRequired": "Please select an Excel file (.xlsx).",
+      "excelFileFormat": "File must be in .xlsx format."
     },
     "messages": {
       "createSuccess": "Staff account created successfully.",
-      "createError": "Unable to create staff account. Please try again."
+      "createError": "Unable to create staff account. Please try again.",
+      "importResult": "Processed {totalRows} rows: {successCount} successful, {failureCount} failed."
+    },
+    "errors": {
+      "importFailed": "Unable to import staff accounts. Please try again.",
+      "templateDownloadFailed": "Unable to download template file. Please try again."
+    },
+    "import": {
+      "title": "Quick import with Excel",
+      "description": "Use Excel file with columns: username, email, role, active. Role can contain multiple values, separated by commas.",
+      "fileLabel": "Excel file (.xlsx)",
+      "fileSelected": "Selected:",
+      "tableHeaders": {
+        "row": "Row",
+        "username": "Username",
+        "email": "Email",
+        "roles": "Role(s)",
+        "active": "Active",
+        "result": "Result"
+      },
+      "status": {
+        "yes": "Yes",
+        "no": "No",
+        "success": "Success",
+        "failure": "Failure"
+      }
     }
   },
   "AccountList": {
@@ -450,6 +487,97 @@
     },
     "common": {
       "editProfile": "Edit Profile"
+    }
+  },
+  "StaffProfile": {
+    "title": "Personal Information",
+    "subtitle": "Manage your account information",
+    "loading": "Loading...",
+    "errors": {
+      "loadFailed": "Unable to load profile information",
+      "updateFailed": "Unable to update information",
+      "changePasswordFailed": "Unable to change password"
+    },
+    "messages": {
+      "updateSuccess": "Information updated successfully",
+      "changePasswordSuccess": "Password changed successfully",
+      "passwordMismatch": "Password confirmation does not match",
+      "passwordMinLength": "Password must be at least 6 characters"
+    },
+    "restricted": {
+      "title": "This page is for staff only",
+      "backToDashboard": "Back to Dashboard"
+    },
+    "retry": "Retry",
+    "sections": {
+      "basicInfo": "Basic Information",
+      "changePassword": "Change Password",
+      "workDashboard": "Work Dashboard",
+      "accountInfo": "Account Information"
+    },
+    "fields": {
+      "username": "Username",
+      "email": "Email",
+      "phoneNumber": "Phone Number",
+      "department": "Department",
+      "position": "Position",
+      "role": "Role",
+      "status": "Status",
+      "lastLogin": "Last login:",
+      "failedLoginAttempts": "Failed login attempts:",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password"
+    },
+    "placeholders": {
+      "newPassword": "Enter new password (minimum 6 characters)",
+      "confirmPassword": "Re-enter new password"
+    },
+    "buttons": {
+      "edit": "Edit",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "changePassword": "Change Password",
+      "processing": "Processing...",
+      "changePasswordButton": "Change Password"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Locked",
+      "notSet": "Not set"
+    },
+    "roles": {
+      "technician": "Technician",
+      "supporter": "Support Staff",
+      "accountant": "Accountant",
+      "admin": "Administrator"
+    },
+    "dashboard": {
+      "totalAssignments": "Total assignments",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "processedRequests": "Processed requests",
+      "activeAssignments": "Active assignments",
+      "recentRequests": "Recently processed requests",
+      "noWork": "No work assigned yet",
+      "andMore": "And {count} more...",
+      "floor": "Floor {floor}",
+      "processedAt": "Processed: {date}",
+      "assignmentStatus": {
+        "pending": "Pending",
+        "inProgress": "In Progress",
+        "overdue": "Overdue"
+      },
+      "requestStatus": {
+        "completed": "Completed",
+        "inProgress": "In Progress"
+      }
+    },
+    "accountStatus": {
+      "accountLocked": "⚠️ Your account has been locked. Please contact administrator."
+    },
+    "validation": {
+      "usernameCannotChange": "Username cannot be changed"
     }
   },
     "Login": {
@@ -676,6 +804,66 @@
     "nameError": "Name is required",
     "addressError": "Address is required",
     "floorsError": "Floors must be greater than 0",
+    "downloadUnitTemplate": "Download unit import template",
+    "selectExcelFile": "Select Excel file",
+    "importing": "Importing...",
+    "exportExcel": "Export Excel",
+    "addMeter": "Add Meter",
+    "unit": "Unit",
+    "selectUnit": "-- Select unit --",
+    "service": "Service",
+    "selectService": "-- Select service --",
+    "installedDate": "Installation date (optional)",
+    "downloadMeterTemplate": "Download meter import template",
+    "selectMeterExcelFile": "Select meter Excel file",
+    "exportMeterExcel": "Export meter Excel",
+    "processedRows": "Processed {totalRows} rows:",
+    "success": "success",
+    "errors": "errors",
+    "row": "Row",
+    "rowNumber": "Row {rowNumber}",
+    "totalRows": "Total rows: {totalRows} | Success: {successCount} | Errors: {errorCount}",
+    "saveMeter": "Save meter",
+    "creating": "Creating...",
+    "meterImportGuide": "Meter import template guide",
+    "meterImportGuideDesc1": "Please set column <bold>buildingCode</bold> = <mono>{buildingCode}</mono> to load correct meters for this building.",
+    "meterImportGuideDesc2": "Keep column names <bold>unitCode</bold>, <bold>serviceCode</bold>, <bold>installedAt</bold> unchanged and do not change the format.",
+    "meterImportGuideDesc3": "Each template has an <bold>Available services</bold> table at the bottom to help you select valid service codes.",
+    "messages": {
+      "failedToLoadUnits": "Unable to load unit list",
+      "failedToDownloadTemplate": "Failed to download template",
+      "failedToExportExcel": "Failed to export Excel",
+      "importFailed": "Import failed",
+      "failedToDownloadMeterTemplate": "Failed to download meter template",
+      "meterImportFailed": "Meter import failed",
+      "failedToExportMeterExcel": "Failed to export meter Excel",
+      "pleaseSelectUnitAndService": "Please select unit and service",
+      "meterAddedSuccess": "Meter added successfully",
+      "failedToCreateMeter": "Unable to create meter"
+    },
+    "selectCity": "Select city",
+    "selectDistrict": "Select district",
+    "selectWard": "Select ward",
+    "roadVillage": "Road/Village (optional)",
+    "selectRoadVillage": "Select road/village (can be left empty)",
+    "noRoadVillageData": "No road/village data available",
+    "createBuildingError": "Error creating building",
+    "city": "City",
+    "district": "District",
+    "ward": "Ward",
+    "numberOfFloors": "Number of Floors",
+    "enterNumberOfFloors": "Enter number of floors",
+    "floorsRequired": "Number of floors is required",
+    "floorsMustBeGreaterThanZero": "Number of floors must be greater than 0",
+    "floorsMustBeLessThan100": "Number of floors must be less than 100",
+    "updateBuildingSuccess": "Building updated successfully!",
+    "updateBuildingError": "An error occurred while updating the building!",
+    "updateError": "Error updating",
+    "placeholders": {
+      "selectCity": "Select city",
+      "selectDistrict": "Select district",
+      "selectWard": "Select ward"
+    },
     "codeError": "Code has already been taken",
     "projectError": "Please select a project",
     "error": "Please fix the errors before saving",
@@ -1021,6 +1209,11 @@
     "load": "Data is loading...",
     "error": "Error loading data",
     "retry": "Please try again",
+    "createUnitError": "Error creating unit",
+    "errorUnit": "An error occurred while creating the unit",
+    "updateUnitError": "Error updating",
+    "updateUnitSuccess": "Unit updated successfully!",
+    "updateUnitFailed": "An error occurred while updating the unit!",
     "clear": "Clear",
     "yes": "Yes",
     "no": "No",
@@ -1091,7 +1284,8 @@
       "nameMaxError": "Unit name must not exceed 40 characters",
       "nameSpecialCharError": "Unit name must not contain special characters",
       "bedroomsErrorRange": "Bedrooms must be between 1-9",
-      "areaErrorRange": "Area must be > 0 and < 150"
+      "areaErrorRange": "Area must be > 0 and < 150",
+      "floorMaxError": "Floor must not exceed the building's maximum floors ({floorsMax})"
     },
     "loading": {
       "building": "Loading..."
@@ -1160,9 +1354,18 @@
     "rejectionReason": "Rejection Reason",
     "statusLabels": {
       "PENDING": "Pending",
+      "READY_FOR_PAYMENT": "Ready for Payment",
+      "PAYMENT_PENDING": "Payment Pending",
       "APPROVED": "Approved",
+      "COMPLETED": "Completed",
       "REJECTED": "Rejected",
       "CANCELED": "Canceled"
+    },
+    "paymentStatusLabels": {
+      "UNPAID": "Unpaid",
+      "PAYMENT_APPROVAL": "Payment Processing",
+      "PAYMENT_PENDING": "Awaiting Confirmation",
+      "PAID": "Paid"
     },
     "promptApprovalNote": "Enter approval note (optional):",
     "promptRejectionReason": "Enter rejection reason (required):",
@@ -1242,6 +1445,7 @@
     "selectBuilding": "Select Building",
     "noApartmentFound": "No apartment found for this building",
     "loading": "Loading...",
+    "waterMeterList": "Water Meter List",
     "waterMêtrList": "Water Meter List",
     "settings": "Settings",
     "assignTask": "Assign Task",
@@ -1257,7 +1461,95 @@
     "fromAmount": "From Amount (m³)",
     "toAmount": "To Amount (m³)",
     "price": "Price (VND)",
-    "addRow": "Add Row"
+    "addRow": "Add Row",
+    "addMeter": "Add Meter",
+    "filters": "Filters",
+    "status": "Status",
+    "all": "All",
+    "active": "Active",
+    "inactive": "Inactive",
+    "filterByUnit": "Filter by Unit",
+    "allUnits": "All Units",
+    "meters": "Meters",
+    "meterCode": "Meter Code",
+    "type": "Type",
+    "location": "Location",
+    "lastReading": "Last Reading",
+    "lastReadingDate": "Last Reading Date",
+    "actions": "Actions",
+    "edit": "Edit",
+    "deactivate": "Deactivate",
+    "delete": "Delete",
+    "measured": "Measured",
+    "pending": "Pending",
+    "noMeter": "No Meter",
+    "noReadingsAvailable": "No readings available",
+    "noMetersOrApartments": "No meters or apartments found for this building",
+    "createMeter": "Create Meter",
+    "editMeter": "Edit Meter",
+    "unit": "Unit",
+    "selectUnit": "Select unit",
+    "meterType": "Meter Type",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "create": "Create",
+    "update": "Update",
+    "apartmentWaterReadings": "Apartment Water Readings",
+    "date": "Date",
+    "messages": {
+      "failedToLoadBuildings": "Failed to load buildings",
+      "failedToLoadMeters": "Failed to load meters",
+      "waterServiceIdRequired": "Water service ID is required",
+      "waterSettingsUpdated": "Water settings updated successfully",
+      "waterSettingsCreated": "Water settings created successfully",
+      "failedToSaveSettings": "Failed to save settings",
+      "pleaseSelectBuilding": "Please select building first",
+      "meterCreated": "Meter created successfully",
+      "meterUpdated": "Meter updated successfully",
+      "meterDeactivated": "Meter deactivated successfully",
+      "meterDeleted": "Meter deleted successfully",
+      "failedToCreateMeter": "Failed to create meter",
+      "failedToUpdateMeter": "Failed to update meter",
+      "failedToDeactivateMeter": "Failed to deactivate meter",
+      "failedToDeleteMeter": "Failed to delete meter"
+    },
+    "confirm": {
+      "deactivateMeter": "Are you sure you want to deactivate this meter?",
+      "deleteMeter": "Are you sure you want to delete this meter? This action cannot be undone."
+    }
+  },
+  "ReadingExport": {
+    "title": "Export Meter Readings",
+    "exportProcess": "Export Process:",
+    "exportProcessDescription": "Exporting readings from a cycle will transfer all meter readings to the billing system and create invoices. This action should be performed after completing all readings for a cycle.",
+    "filterByStatus": "Filter by Status",
+    "all": "All",
+    "draft": "Draft",
+    "active": "Active",
+    "closed": "Closed",
+    "cancelled": "Cancelled",
+    "readingCycles": "Reading Cycles",
+    "cycleName": "Cycle Name",
+    "period": "Period",
+    "status": "Status",
+    "createdAt": "Created At",
+    "exportResult": "Export Result",
+    "actions": "Actions",
+    "readings": "readings",
+    "invoices": "invoices",
+    "notExported": "Not exported",
+    "exporting": "Exporting...",
+    "export": "Export",
+    "noReadingCycles": "No reading cycles found",
+    "loading": "Loading...",
+    "messages": {
+      "failedToLoadCycles": "Failed to load reading cycles",
+      "exportCompleted": "Export completed: {totalReadings} readings, {invoicesCreated} invoices created",
+      "failedToExport": "Failed to export readings"
+    },
+    "confirm": {
+      "exportReadings": "Are you sure you want to export readings from this cycle? This will create invoices."
+    }
   },
   "News": {
     "newsList": "News List",
@@ -1433,6 +1725,10 @@
     "errorUploadingDetailImages": "Error uploading detail images",
     "newsUpdateSuccess": "News updated successfully",
     "errorUpdatingNews": "Error updating news",
+    "errors": {
+      "loadBuildings": "Error loading building list",
+      "updateFailed": "Error updating news"
+    },
     "newsNotFound": "News not found",
     "publishDate": "Publish Date",
     "notAvailable": "N/A"
@@ -1836,7 +2132,8 @@
       "uploadFilesFailed": "Unable to upload attachment files. Please try again.",
       "loadContractDetailFailed": "An error occurred while loading contract details. Please try again.",
       "contractNotFound": "Contract not found.",
-      "createSuccessWithFileError": "Contract created successfully but file upload failed."
+      "createSuccessWithFileError": "Contract created successfully but file upload failed.",
+      "imageLoadFailed": "Unable to load image"
     },
     "messages": {
       "createSuccess": "Contract created successfully.",
@@ -1928,8 +2225,8 @@
       "deleteSuccess": "Reading cycle deleted successfully",
       "deleteError": "Failed to delete reading cycle"
     },
-    "confirmDelete": {
-      "title": "Confirm delete",
+    "deleteConfirm": {
+      "title": "Confirm Delete",
       "message": "Are you sure you want to delete this reading cycle?"
     }
   },
@@ -1979,6 +2276,7 @@
       "additionalNotes": "Additional notes..."
     },
     "errors": {
+      "loadDataFailed": "Failed to load data",
       "selectCycle": "Please select a cycle",
       "selectService": "Please select a service",
       "selectStaff": "Please select a staff member to assign to",
@@ -2065,8 +2363,13 @@
     },
     "showing": "Showing: {filtered} / {total} approved cards",
     "empty": "No approved cards found matching the criteria.",
+    "statusLabels": {
+      "approved": "Approved",
+      "completed": "Completed"
+    },
     "errors": {
-      "loadError": "Failed to load approved cards list"
+      "loadError": "Failed to load approved cards list",
+      "loadFailed": "Unable to load approved cards list"
     }
   },
   "ElevatorCards": {
@@ -2533,6 +2836,9 @@
     },
     "errors": {
       "loadListFailed": "An error occurred while loading the notification list!",
+      "loadBuildings": "Error loading building list",
+      "createFailed": "Error creating notification",
+      "updateFailed": "Error updating notification",
       "loadBuildings": "Failed to load building list",
       "selectTargetRole": "Please select target role",
       "updateFailed": "Failed to update notification"
@@ -2647,6 +2953,8 @@
         "area": "Area:"
       },
       "passwordNote": "Temporary password will be automatically generated by the system and sent to resident's email immediately after account is created.",
+      "relationNote": "Default is House owner for this process.",
+      "floorFormat": " (Floor {floor})",
       "buttons": {
         "cancel": "Cancel",
         "create": "Create account",
@@ -2775,10 +3083,113 @@
     "common": {
       "notUpdated": "Not updated",
       "defaultRejectionReason": "Information is incomplete"
+    },
+    "errors": {
+      "loadBuildingsFailed": "Unable to load building list.",
+      "loadUnitsFailed": "Unable to load unit list.",
+      "loadContractDetailFailed": "Unable to load contract details.",
+      "loadContractNotFound": "Contract information not found.",
+      "loadUnitFailed": "Unable to load unit information",
+      "loadContractByUnitFailed": "Unable to load unit contracts.",
+      "loadContractInfoFailed": "Unable to load contract information. Please try again.",
+      "loadHouseholdFailed": "Unable to load household information.",
+      "createHouseholdFailed": "Unable to create household for this unit.",
+      "processRequestFailed": "Unable to process request. Please try again."
+    },
+    "success": {
+      "cccdReadSuccess": "Information has been read from CCCD image. Please check and fill in the missing information.",
+      "createAccountSuccess": "Created house owner and resident account successfully.",
+      "accountInfo": {
+        "username": "Username:",
+        "email": "Login email:",
+        "autoGenerated": "Auto-generated"
+      }
+    },
+    "validation": {
+      "nationalId": {
+        "exists": "Citizen ID number already exists in the system."
+      }
     }
   },
   "AccountingDashboard": {
     "title": "Accounting Dashboard",
+    "sections": {
+      "financeManagement": {
+        "title": "💰 Finance Management",
+        "invoices": {
+          "title": "Invoices",
+          "description": "Income & expense management"
+        },
+        "pricingTiers": {
+          "title": "Pricing Tiers",
+          "description": "Pricing tiers management"
+        },
+        "billingCycles": {
+          "title": "Billing Periods",
+          "description": "Billing periods management"
+        }
+      },
+      "waterElectric": {
+        "title": "💧⚡ Water & Electric Management",
+        "readingCycles": {
+          "title": "Reading Cycles",
+          "description": "Meter reading cycles"
+        },
+        "readingAssign": {
+          "title": "Assignments",
+          "description": "Reading assignments"
+        },
+        "meterManagement": {
+          "title": "Meters",
+          "description": "Meter management"
+        },
+        "billingCyclesManage": {
+          "title": "Period Management",
+          "description": "Billing periods management"
+        }
+      },
+      "buildingUnit": {
+        "title": "🏢 Building & Unit Management",
+        "buildings": {
+          "title": "Buildings",
+          "description": "Building management"
+        },
+        "units": {
+          "title": "Units",
+          "description": "Unit management"
+        },
+        "households": {
+          "title": "Households",
+          "description": "Household management"
+        }
+      },
+      "accountManagement": {
+        "title": "👥 Account Management",
+        "accountList": {
+          "title": "List",
+          "description": "Account list"
+        },
+        "createStaff": {
+          "title": "Staff",
+          "description": "Create staff account"
+        },
+        "createResident": {
+          "title": "Resident",
+          "description": "Create resident account"
+        }
+      },
+      "adminFunctions": {
+        "title": "⚙️ Admin Functions",
+        "permissions": {
+          "title": "Permissions",
+          "description": "Permission management"
+        },
+        "roles": {
+          "title": "Roles",
+          "description": "Role management"
+        }
+      }
+    },
     "quickActions": {
       "title": "⚡ Quick Actions",
       "rolesPermissions": {
@@ -3099,6 +3510,85 @@
       "logoAlt": "QHome Logo",
       "title": "QHome PMS",
       "copyright": "© {year} QHome. All rights reserved."
+    },
+    "verifyOtp": {
+      "title": "Verify OTP",
+      "heading": "Verify OTP Code",
+      "description": "Enter the OTP code sent to email {email}",
+      "otpLabel": "OTP Code (6 digits)",
+      "otpPlaceholder": "000000",
+      "submit": "Verify OTP",
+      "submitting": "Verifying...",
+      "resendOtp": "Resend OTP",
+      "backToLogin": "Back to login",
+      "errors": {
+        "invalidEmail": "Invalid email. Please return to the forgot password page.",
+        "otpRequired": "OTP code cannot be empty",
+        "otpLength": "OTP code must be 6 digits",
+        "invalidOtp": "Invalid or expired OTP code.",
+        "networkError": "Cannot connect to server. Please check if backend is running.",
+        "genericError": "An error occurred. Please try again."
+      },
+      "messages": {
+        "verifySuccess": "OTP code verified successfully."
+      }
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "heading": "Forgot Password",
+      "description": "Enter your email to receive a new password",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "logoAlt": "Qhome Base Logo",
+      "copyright": "© {year} Qhome Base. All rights reserved.",
+      "buttons": {
+        "submit": "Send New Password",
+        "processing": "Processing..."
+      },
+      "backToLogin": "Back to login",
+      "validation": {
+        "emailRequired": "Email cannot be empty",
+        "emailInvalid": "Email format is incorrect"
+      },
+      "messages": {
+        "otpSent": "If the email exists in the system, an OTP code has been sent to your email. Please check your inbox.",
+        "success": "If the email exists in the system, an OTP code has been sent to your email. Please check your inbox."
+      },
+      "errors": {
+        "general": "An error occurred. Please try again.",
+        "emailRequired": "Email cannot be empty",
+        "emailInvalid": "Email format is invalid",
+        "tooManyRequests": "You have requested too many times. Please wait a moment before trying again.",
+        "invalidEmail": "Invalid email.",
+        "networkError": "Unable to connect to server. Please check if the backend is running.",
+        "genericError": "An error occurred. Please try again."
+      }
+    },
+    "confirmReset": {
+      "title": "Reset Password",
+      "heading": "Reset New Password",
+      "description": "Enter new password for account {email}",
+      "newPasswordLabel": "New Password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Re-enter new password",
+      "passwordHint": "Password must be at least 6 characters",
+      "submit": "Reset Password",
+      "submitting": "Processing...",
+      "backToLogin": "Back to login",
+      "errors": {
+        "invalidInfo": "Invalid information. Please return to the forgot password page.",
+        "passwordRequired": "Password cannot be empty",
+        "passwordMinLength": "Password must be at least 6 characters",
+        "passwordMaxLength": "Password cannot exceed 100 characters",
+        "passwordMismatch": "Password confirmation does not match",
+        "invalidOtp": "Invalid or expired OTP code. Please try again from the beginning.",
+        "networkError": "Cannot connect to server. Please check if backend is running.",
+        "genericError": "An error occurred. Please try again."
+      },
+      "messages": {
+        "resetSuccess": "Password has been reset successfully. Please log in again."
+      }
     }
   },
   "Supplier": {
@@ -3257,6 +3747,524 @@
         "setPrimarySuccess": "Primary image set successfully",
         "setPrimaryError": "Failed to set primary image: {error}"
       }
+    }
+  },
+  "NotFound": {
+    "title": "404",
+    "heading": "Page Not Found",
+    "description": "The page you are looking for does not exist or you do not have permission to access it.",
+    "backButton": "Go Back Home",
+    "backAlt": "Back"
+  },
+  "HomePage": {
+    "title": "QHome PMS",
+    "description": "Select a module from the sidebar to continue."
+  },
+  "BillingCycles": {
+    "title": "Billing Cycles",
+    "subtitle": "Financial Management",
+    "year": "Year",
+    "filters": {
+      "service": "Service",
+      "month": "Month",
+      "all": "All",
+      "allServices": "All services",
+      "allMonths": "All months",
+      "clearFilters": "Clear filters"
+    },
+    "summary": {
+      "cyclesInYear": "There are {count} billing cycles in year {year}",
+      "missingReadingCycles": "Reading cycles without billing",
+      "cycles": "{count} cycles",
+      "allCyclesHaveBilling": "All cycles have billing"
+    },
+    "buttons": {
+      "creating": "Creating...",
+      "createMissing": "Create missing billing",
+      "refresh": "Refresh",
+      "manageDetails": "Manage details"
+    },
+    "loading": {
+      "data": "Loading data...",
+      "statistics": "Loading statistics..."
+    },
+    "empty": {
+      "noCycles": "No billing cycles found"
+    },
+    "statistics": {
+      "overview": "Overview Statistics",
+      "totalInvoices": "Total Invoices",
+      "paid": "Paid (PAID)",
+      "unpaid": "Unpaid (PUBLISHED)",
+      "void": "Void (VOID)",
+      "buildingSummary": "Summary by Building"
+    },
+    "errors": {
+      "loadFailed": "Unable to load billing cycles",
+      "loadMissingFailed": "Unable to load missing reading cycles",
+      "syncFailed": "Failed to sync cycles"
+    },
+    "messages": {
+      "syncSuccess": "Reading cycles synced successfully",
+      "syncSuccessWithCount": "Created {count} additional billing cycle(s)",
+      "noCyclesToCreate": "No cycles need to be created",
+      "allCyclesHaveBilling": "All cycles have billing"
+    },
+    "fallbacks": {
+      "unknownService": "Unknown service"
+    },
+    "detail": {
+      "title": "Billing Cycle Statistics",
+      "name": "Name:",
+      "status": "Status:",
+      "service": "Service:",
+      "period": "Period:",
+      "readingCycle": "Reading cycle:",
+      "id": "Billing ID:",
+      "relatedCycle": "Related reading cycle:",
+      "viewDetails": "View details",
+      "noData": "No data"
+    }
+  },
+  "BillingCyclesManage": {
+    "title": "Billing Cycle Management",
+    "subtitle": "Financial Management",
+    "year": "Year",
+    "filters": {
+      "service": "Service",
+      "month": "Month",
+      "building": "Building",
+      "floor": "Floor",
+      "invoiceStatus": "Invoice Status",
+      "all": "All",
+      "allServices": "All services",
+      "allMonths": "All months",
+      "allBuildings": "All buildings",
+      "allFloors": "All floors",
+      "allStatuses": "All statuses"
+    },
+    "buttons": {
+      "exporting": "Exporting...",
+      "exportExcel": "Export Excel",
+      "refresh": "Refresh",
+      "backToOverview": "Back to overview"
+    },
+    "loading": {
+      "data": "Loading...",
+      "invoices": "Loading invoices...",
+      "summaries": "Aggregating data by building...",
+      "missingServices": "Loading..."
+    },
+    "labels": {
+      "selectCycle": "Select Billing Cycle",
+      "currentCycle": "Current cycle:",
+      "missingServices": "Services without invoices:",
+      "allServicesHaveInvoices": "✓ All services have invoices",
+      "building": "Building",
+      "status": "Status:",
+      "invoiceList": "Invoice List",
+      "floor": "Floor {floor}",
+      "unit": "Unit:",
+      "due": "Due:",
+      "noBuildingSelected": "No building selected"
+    },
+    "summary": {
+      "buildingsCount": "{count} buildings | Total invoices: {amount} VND",
+      "invoicesCount": "{count} invoices · {amount} VND"
+    },
+    "empty": {
+      "noInvoicesForFloor": "No invoices for floor {floor} of selected building",
+      "noInvoicesForBuilding": "No invoices for selected building",
+      "noBuildingSelected": "No building selected"
+    },
+    "errors": {
+      "loadFailed": "Unable to load billing cycles",
+      "loadBuildingsFailed": "Unable to load building data",
+      "loadInvoicesFailed": "Unable to load invoices",
+      "loadUnitsFailed": "Unable to load unit list",
+      "selectCycleRequired": "Please select a billing cycle",
+      "exportFailed": "Excel export failed"
+    },
+    "messages": {
+      "exportSuccess": "Excel exported successfully"
+    },
+    "selectCycle": {
+      "placeholder": "-- Select cycle --"
+    }
+  },
+  "ShowAssign": {
+    "title": "My Assignments",
+    "errors": {
+      "loadRemindersFailed": "Unable to load reminders"
+    }
+  },
+  "ReadingSessions": {
+    "title": "Reading Sessions",
+    "buttons": {
+      "startSession": "Start Session",
+      "completeSession": "Complete Session"
+    },
+    "filters": {
+      "viewMode": "View Mode",
+      "assignment": "Assignment",
+      "staff": "Staff",
+      "mySessions": "My Sessions",
+      "myActive": "My Active",
+      "allSessions": "All Sessions",
+      "selectAssignment": "Select assignment",
+      "selectStaff": "Select staff",
+      "enterStaffId": "Enter staff ID"
+    },
+    "activeSession": {
+      "label": "Active Session:",
+      "startedAt": "Started at",
+      "unitsRead": "units read"
+    },
+    "confirm": {
+      "completeMessage": "Are you sure you want to complete this session?"
+    },
+    "errors": {
+      "loadFailed": "Failed to load reading sessions",
+      "startFailed": "Failed to start session",
+      "completeFailed": "Failed to complete session"
+    },
+    "messages": {
+      "startSuccess": "Session started successfully",
+      "completeSuccess": "Session completed successfully"
+    }
+  },
+  "IndexReading": {
+    "title": "Meter Reading",
+    "errors": {
+      "loadFailed": "Failed to load data"
+    }
+  },
+  "PricingTiers": {
+    "title": "Pricing Tiers Management",
+    "description": "Configure pricing tiers for electricity and water",
+    "services": {
+      "electric": "Electric",
+      "water": "Water"
+    },
+    "summary": {
+      "totalTiers": "Total tiers: {count}"
+    },
+    "buttons": {
+      "addNewTier": "+ Add new tier",
+      "addFirstTier": "Add first tier",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "addTitle": "Add new tier",
+      "editTitle": "Edit tier",
+      "tierOrder": "Tier order *",
+      "minQuantity": "Min quantity (kWh/m³)",
+      "maxQuantity": "Max quantity (kWh/m³)",
+      "unitPrice": "Unit price (VND/kWh or VND/m³) *",
+      "effectiveFrom": "Effective from *",
+      "effectiveUntil": "Effective until",
+      "description": "Description",
+      "active": "Activate this tier",
+      "maxQuantityPlaceholder": "Unlimited",
+      "maxQuantityHint": "Leave empty if unlimited (final tier - at least 1 tier required)",
+      "effectiveUntilHint": "Leave empty if no expiry",
+      "descriptionPlaceholder": "Tier description (optional)"
+    },
+    "table": {
+      "tier": "Tier",
+      "quantityRange": "Quantity range",
+      "unitPrice": "Unit price",
+      "effective": "Effective",
+      "status": "Status",
+      "actions": "Actions",
+      "tierOrder": "Tier {order}",
+      "to": "to",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "validation": {
+      "tierOrderMin": "Tier order must be >= 1",
+      "minQuantityNonNegative": "Min quantity must be >= 0",
+      "maxQuantityGreater": "Max quantity must be > min quantity",
+      "unitPricePositive": "Unit price must be > 0",
+      "effectiveFromRequired": "Effective from date is required",
+      "effectiveUntilAfterFrom": "Effective until must be >= effective from"
+    },
+    "warnings": {
+      "overlappingTiers": "Warning: There are overlapping price ranges",
+      "missingTiers": "Warning: There are missing price ranges",
+      "missingFinalTier": "⚠️ Missing final tier",
+      "missingFinalTierDescription": "The system requires at least one final tier with maxQuantity = null (unlimited) to cover all remaining cases.",
+      "missingFinalTierExample": "Example: Final tier could be \"≥ 50 kWh\" or \"≥ 50 m³\" with maxQuantity left empty.",
+      "overlappingDescription": "The following tiers have overlapping ranges:",
+      "overlappingRange": "{tier1} and {tier2} overlap from {from} to {to} {unit}",
+      "overlappingRangeFrom": "{tier1} and {tier2} overlap from {from} onwards {unit}",
+      "overlappingRangeAt": "{tier1} and {tier2} overlap at {from} {unit}",
+      "overlappingAdjust": "Please adjust min/max of tiers to avoid overlap.",
+      "gapsDescription": "The following ranges are not covered by any tier:",
+      "gapFromTo": "From {from} to {to} {unit}",
+      "gapFromUp": "From {from} onwards {unit} - Need final tier (maxQuantity = null)",
+      "gapsAdjust": "Please add tiers to cover these ranges or adjust max of previous tier."
+    },
+    "common": {
+      "notAvailable": "N/A"
+    },
+    "loading": {
+      "data": "Loading..."
+    },
+    "empty": {
+      "noTiers": "No tiers yet"
+    },
+    "notes": {
+      "title": "Note:",
+      "orderApplied": "Tiers are applied in order from low to high",
+      "rangeCalculation": "Tier is calculated when usage quantity is within min - max range",
+      "unlimitedMax": "If max = null, tier applies to all quantities from min onwards",
+      "effectiveDate": "Effective date determines which tier is used at calculation time"
+    },
+    "errors": {
+      "loadFailed": "Unable to load pricing tiers list",
+      "deleteFailed": "Unable to delete pricing tier",
+      "saveFailed": "Unable to save tier"
+    },
+    "messages": {
+      "deleteSuccess": "Pricing tier deleted successfully",
+      "createSuccess": "Tier created successfully",
+      "updateSuccess": "Tier updated successfully"
+    },
+    "confirm": {
+      "deleteMessage": "Are you sure you want to delete pricing tier {tierOrder}?",
+      "noLastTierWarning": "Warning: After saving, the system will not have a final pricing tier (maxQuantity = null).\n\nDo you want to continue? The system requires at least one final tier to cover all cases."
+    }
+  },
+  "Invoices": {
+    "title": "Invoices Management",
+    "description": "View and manage all invoices in the system",
+    "buttons": {
+      "exportExcel": "Export Excel",
+      "viewDetails": "View details"
+    },
+    "filters": {
+      "allServices": "All services",
+      "allStatuses": "All statuses",
+      "allMonths": "All months",
+      "search": "Search",
+      "serviceType": "Service type",
+      "status": "Status",
+      "month": "Month",
+      "searchPlaceholder": "Invoice code, name, address..."
+    },
+    "statistics": {
+      "totalInvoices": "Total invoices",
+      "totalValue": "Total value",
+      "paid": "Paid",
+      "unpaid": "Unpaid"
+    },
+    "table": {
+      "invoiceCode": "Invoice Code",
+      "issuedDate": "Issued Date",
+      "payer": "Payer",
+      "service": "Service",
+      "totalAmount": "Total Amount",
+      "status": "Status",
+      "actions": "Actions",
+      "empty": "No invoices"
+    },
+    "modal": {
+      "title": "Invoice Details",
+      "invoiceCode": "Invoice Code",
+      "status": "Status",
+      "issuedDate": "Issued Date",
+      "dueDate": "Due Date",
+      "payer": "Payer",
+      "address": "Address",
+      "paidDate": "Paid Date",
+      "paymentMethod": "Payment Method",
+      "serviceDetails": "Service Details",
+      "service": "Service",
+      "description": "Description",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "lineTotal": "Line Total",
+      "total": "Total"
+    },
+    "services": {
+      "electricity": "Electricity",
+      "water": "Water",
+      "vehicleCard": "Vehicle Card",
+      "elevatorCard": "Elevator Card",
+      "residentCard": "Resident Card"
+    },
+    "statuses": {
+      "draft": "Draft",
+      "published": "Published",
+      "paid": "Paid",
+      "void": "Void"
+    },
+    "loading": "Loading...",
+    "errors": {
+      "loadFailed": "Unable to load invoices list",
+      "exportFailed": "Unable to export Excel file"
+    },
+    "messages": {
+      "exportSuccess": "Excel file exported successfully"
+    }
+  },
+  "CardPricing": {
+    "title": "Card Pricing Management",
+    "description": "Configure registration prices for card types in the system",
+    "cardTypes": {
+      "vehicle": "Vehicle Card",
+      "resident": "Resident Card",
+      "elevator": "Elevator Card"
+    },
+    "descriptions": {
+      "vehicle": "Vehicle card registration fee",
+      "resident": "Resident card registration fee",
+      "elevator": "Elevator card registration fee"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Suspended"
+    },
+    "fields": {
+      "price": "Price (VND)",
+      "description": "Description",
+      "lastUpdated": "Last updated"
+    },
+    "placeholders": {
+      "enterPrice": "Enter price",
+      "enterDescription": "Enter description"
+    },
+    "buttons": {
+      "saving": "Saving...",
+      "saveChanges": "Save changes"
+    },
+    "notes": {
+      "title": "Note",
+      "newPriceApplies": "New price will be applied to new card registrations",
+      "currentPriceUsed": "Current price is being used for pending payment registrations",
+      "suspendPrice": "You can suspend price application by setting isActive = false"
+    },
+    "loading": "Loading...",
+    "common": {
+      "notSet": "Not set"
+    },
+    "errors": {
+      "loadFailed": "Unable to load card pricing list",
+      "updateFailed": "Unable to update price"
+    },
+    "messages": {
+      "updateSuccess": "Price updated successfully"
+    },
+    "validation": {
+      "priceMustBePositive": "Price must be greater than 0"
+    }
+  },
+  "TenantOwner": {
+    "loading": "Loading...",
+    "notFound": "Tenant information not found",
+    "title": "Home - {name}",
+    "welcome": "Welcome, {username}! Manage your tenant information.",
+    "stats": {
+      "buildings": "Buildings",
+      "active": "Active",
+      "units": "Units",
+      "totalUnits": "Total units",
+      "deletionRequests": "Deletion Requests",
+      "pending": "Pending approval"
+    },
+    "tenantInfo": {
+      "title": "Tenant Information",
+      "name": "Tenant Name",
+      "code": "Tenant Code"
+    },
+    "buildings": {
+      "title": "Buildings List",
+      "count": "{count} buildings",
+      "empty": "No buildings yet",
+      "address": "Address",
+      "noAddress": "No address",
+      "units": "{count} units"
+    },
+    "deletionRequests": {
+      "title": "Tenant Deletion Requests",
+      "count": "{count} requests",
+      "empty": {
+        "title": "No tenant deletion requests",
+        "description": "You can create a tenant deletion request if needed",
+        "button": "➕ Create new request"
+      },
+      "status": {
+        "pending": "⏳ Pending",
+        "approved": "✅ Approved",
+        "inProgress": "🔄 In Progress",
+        "completed": "✔️ Completed",
+        "rejected": "❌ Rejected",
+        "cancelled": "🚫 Cancelled"
+      },
+      "rejectionReason": "Rejection reason:",
+      "buttons": {
+        "approve": "✅ Approve",
+        "approving": "⏳ Processing...",
+        "details": "Details"
+      }
+    },
+    "modals": {
+      "approve": {
+        "title": "✅ Confirm Approve Tenant Deletion Request",
+        "warning": "⚠️ Important Note:",
+        "notes": {
+          "buildingStatus": "System will automatically set building status to DELETING",
+          "unitsDeleted": "All units will be gradually deleted",
+          "buildingArchived": "After all units deleted → Building status = ARCHIVED",
+          "tenantArchived": "After all buildings deleted → Tenant status = ARCHIVED"
+        },
+        "noteLabel": "Note (optional):",
+        "notePlaceholder": "Enter approval reason...",
+        "cancel": "Cancel",
+        "confirm": "✅ Confirm Approve",
+        "confirming": "⏳ Processing..."
+      }
+    },
+    "messages": {
+      "approveSuccess": "✅ Tenant deletion request approved! System will start processing.",
+      "approveError": "❌ Approval failed: {message}"
+    }
+  },
+  "TenantOwnerBuildings": {
+    "loading": "Loading...",
+    "title": "Buildings Being Deleted",
+    "description": "Manage buildings in the deletion process. When all units are deleted, you can complete building deletion.",
+    "empty": {
+      "icon": "✅",
+      "title": "No buildings being deleted",
+      "description": "All your buildings are operating normally"
+    },
+    "building": {
+      "status": "🔄 DELETING",
+      "code": "Building Code:",
+      "requestedBy": "Requested by:",
+      "requestedAt": "Request date:",
+      "progress": {
+        "title": "Unit Deletion Progress:",
+        "units": "{deleted} / {total} units",
+        "completed": "✅ All units deleted! Can complete building deletion.",
+        "remaining": "⏳ {remaining} units remaining to delete...",
+        "complete": "✅ Complete Deletion",
+        "completing": "⏳ Processing..."
+      }
+    },
+    "confirm": {
+      "complete": "Are you sure you want to complete deletion of building \"{name}\"?\n\nBuilding will change to ARCHIVED status."
+    },
+    "messages": {
+      "completeSuccess": "✅ Building \"{name}\" deletion completed!",
+      "completeError": "❌ Completion failed: {message}"
     }
   }
 }

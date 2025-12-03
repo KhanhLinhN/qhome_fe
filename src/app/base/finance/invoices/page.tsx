@@ -1,44 +1,48 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { getAllInvoicesForAdmin, InvoiceDto, InvoiceLineDto } from '@/src/services/finance/invoiceAdminService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import axios from '@/src/lib/axios';
 
-const SERVICE_CODE_OPTIONS = [
-  { value: '', label: 'Tất cả dịch vụ' },
-  { value: 'ELECTRICITY', label: 'Điện' },
-  { value: 'WATER', label: 'Nước' },
-  { value: 'VEHICLE_CARD', label: 'Thẻ xe' },
-  { value: 'ELEVATOR_CARD', label: 'Thẻ thang máy' },
-  { value: 'RESIDENT_CARD', label: 'Thẻ cư dân' },
-];
-
-const STATUS_OPTIONS = [
-  { value: '', label: 'Tất cả trạng thái' },
-  { value: 'DRAFT', label: 'Nháp' },
-  { value: 'PUBLISHED', label: 'Đã phát hành' },
-  { value: 'PAID', label: 'Đã thanh toán' },
-  { value: 'VOID', label: 'Đã hủy' },
-];
-
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  DRAFT: { label: 'Nháp', className: 'bg-gray-100 text-gray-700' },
-  PUBLISHED: { label: 'Đã phát hành', className: 'bg-yellow-100 text-yellow-700' },
-  PAID: { label: 'Đã thanh toán', className: 'bg-green-100 text-green-700' },
-  VOID: { label: 'Đã hủy', className: 'bg-red-100 text-red-700' },
-};
-
-const SERVICE_CODE_LABELS: Record<string, string> = {
-  ELECTRICITY: 'Điện',
-  WATER: 'Nước',
-  VEHICLE_CARD: 'Thẻ xe',
-  ELEVATOR_CARD: 'Thẻ thang máy',
-  RESIDENT_CARD: 'Thẻ cư dân',
-};
+// Options will be created inside component with translations
 
 export default function InvoicesManagementPage() {
+  const t = useTranslations('Invoices');
   const { show } = useNotifications();
+  
+  const SERVICE_CODE_OPTIONS = [
+    { value: '', label: t('filters.allServices') },
+    { value: 'ELECTRICITY', label: t('services.electricity') },
+    { value: 'WATER', label: t('services.water') },
+    { value: 'VEHICLE_CARD', label: t('services.vehicleCard') },
+    { value: 'ELEVATOR_CARD', label: t('services.elevatorCard') },
+    { value: 'RESIDENT_CARD', label: t('services.residentCard') },
+  ];
+
+  const STATUS_OPTIONS = [
+    { value: '', label: t('filters.allStatuses') },
+    { value: 'DRAFT', label: t('statuses.draft') },
+    { value: 'PUBLISHED', label: t('statuses.published') },
+    { value: 'PAID', label: t('statuses.paid') },
+    { value: 'VOID', label: t('statuses.void') },
+  ];
+
+  const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+    DRAFT: { label: t('statuses.draft'), className: 'bg-gray-100 text-gray-700' },
+    PUBLISHED: { label: t('statuses.published'), className: 'bg-yellow-100 text-yellow-700' },
+    PAID: { label: t('statuses.paid'), className: 'bg-green-100 text-green-700' },
+    VOID: { label: t('statuses.void'), className: 'bg-red-100 text-red-700' },
+  };
+
+  const SERVICE_CODE_LABELS: Record<string, string> = {
+    ELECTRICITY: t('services.electricity'),
+    WATER: t('services.water'),
+    VEHICLE_CARD: t('services.vehicleCard'),
+    ELEVATOR_CARD: t('services.elevatorCard'),
+    RESIDENT_CARD: t('services.residentCard'),
+  };
   const [invoices, setInvoices] = useState<InvoiceDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceDto | null>(null);
@@ -51,7 +55,7 @@ export default function InvoicesManagementPage() {
 
   // Generate month options (last 12 months + current month)
   const monthOptions = useMemo(() => {
-    const options = [{ value: '', label: 'Tất cả tháng' }];
+    const options = [{ value: '', label: t('filters.allMonths') }];
     const now = new Date();
     for (let i = 0; i < 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -86,7 +90,7 @@ export default function InvoicesManagementPage() {
       setInvoices(data);
     } catch (error: any) {
       console.error('Failed to load invoices:', error);
-      show('Không thể tải danh sách hóa đơn', 'error');
+      show(t('errors.loadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -207,10 +211,10 @@ export default function InvoicesManagementPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      show('Xuất file Excel thành công', 'success');
+      show(t('messages.exportSuccess'), 'success');
     } catch (error: any) {
       console.error('Failed to export Excel:', error);
-      show('Không thể xuất file Excel', 'error');
+      show(t('errors.exportFailed'), 'error');
     }
   };
 
@@ -218,8 +222,8 @@ export default function InvoicesManagementPage() {
     <div className="container mx-auto px-4 py-8 relative">
       <div className="mb-6 flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý Thu Chi</h1>
-          <p className="text-gray-600">Xem và quản lý tất cả các hóa đơn trong hệ thống</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('title')}</h1>
+          <p className="text-gray-600">{t('description')}</p>
         </div>
         <button
           onClick={handleExportExcel}
@@ -228,28 +232,28 @@ export default function InvoicesManagementPage() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          Xuất Excel
+          {t('buttons.exportExcel')}
         </button>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Tổng số hóa đơn</div>
+          <div className="text-sm text-gray-600">{t('statistics.totalInvoices')}</div>
           <div className="text-2xl font-bold text-gray-900">{statistics.total}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Tổng giá trị</div>
+          <div className="text-sm text-gray-600">{t('statistics.totalValue')}</div>
           <div className="text-2xl font-bold text-green-600">{formatCurrency(statistics.totalAmount)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Đã thanh toán</div>
+          <div className="text-sm text-gray-600">{t('statistics.paid')}</div>
           <div className="text-2xl font-bold text-green-600">
             {statistics.byStatus.PAID.count} ({formatCurrency(statistics.byStatus.PAID.amount)})
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Chưa thanh toán</div>
+          <div className="text-sm text-gray-600">{t('statistics.unpaid')}</div>
           <div className="text-2xl font-bold text-yellow-600">
             {statistics.byStatus.PUBLISHED.count} ({formatCurrency(statistics.byStatus.PUBLISHED.amount)})
           </div>
@@ -260,17 +264,17 @@ export default function InvoicesManagementPage() {
       <div className="bg-white rounded-lg shadow p-4 mb-6 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('filters.search')}</label>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Mã hóa đơn, tên, địa chỉ..."
+              placeholder={t('filters.searchPlaceholder')}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#02542D]"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Loại dịch vụ</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('filters.serviceType')}</label>
             <select
               value={serviceCodeFilter}
               onChange={(e) => setServiceCodeFilter(e.target.value)}
@@ -282,7 +286,7 @@ export default function InvoicesManagementPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('filters.status')}</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -294,7 +298,7 @@ export default function InvoicesManagementPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tháng</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('filters.month')}</label>
             <select
               value={monthFilter}
               onChange={(e) => setMonthFilter(e.target.value)}
@@ -311,34 +315,34 @@ export default function InvoicesManagementPage() {
       {/* Invoices Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden relative z-0">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Đang tải...</div>
+          <div className="p-8 text-center text-gray-500">{t('loading')}</div>
         ) : filteredInvoices.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">Không có hóa đơn nào</div>
+          <div className="p-8 text-center text-gray-500">{t('table.empty')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Mã HĐ
+                    {t('table.invoiceCode')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ngày phát hành
+                    {t('table.issuedDate')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Người thanh toán
+                    {t('table.payer')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Dịch vụ
+                    {t('table.service')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tổng tiền
+                    {t('table.totalAmount')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trạng thái
+                    {t('table.status')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thao tác
+                    {t('table.actions')}
                   </th>
                 </tr>
               </thead>
@@ -377,7 +381,7 @@ export default function InvoicesManagementPage() {
                         onClick={() => setSelectedInvoice(invoice)}
                         className="text-[#02542D] hover:text-[#023a20] font-medium"
                       >
-                        Xem chi tiết
+                        {t('buttons.viewDetails')}
                       </button>
                     </td>
                   </tr>
@@ -393,7 +397,7 @@ export default function InvoicesManagementPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Chi tiết hóa đơn</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('modal.title')}</h2>
               <button
                 onClick={() => setSelectedInvoice(null)}
                 className="text-gray-400 hover:text-gray-600"
@@ -406,11 +410,11 @@ export default function InvoicesManagementPage() {
             <div className="p-6">
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                  <div className="text-sm text-gray-600">Mã hóa đơn</div>
+                  <div className="text-sm text-gray-600">{t('modal.invoiceCode')}</div>
                   <div className="font-medium">{selectedInvoice.code || '-'}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-600">Trạng thái</div>
+                  <div className="text-sm text-gray-600">{t('modal.status')}</div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     STATUS_CONFIG[selectedInvoice.status]?.className || 'bg-gray-100 text-gray-700'
                   }`}>
@@ -418,45 +422,45 @@ export default function InvoicesManagementPage() {
                   </span>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-600">Ngày phát hành</div>
+                  <div className="text-sm text-gray-600">{t('modal.issuedDate')}</div>
                   <div className="font-medium">{formatDate(selectedInvoice.issuedAt)}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-600">Hạn thanh toán</div>
+                  <div className="text-sm text-gray-600">{t('modal.dueDate')}</div>
                   <div className="font-medium">{formatDate(selectedInvoice.dueDate)}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-600">Người thanh toán</div>
+                  <div className="text-sm text-gray-600">{t('modal.payer')}</div>
                   <div className="font-medium">{selectedInvoice.billToName || '-'}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-600">Địa chỉ</div>
+                  <div className="text-sm text-gray-600">{t('modal.address')}</div>
                   <div className="font-medium">{selectedInvoice.billToAddress || '-'}</div>
                 </div>
                 {selectedInvoice.paidAt && (
                   <div>
-                    <div className="text-sm text-gray-600">Ngày thanh toán</div>
+                    <div className="text-sm text-gray-600">{t('modal.paidDate')}</div>
                     <div className="font-medium">{formatDate(selectedInvoice.paidAt)}</div>
                   </div>
                 )}
                 {selectedInvoice.paymentGateway && (
                   <div>
-                    <div className="text-sm text-gray-600">Phương thức thanh toán</div>
+                    <div className="text-sm text-gray-600">{t('modal.paymentMethod')}</div>
                     <div className="font-medium">{selectedInvoice.paymentGateway}</div>
                   </div>
                 )}
               </div>
 
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">Chi tiết dịch vụ</h3>
+                <h3 className="text-lg font-semibold mb-3">{t('modal.serviceDetails')}</h3>
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Dịch vụ</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Mô tả</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Số lượng</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Đơn giá</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Thành tiền</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('modal.service')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('modal.description')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('modal.quantity')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('modal.unitPrice')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('modal.lineTotal')}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -478,7 +482,7 @@ export default function InvoicesManagementPage() {
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex justify-end">
                   <div className="text-right">
-                    <div className="text-sm text-gray-600 mb-1">Tổng cộng</div>
+                    <div className="text-sm text-gray-600 mb-1">{t('modal.total')}</div>
                     <div className="text-2xl font-bold text-gray-900">
                       {formatCurrency(selectedInvoice.totalAmount || 0)}
                     </div>

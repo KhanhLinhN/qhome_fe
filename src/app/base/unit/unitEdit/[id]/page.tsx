@@ -240,11 +240,11 @@ export default function UnitEdit() {
                 ...unitUpdateData,
                 code: newCode,
             };
-            console.log('Đang gửi dữ liệu:', dataToSubmit);
+            console.log(t('saving'), dataToSubmit);
             await editUnit(unitId, dataToSubmit);
             router.push(`/base/unit/unitDetail/${unitId}`);
         } catch (submitError) {
-            console.error('Lỗi khi cập nhật:', submitError);
+            console.error(t('updateUnitError'), submitError);
         }
     };
 

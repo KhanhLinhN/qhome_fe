@@ -12,15 +12,15 @@ export default function AccountingDashboard(){
       
       {/* Finance Management Section */}
       <div className="bg-white rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">💰 Quản lý Tài chính</h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('sections.financeManagement.title')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Link 
             href="/base/finance/invoices"
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">📄</div>
-            <div className="font-medium text-slate-800 text-center">Hóa đơn</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý thu chi</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.financeManagement.invoices.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.financeManagement.invoices.description')}</div>
           </Link>
 
           <Link 
@@ -28,8 +28,8 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">📊</div>
-            <div className="font-medium text-slate-800 text-center">Bậc giá</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý bậc giá</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.financeManagement.pricingTiers.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.financeManagement.pricingTiers.description')}</div>
           </Link>
 
           <Link 
@@ -37,23 +37,23 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">📅</div>
-            <div className="font-medium text-slate-800 text-center">Kỳ thu</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý kỳ thu</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.financeManagement.billingCycles.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.financeManagement.billingCycles.description')}</div>
           </Link>
         </div>
       </div>
 
       {/* Water & Electric Management */}
       <div className="bg-white rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">💧⚡ Quản lý Điện Nước</h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('sections.waterElectric.title')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link 
             href="/base/readingCycles"
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">📈</div>
-            <div className="font-medium text-slate-800 text-center">Kỳ đọc</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Kỳ đọc chỉ số</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.waterElectric.readingCycles.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.waterElectric.readingCycles.description')}</div>
           </Link>
 
           <Link 
@@ -61,8 +61,8 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">📝</div>
-            <div className="font-medium text-slate-800 text-center">Phân công</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Phân công đọc</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.waterElectric.readingAssign.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.waterElectric.readingAssign.description')}</div>
           </Link>
 
           <Link 
@@ -70,8 +70,8 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">⚙️</div>
-            <div className="font-medium text-slate-800 text-center">Đồng hồ</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý đồng hồ</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.waterElectric.meterManagement.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.waterElectric.meterManagement.description')}</div>
           </Link>
 
           <Link 
@@ -79,23 +79,23 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">🔧</div>
-            <div className="font-medium text-slate-800 text-center">Quản lý kỳ</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý kỳ thu</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.waterElectric.billingCyclesManage.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.waterElectric.billingCyclesManage.description')}</div>
           </Link>
         </div>
       </div>
 
       {/* Building & Unit Management */}
       <div className="bg-white rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">🏢 Quản lý Tòa nhà & Căn hộ</h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('sections.buildingUnit.title')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Link 
             href="/base/building/buildingList"
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">🏢</div>
-            <div className="font-medium text-slate-800 text-center">Tòa nhà</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý tòa nhà</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.buildingUnit.buildings.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.buildingUnit.buildings.description')}</div>
           </Link>
 
           <Link 
@@ -103,8 +103,8 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">🏠</div>
-            <div className="font-medium text-slate-800 text-center">Căn hộ</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý căn hộ</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.buildingUnit.units.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.buildingUnit.units.description')}</div>
           </Link>
 
           <Link 
@@ -112,23 +112,23 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">👨‍👩‍👧‍👦</div>
-            <div className="font-medium text-slate-800 text-center">Hộ dân</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý hộ dân</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.buildingUnit.households.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.buildingUnit.households.description')}</div>
           </Link>
         </div>
       </div>
 
       {/* Account Management */}
       <div className="bg-white rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">👥 Quản lý Tài khoản</h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('sections.accountManagement.title')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Link 
             href="/accountList"
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">📋</div>
-            <div className="font-medium text-slate-800 text-center">Danh sách</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Danh sách tài khoản</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.accountManagement.accountList.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.accountManagement.accountList.description')}</div>
           </Link>
 
           <Link 
@@ -136,8 +136,8 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">🧑‍💼</div>
-            <div className="font-medium text-slate-800 text-center">Nhân viên</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Tạo tài khoản NV</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.accountManagement.createStaff.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.accountManagement.createStaff.description')}</div>
           </Link>
 
           <Link 
@@ -145,23 +145,23 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">🏘️</div>
-            <div className="font-medium text-slate-800 text-center">Cư dân</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Tạo tài khoản CĐ</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.accountManagement.createResident.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.accountManagement.createResident.description')}</div>
           </Link>
         </div>
       </div>
 
       {/* Admin Functions */}
       <div className="bg-white rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">⚙️ Chức năng Quản trị</h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('sections.adminFunctions.title')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Link 
             href="/admin/users/permissions"
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">🔐</div>
-            <div className="font-medium text-slate-800 text-center">Phân quyền</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý phân quyền</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.adminFunctions.permissions.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.adminFunctions.permissions.description')}</div>
           </Link>
 
           <Link 
@@ -169,8 +169,8 @@ export default function AccountingDashboard(){
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">🛡️</div>
-            <div className="font-medium text-slate-800 text-center">Vai trò</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Quản lý vai trò</div>
+            <div className="font-medium text-slate-800 text-center">{t('sections.adminFunctions.roles.title')}</div>
+            <div className="text-xs text-slate-500 text-center mt-1">{t('sections.adminFunctions.roles.description')}</div>
           </Link>
         </div>
       </div>

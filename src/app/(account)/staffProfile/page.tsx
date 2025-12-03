@@ -24,7 +24,7 @@ import { getPendingMaintenanceRequests, MaintenanceRequestDto } from '@/src/serv
 export default function StaffProfilePage() {
   const { user, isLoading } = useAuth();
   const { show } = useNotifications();
-  const t = useTranslations('ProfileView');
+  const t = useTranslations('StaffProfile');
   
   const [profile, setProfile] = useState<UserProfileInfo | null>(null);
   const [account, setAccount] = useState<UserAccountInfo | null>(null);
@@ -94,7 +94,7 @@ export default function StaffProfilePage() {
       const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Không thể tải thông tin profile';
+        t('errors.loadFailed');
       setError(message);
       show(message, 'error');
     } finally {
@@ -112,12 +112,12 @@ export default function StaffProfilePage() {
       };
 
       await updateUserProfile(user.userId, payload);
-      show('Cập nhật thông tin thành công', 'success');
+      show(t('messages.updateSuccess'), 'success');
       setIsEditing(false);
       await loadProfile();
     } catch (err: any) {
       console.error('Failed to update profile', err);
-      const message = err?.response?.data?.message || 'Không thể cập nhật thông tin';
+      const message = err?.response?.data?.message || t('errors.updateFailed');
       show(message, 'error');
     } finally {
       setSaving(false);
@@ -151,12 +151,12 @@ export default function StaffProfilePage() {
     if (!user?.userId) return;
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      show('Mật khẩu xác nhận không khớp', 'error');
+      show(t('messages.passwordMismatch'), 'error');
       return;
     }
 
     if (passwordForm.newPassword.length < 6) {
-      show('Mật khẩu phải có ít nhất 6 ký tự', 'error');
+      show(t('messages.passwordMinLength'), 'error');
       return;
     }
 
@@ -167,7 +167,7 @@ export default function StaffProfilePage() {
       };
 
       await updateUserPassword(user.userId, payload);
-      show('Đổi mật khẩu thành công', 'success');
+      show(t('messages.changePasswordSuccess'), 'success');
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
@@ -175,7 +175,7 @@ export default function StaffProfilePage() {
       });
     } catch (err: any) {
       console.error('Failed to change password', err);
-      const message = err?.response?.data?.message || 'Không thể đổi mật khẩu';
+      const message = err?.response?.data?.message || t('errors.changePasswordFailed');
       show(message, 'error');
     } finally {
       setSaving(false);
@@ -190,9 +190,9 @@ export default function StaffProfilePage() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-lg text-slate-600 mb-4">Trang này chỉ dành cho nhân viên</p>
+          <p className="text-lg text-slate-600 mb-4">{t('restricted.title')}</p>
           <Link href="/dashboard" className="text-blue-600 hover:underline">
-            Quay về Dashboard
+            {t('restricted.backToDashboard')}
           </Link>
         </div>
       </div>
@@ -202,7 +202,7 @@ export default function StaffProfilePage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-sm text-slate-600">Đang tải...</div>
+        <div className="text-sm text-slate-600">{t('loading')}</div>
       </div>
     );
   }
@@ -216,7 +216,7 @@ export default function StaffProfilePage() {
             onClick={loadProfile}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            Thử lại
+            {t('retry')}
           </button>
         </div>
       </div>
@@ -225,30 +225,30 @@ export default function StaffProfilePage() {
 
   const roles = profile?.roles || user?.roles || [];
   const roleLabels: Record<string, string> = {
-    TECHNICIAN: 'Kỹ thuật viên',
-    SUPPORTER: 'Nhân viên hỗ trợ',
-    ACCOUNTANT: 'Kế toán',
-    ADMIN: 'Quản trị viên',
+    TECHNICIAN: t('roles.technician'),
+    SUPPORTER: t('roles.supporter'),
+    ACCOUNTANT: t('roles.accountant'),
+    ADMIN: t('roles.admin'),
   };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Thông tin cá nhân</h1>
-        <p className="text-gray-600 mt-2">Quản lý thông tin tài khoản của bạn</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+        <p className="text-gray-600 mt-2">{t('subtitle')}</p>
       </div>
 
       {/* Profile Information */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Thông tin cơ bản</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('sections.basicInfo')}</h2>
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                Chỉnh sửa
+                {t('buttons.edit')}
               </button>
             )}
           </div>
@@ -257,7 +257,7 @@ export default function StaffProfilePage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tên đăng nhập
+                  {t('fields.username')}
                 </label>
                 <input
                   type="text"
@@ -265,12 +265,12 @@ export default function StaffProfilePage() {
                   disabled
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
                 />
-                <p className="text-xs text-gray-500 mt-1">Tên đăng nhập không thể thay đổi</p>
+                <p className="text-xs text-gray-500 mt-1">{t('validation.usernameCannotChange')}</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email *
+                  {t('fields.email')} *
                 </label>
                 <input
                   type="email"
@@ -284,7 +284,7 @@ export default function StaffProfilePage() {
               {employee && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Số điện thoại
+                    {t('fields.phoneNumber')}
                   </label>
                   <input
                     type="tel"
@@ -301,7 +301,7 @@ export default function StaffProfilePage() {
                   disabled={saving}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
                 >
-                  {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  {saving ? t('buttons.saving') : t('buttons.save')}
                 </button>
                 <button
                   onClick={() => {
@@ -310,7 +310,7 @@ export default function StaffProfilePage() {
                   }}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                 >
-                  Hủy
+                  {t('buttons.cancel')}
                 </button>
               </div>
             </div>
@@ -319,22 +319,22 @@ export default function StaffProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Tên đăng nhập
+                    {t('fields.username')}
                   </label>
-                  <p className="text-gray-900">{account?.username || user?.username || 'N/A'}</p>
+                  <p className="text-gray-900">{account?.username || user?.username || t('status.notSet')}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Email
+                    {t('fields.email')}
                   </label>
-                  <p className="text-gray-900">{account?.email || employee?.email || 'N/A'}</p>
+                  <p className="text-gray-900">{account?.email || employee?.email || t('status.notSet')}</p>
                 </div>
 
                 {employee?.phoneNumber && (
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-1">
-                      Số điện thoại
+                      {t('fields.phoneNumber')}
                     </label>
                     <p className="text-gray-900">{employee.phoneNumber}</p>
                   </div>
@@ -343,7 +343,7 @@ export default function StaffProfilePage() {
                 {employee?.department && (
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-1">
-                      Phòng ban
+                      {t('fields.department')}
                     </label>
                     <p className="text-gray-900">{employee.department}</p>
                   </div>
@@ -352,7 +352,7 @@ export default function StaffProfilePage() {
                 {employee?.position && (
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-1">
-                      Chức vụ
+                      {t('fields.position')}
                     </label>
                     <p className="text-gray-900">{employee.position}</p>
                   </div>
@@ -360,7 +360,7 @@ export default function StaffProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Vai trò
+                    {t('fields.role')}
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {roles.map((role) => (
@@ -377,7 +377,7 @@ export default function StaffProfilePage() {
                 {status && (
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-1">
-                      Trạng thái
+                      {t('fields.status')}
                     </label>
                     <span
                       className={`px-2 py-1 rounded text-sm ${
@@ -386,7 +386,7 @@ export default function StaffProfilePage() {
                           : 'bg-red-100 text-red-700'
                       }`}
                     >
-                      {status.active ? 'Hoạt động' : 'Tạm khóa'}
+                      {status.active ? t('status.active') : t('status.inactive')}
                     </span>
                   </div>
                 )}
@@ -399,12 +399,12 @@ export default function StaffProfilePage() {
       {/* Change Password */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Đổi mật khẩu</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('sections.changePassword')}</h2>
           
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mật khẩu mới *
+                {t('fields.newPassword')} *
               </label>
               <input
                 type="password"
@@ -413,13 +413,13 @@ export default function StaffProfilePage() {
                   setPasswordForm({ ...passwordForm, newPassword: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                placeholder={t('placeholders.newPassword')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Xác nhận mật khẩu *
+                {t('fields.confirmPassword')} *
               </label>
               <input
                 type="password"
@@ -428,7 +428,7 @@ export default function StaffProfilePage() {
                   setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Nhập lại mật khẩu mới"
+                placeholder={t('placeholders.confirmPassword')}
               />
             </div>
 
@@ -437,7 +437,7 @@ export default function StaffProfilePage() {
               disabled={saving || !passwordForm.newPassword || !passwordForm.confirmPassword}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {saving ? 'Đang xử lý...' : 'Đổi mật khẩu'}
+              {saving ? t('buttons.processing') : t('buttons.changePasswordButton')}
             </button>
           </div>
         </div>
@@ -446,35 +446,35 @@ export default function StaffProfilePage() {
       {/* Dashboard - Work Statistics */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Dashboard công việc</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('sections.workDashboard')}</h2>
           
           {loadingDashboard ? (
             <div className="text-center py-8">
-              <div className="text-sm text-gray-600">Đang tải...</div>
+              <div className="text-sm text-gray-600">{t('loading')}</div>
             </div>
           ) : (
             <>
               {/* Statistics Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <div className="text-sm font-medium text-blue-700 mb-1">Tổng số assignments</div>
+                  <div className="text-sm font-medium text-blue-700 mb-1">{t('dashboard.totalAssignments')}</div>
                   <div className="text-2xl font-bold text-blue-900">{assignments.length}</div>
                 </div>
                 
                 <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                  <div className="text-sm font-medium text-yellow-700 mb-1">Đang xử lý</div>
+                  <div className="text-sm font-medium text-yellow-700 mb-1">{t('dashboard.inProgress')}</div>
                   <div className="text-2xl font-bold text-yellow-900">{activeAssignments.length}</div>
                 </div>
                 
                 <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                  <div className="text-sm font-medium text-green-700 mb-1">Đã hoàn thành</div>
+                  <div className="text-sm font-medium text-green-700 mb-1">{t('dashboard.completed')}</div>
                   <div className="text-2xl font-bold text-green-900">
                     {assignments.filter(a => a.status === 'COMPLETED').length}
                   </div>
                 </div>
                 
                 <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-                  <div className="text-sm font-medium text-purple-700 mb-1">Requests đã xử lý</div>
+                  <div className="text-sm font-medium text-purple-700 mb-1">{t('dashboard.processedRequests')}</div>
                   <div className="text-2xl font-bold text-purple-900">{maintenanceRequests.length}</div>
                 </div>
               </div>
@@ -482,7 +482,7 @@ export default function StaffProfilePage() {
               {/* Active Assignments */}
               {activeAssignments.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-md font-semibold text-gray-900 mb-3">Assignments đang xử lý</h3>
+                  <h3 className="text-md font-semibold text-gray-900 mb-3">{t('dashboard.activeAssignments')}</h3>
                   <div className="space-y-2">
                     {activeAssignments.slice(0, 5).map((assignment) => (
                       <div
@@ -496,7 +496,7 @@ export default function StaffProfilePage() {
                             </div>
                             <div className="text-sm text-gray-600 mt-1">
                               {assignment.buildingName}
-                              {assignment.floor && ` - Tầng ${assignment.floor}`}
+                              {assignment.floor && ` - ${t('dashboard.floor', { floor: assignment.floor })}`}
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
                               {new Date(assignment.startDate).toLocaleDateString('vi-VN')} -{' '}
@@ -514,10 +514,10 @@ export default function StaffProfilePage() {
                               }`}
                             >
                               {assignment.status === 'PENDING'
-                                ? 'Chờ xử lý'
+                                ? t('dashboard.assignmentStatus.pending')
                                 : assignment.status === 'IN_PROGRESS'
-                                ? 'Đang xử lý'
-                                : 'Quá hạn'}
+                                ? t('dashboard.assignmentStatus.inProgress')
+                                : t('dashboard.assignmentStatus.overdue')}
                             </span>
                           </div>
                         </div>
@@ -526,7 +526,7 @@ export default function StaffProfilePage() {
                   </div>
                   {activeAssignments.length > 5 && (
                     <div className="text-sm text-gray-600 mt-2">
-                      Và {activeAssignments.length - 5} assignments khác...
+                      {t('dashboard.andMore', { count: activeAssignments.length - 5 })}
                     </div>
                   )}
                 </div>
@@ -535,7 +535,7 @@ export default function StaffProfilePage() {
               {/* Recent Maintenance Requests */}
               {maintenanceRequests.length > 0 && (
                 <div>
-                  <h3 className="text-md font-semibold text-gray-900 mb-3">Requests đã xử lý gần đây</h3>
+                  <h3 className="text-md font-semibold text-gray-900 mb-3">{t('dashboard.recentRequests')}</h3>
                   <div className="space-y-2">
                     {maintenanceRequests.slice(0, 5).map((request) => (
                       <div
@@ -548,7 +548,7 @@ export default function StaffProfilePage() {
                             <div className="text-sm text-gray-600 mt-1">{request.category}</div>
                             <div className="text-xs text-gray-500 mt-1">
                               {request.respondedAt &&
-                                `Đã xử lý: ${new Date(request.respondedAt).toLocaleString('vi-VN')}`}
+                                t('dashboard.processedAt', { date: new Date(request.respondedAt).toLocaleString('vi-VN') })}
                             </div>
                           </div>
                           <div>
@@ -562,9 +562,9 @@ export default function StaffProfilePage() {
                               }`}
                             >
                               {request.status === 'COMPLETED'
-                                ? 'Hoàn thành'
+                                ? t('dashboard.requestStatus.completed')
                                 : request.status === 'IN_PROGRESS'
-                                ? 'Đang xử lý'
+                                ? t('dashboard.requestStatus.inProgress')
                                 : request.status}
                             </span>
                           </div>
@@ -574,7 +574,7 @@ export default function StaffProfilePage() {
                   </div>
                   {maintenanceRequests.length > 5 && (
                     <div className="text-sm text-gray-600 mt-2">
-                      Và {maintenanceRequests.length - 5} requests khác...
+                      {t('dashboard.andMore', { count: maintenanceRequests.length - 5 })}
                     </div>
                   )}
                 </div>
@@ -582,7 +582,7 @@ export default function StaffProfilePage() {
 
               {activeAssignments.length === 0 && maintenanceRequests.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  Chưa có công việc nào được giao
+                  {t('dashboard.noWork')}
                 </div>
               )}
             </>
@@ -594,21 +594,21 @@ export default function StaffProfilePage() {
       {status && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin tài khoản</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('sections.accountInfo')}</h2>
             
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Lần đăng nhập cuối:</span>
+                <span className="text-gray-600">{t('fields.lastLogin')}</span>
                 <span className="text-gray-900">
                   {status.lastLogin
                     ? new Date(status.lastLogin).toLocaleString('vi-VN')
-                    : 'Chưa có'}
+                    : t('status.notSet')}
                 </span>
               </div>
               
               {status.failedLoginAttempts > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Số lần đăng nhập sai:</span>
+                  <span className="text-gray-600">{t('fields.failedLoginAttempts')}</span>
                   <span className="text-yellow-600 font-medium">
                     {status.failedLoginAttempts}
                   </span>
@@ -618,7 +618,7 @@ export default function StaffProfilePage() {
               {status.accountLocked && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded">
                   <p className="text-red-700 text-sm">
-                    ⚠️ Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.
+                    {t('accountStatus.accountLocked')}
                   </p>
                 </div>
               )}
