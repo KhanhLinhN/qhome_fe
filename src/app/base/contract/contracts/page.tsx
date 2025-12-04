@@ -214,13 +214,21 @@ export default function ContractManagementPage() {
           } else if (typeof value === 'string' && !isValidDate(value)) {
             newErrors.endDate = t('validation.endDateInvalid');
           } else if (typeof value === 'string' && value.trim() && state.startDate) {
-            // Check if endDate > startDate by at least 1 month
+            // TEMPORARILY COMMENTED FOR TESTING: Check if endDate > startDate by at least 1 month
+            // const startDate = new Date(state.startDate);
+            // const endDate = new Date(value);
+            // const oneMonthLater = new Date(startDate);
+            // oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+            // if (endDate <= oneMonthLater) {
+            //   newErrors.endDate = t('validation.endDateMinDiff');
+            // } else {
+            //   delete newErrors.endDate;
+            // }
+            // For now, just check if endDate > startDate (basic validation)
             const startDate = new Date(state.startDate);
             const endDate = new Date(value);
-            const oneMonthLater = new Date(startDate);
-            oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-            if (endDate <= oneMonthLater) {
-              newErrors.endDate = t('validation.endDateMinDiff');
+            if (endDate <= startDate) {
+              newErrors.endDate = t('validation.endDateAfterStartDate');
             } else {
               delete newErrors.endDate;
             }
@@ -634,14 +642,20 @@ export default function ContractManagementPage() {
       } else if (!isValidDate(formState.endDate)) {
         errors.endDate = t('validation.endDateInvalid');
       } else if (formState.startDate) {
-        // Check if endDate > startDate by at least 1 month
+        // TEMPORARILY COMMENTED FOR TESTING: Check if endDate > startDate by at least 1 month
+        // const startDate = new Date(formState.startDate);
+        // const endDate = new Date(formState.endDate);
+        // const oneMonthLater = new Date(startDate);
+        // oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+        // if (endDate <= oneMonthLater) {
+        //     errors.endDate = t('validation.endDateMinDiff');
+        //   }
+        // For now, just check if endDate > startDate (basic validation)
         const startDate = new Date(formState.startDate);
         const endDate = new Date(formState.endDate);
-        const oneMonthLater = new Date(startDate);
-        oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-        if (endDate <= oneMonthLater) {
-            errors.endDate = t('validation.endDateMinDiff');
-          }
+        if (endDate <= startDate) {
+          errors.endDate = t('validation.endDateAfterStartDate') || 'Ngày kết thúc phải sau ngày bắt đầu';
+        }
         }
       if (!formState.paymentMethod || !formState.paymentMethod.trim()) {
         errors.paymentMethod = t('validation.paymentMethodRequired');
