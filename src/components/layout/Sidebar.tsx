@@ -54,6 +54,7 @@ const adminSections: NavSection[] = [
       {href: "/base/regisresiView", labelKey: "approveResidentAccount", icon: "📝"},
       {href: "/base/household/householdMemberRequests", labelKey: "approveFamilyMember", icon: "👪"},
       {href: "/base/contract/contracts", labelKey: "unitContracts", icon: "📄"},
+      {href: "/base/contract/rental-review", labelKey: "rentalContractReview", icon: "📋"},
       {href: "/base/vehicles/vehicleAll", labelKey: "vehicleManagement", icon: "🚗"},
       {href: "/base/cards/elevator", labelKey: "elevatorCard", icon: "🛗"},
       {href: "/base/cards/resident", labelKey: "residentCard", icon: "🔑"},
@@ -64,7 +65,7 @@ const adminSections: NavSection[] = [
   {
     titleKey: "assetManagement",
     items: [
-      {href: "/base/asset-management", labelKey: "assetManagement", icon: "🏘️"},
+      {href: "/base/asset-management", labelKey: "assetManagement", icon: "🔧"},
       {href: "/base/meter-management", labelKey: "meterManagement", icon: "⚙️"},
     ],
   },

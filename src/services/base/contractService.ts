@@ -1,6 +1,6 @@
 import axios from '@/src/lib/axios';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
+const BASE_URL = process.env.NEXT_PUBLIC_DATA_DOCS_URL || 'http://localhost:8082';
 
 export interface ContractSummary {
   id: string;
@@ -138,10 +138,30 @@ export async function checkContractNumberExists(contractNumber: string): Promise
 
 export async function getAllContracts(): Promise<ContractSummary[]> {
   try {
-    // This is a workaround - we might need to fetch from all units
-    // For now, let's return empty array and handle uniqueness on backend
-    return [];
+    const response = await axios.get<ContractSummary[]>(
+      `${BASE_URL}/api/contracts/active`,
+    );
+    return response.data;
   } catch (error) {
+    console.error('Failed to fetch all contracts:', error);
+    return [];
+  }
+}
+
+export async function getAllRentalContracts(): Promise<ContractSummary[]> {
+  try {
+    // Use new API endpoint with contractType filter
+    const response = await axios.get<ContractSummary[]>(
+      `${BASE_URL}/api/contracts/all`,
+      {
+        params: {
+          contractType: 'RENTAL'
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch rental contracts:', error);
     return [];
   }
 }
