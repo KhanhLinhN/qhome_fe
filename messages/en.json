@@ -724,10 +724,24 @@
       "contactPhone": "Contact Phone",
       "location": "Location",
       "preferredDatetime": "Preferred Date/Time",
-      "Cancel": "Cancel"
+      "preferredDatetimeRequired": "Preferred date/time is required",
+      "timeMustBeBetween0800And1800": "Preferred time must be between 08:00 and 18:00",
+      "Cancel": "Cancel",
+      "onlyTechnicianCanRespond": "Only technicians can respond to this request.",
+      "confirmComplete": "Confirm Completion",
+      "confirmCompleteMessage": "Are you sure you want to mark this request as completed?",
+      "addProgressNote": "Add Progress Note",
+      "currentNote": "Current Note",
+      "newNote": "New Note",
+      "enterNewNote": "Enter new note (will be appended to current note)...",
+      "complete": "Complete",
+      "cost": "Cost",
+      "enterCost": "Enter cost (optional)"
     }
   },
   "Dashboard":{
+    "title": "Dashboard",
+    "subtitle": "Overview of system status",
     "dashboard": "Dashboard",
     "dataManagement": "Data Management",
     "workManagement": "work Management",

@@ -559,6 +559,8 @@
       "admin": "Quản trị viên"
     },
     "dashboard": {
+      "title": "Dashboard công việc của tôi",
+      "subtitle": "Tổng quan về các nhiệm vụ và yêu cầu hiện tại của bạn",
       "totalAssignments": "Tổng số assignments",
       "inProgress": "Đang xử lý",
       "completed": "Đã hoàn thành",
@@ -784,15 +786,29 @@
       "contactPhone": "Số điện thoại liên hệ",
       "location": "Vị trí",
       "preferredDatetime": "Thời gian mong muốn",
-      "Cancel": "Hủy"
+      "preferredDatetimeRequired": "Thời gian mong muốn là bắt buộc",
+      "timeMustBeBetween0800And1800": "Thời gian phải trong khoảng 08:00 - 18:00",
+      "Cancel": "Hủy",
+      "onlyTechnicianCanRespond": "Chỉ kỹ thuật viên mới có thể phản hồi yêu cầu này.",
+      "confirmComplete": "Xác nhận hoàn thành",
+      "confirmCompleteMessage": "Bạn có chắc chắn muốn đánh dấu yêu cầu này là đã hoàn thành?",
+      "addProgressNote": "Thêm ghi chú tiến độ",
+      "currentNote": "Ghi chú hiện tại",
+      "newNote": "Ghi chú mới",
+      "enterNewNote": "Nhập ghi chú mới (sẽ được thêm vào ghi chú hiện tại)...",
+      "complete": "Xác nhận hoàn thành",
+      "cost": "Chi phí",
+      "enterCost": "Nhập chi phí (tùy chọn)"
     }
   },
   "Dashboard": {
-  "dashboard": "Bảng điều khiển",
-  "dataManagement": "Quản lý dữ liệu",
-  "workManagement": "Quản lý công việc",
-  "customerService": "Dịch vụ khách hàng",
-  "": ""
+    "title": "Dashboard",
+    "subtitle": "Tổng quan về các nhiệm vụ",
+    "dashboard": "Bảng điều khiển",
+    "dataManagement": "Quản lý dữ liệu",
+    "workManagement": "Quản lý công việc",
+    "customerService": "Dịch vụ khách hàng",
+    "": ""
   },
   "Project": {
   "projectCode": "Mã dự án",

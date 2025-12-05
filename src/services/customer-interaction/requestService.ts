@@ -38,6 +38,11 @@ export class RequestService {
 
     private mapMaintenanceRequestToRequest(mr: any): Request {
         // Map MaintenanceRequestDto to Request type
+        // For IN_PROGRESS status, use progressNotes if available, otherwise use note
+        const displayNote = (mr.status === 'IN_PROGRESS' && mr.progressNotes) 
+            ? mr.progressNotes 
+            : mr.note;
+        
         return {
             id: mr.id,
             requestCode: mr.id, // Use id as requestCode if no code field
@@ -55,7 +60,7 @@ export class RequestService {
             type: mr.category, // Map category to type for compatibility
             location: mr.location,
             contactPhone: mr.contactPhone,
-            note: mr.note,
+            note: displayNote,
             preferredDatetime: mr.preferredDatetime ? new Date(mr.preferredDatetime).toISOString() : undefined,
             attachments: mr.attachments || [],
             priority: mr.priority || undefined,
@@ -205,16 +210,24 @@ export class RequestService {
         }
     }
 
-    async respondToRequest(requestId: string, adminResponse: string, estimatedCost: number, note?: string): Promise<Request> {
+    async respondToRequest(requestId: string, adminResponse: string, estimatedCost: number, note?: string, preferredDatetime?: string): Promise<Request> {
         const url = `${this.getBaseUrl()}/api/maintenance-requests/admin/${requestId}/respond`;
         console.log('Respond to request URL:', url);
 
         try {
-            const response = await axios.post(url, {
+            const payload: any = {
                 adminResponse,
                 estimatedCost,
                 note: note || ''
-            }, {
+            };
+            
+            if (preferredDatetime) {
+                payload.preferredDatetime = preferredDatetime;
+            }
+
+            console.log('Respond to request payload:', JSON.stringify(payload, null, 2));
+
+            const response = await axios.post(url, payload, {
                 withCredentials: true
             });
 
@@ -229,7 +242,7 @@ export class RequestService {
     }
 
     async denyRequest(requestId: string, note?: string): Promise<Request> {
-        const url = `${this.getBaseUrl()}/api/maintenance-requests/admin/${requestId}/approve`;
+        const url = `${this.getBaseUrl()}/api/maintenance-requests/admin/${requestId}/deny`;
         console.log('Deny request URL:', url);
 
         try {
@@ -270,6 +283,56 @@ export class RequestService {
 
         } catch (error) {
             console.error('An error occurred while updating fee:', error);
+            throw error;
+        }
+    }
+
+    async addProgressNote(requestId: string, note: string, cost?: number): Promise<Request> {
+        const url = `${this.getBaseUrl()}/api/maintenance-requests/admin/${requestId}/add-progress-note`;
+        console.log('Add progress note URL:', url);
+
+        try {
+            const payload: any = {
+                note: note || ''
+            };
+            
+            if (cost !== undefined && cost !== null) {
+                payload.cost = cost;
+            }
+
+            const response = await axios.post(url, payload, {
+                withCredentials: true
+            });
+
+            const result: any = response.data;
+            console.log('Added progress note:', result);
+            return this.mapMaintenanceRequestToRequest(result);
+
+        } catch (error) {
+            console.error('An error occurred while adding progress note:', error);
+            throw error;
+        }
+    }
+
+    async completeRequest(requestId: string, note?: string): Promise<Request> {
+        const url = `${this.getBaseUrl()}/api/maintenance-requests/admin/${requestId}/complete`;
+        console.log('Complete request URL:', url);
+
+        try {
+            const payload = {
+                note: note || ''
+            };
+
+            const response = await axios.patch(url, payload, {
+                withCredentials: true
+            });
+
+            const result: any = response.data;
+            console.log('Completed request:', result);
+            return this.mapMaintenanceRequestToRequest(result);
+
+        } catch (error) {
+            console.error('An error occurred while completing request:', error);
             throw error;
         }
     }

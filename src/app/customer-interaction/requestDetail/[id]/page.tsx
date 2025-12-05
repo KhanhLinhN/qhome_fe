@@ -14,7 +14,7 @@ export default function RequestDetailPage() {
     const params = useParams();
 
     const requestId = params.id
-    const { requestData, loading, error, acceptOrDenyRequest, isSubmitting } = useRequestDetails(requestId);
+    const { requestData, loading, error, acceptOrDenyRequest, addProgressNote, completeRequest, isSubmitting } = useRequestDetails(requestId);
     const isUnactive = requestData?.status === 'Done' || requestData?.status === 'Cancelled';
 
     const handleBack = () => {
@@ -56,8 +56,12 @@ export default function RequestDetailPage() {
             {!isUnactive && (
               <RequestLogUpdate
                 initialStatusValue={requestData.status ?? 'New'}
+                preferredDatetime={requestData.preferredDatetime}
+                currentNote={requestData.note}
                 onSave={async () => {}}
                 onAcceptDeny={acceptOrDenyRequest}
+                onAddProgressNote={addProgressNote}
+                onCompleteRequest={completeRequest}
                 unactive={false}
                 isSubmitting={isSubmitting}
               />

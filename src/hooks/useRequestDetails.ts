@@ -72,7 +72,7 @@ export const useRequestDetails = (requestId: string | string[] | undefined) => {
         }
     };
 
-    const acceptOrDenyRequest = async (action: string, adminResponse: string | null, fee: number | null, note: string) => {
+    const acceptOrDenyRequest = async (action: string, adminResponse: string | null, fee: number | null, note: string, preferredDatetime?: string) => {
         if (!requestId) return;
 
         setIsSubmitting(true);
@@ -84,7 +84,8 @@ export const useRequestDetails = (requestId: string | string[] | undefined) => {
                     requestId as string,
                     adminResponse || '',
                     fee || 0,
-                    note
+                    note,
+                    preferredDatetime
                 );
                 
             } else if (action === 'deny') {
@@ -104,6 +105,45 @@ export const useRequestDetails = (requestId: string | string[] | undefined) => {
         }
     };
 
+    const addProgressNote = async (note: string, cost?: number) => {
+        if (!requestId) return;
+
+        setIsSubmitting(true);
+        setError(null);
+        try {
+            await requestListService.addProgressNote(
+                requestId as string,
+                note,
+                cost
+            );
+            await fetchData(); 
+        } catch (err) {
+            setError(err as Error);
+            throw err;
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const completeRequest = async (note?: string) => {
+        if (!requestId) return;
+
+        setIsSubmitting(true);
+        setError(null);
+        try {
+            await requestListService.completeRequest(
+                requestId as string,
+                note
+            );
+            await fetchData(); 
+        } catch (err) {
+            setError(err as Error);
+            throw err;
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return { 
         requestData, 
         loading, 
@@ -111,6 +151,8 @@ export const useRequestDetails = (requestId: string | string[] | undefined) => {
         isSubmitting,
         addLog,
         updateFee,
-        acceptOrDenyRequest         
+        acceptOrDenyRequest,
+        addProgressNote,
+        completeRequest         
     };
 };
