@@ -88,6 +88,7 @@ export default function ContractManagementPage() {
   const [detailUploading, setDetailUploading] = useState(false);
   const [generatingContractNumber, setGeneratingContractNumber] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'expired'>('active');
+  const [minStartDate, setMinStartDate] = useState<string>('');
 
   const formatDate = (value?: string | null) => {
     if (!value) return t('common.notSet');
@@ -193,15 +194,33 @@ export default function ContractManagementPage() {
         } else if (typeof value === 'string' && !isValidDate(value)) {
           newErrors.startDate = t('validation.startDateInvalid');
         } else if (typeof value === 'string' && value.trim()) {
-          // Check if startDate > today (must be greater than today, not equal)
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
           const startDate = new Date(value);
           startDate.setHours(0, 0, 0, 0);
-          if (startDate <= today) {
-            newErrors.startDate = t('validation.startDateInFuture');
+          
+          // Check if startDate > endDate of latest expired RENTAL contract or CANCELLED contract that's still active
+          let referenceContract = latestExpiredRentalContract;
+          if (!referenceContract && latestActiveCancelledRentalContract) {
+            referenceContract = latestActiveCancelledRentalContract;
+          }
+          
+          if (referenceContract && referenceContract.endDate) {
+            const referenceEndDate = new Date(referenceContract.endDate);
+            referenceEndDate.setHours(0, 0, 0, 0);
+            if (startDate <= referenceEndDate) {
+              const referenceEndDateStr = referenceEndDate.toLocaleDateString('vi-VN');
+              newErrors.startDate = t('validation.startDateAfterExpired') || `Ngày bắt đầu phải sau ngày kết thúc của hợp đồng cũ (${referenceEndDateStr})`;
+            } else {
+              delete newErrors.startDate;
+            }
           } else {
-            delete newErrors.startDate;
+            // Check if startDate > today (must be greater than today, not equal)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (startDate <= today) {
+              newErrors.startDate = t('validation.startDateInFuture');
+            } else {
+              delete newErrors.startDate;
+            }
           }
         } else {
           delete newErrors.startDate;
@@ -452,6 +471,29 @@ export default function ContractManagementPage() {
       fileInputRef.current.value = '';
     }
     
+    // Calculate min start date from latest expired RENTAL contract or CANCELLED contract that's still active
+    let referenceContract = latestExpiredRentalContract;
+    if (!referenceContract && latestActiveCancelledRentalContract) {
+      referenceContract = latestActiveCancelledRentalContract;
+    }
+    
+    if (referenceContract && referenceContract.endDate) {
+      const referenceEndDate = new Date(referenceContract.endDate);
+      referenceEndDate.setHours(0, 0, 0, 0);
+      // Min start date should be the day after reference end date
+      const minDate = new Date(referenceEndDate);
+      minDate.setDate(minDate.getDate() + 1);
+      const minDateStr = minDate.toISOString().split('T')[0];
+      setMinStartDate(minDateStr);
+    } else {
+      // If no reference contract, use tomorrow as min date (existing logic)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      setMinStartDate(tomorrowStr);
+    }
+    
     // Generate contract number
     setGeneratingContractNumber(true);
     try {
@@ -613,13 +655,29 @@ export default function ContractManagementPage() {
     } else if (!isValidDate(formState.startDate)) {
       errors.startDate = t('validation.startDateInvalid');
     } else {
-      // Check if startDate > today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
       const startDate = new Date(formState.startDate);
       startDate.setHours(0, 0, 0, 0);
-      if (startDate <= today) {
-        errors.startDate = t('validation.startDateInFuture');
+      
+      // Check if startDate > endDate of latest expired RENTAL contract or CANCELLED contract that's still active
+      let referenceContract = latestExpiredRentalContract;
+      if (!referenceContract && latestActiveCancelledRentalContract) {
+        referenceContract = latestActiveCancelledRentalContract;
+      }
+      
+      if (referenceContract && referenceContract.endDate) {
+        const referenceEndDate = new Date(referenceContract.endDate);
+        referenceEndDate.setHours(0, 0, 0, 0);
+        if (startDate <= referenceEndDate) {
+          const referenceEndDateStr = referenceEndDate.toLocaleDateString('vi-VN');
+          errors.startDate = t('validation.startDateAfterExpired') || `Ngày bắt đầu phải sau ngày kết thúc của hợp đồng cũ (${referenceEndDateStr})`;
+        }
+      } else {
+        // Check if startDate > today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (startDate <= today) {
+          errors.startDate = t('validation.startDateInFuture');
+        }
       }
     }
 
@@ -723,7 +781,9 @@ export default function ContractManagementPage() {
         paymentTerms:
           formState.contractType === 'PURCHASE' ? null : trimmedPaymentTerms,
         notes: formState.notes && formState.notes.trim().length > 0 ? formState.notes.trim() : null,
-        status: 'ACTIVE',
+        // If there's a CANCELLED contract that's still active, new contract should be INACTIVE
+        // Otherwise, set to ACTIVE
+        status: latestActiveCancelledRentalContract ? 'INACTIVE' : 'ACTIVE',
       };
 
       // Retry logic for unique contract number
@@ -833,6 +893,8 @@ export default function ContractManagementPage() {
   };
 
   // Check if unit has active contract (not expired)
+  // ACTIVE contracts are always active if endDate > today or no endDate
+  // CANCELLED contracts are active if endDate >= today
   const hasActiveContract = useMemo(() => {
     if (!contractsState.data || contractsState.data.length === 0) {
       return false;
@@ -841,21 +903,138 @@ export default function ContractManagementPage() {
     today.setHours(0, 0, 0, 0);
     
     return contractsState.data.some((contract) => {
-      if (contract.status !== 'ACTIVE') {
-        return false;
+      if (contract.status === 'ACTIVE') {
+        // If no endDate, contract is still active
+        if (!contract.endDate) {
+          return true;
+        }
+        // Check if endDate is in the future
+        const endDate = new Date(contract.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        return endDate > today;
       }
-      // If no endDate, contract is still active
-      if (!contract.endDate) {
-        return true;
+      // CANCELLED contracts are active if endDate >= today
+      if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
+        if (!contract.endDate) {
+          return true; // No endDate means still active
+        }
+        const endDate = new Date(contract.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        return endDate >= today;
       }
-      // Check if endDate is in the future
-      const endDate = new Date(contract.endDate);
-      endDate.setHours(0, 0, 0, 0);
-      return endDate > today;
+      return false;
     });
   }, [contractsState.data]);
 
+  // Get the most recent expired RENTAL contract (truly expired, not CANCELLED that's still active)
+  const latestExpiredRentalContract = useMemo(() => {
+    if (!contractsState.data || contractsState.data.length === 0) {
+      return null;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const expiredRentals = contractsState.data
+      .filter((contract) => {
+        // Must be RENTAL type
+        if (contract.contractType !== 'RENTAL') {
+          return false;
+        }
+        // Must have endDate
+        if (!contract.endDate) {
+          return false;
+        }
+        const endDate = new Date(contract.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        // Must be expired (endDate < today)
+        // CANCELLED contracts with endDate >= today are still considered active
+        if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
+          return endDate < today;
+        }
+        // ACTIVE contracts are expired if endDate <= today
+        return endDate <= today;
+      })
+      .sort((a, b) => {
+        // Sort by endDate descending (most recent first)
+        const dateA = new Date(a.endDate!);
+        const dateB = new Date(b.endDate!);
+        return dateB.getTime() - dateA.getTime();
+      });
+    
+    return expiredRentals.length > 0 ? expiredRentals[0] : null;
+  }, [contractsState.data]);
+
+  // Get the most recent CANCELLED RENTAL contract that's still active (endDate >= today)
+  const latestActiveCancelledRentalContract = useMemo(() => {
+    if (!contractsState.data || contractsState.data.length === 0) {
+      return null;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const activeCancelledRentals = contractsState.data
+      .filter((contract) => {
+        // Must be RENTAL type
+        if (contract.contractType !== 'RENTAL') {
+          return false;
+        }
+        // Must be CANCELLED
+        if (contract.status !== 'CANCELLED' && contract.status !== 'CANCELED') {
+          return false;
+        }
+        // Must have endDate and endDate >= today
+        if (!contract.endDate) {
+          return true; // No endDate means still active
+        }
+        const endDate = new Date(contract.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        return endDate >= today;
+      })
+      .sort((a, b) => {
+        // Sort by endDate descending (most recent first)
+        if (!a.endDate && !b.endDate) return 0;
+        if (!a.endDate) return -1;
+        if (!b.endDate) return 1;
+        const dateA = new Date(a.endDate);
+        const dateB = new Date(b.endDate);
+        return dateB.getTime() - dateA.getTime();
+      });
+    
+    return activeCancelledRentals.length > 0 ? activeCancelledRentals[0] : null;
+  }, [contractsState.data]);
+
+  // Check if can create new contract: 
+  // - No ACTIVE contract (but can have CANCELLED contract that's still active)
+  // - Has expired RENTAL contract OR has CANCELLED RENTAL contract that's still active
+  const canCreateNewContract = useMemo(() => {
+    if (!selectedUnitId) {
+      return false;
+    }
+    // Check if there's an ACTIVE contract (not CANCELLED)
+    const hasActiveNonCancelledContract = contractsState.data?.some((contract) => {
+      if (contract.status !== 'ACTIVE') {
+        return false;
+      }
+      if (!contract.endDate) {
+        return true;
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endDate = new Date(contract.endDate);
+      endDate.setHours(0, 0, 0, 0);
+      return endDate > today;
+    }) || false;
+    
+    // Cannot create if there's an ACTIVE contract (not CANCELLED)
+    if (hasActiveNonCancelledContract) {
+      return false;
+    }
+    // Can create if there's an expired RENTAL contract OR a CANCELLED RENTAL contract that's still active
+    return latestExpiredRentalContract !== null || latestActiveCancelledRentalContract !== null;
+  }, [selectedUnitId, contractsState.data, latestExpiredRentalContract, latestActiveCancelledRentalContract]);
+
   // Get expired contracts, sorted by endDate (most recent first)
+  // CANCELLED contracts with endDate >= today are in active tab, not expired
   const expiredContracts = useMemo(() => {
     if (!contractsState.data || contractsState.data.length === 0) {
       return [];
@@ -865,18 +1044,26 @@ export default function ContractManagementPage() {
     
     return contractsState.data
       .filter((contract) => {
-        // Contract is expired if:
-        // 1. Status is not ACTIVE, OR
-        // 2. Has endDate and endDate <= today
-        if (contract.status !== 'ACTIVE') {
-          return true;
+        // CANCELLED contracts: expired only if endDate < today
+        if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
+          if (!contract.endDate) {
+            return false; // No endDate means still active
+          }
+          const endDate = new Date(contract.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          return endDate < today;
         }
-        if (!contract.endDate) {
-          return false; // No endDate means still active
+        // ACTIVE contracts: expired if endDate <= today
+        if (contract.status === 'ACTIVE') {
+          if (!contract.endDate) {
+            return false; // No endDate means still active
+          }
+          const endDate = new Date(contract.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          return endDate <= today;
         }
-        const endDate = new Date(contract.endDate);
-        endDate.setHours(0, 0, 0, 0);
-        return endDate <= today;
+        // Other statuses are considered expired
+        return true;
       })
       .sort((a, b) => {
         // Sort by endDate descending (most recent first)
@@ -890,6 +1077,8 @@ export default function ContractManagementPage() {
   }, [contractsState.data]);
 
   // Get active contracts (not expired)
+  // Includes ACTIVE contracts with endDate > today or no endDate
+  // Includes CANCELLED contracts with endDate >= today or no endDate
   const activeContracts = useMemo(() => {
     if (!contractsState.data || contractsState.data.length === 0) {
       return [];
@@ -898,15 +1087,24 @@ export default function ContractManagementPage() {
     today.setHours(0, 0, 0, 0);
     
     return contractsState.data.filter((contract) => {
-      if (contract.status !== 'ACTIVE') {
-        return false;
+      if (contract.status === 'ACTIVE') {
+        if (!contract.endDate) {
+          return true; // No endDate means still active
+        }
+        const endDate = new Date(contract.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        return endDate > today;
       }
-      if (!contract.endDate) {
-        return true; // No endDate means still active
+      // CANCELLED contracts are active if endDate >= today or no endDate
+      if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
+        if (!contract.endDate) {
+          return true; // No endDate means still active
+        }
+        const endDate = new Date(contract.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        return endDate >= today;
       }
-      const endDate = new Date(contract.endDate);
-      endDate.setHours(0, 0, 0, 0);
-      return endDate > today;
+      return false;
     });
   }, [contractsState.data]);
 
@@ -932,7 +1130,7 @@ export default function ContractManagementPage() {
           <button
             type="button"
             onClick={handleOpenCreateModal}
-            disabled={!selectedUnitId || hasActiveContract}
+            disabled={!canCreateNewContract}
             className="inline-flex items-center rounded-lg bg-[#14AE5C] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0c793f] disabled:cursor-not-allowed disabled:bg-[#A3D9B1]"
           >
             {t('buttons.addContract')}
@@ -1217,6 +1415,7 @@ export default function ContractManagementPage() {
                       value={formState.startDate ?? ''}
                       onChange={(event) => setFieldValue('startDate', event.target.value)}
                       placeholderText={t('placeholders.ddmmyyyy')}
+                      min={minStartDate}
                     />
                     {formErrors.startDate && (
                       <span className="mt-1 text-xs text-red-500">{formErrors.startDate}</span>
