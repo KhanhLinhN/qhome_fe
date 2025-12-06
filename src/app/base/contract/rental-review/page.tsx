@@ -359,14 +359,50 @@ export default function RentalContractReviewPage() {
           endDate.setHours(0, 0, 0, 0);
           return endDate <= today;
         } else if (statusFilter === 'expiring') {
-          // Hợp đồng còn 1 tháng (30 ngày) hết hạn
+          // Hợp đồng còn <= 30 ngày (tính từ startDate đến endDate)
           if (c.status !== 'ACTIVE') return false;
-          if (!c.endDate) return false;
-          const endDate = new Date(c.endDate);
-          endDate.setHours(0, 0, 0, 0);
-          if (endDate <= today) return false; // Đã hết hạn
-          const daysUntilExpiry = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-          return daysUntilExpiry <= 30; // Còn <= 30 ngày
+          if (!c.endDate || !c.startDate) return false;
+          
+          const parseDateOnly = (dateStr: string): Date => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+            return new Date(utcDate.getFullYear(), utcDate.getMonth(), utcDate.getDate());
+          };
+          
+          let startDate: Date;
+          let endDate: Date;
+          
+          try {
+            if (c.startDate.includes('T')) {
+              const isoDate = new Date(c.startDate);
+              startDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
+            } else {
+              startDate = parseDateOnly(c.startDate);
+            }
+            startDate.setHours(0, 0, 0, 0);
+            
+            if (c.endDate.includes('T')) {
+              const isoDate = new Date(c.endDate);
+              endDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
+            } else {
+              endDate = parseDateOnly(c.endDate);
+            }
+            endDate.setHours(0, 0, 0, 0);
+          } catch (e) {
+            const fallbackStart = new Date(c.startDate);
+            startDate = new Date(fallbackStart.getFullYear(), fallbackStart.getMonth(), fallbackStart.getDate());
+            startDate.setHours(0, 0, 0, 0);
+            
+            const fallbackEnd = new Date(c.endDate);
+            endDate = new Date(fallbackEnd.getFullYear(), fallbackEnd.getMonth(), fallbackEnd.getDate());
+            endDate.setHours(0, 0, 0, 0);
+          }
+          
+          if (endDate < today) return false; // Đã hết hạn
+          
+          // Calculate remaining days: from start date to end date
+          const remainingDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          return remainingDays <= 30 && remainingDays > 0; // Còn <= 30 ngày
         }
         return true;
       });
@@ -402,24 +438,60 @@ export default function RentalContractReviewPage() {
       return { label: 'Đã hết hiệu lực', className: 'bg-gray-100 text-gray-700' };
     }
     
-    if (!contract.endDate) {
+    if (!contract.endDate || !contract.startDate) {
       return { label: 'Đang hoạt động', className: 'bg-green-100 text-green-700' };
     }
     
+    // Parse date string properly (YYYY-MM-DD format from API) - avoid timezone issues
+    const parseDateOnly = (dateStr: string): Date => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      return new Date(utcDate.getFullYear(), utcDate.getMonth(), utcDate.getDate());
+    };
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const endDate = new Date(contract.endDate);
-    endDate.setHours(0, 0, 0, 0);
     
-    if (endDate <= today) {
+    let startDate: Date;
+    let endDate: Date;
+    
+    try {
+      // Parse start date
+      if (contract.startDate.includes('T')) {
+        const isoDate = new Date(contract.startDate);
+        startDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
+      } else {
+        startDate = parseDateOnly(contract.startDate);
+      }
+      startDate.setHours(0, 0, 0, 0);
+      
+      // Parse end date
+      if (contract.endDate.includes('T')) {
+        const isoDate = new Date(contract.endDate);
+        endDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
+      } else {
+        endDate = parseDateOnly(contract.endDate);
+      }
+      endDate.setHours(0, 0, 0, 0);
+    } catch (e) {
+      const fallbackStart = new Date(contract.startDate);
+      startDate = new Date(fallbackStart.getFullYear(), fallbackStart.getMonth(), fallbackStart.getDate());
+      startDate.setHours(0, 0, 0, 0);
+      
+      const fallbackEnd = new Date(contract.endDate);
+      endDate = new Date(fallbackEnd.getFullYear(), fallbackEnd.getMonth(), fallbackEnd.getDate());
+      endDate.setHours(0, 0, 0, 0);
+    }
+    
+    if (endDate < today) {
       return { label: 'Đã hết hạn', className: 'bg-red-100 text-red-700' };
     }
     
-    // Calculate days until expiration
-    const daysUntilExpiry = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    // Calculate remaining days: from start date to end date (contract duration)
+    const remainingDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
-    if (daysUntilExpiry <= 30) {
-      return { label: `Sắp hết hạn (${daysUntilExpiry} ngày)`, className: 'bg-yellow-100 text-yellow-700' };
+    if (remainingDays <= 30 && remainingDays > 0) {
+      return { label: `Sắp hết hạn (còn ${remainingDays} ngày)`, className: 'bg-yellow-100 text-yellow-700' };
     }
     
     return { label: 'Đang hoạt động', className: 'bg-green-100 text-green-700' };
@@ -427,16 +499,52 @@ export default function RentalContractReviewPage() {
 
   // Calculate statistics
   const expiringContractsCount = useMemo(() => {
+    const parseDateOnly = (dateStr: string): Date => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      return new Date(utcDate.getFullYear(), utcDate.getMonth(), utcDate.getDate());
+    };
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return contracts.filter(c => {
       if (c.status !== 'ACTIVE') return false;
-      if (!c.endDate) return false;
-      const endDate = new Date(c.endDate);
-      endDate.setHours(0, 0, 0, 0);
-      if (endDate <= today) return false;
-      const daysUntilExpiry = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      return daysUntilExpiry <= 30;
+      if (!c.endDate || !c.startDate) return false;
+      
+      let startDate: Date;
+      let endDate: Date;
+      
+      try {
+        if (c.startDate.includes('T')) {
+          const isoDate = new Date(c.startDate);
+          startDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
+        } else {
+          startDate = parseDateOnly(c.startDate);
+        }
+        startDate.setHours(0, 0, 0, 0);
+        
+        if (c.endDate.includes('T')) {
+          const isoDate = new Date(c.endDate);
+          endDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
+        } else {
+          endDate = parseDateOnly(c.endDate);
+        }
+        endDate.setHours(0, 0, 0, 0);
+      } catch (e) {
+        const fallbackStart = new Date(c.startDate);
+        startDate = new Date(fallbackStart.getFullYear(), fallbackStart.getMonth(), fallbackStart.getDate());
+        startDate.setHours(0, 0, 0, 0);
+        
+        const fallbackEnd = new Date(c.endDate);
+        endDate = new Date(fallbackEnd.getFullYear(), fallbackEnd.getMonth(), fallbackEnd.getDate());
+        endDate.setHours(0, 0, 0, 0);
+      }
+      
+      if (endDate < today) return false;
+      
+      // Calculate remaining days: from start date to end date
+      const remainingDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      return remainingDays <= 30 && remainingDays > 0;
     }).length;
   }, [contracts]);
 

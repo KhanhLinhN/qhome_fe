@@ -16,6 +16,7 @@ import {
   getAllContracts,
 } from '@/src/services/base/contractService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
+import MonthYearPicker from '@/src/components/customer-interaction/MonthYearPicker';
 
 type AsyncState<T> = {
   data: T;
@@ -97,6 +98,63 @@ export default function ContractManagementPage() {
     return date.toLocaleDateString('vi-VN');
   };
 
+  const formatNumberWithDots = (value: number | null | undefined): string => {
+    if (value === null || value === undefined) return '';
+    return value.toLocaleString('vi-VN', { useGrouping: true, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
+  const parseNumberFromFormattedString = (value: string): number | null => {
+    if (!value || value.trim() === '') return null;
+    // Remove all dots (thousands separators)
+    const cleaned = value.replace(/\./g, '').trim();
+    const num = Number(cleaned);
+    return isNaN(num) ? null : num;
+  };
+
+  const calculateTotalRent = (startDate: string | null, endDate: string | null, monthlyRent: number | null): number | null => {
+    if (!startDate || !endDate || monthlyRent === null || monthlyRent <= 0) {
+      return null;
+    }
+
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
+        return null;
+      }
+
+      const startYear = start.getFullYear();
+      const startMonth = start.getMonth();
+      const endYear = end.getFullYear();
+      const endMonth = end.getMonth();
+      
+      const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
+      
+      if (totalMonths <= 0) {
+        return 0;
+      }
+
+      const startDay = start.getDate();
+      let totalRent = 0;
+
+      if (startDay <= 15) {
+        totalRent = monthlyRent;
+      } else {
+        totalRent = monthlyRent / 2;
+      }
+
+      if (totalMonths > 1) {
+        const middleMonths = totalMonths - 1;
+        totalRent += monthlyRent * middleMonths;
+      }
+
+      return Math.round(totalRent);
+    } catch (error) {
+      return null;
+    }
+  };
+
   const CONTRACT_TYPE_OPTIONS = useMemo(() => [
     { value: 'RENTAL', label: t('contractTypes.rental') },
     { value: 'PURCHASE', label: t('contractTypes.purchase') },
@@ -135,6 +193,13 @@ export default function ContractManagementPage() {
     notes: '',
     status: 'ACTIVE',
   });
+
+  const calculatedTotalRent = useMemo(() => {
+    if (formState.contractType === 'RENTAL') {
+      return calculateTotalRent(formState.startDate || null, formState.endDate || null, formState.monthlyRent ?? null);
+    }
+    return null;
+  }, [formState.contractType, formState.startDate, formState.endDate, formState.monthlyRent]);
 
   const clearFieldErrors = (...fields: (keyof CreateContractPayload)[]) => {
     setFormErrors((prev) => {
@@ -243,14 +308,16 @@ export default function ContractManagementPage() {
             // } else {
             //   delete newErrors.endDate;
             // }
+            // Commented out for testing - allow past dates for renewal reminder testing
             // For now, just check if endDate > startDate (basic validation)
-            const startDate = new Date(state.startDate);
-            const endDate = new Date(value);
-            if (endDate <= startDate) {
-              newErrors.endDate = t('validation.endDateAfterStartDate');
-            } else {
-              delete newErrors.endDate;
-            }
+            // const startDate = new Date(state.startDate);
+            // const endDate = new Date(value);
+            // if (endDate <= startDate) {
+            //   newErrors.endDate = t('validation.endDateAfterStartDate');
+            // } else {
+            //   delete newErrors.endDate;
+            // }
+            delete newErrors.endDate;
           } else {
             delete newErrors.endDate;
           }
@@ -708,12 +775,13 @@ export default function ContractManagementPage() {
         // if (endDate <= oneMonthLater) {
         //     errors.endDate = t('validation.endDateMinDiff');
         //   }
+        // Commented out for testing - allow past dates for renewal reminder testing
         // For now, just check if endDate > startDate (basic validation)
-        const startDate = new Date(formState.startDate);
-        const endDate = new Date(formState.endDate);
-        if (endDate <= startDate) {
-          errors.endDate = t('validation.endDateAfterStartDate') || 'Ngày kết thúc phải sau ngày bắt đầu';
-        }
+        // const startDate = new Date(formState.startDate);
+        // const endDate = new Date(formState.endDate);
+        // if (endDate <= startDate) {
+        //   errors.endDate = t('validation.endDateAfterStartDate') || 'Ngày kết thúc phải sau ngày bắt đầu';
+        // }
         }
       if (!formState.paymentMethod || !formState.paymentMethod.trim()) {
         errors.paymentMethod = t('validation.paymentMethodRequired');
@@ -1018,34 +1086,40 @@ export default function ContractManagementPage() {
   }, [contractsState.data]);
 
   // Check if can create new contract: 
-  // - No ACTIVE contract (but can have CANCELLED contract that's still active)
-  // - Has expired RENTAL contract OR has CANCELLED RENTAL contract that's still active
+  // - Must have selectedUnitId
+  // - No ACTIVE contract that's still valid (endDate > today or no endDate)
   const canCreateNewContract = useMemo(() => {
     if (!selectedUnitId) {
       return false;
     }
-    // Check if there's an ACTIVE contract (not CANCELLED)
-    const hasActiveNonCancelledContract = contractsState.data?.some((contract) => {
+    
+    // If no contracts at all, allow creating
+    if (!contractsState.data || contractsState.data.length === 0) {
+      return true;
+    }
+    
+    // Check if there's an ACTIVE contract that's still valid (not expired)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const hasActiveValidContract = contractsState.data.some((contract) => {
+      // Only check ACTIVE status contracts (ignore CANCELLED)
       if (contract.status !== 'ACTIVE') {
         return false;
       }
+      // If no endDate, contract is still valid
       if (!contract.endDate) {
         return true;
       }
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Check if endDate > today (still valid)
       const endDate = new Date(contract.endDate);
       endDate.setHours(0, 0, 0, 0);
       return endDate > today;
-    }) || false;
+    });
     
-    // Cannot create if there's an ACTIVE contract (not CANCELLED)
-    if (hasActiveNonCancelledContract) {
-      return false;
-    }
-    // Can create if there's an expired RENTAL contract OR a CANCELLED RENTAL contract that's still active
-    return latestExpiredRentalContract !== null || latestActiveCancelledRentalContract !== null;
-  }, [selectedUnitId, contractsState.data, latestExpiredRentalContract, latestActiveCancelledRentalContract]);
+    // Can create if there's no active valid contract
+    return !hasActiveValidContract;
+  }, [selectedUnitId, contractsState.data]);
 
   // Get expired contracts, sorted by endDate (most recent first)
   // CANCELLED contracts with endDate >= today are in active tab, not expired
@@ -1090,35 +1164,27 @@ export default function ContractManagementPage() {
       });
   }, [contractsState.data]);
 
-  // Get active contracts (not expired)
-  // Includes ACTIVE contracts with endDate > today or no endDate
-  // Includes CANCELLED contracts with endDate >= today or no endDate
+  // Get all contracts (including expired) - show all contracts in active tab
   const activeContracts = useMemo(() => {
     if (!contractsState.data || contractsState.data.length === 0) {
       return [];
     }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    return contractsState.data.filter((contract) => {
-      if (contract.status === 'ACTIVE') {
-        if (!contract.endDate) {
-          return true; // No endDate means still active
-        }
-        const endDate = new Date(contract.endDate);
-        endDate.setHours(0, 0, 0, 0);
-        return endDate > today;
+    // Return all contracts, sorted by created date (most recent first)
+    return [...contractsState.data].sort((a, b) => {
+      // Sort by endDate descending (most recent first), then by startDate
+      if (a.endDate && b.endDate) {
+        const dateA = new Date(a.endDate);
+        const dateB = new Date(b.endDate);
+        return dateB.getTime() - dateA.getTime();
       }
-      // CANCELLED contracts are active if endDate >= today or no endDate
-      if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
-        if (!contract.endDate) {
-          return true; // No endDate means still active
-        }
-        const endDate = new Date(contract.endDate);
-        endDate.setHours(0, 0, 0, 0);
-        return endDate >= today;
+      if (a.endDate) return -1;
+      if (b.endDate) return 1;
+      if (a.startDate && b.startDate) {
+        const dateA = new Date(a.startDate);
+        const dateB = new Date(b.startDate);
+        return dateB.getTime() - dateA.getTime();
       }
-      return false;
+      return 0;
     });
   }, [contractsState.data]);
 
@@ -1429,7 +1495,7 @@ export default function ContractManagementPage() {
                       value={formState.startDate ?? ''}
                       onChange={(event) => setFieldValue('startDate', event.target.value)}
                       placeholderText={t('placeholders.ddmmyyyy')}
-                      min={minStartDate}
+                      min={undefined}
                     />
                     {formErrors.startDate && (
                       <span className="mt-1 text-xs text-red-500">{formErrors.startDate}</span>
@@ -1438,15 +1504,21 @@ export default function ContractManagementPage() {
                   {formState.contractType !== 'PURCHASE' && (
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-medium text-[#02542D]">{t('fields.endDate')}</label>
-                      <DateBox
+                      <MonthYearPicker
                         value={formState.endDate ?? ''}
                         onChange={(event) =>
                           setFieldValue('endDate', event.target.value ? event.target.value : null)
                         }
-                        placeholderText={t('placeholders.ddmmyyyy')}
+                        placeholderText={t('placeholders.mmyyyy') || 'Chọn tháng/năm (tự động đặt cuối tháng)'}
+                        min={undefined}
                       />
                       {formErrors.endDate && (
                         <span className="mt-1 text-xs text-red-500">{formErrors.endDate}</span>
+                      )}
+                      {formState.endDate && (
+                        <span className="text-xs text-gray-500">
+                          {t('labels.endDatePreview', { date: formatDate(formState.endDate) }) || `Ngày kết thúc: ${formatDate(formState.endDate)} (cuối tháng)`}
+                        </span>
                       )}
                     </div>
                   )}
@@ -1475,20 +1547,48 @@ export default function ContractManagementPage() {
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-medium text-[#02542D]">{t('fields.monthlyRent')}</label>
                       <input
-                        type="number"
-                        min={0}
-                        value={formState.monthlyRent ?? ''}
-                        onChange={(event) =>
-                          setFieldValue(
-                            'monthlyRent',
-                            event.target.value ? Number(event.target.value) : null,
-                          )
-                        }
+                        type="text"
+                        inputMode="numeric"
+                        value={formatNumberWithDots(formState.monthlyRent)}
+                        onChange={(event) => {
+                          // Allow free input while typing, only parse and format when blur
+                          const inputValue = event.target.value.replace(/[^\d]/g, '');
+                          const parsedValue = inputValue ? Number(inputValue) : null;
+                          setFieldValue('monthlyRent', parsedValue);
+                        }}
+                        onBlur={(event) => {
+                          // Ensure proper format on blur
+                          const parsedValue = parseNumberFromFormattedString(event.target.value);
+                          setFieldValue('monthlyRent', parsedValue);
+                        }}
                         placeholder={t('placeholders.monthlyRent')}
                         className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       />
                       {formErrors.monthlyRent && (
                         <span className="mt-1 text-xs text-red-500">{formErrors.monthlyRent}</span>
+                      )}
+                      {calculatedTotalRent !== null && formState.startDate && (
+                        <div className="mt-2 rounded-lg border border-[#C7E8D2] bg-[#E9F4EE] p-3">
+                          <p className="mb-1">
+                            <span className="font-medium text-[#02542D]">{t('detailLabels.totalRent')}</span>{' '}
+                            <span className="text-lg font-semibold text-[#14AE5C]">
+                              {calculatedTotalRent.toLocaleString('vi-VN')} đ
+                            </span>
+                          </p>
+                          {formState.startDate && (
+                            <p className="text-xs text-gray-600 italic">
+                              {(() => {
+                                const startDate = new Date(formState.startDate);
+                                const startDay = startDate.getDate();
+                                if (startDay <= 15) {
+                                  return t('rentCalculation.fullMonth', { day: startDay });
+                                } else {
+                                  return t('rentCalculation.halfMonth', { day: startDay });
+                                }
+                              })()}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
@@ -1496,15 +1596,20 @@ export default function ContractManagementPage() {
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-medium text-[#02542D]">{t('fields.purchasePrice')}</label>
                       <input
-                        type="number"
-                        min={0}
-                        value={formState.purchasePrice ?? ''}
-                        onChange={(event) =>
-                          setFieldValue(
-                            'purchasePrice',
-                            event.target.value ? Number(event.target.value) : null,
-                          )
-                        }
+                        type="text"
+                        inputMode="numeric"
+                        value={formatNumberWithDots(formState.purchasePrice)}
+                        onChange={(event) => {
+                          // Allow free input while typing, only parse and format when blur
+                          const inputValue = event.target.value.replace(/[^\d]/g, '');
+                          const parsedValue = inputValue ? Number(inputValue) : null;
+                          setFieldValue('purchasePrice', parsedValue);
+                        }}
+                        onBlur={(event) => {
+                          // Ensure proper format on blur
+                          const parsedValue = parseNumberFromFormattedString(event.target.value);
+                          setFieldValue('purchasePrice', parsedValue);
+                        }}
                         placeholder={t('placeholders.purchasePrice')}
                         className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       />
@@ -1713,6 +1818,40 @@ export default function ContractManagementPage() {
                           <span className="font-medium text-[#02542D]">{t('detailLabels.monthlyRent')}</span>{' '}
                           {detailState.data.monthlyRent.toLocaleString('vi-VN')} đ
                         </p>
+                      )}
+                      {detailState.data.contractType === 'RENTAL' && detailState.data.monthlyRent != null && detailState.data.startDate && detailState.data.endDate && (
+                        <div className="col-span-2">
+                          {(() => {
+                            const totalRent = detailState.data.totalRent ?? calculateTotalRent(
+                              detailState.data.startDate!,
+                              detailState.data.endDate!,
+                              detailState.data.monthlyRent!
+                            );
+                            return totalRent !== null ? (
+                              <>
+                                <p className="mb-2">
+                                  <span className="font-medium text-[#02542D]">{t('detailLabels.totalRent')}</span>{' '}
+                                  <span className="text-lg font-semibold text-[#14AE5C]">
+                                    {totalRent.toLocaleString('vi-VN')} đ
+                                  </span>
+                                </p>
+                                {detailState.data.startDate && (
+                                  <p className="text-xs text-gray-600 italic">
+                                    {(() => {
+                                      const startDate = new Date(detailState.data.startDate!);
+                                      const startDay = startDate.getDate();
+                                      if (startDay <= 15) {
+                                        return t('rentCalculation.fullMonth', { day: startDay });
+                                      } else {
+                                        return t('rentCalculation.halfMonth', { day: startDay });
+                                      }
+                                    })()}
+                                  </p>
+                                )}
+                              </>
+                            ) : null;
+                          })()}
+                        </div>
                       )}
                       {detailState.data.purchasePrice != null && (
                         <p>

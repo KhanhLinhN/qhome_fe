@@ -2042,6 +2042,7 @@
       "selectUnit": "-- Select unit --",
       "selectBuildingFirst": "Select building first",
       "ddmmyyyy": "dd/mm/yyyy",
+      "mmyyyy": "MM/YYYY",
       "contractNumber": "E.g. HD-2025-0001",
       "monthlyRent": "E.g. 12000000",
       "purchasePrice": "E.g. 2500000000",
@@ -2090,6 +2091,9 @@
     "tabs": {
       "active": "Active Contracts",
       "expired": "Expired Contracts"
+    },
+    "labels": {
+      "endDatePreview": "End date: {date} (end of month)"
     },
     "detail": {
       "title": "Contract detail",
@@ -2180,11 +2184,16 @@
       "endDate": "End date:",
       "unlimited": "Unlimited",
       "monthlyRent": "Monthly rent:",
+      "totalRent": "Total rent:",
       "purchasePrice": "Purchase price:",
       "purchaseDate": "Purchase date:",
       "paymentMethod": "Payment method:",
       "paymentTerms": "Payment terms:",
       "notes": "Notes:"
+    },
+    "rentCalculation": {
+      "fullMonth": "First month (day {day} ≤ 15): full month charge",
+      "halfMonth": "First month (day {day} > 15): half month charge"
     },
     "unitLabel": {
       "floor": "Floor"

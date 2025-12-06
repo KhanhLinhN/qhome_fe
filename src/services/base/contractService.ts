@@ -27,6 +27,7 @@ export interface ContractFileSummary {
 
 export interface ContractDetail extends ContractSummary {
   monthlyRent?: number | null;
+  totalRent?: number | null;
   purchasePrice?: number | null;
   paymentMethod?: string | null;
   paymentTerms?: string | null;
@@ -120,7 +121,7 @@ export async function uploadContractFiles(
 export async function getAllContracts(): Promise<ContractSummary[]> {
   try {
     const response = await axios.get<ContractSummary[]>(
-      `${BASE_URL}/api/contracts/active`,
+      `${BASE_URL}/api/contracts/all`,
     );
     return response.data;
   } catch (error) {

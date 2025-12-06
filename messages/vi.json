@@ -2093,6 +2093,7 @@
       "selectUnit": "-- Chọn căn hộ --",
       "selectBuildingFirst": "Chọn tòa nhà trước",
       "ddmmyyyy": "YYYY-MM-DD",
+      "mmyyyy": "MM/YYYY",
       "contractNumber": "Ví dụ: HD-2025-0001",
       "monthlyRent": "Ví dụ: 12000000",
       "purchasePrice": "Ví dụ: 2500000000",
@@ -2141,6 +2142,9 @@
     "tabs": {
       "active": "Hợp đồng còn hạn",
       "expired": "Hợp đồng đã hết hạn"
+    },
+    "labels": {
+      "endDatePreview": "Ngày kết thúc: {date} (cuối tháng)"
     },
     "detail": {
       "title": "Chi tiết hợp đồng",
@@ -2231,11 +2235,16 @@
       "endDate": "Ngày kết thúc:",
       "unlimited": "Không giới hạn",
       "monthlyRent": "Giá thuê / tháng:",
+      "totalRent": "Tổng tiền thuê:",
       "purchasePrice": "Giá mua:",
       "purchaseDate": "Ngày mua:",
       "paymentMethod": "Phương thức thanh toán:",
       "paymentTerms": "Điều khoản thanh toán:",
       "notes": "Ghi chú:"
+    },
+    "rentCalculation": {
+      "fullMonth": "Tháng đầu (ngày {day} ≤ 15): tính cả tháng",
+      "halfMonth": "Tháng đầu (ngày {day} > 15): tính nửa tháng"
     },
     "unitLabel": {
       "floor": "Tầng"
