@@ -1164,28 +1164,57 @@ export default function ContractManagementPage() {
       });
   }, [contractsState.data]);
 
-  // Get all contracts (including expired) - show all contracts in active tab
+  // Get active contracts (not expired) - show only active contracts in active tab
   const activeContracts = useMemo(() => {
     if (!contractsState.data || contractsState.data.length === 0) {
       return [];
     }
-    // Return all contracts, sorted by created date (most recent first)
-    return [...contractsState.data].sort((a, b) => {
-      // Sort by endDate descending (most recent first), then by startDate
-      if (a.endDate && b.endDate) {
-        const dateA = new Date(a.endDate);
-        const dateB = new Date(b.endDate);
-        return dateB.getTime() - dateA.getTime();
-      }
-      if (a.endDate) return -1;
-      if (b.endDate) return 1;
-      if (a.startDate && b.startDate) {
-        const dateA = new Date(a.startDate);
-        const dateB = new Date(b.startDate);
-        return dateB.getTime() - dateA.getTime();
-      }
-      return 0;
-    });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return contractsState.data
+      .filter((contract) => {
+        // CANCELLED contracts: active if endDate >= today or no endDate
+        if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
+          if (!contract.endDate) {
+            return true; // No endDate means still active
+          }
+          const endDate = new Date(contract.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          return endDate >= today;
+        }
+        // ACTIVE contracts: active if endDate > today or no endDate
+        if (contract.status === 'ACTIVE') {
+          if (!contract.endDate) {
+            return true; // No endDate means still active
+          }
+          const endDate = new Date(contract.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          return endDate > today;
+        }
+        // EXPIRED status is not active
+        if (contract.status === 'EXPIRED') {
+          return false;
+        }
+        // INACTIVE contracts are considered active (they will become active when startDate arrives)
+        return true;
+      })
+      .sort((a, b) => {
+        // Sort by endDate descending (most recent first), then by startDate
+        if (a.endDate && b.endDate) {
+          const dateA = new Date(a.endDate);
+          const dateB = new Date(b.endDate);
+          return dateB.getTime() - dateA.getTime();
+        }
+        if (a.endDate) return -1;
+        if (b.endDate) return 1;
+        if (a.startDate && b.startDate) {
+          const dateA = new Date(a.startDate);
+          const dateB = new Date(b.startDate);
+          return dateB.getTime() - dateA.getTime();
+        }
+        return 0;
+      });
   }, [contractsState.data]);
 
   // Auto-switch to active tab if expired tab is selected but no expired contracts

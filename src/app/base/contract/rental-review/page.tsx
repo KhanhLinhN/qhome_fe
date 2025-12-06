@@ -62,10 +62,61 @@ export default function RentalContractReviewPage() {
   const [inspectorName, setInspectorName] = useState('');
   const [inspectorNotes, setInspectorNotes] = useState('');
 
-  // Load buildings and contracts on mount
+  // Load buildings first, then contracts on mount
   useEffect(() => {
-    loadBuildings();
-    loadContracts();
+    const initializeData = async () => {
+      setLoading(true);
+      try {
+        // Step 1: Load buildings
+        const buildingsData: any = await getBuildings();
+        const buildingsList = Array.isArray(buildingsData) ? buildingsData : (buildingsData?.content || buildingsData?.data || []);
+        setBuildings(buildingsList);
+        
+        // Create buildings map
+        const buildingsMapData = new Map<string, Building>();
+        buildingsList.forEach((building: Building) => {
+          buildingsMapData.set(building.id, building);
+        });
+        setBuildingsMap(buildingsMapData);
+        
+        // Step 2: Load units for all buildings
+        const unitsMapData = new Map<string, Unit>();
+        for (const building of buildingsList) {
+          try {
+            const buildingUnits = await getUnitsByBuilding(building.id);
+            buildingUnits.forEach(unit => {
+              unitsMapData.set(unit.id, unit);
+            });
+          } catch (err) {
+            console.warn(`Failed to load units for building ${building.id}:`, err);
+          }
+        }
+        setUnitsMap(unitsMapData);
+        
+        // Step 3: Load contracts and enrich with unit/building info
+        const contractsData = await getAllRentalContracts();
+        const enrichedContracts: RentalContractWithUnit[] = contractsData.map(contract => {
+          const unit = unitsMapData.get(contract.unitId);
+          const building = unit ? buildingsMapData.get(unit.buildingId) : null;
+          
+          return {
+            ...contract,
+            unitCode: unit?.code,
+            unitName: unit?.name,
+            buildingCode: building?.code,
+            buildingName: building?.name,
+          };
+        });
+        
+        setContracts(enrichedContracts);
+      } catch (error: any) {
+        console.error('Failed to initialize data:', error);
+        show(error?.response?.data?.message || error?.message || 'Không thể tải dữ liệu', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    initializeData();
   }, []);
 
   // Load units when building changes
@@ -80,13 +131,13 @@ export default function RentalContractReviewPage() {
 
   const loadBuildings = async () => {
     try {
-      const data = await getBuildings();
+      const data: any = await getBuildings();
       const buildingsList = Array.isArray(data) ? data : (data?.content || data?.data || []);
       setBuildings(buildingsList);
       
       // Create map for quick lookup
       const map = new Map<string, Building>();
-      buildingsList.forEach(building => {
+      buildingsList.forEach((building: Building) => {
         map.set(building.id, building);
       });
       setBuildingsMap(map);
@@ -139,13 +190,6 @@ export default function RentalContractReviewPage() {
       });
       
       setContracts(enrichedContracts);
-      
-      // Load units for contracts that don't have unit info yet
-      const contractsWithoutUnitInfo = enrichedContracts.filter(c => !c.unitCode);
-      if (contractsWithoutUnitInfo.length > 0 && buildings.length > 0) {
-        // Load units for all buildings in background
-        loadUnitsForAllBuildings();
-      }
     } catch (error: any) {
       console.error('Failed to load rental contracts:', error);
       show(error?.response?.data?.message || error?.message || 'Không thể tải danh sách hợp đồng', 'error');
@@ -155,41 +199,6 @@ export default function RentalContractReviewPage() {
     }
   };
 
-  const loadUnitsForAllBuildings = async () => {
-    // Load units for all buildings to populate the map
-    for (const building of buildings) {
-      try {
-        const buildingUnits = await getUnitsByBuilding(building.id);
-        setUnitsMap(prev => {
-          const newMap = new Map(prev);
-          buildingUnits.forEach(unit => {
-            newMap.set(unit.id, unit);
-          });
-          return newMap;
-        });
-        
-        // Update contracts with new unit info
-        setContracts(prev => {
-          return prev.map(contract => {
-            const unit = buildingUnits.find(u => u.id === contract.unitId);
-            if (unit && !contract.unitCode) {
-              const building = buildingsMap.get(unit.buildingId);
-              return {
-                ...contract,
-                unitCode: unit.code,
-                unitName: unit.name,
-                buildingCode: building?.code,
-                buildingName: building?.name,
-              };
-            }
-            return contract;
-          });
-        });
-      } catch (err) {
-        console.warn(`Failed to load units for building ${building.id}:`, err);
-      }
-    }
-  };
 
   const handleViewDetail = async (contractId: string) => {
     setDetailLoading(true);
@@ -359,9 +368,9 @@ export default function RentalContractReviewPage() {
           endDate.setHours(0, 0, 0, 0);
           return endDate <= today;
         } else if (statusFilter === 'expiring') {
-          // Hợp đồng còn <= 30 ngày (tính từ startDate đến endDate)
+          // Hợp đồng còn <= 30 ngày nữa sẽ hết hạn (tính từ today đến endDate)
           if (c.status !== 'ACTIVE') return false;
-          if (!c.endDate || !c.startDate) return false;
+          if (!c.endDate) return false;
           
           const parseDateOnly = (dateStr: string): Date => {
             const [year, month, day] = dateStr.split('-').map(Number);
@@ -369,18 +378,9 @@ export default function RentalContractReviewPage() {
             return new Date(utcDate.getFullYear(), utcDate.getMonth(), utcDate.getDate());
           };
           
-          let startDate: Date;
           let endDate: Date;
           
           try {
-            if (c.startDate.includes('T')) {
-              const isoDate = new Date(c.startDate);
-              startDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
-            } else {
-              startDate = parseDateOnly(c.startDate);
-            }
-            startDate.setHours(0, 0, 0, 0);
-            
             if (c.endDate.includes('T')) {
               const isoDate = new Date(c.endDate);
               endDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
@@ -389,10 +389,6 @@ export default function RentalContractReviewPage() {
             }
             endDate.setHours(0, 0, 0, 0);
           } catch (e) {
-            const fallbackStart = new Date(c.startDate);
-            startDate = new Date(fallbackStart.getFullYear(), fallbackStart.getMonth(), fallbackStart.getDate());
-            startDate.setHours(0, 0, 0, 0);
-            
             const fallbackEnd = new Date(c.endDate);
             endDate = new Date(fallbackEnd.getFullYear(), fallbackEnd.getMonth(), fallbackEnd.getDate());
             endDate.setHours(0, 0, 0, 0);
@@ -400,9 +396,9 @@ export default function RentalContractReviewPage() {
           
           if (endDate < today) return false; // Đã hết hạn
           
-          // Calculate remaining days: from start date to end date
-          const remainingDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-          return remainingDays <= 30 && remainingDays > 0; // Còn <= 30 ngày
+          // Calculate remaining days: from today to end date
+          const remainingDays = Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          return remainingDays <= 30 && remainingDays >= 0; // Còn <= 30 ngày nữa
         }
         return true;
       });
@@ -487,11 +483,11 @@ export default function RentalContractReviewPage() {
       return { label: 'Đã hết hạn', className: 'bg-red-100 text-red-700' };
     }
     
-    // Calculate remaining days: from start date to end date (contract duration)
-    const remainingDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    // Calculate remaining days: from today to end date (days until expiration)
+    const daysUntilExpiry = Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (remainingDays <= 30 && remainingDays > 0) {
-      return { label: `Sắp hết hạn (còn ${remainingDays} ngày)`, className: 'bg-yellow-100 text-yellow-700' };
+    if (daysUntilExpiry <= 30 && daysUntilExpiry >= 0) {
+      return { label: `Sắp hết hạn (còn ${daysUntilExpiry} ngày)`, className: 'bg-yellow-100 text-yellow-700' };
     }
     
     return { label: 'Đang hoạt động', className: 'bg-green-100 text-green-700' };
@@ -509,20 +505,11 @@ export default function RentalContractReviewPage() {
     today.setHours(0, 0, 0, 0);
     return contracts.filter(c => {
       if (c.status !== 'ACTIVE') return false;
-      if (!c.endDate || !c.startDate) return false;
+      if (!c.endDate) return false;
       
-      let startDate: Date;
       let endDate: Date;
       
       try {
-        if (c.startDate.includes('T')) {
-          const isoDate = new Date(c.startDate);
-          startDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
-        } else {
-          startDate = parseDateOnly(c.startDate);
-        }
-        startDate.setHours(0, 0, 0, 0);
-        
         if (c.endDate.includes('T')) {
           const isoDate = new Date(c.endDate);
           endDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
@@ -531,10 +518,6 @@ export default function RentalContractReviewPage() {
         }
         endDate.setHours(0, 0, 0, 0);
       } catch (e) {
-        const fallbackStart = new Date(c.startDate);
-        startDate = new Date(fallbackStart.getFullYear(), fallbackStart.getMonth(), fallbackStart.getDate());
-        startDate.setHours(0, 0, 0, 0);
-        
         const fallbackEnd = new Date(c.endDate);
         endDate = new Date(fallbackEnd.getFullYear(), fallbackEnd.getMonth(), fallbackEnd.getDate());
         endDate.setHours(0, 0, 0, 0);
@@ -542,9 +525,9 @@ export default function RentalContractReviewPage() {
       
       if (endDate < today) return false;
       
-      // Calculate remaining days: from start date to end date
-      const remainingDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      return remainingDays <= 30 && remainingDays > 0;
+      // Calculate remaining days: from today to end date
+      const remainingDays = Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return remainingDays <= 30 && remainingDays >= 0;
     }).length;
   }, [contracts]);
 
