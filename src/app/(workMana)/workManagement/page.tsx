@@ -9,6 +9,7 @@ export default function WorkManagementPage() {
   const { user } = useAuth();
   const {
     tasksByStatus,
+    columnsConfig,
     employees,
     isAdmin,
     filter,
@@ -44,6 +45,7 @@ export default function WorkManagementPage() {
 
       <KanbanBoard
         tasksByStatus={tasksByStatus}
+        columnsConfig={columnsConfig}
         employees={employees}
         isAdmin={isAdmin}
         filter={filter}

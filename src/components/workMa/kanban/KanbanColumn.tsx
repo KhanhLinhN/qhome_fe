@@ -8,6 +8,8 @@ interface KanbanColumnProps {
   title: string;
   status: TaskStatus;
   tasks: WorkTask[];
+  color?: string;
+  borderColor?: string;
   isDraggable: boolean;
   draggedTaskId?: string | null;
   onDragStart: (e: React.DragEvent, task: WorkTask) => void;
@@ -20,6 +22,8 @@ export default function KanbanColumn({
   title,
   status,
   tasks,
+  color,
+  borderColor,
   isDraggable,
   draggedTaskId,
   onDragStart,
@@ -28,7 +32,13 @@ export default function KanbanColumn({
   onAssignClick,
 }: KanbanColumnProps) {
   const getStatusColor = () => {
-    switch (status) {
+    // Use provided colors from config, or fallback to defaults
+    if (color && borderColor) {
+      return `${color} ${borderColor}`;
+    }
+    
+    // Fallback to default colors
+    switch (status.toUpperCase()) {
       case 'TODO':
         return 'bg-gray-100 border-gray-300';
       case 'DOING':

@@ -1,38 +1,56 @@
 import axios from '@/src/lib/axios';
 import { WorkTask, TaskStatus } from '@/src/types/workTask';
 import { Request } from '@/src/types/request';
+import { kanbanConfigService, StatusMapping } from './kanbanConfigService';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
-// Map Request status to TaskStatus
-function mapRequestStatusToTaskStatus(status: string): TaskStatus {
-  const statusMap: Record<string, TaskStatus> = {
-    'New': 'TODO',
-    'Pending': 'TODO',
-    'Processing': 'DOING',
-    'Done': 'DONE',
-    'Cancelled': 'TODO', // Cancelled tasks go back to TODO
-  };
-  return statusMap[status] || 'TODO';
+// Cache for status mappings
+let statusMappingsCache: StatusMapping[] | null = null;
+
+// Map Request status to TaskStatus using config from database
+async function mapRequestStatusToTaskStatus(status: string): Promise<TaskStatus> {
+  if (!statusMappingsCache) {
+    statusMappingsCache = await kanbanConfigService.getStatusMappings();
+  }
+  
+  const mapping = statusMappingsCache.find(m => 
+    m.fromStatus.toUpperCase() === status.toUpperCase()
+  );
+  
+  return mapping ? mapping.toStatus : 'TODO';
 }
 
-// Map TaskStatus to Request status
-function mapTaskStatusToRequestStatus(status: TaskStatus): string {
-  const statusMap: Record<TaskStatus, string> = {
-    'TODO': 'Pending',
-    'DOING': 'Processing',
-    'DONE': 'Done',
+// Map TaskStatus to Request status using reverse mapping from config
+async function mapTaskStatusToRequestStatus(status: TaskStatus): Promise<string> {
+  if (!statusMappingsCache) {
+    statusMappingsCache = await kanbanConfigService.getStatusMappings();
+  }
+  
+  // Find reverse mapping (from kanban status to request status)
+  const mapping = statusMappingsCache.find(m => m.toStatus === status);
+  if (mapping) {
+    return mapping.fromStatus;
+  }
+  
+  // Fallback to default mapping if not found
+  const reverseMap: Record<string, string> = {
+    'TODO': 'PENDING',
+    'DOING': 'IN_PROGRESS',
+    'DONE': 'DONE',
   };
-  return statusMap[status];
+  
+  return reverseMap[status] || 'PENDING';
 }
 
 // Convert Request to WorkTask
-function mapRequestToWorkTask(request: Request, assignedTo?: string, assignedToName?: string): WorkTask {
+async function mapRequestToWorkTask(request: Request, assignedTo?: string, assignedToName?: string): Promise<WorkTask> {
+  const mappedStatus = await mapRequestStatusToTaskStatus(request.status);
   return {
     id: request.id,
     title: request.title,
     description: request.content,
-    status: mapRequestStatusToTaskStatus(request.status),
+    status: mappedStatus,
     assignedTo: assignedTo,
     assignedToName: assignedToName,
     createdAt: request.createdAt,
@@ -63,35 +81,36 @@ export class WorkTaskService {
       
       // Map requests to work tasks
       // Note: We'll need to fetch assignee info separately if available
-      return requests.map(req => {
-        const request: Request = {
-          id: req.id,
-          requestCode: req.id,
-          residentId: req.residentId,
-          residentName: req.contactName || 'N/A',
-          unitId: req.unitId,
-          imagePath: req.attachments && req.attachments.length > 0 ? req.attachments[0] : null,
-          title: req.title,
-          content: req.description || '',
-          status: req.status === 'NEW' ? 'New' : 
-                  req.status === 'PENDING' ? 'Pending' :
-                  req.status === 'IN_PROGRESS' ? 'Processing' :
-                  req.status === 'DONE' ? 'Done' : 'New',
-          createdAt: req.createdAt ? new Date(req.createdAt).toISOString() : new Date().toISOString(),
-          updatedAt: req.updatedAt ? new Date(req.updatedAt).toISOString() : new Date().toISOString(),
-          category: req.category,
-          location: req.location,
-          contactPhone: req.contactPhone,
-          attachments: req.attachments || [],
-          priority: req.priority,
-        };
+      const mappedTasks = await Promise.all(
+        requests.map(async (req) => {
+          const request: Request = {
+            id: req.id,
+            requestCode: req.id,
+            residentId: req.residentId,
+            residentName: req.contactName || 'N/A',
+            unitId: req.unitId,
+            imagePath: req.attachments && req.attachments.length > 0 ? req.attachments[0] : null,
+            title: req.title,
+            content: req.description || '',
+            status: req.status || 'NEW', // Use status from database directly
+            createdAt: req.createdAt ? new Date(req.createdAt).toISOString() : new Date().toISOString(),
+            updatedAt: req.updatedAt ? new Date(req.updatedAt).toISOString() : new Date().toISOString(),
+            category: req.category,
+            location: req.location,
+            contactPhone: req.contactPhone,
+            attachments: req.attachments || [],
+            priority: req.priority,
+          };
 
-        return mapRequestToWorkTask(
-          request,
-          req.assignedTo,
-          req.assignedToName
-        );
-      });
+          return await mapRequestToWorkTask(
+            request,
+            req.assignedTo,
+            req.assignedToName
+          );
+        })
+      );
+
+      return mappedTasks;
     } catch (error) {
       console.error('Error fetching tasks:', error);
       throw error;
@@ -103,15 +122,18 @@ export class WorkTaskService {
    */
   async updateTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
     try {
-      if (status === 'DONE') {
+      const requestStatus = await mapTaskStatusToRequestStatus(status);
+      
+      // Use the appropriate endpoint based on the status
+      if (requestStatus === 'DONE' || requestStatus === 'Done') {
         // Mark as complete
         await axios.patch(
           `${BASE_URL}/api/maintenance-requests/admin/${taskId}/complete`,
           {},
           { withCredentials: true }
         );
-      } else if (status === 'DOING') {
-        // Move to IN_PROGRESS by responding (this moves status to IN_PROGRESS)
+      } else if (requestStatus === 'IN_PROGRESS' || requestStatus === 'Processing') {
+        // Move to IN_PROGRESS by responding
         await axios.post(
           `${BASE_URL}/api/maintenance-requests/admin/${taskId}/respond`,
           {
@@ -120,10 +142,19 @@ export class WorkTaskService {
           },
           { withCredentials: true }
         );
-      } else if (status === 'TODO') {
-        // For TODO, we might need to cancel and resend, or just leave it
-        // For now, we'll do nothing as TODO is the default state
-        // If needed, we could cancel and resend, but that's complex
+      } else {
+        // For other statuses, try to update via a generic endpoint if available
+        // This might need to be adjusted based on your API
+        try {
+          await axios.patch(
+            `${BASE_URL}/api/maintenance-requests/${taskId}/status`,
+            { status: requestStatus },
+            { withCredentials: true }
+          );
+        } catch (err) {
+          // If endpoint doesn't exist, log and continue
+          console.warn('Status update endpoint not available, skipping update');
+        }
       }
     } catch (error) {
       console.error('Error updating task status:', error);

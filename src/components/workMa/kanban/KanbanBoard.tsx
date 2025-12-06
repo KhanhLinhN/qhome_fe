@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { WorkTask, TaskStatus } from '@/src/types/workTask';
+import { WorkTask, TaskStatus, KanbanColumnConfig } from '@/src/types/workTask';
 import { EmployeeRoleDto } from '@/src/services/iam/employeeService';
 import KanbanColumn from './KanbanColumn';
 import KanbanFilter from './KanbanFilter';
 import TaskAssignModal from './TaskAssignModal';
 
 interface KanbanBoardProps {
-  tasksByStatus: Record<TaskStatus, WorkTask[]>;
+  tasksByStatus: Record<string, WorkTask[]>;
+  columnsConfig: KanbanColumnConfig[];
   employees: EmployeeRoleDto[];
   isAdmin: boolean;
   filter: any;
@@ -20,6 +21,7 @@ interface KanbanBoardProps {
 
 export default function KanbanBoard({
   tasksByStatus,
+  columnsConfig,
   employees,
   isAdmin,
   filter,
@@ -95,41 +97,28 @@ export default function KanbanBoard({
       />
 
       <div className="flex gap-4 overflow-x-auto pb-4">
-        <KanbanColumn
-          title="To Do"
-          status="TODO"
-          tasks={tasksByStatus.TODO}
-          isDraggable={!isAdmin}
-          draggedTaskId={draggedTask?.id}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onAssignClick={isAdmin ? handleAssignClick : undefined}
-        />
-
-        <KanbanColumn
-          title="Doing"
-          status="DOING"
-          tasks={tasksByStatus.DOING}
-          isDraggable={!isAdmin}
-          draggedTaskId={draggedTask?.id}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onAssignClick={isAdmin ? handleAssignClick : undefined}
-        />
-
-        <KanbanColumn
-          title="Done"
-          status="DONE"
-          tasks={tasksByStatus.DONE}
-          isDraggable={!isAdmin}
-          draggedTaskId={draggedTask?.id}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onAssignClick={isAdmin ? handleAssignClick : undefined}
-        />
+        {columnsConfig.length > 0 ? (
+          columnsConfig.map((column) => (
+            <KanbanColumn
+              key={column.id}
+              title={column.title}
+              status={column.status}
+              tasks={tasksByStatus[column.status] || []}
+              color={column.color}
+              borderColor={column.borderColor}
+              isDraggable={!isAdmin}
+              draggedTaskId={draggedTask?.id}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onAssignClick={isAdmin ? handleAssignClick : undefined}
+            />
+          ))
+        ) : (
+          <div className="flex items-center justify-center w-full h-64">
+            <div className="text-gray-500">Đang tải cấu hình...</div>
+          </div>
+        )}
       </div>
 
       <TaskAssignModal

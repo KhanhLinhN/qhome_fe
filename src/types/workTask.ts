@@ -1,4 +1,4 @@
-export type TaskStatus = 'TODO' | 'DOING' | 'DONE';
+export type TaskStatus = string; // Dynamic status from database
 
 export interface WorkTask {
   id: string;
@@ -31,5 +31,14 @@ export interface TaskFilter {
   employeeId?: string;
   status?: TaskStatus;
   showAll?: boolean;
+}
+
+export interface KanbanColumnConfig {
+  id: string;
+  status: string;
+  title: string;
+  color: string;
+  borderColor: string;
+  order: number;
 }
 
