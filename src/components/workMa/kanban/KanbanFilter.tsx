@@ -1,96 +1,140 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TaskFilter } from '@/src/types/workTask';
 import { EmployeeRoleDto } from '@/src/services/iam/employeeService';
+import Select from '@/src/components/customer-interaction/Select';
 
 interface KanbanFilterProps {
   filter: TaskFilter;
   employees: EmployeeRoleDto[];
   isAdmin: boolean;
+  userRole?: string; // User's role (if not admin)
   onFilterChange: (filter: Partial<TaskFilter>) => void;
+}
+
+interface RoleOption {
+  id: string;
+  name: string;
+}
+
+interface EmployeeOption {
+  id: string;
+  name: string;
+  displayName: string;
 }
 
 export default function KanbanFilter({
   filter,
   employees,
   isAdmin,
+  userRole,
   onFilterChange,
 }: KanbanFilterProps) {
-  // Get unique roles from employees
-  const roles = React.useMemo(() => {
-    const roleSet = new Set<string>();
-    employees.forEach(emp => {
-      emp.assignedRoles.forEach(role => {
-        roleSet.add(role.roleName);
-      });
-    });
-    return Array.from(roleSet).sort();
-  }, [employees]);
+  // Define fixed roles: SUPPORTER, TECHNICIAN, ACCOUNTANT, ADMIN
+  const fixedRoles = ['SUPPORTER', 'TECHNICIAN', 'ACCOUNTANT', 'ADMIN'];
+
+  // Prepare role options with "All" option (only for admin)
+  const roleOptions: RoleOption[] = useMemo(() => {
+    if (!isAdmin && userRole) {
+      // Non-admin: only show their role
+      return [{ id: userRole, name: userRole }];
+    }
+    // Admin: show all roles + "All"
+    const allOption: RoleOption = { id: 'all', name: 'Tất cả' };
+    const roleOptionsList: RoleOption[] = fixedRoles.map(role => ({
+      id: role,
+      name: role,
+    }));
+    return [allOption, ...roleOptionsList];
+  }, [isAdmin, userRole]);
+
+  // Filter employees by selected role (cascade filter)
+  // For non-admin, use userRole; for admin, use filter.role
+  const effectiveRole = !isAdmin && userRole ? userRole : filter.role;
+  const filteredEmployees = useMemo(() => {
+    if (!effectiveRole || effectiveRole === 'all') {
+      return employees;
+    }
+    return employees.filter(emp =>
+      emp.assignedRoles.some(role => 
+        role.roleName.toUpperCase() === effectiveRole?.toUpperCase()
+      )
+    );
+  }, [employees, effectiveRole, isAdmin, userRole]);
+
+  // Prepare employee options with "All" option (filtered by role)
+  const employeeOptions: EmployeeOption[] = useMemo(() => {
+    const allOption: EmployeeOption = { 
+      id: 'all', 
+      name: 'Tất cả',
+      displayName: 'Tất cả'
+    };
+    const empOptionsList: EmployeeOption[] = filteredEmployees.map(emp => ({
+      id: emp.userId,
+      name: emp.username,
+      displayName: `${emp.username}${emp.fullName ? ` (${emp.fullName})` : ''}`,
+    }));
+    return [allOption, ...empOptionsList];
+  }, [filteredEmployees]);
+
+  const handleRoleSelect = (item: RoleOption) => {
+    if (item.id === 'all') {
+      // Clear both role and employee when selecting "all"
+      onFilterChange({ role: undefined, employeeId: undefined });
+    } else {
+      // Clear employee when changing role
+      onFilterChange({ role: item.id, employeeId: undefined });
+    }
+  };
+
+  const handleEmployeeSelect = (item: EmployeeOption) => {
+    if (item.id === 'all') {
+      onFilterChange({ employeeId: undefined });
+    } else {
+      onFilterChange({ employeeId: item.id });
+    }
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4 border border-gray-200">
-      <div className="flex flex-wrap gap-4 items-center">
-        {/* Show All Toggle */}
-        {!isAdmin && (
-          <div className="flex items-center">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={filter.showAll || false}
-                onChange={(e) => onFilterChange({ showAll: e.target.checked })}
-                className="mr-2 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Hiển thị tất cả
-              </span>
-            </label>
-          </div>
-        )}
-
+    <div className="bg-white rounded-xl p-6 mb-4 shadow-sm border border-gray-200">
+      <div className="flex flex-wrap gap-4 items-end">
         {/* Role Filter */}
-        <div className="flex items-center">
-          <label className="text-sm font-medium text-gray-700 mr-2">
+        <div className="flex flex-col gap-2 min-w-[200px]">
+          <label className="text-sm font-medium text-gray-700">
             Role:
           </label>
-          <select
-            value={filter.role || 'all'}
-            onChange={(e) => onFilterChange({ role: e.target.value === 'all' ? undefined : e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Tất cả</option>
-            {roles.map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </select>
+          <Select<RoleOption>
+            options={roleOptions}
+            value={!isAdmin && userRole ? userRole : (filter.role || 'all')}
+            onSelect={handleRoleSelect}
+            renderItem={(item) => item.name}
+            getValue={(item) => item.id}
+            placeholder="Chọn role"
+            disable={!isAdmin} // Disable if not admin
+          />
         </div>
 
         {/* Employee Filter */}
-        <div className="flex items-center">
-          <label className="text-sm font-medium text-gray-700 mr-2">
+        <div className="flex flex-col gap-2 min-w-[250px]">
+          <label className="text-sm font-medium text-gray-700">
             Nhân viên:
           </label>
-          <select
+          <Select<EmployeeOption>
+            options={employeeOptions}
             value={filter.employeeId || 'all'}
-            onChange={(e) => onFilterChange({ employeeId: e.target.value === 'all' ? undefined : e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Tất cả</option>
-            {employees.map((emp) => (
-              <option key={emp.userId} value={emp.userId}>
-                {emp.username} {emp.fullName ? `(${emp.fullName})` : ''}
-              </option>
-            ))}
-          </select>
+            onSelect={handleEmployeeSelect}
+            renderItem={(item) => item.displayName}
+            getValue={(item) => item.id}
+            placeholder="Chọn nhân viên"
+          />
         </div>
 
         {/* Clear Filters */}
         {(filter.role || filter.employeeId) && (
           <button
             onClick={() => onFilterChange({ role: undefined, employeeId: undefined })}
-            className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition"
           >
             Xóa bộ lọc
           </button>

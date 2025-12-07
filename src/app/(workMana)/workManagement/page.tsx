@@ -12,6 +12,7 @@ export default function WorkManagementPage() {
     columnsConfig,
     employees,
     isAdmin,
+    userRole,
     filter,
     loading,
     error,
@@ -20,11 +21,33 @@ export default function WorkManagementPage() {
     updateFilter,
   } = useKanbanTasks();
 
+  // Show loading if columns config is not loaded yet
+  const isLoadingConfig = columnsConfig.length === 0 && !error;
+
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">Lỗi: {error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Tải lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoadingConfig || loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-2 mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải kanban board...</p>
+          </div>
         </div>
       </div>
     );
@@ -48,6 +71,7 @@ export default function WorkManagementPage() {
         columnsConfig={columnsConfig}
         employees={employees}
         isAdmin={isAdmin}
+        userRole={userRole}
         filter={filter}
         onFilterChange={updateFilter}
         onTaskStatusChange={updateTaskStatus}

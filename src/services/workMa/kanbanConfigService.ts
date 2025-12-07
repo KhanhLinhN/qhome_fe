@@ -1,6 +1,6 @@
 import axios from '@/src/lib/axios';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
+const BASE_URL = process.env.NEXT_PUBLIC_STAFF_WORK_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8087';
 
 export interface KanbanColumnConfig {
   id: string;
@@ -24,10 +24,28 @@ export class KanbanConfigService {
   async getColumnsConfig(): Promise<KanbanColumnConfig[]> {
     try {
       // Try to get from API first
-      const response = await axios.get(`${BASE_URL}/api/kanban/columns`, {
+      const url = `${BASE_URL}/api/kanban/columns`;
+      console.log('Fetching kanban columns from:', url);
+      
+      const response = await axios.get(url, {
         withCredentials: true,
       });
-      return response.data;
+      
+      console.log('Kanban columns response:', response.data);
+      // Map backend DTO to frontend config
+      if (!response.data || !Array.isArray(response.data)) {
+        console.warn('Invalid response format from kanban columns API');
+        return this.getDefaultColumns();
+      }
+      
+      return response.data.map((dto: any) => ({
+        id: dto.id || String(dto.id) || '',
+        status: dto.status || '',
+        title: dto.title || '',
+        color: dto.color || 'bg-gray-100',
+        borderColor: dto.borderColor || 'border-gray-300',
+        order: dto.order || 0,
+      }));
     } catch (error) {
       console.warn('Failed to fetch kanban columns from API, using defaults', error);
       // Return default configuration
@@ -40,10 +58,24 @@ export class KanbanConfigService {
    */
   async getStatusMappings(): Promise<StatusMapping[]> {
     try {
-      const response = await axios.get(`${BASE_URL}/api/kanban/status-mappings`, {
+      const url = `${BASE_URL}/api/kanban/status-mappings`;
+      console.log('Fetching status mappings from:', url);
+      
+      const response = await axios.get(url, {
         withCredentials: true,
       });
-      return response.data;
+      
+      console.log('Status mappings response:', response.data);
+      // Map backend DTO to frontend mapping
+      if (!response.data || !Array.isArray(response.data)) {
+        console.warn('Invalid response format from status mappings API');
+        return this.getDefaultStatusMappings();
+      }
+      
+      return response.data.map((dto: any) => ({
+        fromStatus: dto.fromStatus || '',
+        toStatus: dto.toStatus || '',
+      }));
     } catch (error) {
       console.warn('Failed to fetch status mappings from API, using defaults', error);
       return this.getDefaultStatusMappings();

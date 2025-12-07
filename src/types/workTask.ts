@@ -30,7 +30,6 @@ export interface TaskFilter {
   role?: string;
   employeeId?: string;
   status?: TaskStatus;
-  showAll?: boolean;
 }
 
 export interface KanbanColumnConfig {

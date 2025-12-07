@@ -46,3 +46,22 @@ body {
   cursor: pointer;
 }
 
+/* Kanban/Staff Column Styles */
+.group-staff-height {
+  height: calc(100vh - 200px);
+  min-height: 480px;
+}
+
+/* Custom colors for kanban */
+.bg-blue-25 {
+  background-color: #E3F2FD;
+}
+
+.text-primary-2 {
+  color: #02542D;
+}
+
+.border-primary-2 {
+  border-color: #02542D;
+}
+

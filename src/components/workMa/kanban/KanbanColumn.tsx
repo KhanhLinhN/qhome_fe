@@ -2,87 +2,112 @@
 
 import React from 'react';
 import { WorkTask, TaskStatus } from '@/src/types/workTask';
-import KanbanCard from './KanbanCard';
+import { Droppable } from "@hello-pangea/dnd";
+import clsx from "clsx";
+import DraggableKanbanCard from "./DraggableKanbanCard";
+import SelectAllHeader from "./SelectAllHeader";
 
 interface KanbanColumnProps {
   title: string;
+  droppableId: string;
   status: TaskStatus;
   tasks: WorkTask[];
-  color?: string;
-  borderColor?: string;
-  isDraggable: boolean;
-  draggedTaskId?: string | null;
-  onDragStart: (e: React.DragEvent, task: WorkTask) => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent, status: TaskStatus) => void;
+  selectedTasks: WorkTask[];
+  isSelectAll: boolean;
+  onToggleSelectAll: () => void;
+  onToggleTaskSelection: (task: WorkTask) => void;
+  isDragging: boolean;
+  draggedTaskId: string;
+  draggedFromStatus: string;
+  movedTaskList: string[];
   onAssignClick?: (task: WorkTask) => void;
+  isLoading?: boolean;
 }
 
 export default function KanbanColumn({
   title,
+  droppableId,
   status,
   tasks,
-  color,
-  borderColor,
-  isDraggable,
+  selectedTasks,
+  isSelectAll,
+  onToggleSelectAll,
+  onToggleTaskSelection,
+  isDragging,
   draggedTaskId,
-  onDragStart,
-  onDragOver,
-  onDrop,
+  draggedFromStatus,
+  movedTaskList,
   onAssignClick,
+  isLoading = false,
 }: KanbanColumnProps) {
-  const getStatusColor = () => {
-    // Use provided colors from config, or fallback to defaults
-    if (color && borderColor) {
-      return `${color} ${borderColor}`;
-    }
-    
-    // Fallback to default colors
-    switch (status.toUpperCase()) {
-      case 'TODO':
-        return 'bg-gray-100 border-gray-300';
-      case 'DOING':
-        return 'bg-blue-100 border-blue-300';
-      case 'DONE':
-        return 'bg-green-100 border-green-300';
-      default:
-        return 'bg-gray-100 border-gray-300';
-    }
-  };
-
   return (
-    <div className="flex-1 min-w-[300px] mx-2">
-      <div className={`rounded-lg border-2 p-4 h-full ${getStatusColor()}`}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-gray-800">{title}</h2>
-          <span className="px-3 py-1 bg-white rounded-full text-sm font-semibold text-gray-700">
+    <div className="flex-1 min-w-[300px]">
+      <div className="group-staff-height flex flex-col flex-1 bg-white rounded-2xl p-6 gap-2.5 min-h-[480px]">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-bold text-primary-2">{title}</h2>
+          <span className="px-3 py-1 bg-gray-100 rounded-full text-sm font-semibold text-gray-700">
             {tasks.length}
           </span>
         </div>
 
-        <div
-          className="min-h-[400px] max-h-[calc(100vh-300px)] overflow-y-auto"
-          style={{ transition: 'none' }}
-          onDragOver={onDragOver}
-          onDrop={(e) => onDrop(e, status)}
-        >
-          {tasks.length === 0 ? (
-            <div className="text-center text-gray-400 py-8 text-sm">
-              Không có công việc nào
+        <SelectAllHeader
+          isSelectAll={isSelectAll}
+          onToggleSelectAll={onToggleSelectAll}
+          taskCount={tasks.length}
+          taskSelected={selectedTasks.length}
+        />
+
+        <Droppable droppableId={droppableId}>
+          {(provided, snapshot) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className={clsx(
+                "overflow-y-auto flex-1 transition-colors duration-200",
+                snapshot.isDraggingOver ? "bg-blue-25" : ""
+              )}
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-2 mx-auto mb-2"></div>
+                    <p className="text-sm text-gray-600">データ取得中。。。</p>
+                  </div>
+                </div>
+              ) : tasks.length === 0 ? (
+                <div className="flex items-center justify-center h-32">
+                  <p className="text-sm text-gray-500 text-center px-4">
+                    Không có công việc nào
+                  </p>
+                </div>
+              ) : (
+                tasks.map((task, index) => {
+                  const isChecked = selectedTasks.some((t) => t.id === task.id);
+                  const isInSelectedGroup = selectedTasks.length > 1 && isChecked;
+
+                  return (
+                    <DraggableKanbanCard
+                      key={task.id}
+                      task={task}
+                      index={index}
+                      isChecked={isChecked}
+                      onToggle={() => onToggleTaskSelection(task)}
+                      isInSelectedGroup={isInSelectedGroup}
+                      selectedTasks={selectedTasks}
+                      draggedTaskId={draggedTaskId}
+                      isDragging={isDragging}
+                      draggedFromStatus={draggedFromStatus}
+                      status={status}
+                      movedTaskList={movedTaskList}
+                      onAssignClick={onAssignClick}
+                    />
+                  );
+                })
+              )}
+              {provided.placeholder}
             </div>
-          ) : (
-            tasks.map((task) => (
-              <KanbanCard
-                key={task.id}
-                task={task}
-                isDraggable={isDraggable}
-                isDragging={draggedTaskId === task.id}
-                onDragStart={onDragStart}
-                onAssignClick={onAssignClick}
-              />
-            ))
           )}
-        </div>
+        </Droppable>
       </div>
     </div>
   );

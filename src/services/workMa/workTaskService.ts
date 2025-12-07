@@ -4,17 +4,22 @@ import { Request } from '@/src/types/request';
 import { kanbanConfigService, StatusMapping } from './kanbanConfigService';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
+const STAFF_WORK_URL = process.env.NEXT_PUBLIC_STAFF_WORK_URL || 'http://localhost:8087';
 
-// Cache for status mappings
-let statusMappingsCache: StatusMapping[] | null = null;
+// Cache for status mappings per tenant
+const statusMappingsCache: Map<string, StatusMapping[]> = new Map();
 
 // Map Request status to TaskStatus using config from database
 async function mapRequestStatusToTaskStatus(status: string): Promise<TaskStatus> {
-  if (!statusMappingsCache) {
-    statusMappingsCache = await kanbanConfigService.getStatusMappings();
+  const cacheKey = 'default';
+  
+  if (!statusMappingsCache.has(cacheKey)) {
+    const mappings = await kanbanConfigService.getStatusMappings();
+    statusMappingsCache.set(cacheKey, mappings);
   }
   
-  const mapping = statusMappingsCache.find(m => 
+  const mappings = statusMappingsCache.get(cacheKey) || [];
+  const mapping = mappings.find(m => 
     m.fromStatus.toUpperCase() === status.toUpperCase()
   );
   
@@ -23,12 +28,16 @@ async function mapRequestStatusToTaskStatus(status: string): Promise<TaskStatus>
 
 // Map TaskStatus to Request status using reverse mapping from config
 async function mapTaskStatusToRequestStatus(status: TaskStatus): Promise<string> {
-  if (!statusMappingsCache) {
-    statusMappingsCache = await kanbanConfigService.getStatusMappings();
+  const cacheKey = 'default';
+  
+  if (!statusMappingsCache.has(cacheKey)) {
+    const mappings = await kanbanConfigService.getStatusMappings();
+    statusMappingsCache.set(cacheKey, mappings);
   }
   
+  const mappings = statusMappingsCache.get(cacheKey) || [];
   // Find reverse mapping (from kanban status to request status)
-  const mapping = statusMappingsCache.find(m => m.toStatus === status);
+  const mapping = mappings.find(m => m.toStatus === status);
   if (mapping) {
     return mapping.fromStatus;
   }
@@ -68,21 +77,49 @@ async function mapRequestToWorkTask(request: Request, assignedTo?: string, assig
 }
 
 export class WorkTaskService {
+  private tenantId?: string;
+
   /**
-   * Get all work tasks (from maintenance requests)
+   * Set tenant ID for this service instance
+   */
+  setTenantId(tenantId: string) {
+    this.tenantId = tenantId;
+  }
+
+  /**
+   * Get all work tasks (from maintenance requests) with staff assignments
    */
   async getAllTasks(): Promise<WorkTask[]> {
     try {
-      const response = await axios.get(`${BASE_URL}/api/maintenance-requests/all`, {
+      // Fetch maintenance requests
+      const requestsResponse = await axios.get(`${BASE_URL}/api/maintenance-requests/all`, {
         withCredentials: true,
       });
 
-      const requests: any[] = response.data;
+      const requests: any[] = requestsResponse.data;
       
-      // Map requests to work tasks
-      // Note: We'll need to fetch assignee info separately if available
+      // Fetch staff assignments for all tasks
+      let assignmentsMap = new Map<string, string>(); // workTaskId -> staffId
+      try {
+        const assignmentsResponse = await axios.get(`${STAFF_WORK_URL}/api/staff-work-assignments`, {
+          withCredentials: true,
+        });
+        
+        const assignments: any[] = assignmentsResponse.data || [];
+        assignments.forEach((assignment: any) => {
+          if (assignment.workTaskId && assignment.staffId) {
+            assignmentsMap.set(assignment.workTaskId, assignment.staffId);
+          }
+        });
+      } catch (assignError) {
+        console.warn('Failed to fetch staff assignments, continuing without them:', assignError);
+      }
+      
+      // Map requests to work tasks with assignment info
       const mappedTasks = await Promise.all(
         requests.map(async (req) => {
+          const assignedStaffId = assignmentsMap.get(req.id) || req.assignedTo;
+          
           const request: Request = {
             id: req.id,
             requestCode: req.id,
@@ -104,8 +141,8 @@ export class WorkTaskService {
 
           return await mapRequestToWorkTask(
             request,
-            req.assignedTo,
-            req.assignedToName
+            assignedStaffId,
+            req.assignedToName // Name will be mapped later from employees list
           );
         })
       );
@@ -164,22 +201,22 @@ export class WorkTaskService {
 
   /**
    * Assign task to employee (admin only)
-   * Note: Assignment is done through the respond endpoint which moves status to IN_PROGRESS
-   * The actual assignment tracking might need to be handled separately
+   * Creates assignment in staff-work-service
    */
-  async assignTask(taskId: string, employeeId: string): Promise<void> {
+  async assignTask(taskId: string, employeeId: string, assignedBy?: string): Promise<void> {
     try {
-      // Use respond endpoint to assign and move to processing
-      // Note: The backend might not track assignedTo directly through this endpoint
-      // This is a limitation we'll work with for now
+      // Create assignment in staff-work-service
       await axios.post(
-        `${BASE_URL}/api/maintenance-requests/admin/${taskId}/respond`,
+        `${STAFF_WORK_URL}/api/staff-work-assignments`,
         {
-          adminResponse: `Đã gán công việc cho nhân viên`,
-          estimatedCost: 0,
-          note: `Assigned to: ${employeeId}`,
+          staffId: employeeId,
+          workTaskId: taskId,
+          assignedBy: assignedBy,
+          notes: `Assigned task ${taskId} to staff ${employeeId}`,
         },
-        { withCredentials: true }
+        {
+          withCredentials: true,
+        }
       );
     } catch (error) {
       console.error('Error assigning task:', error);

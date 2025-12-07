@@ -2,122 +2,86 @@
 
 import React from 'react';
 import { WorkTask } from '@/src/types/workTask';
+import clsx from 'clsx';
+import checkboxChecked from "@/assets/change-group/checkbox-checked.svg";
+import checkbox from "@/assets/change-group/checkbox.svg";
+import Image from "next/image";
 
 interface KanbanCardProps {
   task: WorkTask;
-  isDraggable: boolean;
+  isChecked: boolean;
+  onToggle: () => void;
   isDragging?: boolean;
-  onDragStart: (e: React.DragEvent, task: WorkTask) => void;
+  isInSelectedGroup?: boolean;
+  selectedCount?: number;
+  isDraggedStaff?: boolean;
+  movedTaskList?: string[];
   onAssignClick?: (task: WorkTask) => void;
 }
 
-export default function KanbanCard({ task, isDraggable, isDragging = false, onDragStart, onAssignClick }: KanbanCardProps) {
-  const getPriorityColor = (priority?: string) => {
-    switch (priority?.toUpperCase()) {
-      case 'URGENT':
-        return 'border-l-red-600 bg-red-50';
-      case 'HIGH':
-        return 'border-l-orange-500 bg-orange-50';
-      case 'MEDIUM':
-        return 'border-l-yellow-500 bg-yellow-50';
-      case 'LOW':
-        return 'border-l-blue-500 bg-blue-50';
-      default:
-        return 'border-l-gray-300 bg-white';
-    }
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-    } catch {
-      return '';
-    }
-  };
-
+export default function KanbanCard({ 
+  task, 
+  isChecked, 
+  onToggle,
+  isDragging,
+  isInSelectedGroup,
+  selectedCount,
+  isDraggedStaff,
+  movedTaskList = [],
+  onAssignClick 
+}: KanbanCardProps) {
   return (
     <div
-      draggable={isDraggable}
-      onDragStart={(e) => onDragStart(e, task)}
-      className={`mb-3 p-4 rounded-lg border-l-4 ${getPriorityColor(task.priority)} ${isDraggable ? 'cursor-move' : 'cursor-default'} ${isDragging ? 'opacity-50' : ''}`}
-      style={{ 
-        opacity: isDraggable ? (isDragging ? 0.5 : 1) : 0.7,
-        boxShadow: isDragging ? 'none' : '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-      }}
+      className={clsx(
+        "relative flex flex-row items-center gap-x-2 p-4 transition-all duration-200 cursor-pointer mt-[4px]",
+        isDragging && isDraggedStaff
+          ? "bg-blue-100 shadow-2xl opacity-90 transform scale-105"
+          : "hover:bg-gray-50",
+        isDragging && !isDraggedStaff && isInSelectedGroup
+          ? "bg-blue-50 shadow-lg opacity-60"
+          : "",
+        Array.isArray(movedTaskList) && movedTaskList.includes(task.id) 
+          ? "bg-[#F5F7FA] rounded-[8px]" 
+          : "",
+      )}
+      onClick={onToggle}
     >
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 flex-1">
-          {task.title}
-        </h3>
-        {task.priority && (
-          <span className={`ml-2 px-2 py-1 text-xs rounded ${
-            task.priority === 'URGENT' ? 'bg-red-100 text-red-800' :
-            task.priority === 'HIGH' ? 'bg-orange-100 text-orange-800' :
-            task.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-blue-100 text-blue-800'
-          }`}>
-            {task.priority}
-          </span>
-        )}
-      </div>
-
-      {task.description && (
-        <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-          {task.description}
-        </p>
+      {/* Badge hiển thị số lượng tasks trong nhóm khi kéo */}
+      {isDragging && isDraggedStaff && selectedCount && selectedCount > 1 && (
+        <div className="absolute -top-2 -right-2 bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg z-10">
+          {selectedCount}
+        </div>
       )}
 
-      <div className="flex flex-wrap gap-2 mb-2">
-        {task.category && (
-          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
-            {task.category}
-          </span>
-        )}
-        {task.location && (
-          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
-            📍 {task.location}
-          </span>
-        )}
+      <Image
+        src={isChecked ? checkboxChecked : checkbox}
+        alt="checkbox"
+        width={28}
+        height={28}
+        className="cursor-pointer"
+      />
+      <div className="font-normal text-[15px] text-primary-2 truncate flex-1">
+        {task.title}
       </div>
-
       {task.assignedToName && (
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
-          <div className="flex items-center text-xs text-gray-600">
-            <span className="font-medium">👤 {task.assignedToName}</span>
-          </div>
-          {onAssignClick && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAssignClick(task);
-              }}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Đổi
-            </button>
-          )}
+        <div className="font-normal text-[15px] text-primary-2">｜</div>
+      )}
+      {task.assignedToName && (
+        <div className="font-normal text-[15px] text-primary-2 truncate">
+          {task.assignedToName}
         </div>
       )}
-
-      {!task.assignedToName && onAssignClick && (
-        <div className="mt-2 pt-2 border-t border-gray-200">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onAssignClick(task);
-            }}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-          >
-            + Gán công việc
-          </button>
-        </div>
+      {onAssignClick && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onAssignClick(task);
+          }}
+          className="flex-shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors ml-2"
+        >
+          {task.assignedToName ? 'Đổi' : '+ Gán'}
+        </button>
       )}
-
-      <div className="mt-2 text-xs text-gray-500">
-        {formatDate(task.createdAt)}
-      </div>
     </div>
   );
 }

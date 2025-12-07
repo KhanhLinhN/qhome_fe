@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { WorkTask, TaskStatus, TaskFilter, KanbanColumnConfig } from '@/src/types/workTask';
 import { workTaskService } from '@/src/services/workMa/workTaskService';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { getEmployeesInTenant, EmployeeRoleDto } from '@/src/services/iam/employeeService';
+import { EmployeeRoleDto } from '@/src/services/iam/employeeService';
+import { fetchStaffAccounts, UserAccountInfo } from '@/src/services/iam/userService';
 import { kanbanConfigService } from '@/src/services/workMa/kanbanConfigService';
 
 export function useKanbanTasks() {
@@ -12,21 +13,51 @@ export function useKanbanTasks() {
   const [error, setError] = useState<string | null>(null);
   const [employees, setEmployees] = useState<EmployeeRoleDto[]>([]);
   const [columnsConfig, setColumnsConfig] = useState<KanbanColumnConfig[]>([]);
-  const [filter, setFilter] = useState<TaskFilter>({
-    showAll: false,
-  });
+  const [filter, setFilter] = useState<TaskFilter>({});
 
   const isAdmin = useMemo(() => {
     return user?.roles?.some(role => role.toUpperCase() === 'ADMIN') ?? false;
   }, [user]);
 
-  // Load employees for filtering
+  // Get user's role (first non-admin role, or undefined if admin)
+  const userRole = useMemo(() => {
+    if (!user?.roles || user.roles.length === 0) return undefined;
+    // If admin, return undefined (will show "all")
+    if (isAdmin) return undefined;
+    // Find first role that is not ADMIN
+    const nonAdminRole = user.roles.find(role => role.toUpperCase() !== 'ADMIN');
+    return nonAdminRole?.toUpperCase();
+  }, [user, isAdmin]);
+
+  // Initialize filter based on user role
+  useEffect(() => {
+    if (userRole) {
+      // Non-admin: fix role to user's role
+      setFilter(prev => ({ ...prev, role: userRole }));
+    } else if (isAdmin) {
+      // Admin: set to "all" (undefined)
+      setFilter(prev => ({ ...prev, role: undefined }));
+    }
+  }, [userRole, isAdmin]);
+
+  // Load employees (staff) for filtering and name mapping
   useEffect(() => {
     const loadEmployees = async () => {
-      if (!user?.tenantId) return;
-      
       try {
-        const empList = await getEmployeesInTenant(user.tenantId);
+        const staffList = await fetchStaffAccounts();
+        // Map UserAccountInfo to EmployeeRoleDto format
+        const empList: EmployeeRoleDto[] = staffList.map(staff => ({
+          userId: staff.userId,
+          username: staff.username,
+          email: staff.email,
+          fullName: staff.username, // Use username as fallback
+          assignedRoles: (staff.roles || []).map(role => ({
+            roleName: role,
+            assignedAt: '',
+            assignedBy: '',
+          })),
+          totalPermissions: 0,
+        }));
         setEmployees(empList);
       } catch (err) {
         console.error('Failed to load employees:', err);
@@ -34,7 +65,34 @@ export function useKanbanTasks() {
     };
 
     loadEmployees();
-  }, [user?.tenantId]);
+  }, []);
+
+  // Map employee names to tasks when employees are loaded
+  useEffect(() => {
+    if (employees.length > 0 && tasks.length > 0) {
+      setTasks(prevTasks => {
+        const tasksWithNames = prevTasks.map(task => {
+          if (task.assignedTo && !task.assignedToName) {
+            const employee = employees.find(emp => emp.userId === task.assignedTo);
+            if (employee) {
+              return {
+                ...task,
+                assignedToName: employee.fullName || employee.username,
+              };
+            }
+          }
+          return task;
+        });
+        
+        // Only update if there are changes
+        const hasChanges = tasksWithNames.some((task, index) => 
+          task.assignedToName !== prevTasks[index]?.assignedToName
+        );
+        
+        return hasChanges ? tasksWithNames : prevTasks;
+      });
+    }
+  }, [employees, tasks.length]);
 
   // Load kanban columns configuration
   useEffect(() => {
@@ -42,10 +100,18 @@ export function useKanbanTasks() {
       try {
         const config = await kanbanConfigService.getColumnsConfig();
         // Sort by order
-        config.sort((a, b) => a.order - b.order);
+        config.sort((a, b) => (a.order || 0) - (b.order || 0));
         setColumnsConfig(config);
+        console.log('Loaded kanban columns config:', config);
       } catch (err) {
         console.error('Failed to load columns config:', err);
+        // Set default config on error
+        const defaultConfig = [
+          { id: 'todo', status: 'TODO', title: 'To Do', color: 'bg-gray-100', borderColor: 'border-gray-300', order: 1 },
+          { id: 'doing', status: 'DOING', title: 'Doing', color: 'bg-blue-100', borderColor: 'border-blue-300', order: 2 },
+          { id: 'done', status: 'DONE', title: 'Done', color: 'bg-green-100', borderColor: 'border-green-300', order: 3 },
+        ];
+        setColumnsConfig(defaultConfig);
       }
     };
 
@@ -72,27 +138,17 @@ export function useKanbanTasks() {
     loadTasks();
   }, [loadTasks]);
 
-  // Filter tasks based on current filter and user role
+  // Filter tasks based on current filter
   const filteredTasks = useMemo(() => {
     let filtered = [...tasks];
 
-    // Apply role-based filtering
-    if (!isAdmin && !filter.showAll) {
-      // Non-admin users see only their own tasks by default
-      if (user?.userId) {
-        filtered = filtered.filter(task => task.assignedTo === user.userId);
-      }
-    }
-
-    // Apply employee filter
-    if (filter.employeeId && filter.employeeId !== 'all') {
-      filtered = filtered.filter(task => task.assignedTo === filter.employeeId);
-    }
+    // For non-admin, always filter by user's role first
+    const effectiveRole = !isAdmin && userRole ? userRole : filter.role;
 
     // Apply role filter (if filtering by role)
-    if (filter.role && filter.role !== 'all') {
+    if (effectiveRole && effectiveRole !== 'all') {
       const employeesInRole = employees.filter(emp => 
-        emp.assignedRoles.some(r => r.roleName.toUpperCase() === filter.role?.toUpperCase())
+        emp.assignedRoles.some(r => r.roleName.toUpperCase() === effectiveRole.toUpperCase())
       );
       const employeeIds = employeesInRole.map(emp => emp.userId);
       filtered = filtered.filter(task => 
@@ -100,8 +156,13 @@ export function useKanbanTasks() {
       );
     }
 
+    // Apply employee filter
+    if (filter.employeeId && filter.employeeId !== 'all') {
+      filtered = filtered.filter(task => task.assignedTo === filter.employeeId);
+    }
+
     return filtered;
-  }, [tasks, filter, isAdmin, user?.userId, employees]);
+  }, [tasks, filter, employees]);
 
   // Group tasks by status dynamically based on columns config
   const tasksByStatus = useMemo(() => {
@@ -152,7 +213,7 @@ export function useKanbanTasks() {
   // Assign task to employee (admin only)
   const assignTask = useCallback(async (taskId: string, employeeId: string) => {
     try {
-      await workTaskService.assignTask(taskId, employeeId);
+      await workTaskService.assignTask(taskId, employeeId, user?.userId);
       
       // Reload tasks to get updated assignee info
       await loadTasks();
@@ -160,7 +221,7 @@ export function useKanbanTasks() {
       setError(err.message || 'Failed to assign task');
       throw err;
     }
-  }, [loadTasks]);
+  }, [loadTasks, user?.userId]);
 
   // Update filter
   const updateFilter = useCallback((newFilter: Partial<TaskFilter>) => {
@@ -176,6 +237,7 @@ export function useKanbanTasks() {
     employees,
     filter,
     isAdmin,
+    userRole, // Add userRole to return
     updateTaskStatus,
     assignTask,
     updateFilter,
