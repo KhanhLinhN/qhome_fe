@@ -20,8 +20,6 @@ import {
   updateInspectionItem,
   startInspection,
   completeInspection,
-  recalculateDamageCost,
-  generateInvoice,
   type CreateAssetInspectionRequest,
   type UpdateAssetInspectionItemRequest,
 } from '@/src/services/base/assetInspectionService';
@@ -48,7 +46,7 @@ export default function RentalContractReviewPage() {
   // Filters
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
   const [selectedUnitId, setSelectedUnitId] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'expiring'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'expiring' | 'cancelled'>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   // Detail modal
@@ -62,16 +60,16 @@ export default function RentalContractReviewPage() {
   const [currentContract, setCurrentContract] = useState<RentalContractWithUnit | null>(null);
   const [inspectionLoading, setInspectionLoading] = useState(false);
   const [creatingInspection, setCreatingInspection] = useState(false);
-  const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [inspectorName, setInspectorName] = useState('');
   const [inspectorNotes, setInspectorNotes] = useState('');
-  const [inspectionDate, setInspectionDate] = useState<string>('');
   
   // Technician assignment
   const [technicians, setTechnicians] = useState<UserAccountInfo[]>([]);
   const [loadingTechnicians, setLoadingTechnicians] = useState(false);
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>('');
   const [showTechnicianModal, setShowTechnicianModal] = useState(false);
+  
+
 
   // Load buildings first, then contracts on mount
   useEffect(() => {
@@ -280,17 +278,13 @@ export default function RentalContractReviewPage() {
 
     setCreatingInspection(true);
     try {
-      console.log('Creating inspection with technicianId:', selectedTechnicianId);
       const request: CreateAssetInspectionRequest = {
         contractId: contract.id,
         unitId: contract.unitId,
-        inspectionDate: null,
+        inspectionDate: new Date().toISOString().split('T')[0],
         inspectorName: selectedTechnician.username || selectedTechnician.email || 'N/A',
-        inspectorId: selectedTechnicianId,
       };
-      console.log('Request payload:', JSON.stringify(request, null, 2));
       const inspection = await createInspection(request);
-      console.log('Created inspection with inspectorId:', inspection.inspectorId);
       setCurrentInspection(inspection);
       setSelectedTechnicianId('');
       show(`Đã gán việc kiểm tra thiết bị cho ${selectedTechnician.username}`, 'success');
@@ -346,35 +340,9 @@ export default function RentalContractReviewPage() {
     }
   };
 
-  const handleGenerateInvoice = async () => {
-    if (!currentInspection) return;
-    try {
-      setGeneratingInvoice(true);
-      const updated = await generateInvoice(currentInspection.id);
-      setCurrentInspection(updated);
-      show('Đã xuất hóa đơn thành công', 'success');
-    } catch (error: any) {
-      console.error('Failed to generate invoice:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể xuất hóa đơn', 'error');
-    } finally {
-      setGeneratingInvoice(false);
-    }
-  };
-
-  const handleRecalculateDamage = async () => {
-    if (!currentInspection) return;
-    try {
-      const updated = await recalculateDamageCost(currentInspection.id);
-      setCurrentInspection(updated);
-      show('Đã tính lại tổng tiền thiệt hại', 'success');
-    } catch (error: any) {
-      console.error('Failed to recalculate damage:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể tính lại', 'error');
-    }
-  };
-
   const isContractExpired = (contract: RentalContractWithUnit): boolean => {
-    return contract.status === 'EXPIRED';
+    // Chỉ hiển thị nút "Kiểm tra thiết bị" với hợp đồng EXPIRED hoặc CANCELLED
+    return contract.status === 'EXPIRED' || contract.status === 'CANCELLED';
   };
 
   const formatDate = (value?: string | null) => {
@@ -460,6 +428,8 @@ export default function RentalContractReviewPage() {
           // Calculate remaining days: from today to end date
           const remainingDays = Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
           return remainingDays <= 30 && remainingDays >= 0; // Còn <= 30 ngày nữa
+        } else if (statusFilter === 'cancelled') {
+          return c.status === 'CANCELLED';
         }
         return true;
       });
@@ -491,6 +461,15 @@ export default function RentalContractReviewPage() {
   }, [contracts, selectedBuildingId, selectedUnitId, statusFilter, searchTerm, unitsMap]);
 
   const getContractStatusLabel = (contract: RentalContractWithUnit) => {
+    if (contract.status === 'CANCELLED') {
+      return { label: 'Đã hủy', className: 'bg-red-100 text-red-700' };
+    }
+    if (contract.status === 'INACTIVE') {
+      return { label: 'Không hoạt động', className: 'bg-gray-100 text-gray-700' };
+    }
+    if (contract.status === 'EXPIRED') {
+      return { label: 'Đã hết hạn', className: 'bg-red-100 text-red-700' };
+    }
     if (contract.status !== 'ACTIVE') {
       return { label: 'Đã hết hiệu lực', className: 'bg-gray-100 text-gray-700' };
     }
@@ -665,13 +644,14 @@ export default function RentalContractReviewPage() {
             </label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'expiring')}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Tất cả</option>
               <option value="active">Đang hoạt động</option>
               <option value="expiring">Sắp hết hạn (≤30 ngày)</option>
               <option value="expired">Đã hết hạn</option>
+              <option value="cancelled">Đã hủy</option>
             </select>
           </div>
 
@@ -1076,23 +1056,6 @@ export default function RentalContractReviewPage() {
                         </div>
                       </div>
 
-                      {/* Total Damage Cost Summary */}
-                      {currentInspection.totalDamageCost !== undefined && currentInspection.totalDamageCost > 0 && (
-                        <div className="border-t border-gray-200 pt-4">
-                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <div className="flex justify-between items-center">
-                              <span className="text-lg font-semibold text-gray-900">Tổng tiền thiệt hại:</span>
-                              <span className="text-xl font-bold text-red-600">
-                                {formatCurrency(currentInspection.totalDamageCost)}
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-600 mt-2">
-                              * Tiền thiệt hại sẽ được tính vào hóa đơn khi hoàn thành kiểm tra
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
                       <div className="border-t border-gray-200 pt-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Ghi chú kiểm tra
@@ -1127,24 +1090,17 @@ export default function RentalContractReviewPage() {
                                   <h4 className="font-medium text-gray-900">{item.assetName || item.assetCode}</h4>
                                   <p className="text-sm text-gray-500">{item.assetType}</p>
                                 </div>
-                                <div className="text-right">
-                                  <span className={`px-2 py-1 text-xs font-medium rounded ${
-                                    item.conditionStatus === 'GOOD' ? 'bg-green-100 text-green-700' :
-                                    item.conditionStatus === 'DAMAGED' ? 'bg-red-100 text-red-700' :
-                                    item.conditionStatus === 'MISSING' ? 'bg-gray-100 text-gray-700' :
-                                    'bg-yellow-100 text-yellow-700'
-                                  }`}>
-                                    {item.conditionStatus === 'GOOD' ? 'Tốt' :
-                                     item.conditionStatus === 'DAMAGED' ? 'Hư hỏng' :
-                                     item.conditionStatus === 'MISSING' ? 'Thiếu' :
-                                     item.conditionStatus || 'Chưa kiểm tra'}
-                                  </span>
-                                  {item.damageCost && item.damageCost > 0 && (
-                                    <p className="text-sm font-semibold text-red-600 mt-1">
-                                      {formatCurrency(item.damageCost)}
-                                    </p>
-                                  )}
-                                </div>
+                                <span className={`px-2 py-1 text-xs font-medium rounded ${
+                                  item.conditionStatus === 'GOOD' ? 'bg-green-100 text-green-700' :
+                                  item.conditionStatus === 'DAMAGED' ? 'bg-red-100 text-red-700' :
+                                  item.conditionStatus === 'MISSING' ? 'bg-gray-100 text-gray-700' :
+                                  'bg-yellow-100 text-yellow-700'
+                                }`}>
+                                  {item.conditionStatus === 'GOOD' ? 'Tốt' :
+                                   item.conditionStatus === 'DAMAGED' ? 'Hư hỏng' :
+                                   item.conditionStatus === 'MISSING' ? 'Thiếu' :
+                                   item.conditionStatus || 'Chưa kiểm tra'}
+                                </span>
                               </div>
                               {item.notes && (
                                 <p className="text-sm text-gray-700 mt-2">{item.notes}</p>
@@ -1153,56 +1109,12 @@ export default function RentalContractReviewPage() {
                           ))}
                         </div>
                       </div>
-                      
-                      {/* Total Damage Cost */}
-                      {currentInspection.totalDamageCost !== undefined && currentInspection.totalDamageCost > 0 && (
-                        <div className="border-t border-gray-200 pt-4">
-                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                            <div className="flex justify-between items-center">
-                              <span className="text-lg font-semibold text-gray-900">Tổng tiền thiệt hại:</span>
-                              <span className="text-2xl font-bold text-red-600">
-                                {formatCurrency(currentInspection.totalDamageCost)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
                       {currentInspection.inspectorNotes && (
                         <div className="border-t border-gray-200 pt-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú kiểm tra</label>
                           <p className="text-sm text-gray-900 whitespace-pre-wrap">{currentInspection.inspectorNotes}</p>
                         </div>
                       )}
-                      
-                      {/* Invoice Actions */}
-                      <div className="border-t border-gray-200 pt-4 space-y-2">
-                        {currentInspection.totalDamageCost !== undefined && currentInspection.totalDamageCost > 0 && (
-                          <>
-                            {!currentInspection.invoiceId ? (
-                              <button
-                                onClick={handleGenerateInvoice}
-                                disabled={generatingInvoice}
-                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
-                              >
-                                {generatingInvoice ? 'Đang xuất hóa đơn...' : 'Xuất hóa đơn'}
-                              </button>
-                            ) : (
-                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                <p className="text-sm text-green-800">
-                                  <strong>Đã xuất hóa đơn:</strong> {currentInspection.invoiceId}
-                                </p>
-                              </div>
-                            )}
-                            <button
-                              onClick={handleRecalculateDamage}
-                              className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                            >
-                              Tính lại tổng tiền
-                            </button>
-                          </>
-                        )}
-                      </div>
                     </>
                   )}
                 </div>
@@ -1242,15 +1154,6 @@ function InspectionItemRow({
   const [conditionStatus, setConditionStatus] = useState(item.conditionStatus || '');
   const [notes, setNotes] = useState(item.notes || '');
 
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount === null || amount === undefined) return '-';
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
   const handleSave = () => {
     if (conditionStatus) {
       onUpdate(conditionStatus, notes);
@@ -1264,18 +1167,11 @@ function InspectionItemRow({
           <h4 className="font-medium text-gray-900">{item.assetName || item.assetCode}</h4>
           <p className="text-sm text-gray-500">{item.assetType}</p>
         </div>
-        <div className="text-right">
-          {item.checked && (
-            <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700">
-              Đã kiểm tra
-            </span>
-          )}
-          {item.damageCost && item.damageCost > 0 && (
-            <p className="text-sm font-semibold text-red-600 mt-1">
-              {formatCurrency(item.damageCost)}
-            </p>
-          )}
-        </div>
+        {item.checked && (
+          <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700">
+            Đã kiểm tra
+          </span>
+        )}
       </div>
       
       {!disabled && (
@@ -1294,11 +1190,6 @@ function InspectionItemRow({
               <option value="REPAIRED">Đã sửa</option>
               <option value="REPLACED">Đã thay thế</option>
             </select>
-            {conditionStatus && conditionStatus !== 'GOOD' && (
-              <p className="text-xs text-gray-500 mt-1">
-                * Tiền thiệt hại sẽ được tính tự động dựa trên tình trạng
-              </p>
-            )}
           </div>
           
           <div>
@@ -1324,24 +1215,17 @@ function InspectionItemRow({
       
       {disabled && item.conditionStatus && (
         <div className="mt-2">
-          <div className="flex justify-between items-center">
-            <span className={`px-2 py-1 text-xs font-medium rounded ${
-              item.conditionStatus === 'GOOD' ? 'bg-green-100 text-green-700' :
-              item.conditionStatus === 'DAMAGED' ? 'bg-red-100 text-red-700' :
-              item.conditionStatus === 'MISSING' ? 'bg-gray-100 text-gray-700' :
-              'bg-yellow-100 text-yellow-700'
-            }`}>
-              {item.conditionStatus === 'GOOD' ? 'Tốt' :
-               item.conditionStatus === 'DAMAGED' ? 'Hư hỏng' :
-               item.conditionStatus === 'MISSING' ? 'Thiếu' :
-               item.conditionStatus}
-            </span>
-            {item.damageCost && item.damageCost > 0 && (
-              <span className="text-sm font-semibold text-red-600">
-                {formatCurrency(item.damageCost)}
-              </span>
-            )}
-          </div>
+          <span className={`px-2 py-1 text-xs font-medium rounded ${
+            item.conditionStatus === 'GOOD' ? 'bg-green-100 text-green-700' :
+            item.conditionStatus === 'DAMAGED' ? 'bg-red-100 text-red-700' :
+            item.conditionStatus === 'MISSING' ? 'bg-gray-100 text-gray-700' :
+            'bg-yellow-100 text-yellow-700'
+          }`}>
+            {item.conditionStatus === 'GOOD' ? 'Tốt' :
+             item.conditionStatus === 'DAMAGED' ? 'Hư hỏng' :
+             item.conditionStatus === 'MISSING' ? 'Thiếu' :
+             item.conditionStatus}
+          </span>
           {item.notes && (
             <p className="text-sm text-gray-700 mt-2">{item.notes}</p>
           )}
