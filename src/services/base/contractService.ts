@@ -27,6 +27,7 @@ export interface ContractFileSummary {
 
 export interface ContractDetail extends ContractSummary {
   monthlyRent?: number | null;
+  totalRent?: number | null;
   purchasePrice?: number | null;
   paymentMethod?: string | null;
   paymentTerms?: string | null;
@@ -55,11 +56,22 @@ export interface CreateContractPayload {
 }
 
 export async function fetchActiveContractsByUnit(unitId: string): Promise<ContractSummary[]> {
-  const response = await axios.get<ContractSummary[]>(
-    `${BASE_URL}/api/contracts/units/${unitId}/active`,
-    { withCredentials: true },
-  );
-  return response.data;
+  try {
+    // Note: data-docs-service uses "unit" (singular), not "units" (plural)
+    const response = await axios.get<ContractSummary[]>(
+      `${BASE_URL}/api/contracts/unit/${unitId}/active`,
+      { withCredentials: true },
+    );
+    return response.data;
+  } catch (error: any) {
+    // If endpoint returns 404, return empty array (endpoint might not exist or no active contracts)
+    if (error?.response?.status === 404) {
+      console.warn(`Endpoint /api/contracts/unit/${unitId}/active not found, returning empty array`);
+      return [];
+    }
+    // Re-throw other errors
+    throw error;
+  }
 }
 
 export async function fetchContractsByUnit(unitId: string): Promise<ContractSummary[]> {
@@ -120,7 +132,7 @@ export async function uploadContractFiles(
 export async function getAllContracts(): Promise<ContractSummary[]> {
   try {
     const response = await axios.get<ContractSummary[]>(
-      `${BASE_URL}/api/contracts/active`,
+      `${BASE_URL}/api/contracts/all`,
     );
     return response.data;
   } catch (error) {

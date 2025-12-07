@@ -15,7 +15,10 @@ import {
   uploadContractFiles,
   getAllContracts,
 } from '@/src/services/base/contractService';
+import { getAssetsByUnit, createAsset } from '@/src/services/base/assetService';
+import { AssetType, type Asset, type CreateAssetRequest } from '@/src/types/asset';
 import DateBox from '@/src/components/customer-interaction/DateBox';
+import MonthYearPicker from '@/src/components/customer-interaction/MonthYearPicker';
 
 type AsyncState<T> = {
   data: T;
@@ -89,12 +92,76 @@ export default function ContractManagementPage() {
   const [generatingContractNumber, setGeneratingContractNumber] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'expired'>('active');
   const [minStartDate, setMinStartDate] = useState<string>('');
+  
+  // Asset checking state
+  const [unitAssets, setUnitAssets] = useState<Asset[]>([]);
+  const [checkingAssets, setCheckingAssets] = useState(false);
+  const [missingAssetTypes, setMissingAssetTypes] = useState<AssetType[]>([]);
+  const [creatingMissingAssets, setCreatingMissingAssets] = useState(false);
+  const [showCreateAssetsConfirm, setShowCreateAssetsConfirm] = useState(false);
 
   const formatDate = (value?: string | null) => {
     if (!value) return t('common.notSet');
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleDateString('vi-VN');
+  };
+
+  const formatNumberWithDots = (value: number | null | undefined): string => {
+    if (value === null || value === undefined) return '';
+    return value.toLocaleString('vi-VN', { useGrouping: true, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
+  const parseNumberFromFormattedString = (value: string): number | null => {
+    if (!value || value.trim() === '') return null;
+    // Remove all dots (thousands separators)
+    const cleaned = value.replace(/\./g, '').trim();
+    const num = Number(cleaned);
+    return isNaN(num) ? null : num;
+  };
+
+  const calculateTotalRent = (startDate: string | null, endDate: string | null, monthlyRent: number | null): number | null => {
+    if (!startDate || !endDate || monthlyRent === null || monthlyRent <= 0) {
+      return null;
+    }
+
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
+        return null;
+      }
+
+      const startYear = start.getFullYear();
+      const startMonth = start.getMonth();
+      const endYear = end.getFullYear();
+      const endMonth = end.getMonth();
+      
+      const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
+      
+      if (totalMonths <= 0) {
+        return 0;
+      }
+
+      const startDay = start.getDate();
+      let totalRent = 0;
+
+      if (startDay <= 15) {
+        totalRent = monthlyRent;
+      } else {
+        totalRent = monthlyRent / 2;
+      }
+
+      if (totalMonths > 1) {
+        const middleMonths = totalMonths - 1;
+        totalRent += monthlyRent * middleMonths;
+      }
+
+      return Math.round(totalRent);
+    } catch (error) {
+      return null;
+    }
   };
 
   const CONTRACT_TYPE_OPTIONS = useMemo(() => [
@@ -135,6 +202,13 @@ export default function ContractManagementPage() {
     notes: '',
     status: 'ACTIVE',
   });
+
+  const calculatedTotalRent = useMemo(() => {
+    if (formState.contractType === 'RENTAL') {
+      return calculateTotalRent(formState.startDate || null, formState.endDate || null, formState.monthlyRent ?? null);
+    }
+    return null;
+  }, [formState.contractType, formState.startDate, formState.endDate, formState.monthlyRent]);
 
   const clearFieldErrors = (...fields: (keyof CreateContractPayload)[]) => {
     setFormErrors((prev) => {
@@ -233,16 +307,26 @@ export default function ContractManagementPage() {
           } else if (typeof value === 'string' && !isValidDate(value)) {
             newErrors.endDate = t('validation.endDateInvalid');
           } else if (typeof value === 'string' && value.trim() && state.startDate) {
-            // Check if endDate > startDate by at least 1 month
-            const startDate = new Date(state.startDate);
-            const endDate = new Date(value);
-            const oneMonthLater = new Date(startDate);
-            oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-            if (endDate <= oneMonthLater) {
-              newErrors.endDate = t('validation.endDateMinDiff');
-            } else {
-              delete newErrors.endDate;
-            }
+            // TEMPORARILY COMMENTED FOR TESTING: Check if endDate > startDate by at least 1 month
+            // const startDate = new Date(state.startDate);
+            // const endDate = new Date(value);
+            // const oneMonthLater = new Date(startDate);
+            // oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+            // if (endDate <= oneMonthLater) {
+            //   newErrors.endDate = t('validation.endDateMinDiff');
+            // } else {
+            //   delete newErrors.endDate;
+            // }
+            // Commented out for testing - allow past dates for renewal reminder testing
+            // For now, just check if endDate > startDate (basic validation)
+            // const startDate = new Date(state.startDate);
+            // const endDate = new Date(value);
+            // if (endDate <= startDate) {
+            //   newErrors.endDate = t('validation.endDateAfterStartDate');
+            // } else {
+            //   delete newErrors.endDate;
+            // }
+            delete newErrors.endDate;
           } else {
             delete newErrors.endDate;
           }
@@ -445,6 +529,136 @@ export default function ContractManagementPage() {
     }
   };
 
+  // Check unit assets
+  const checkUnitAssets = async (unitId: string) => {
+    if (!unitId) return;
+    
+    setCheckingAssets(true);
+    try {
+      const assets = await getAssetsByUnit(unitId);
+      setUnitAssets(assets);
+      
+      // Required asset types: AIR_CONDITIONER, KITCHEN, WATER_HEATER, FURNITURE
+      const requiredTypes: AssetType[] = [
+        AssetType.AIR_CONDITIONER,
+        AssetType.KITCHEN,
+        AssetType.WATER_HEATER,
+        AssetType.FURNITURE,
+      ];
+      
+      const existingTypes = new Set(assets.map(a => a.assetType));
+      const missing = requiredTypes.filter(type => !existingTypes.has(type));
+      setMissingAssetTypes(missing);
+    } catch (error: any) {
+      console.error('Failed to check unit assets:', error);
+      // Don't block contract creation if asset check fails
+      setUnitAssets([]);
+      setMissingAssetTypes([]);
+    } finally {
+      setCheckingAssets(false);
+    }
+  };
+  
+  // Create missing assets
+  const handleCreateMissingAssets = async () => {
+    if (!formState.unitId || missingAssetTypes.length === 0) return;
+    
+    setCreatingMissingAssets(true);
+    const errors: string[] = [];
+    let successCount = 0;
+    
+    try {
+      // Asset type labels and prefixes (same as asset management)
+      const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+        [AssetType.AIR_CONDITIONER]: 'Điều hòa',
+        [AssetType.KITCHEN]: 'Bếp',
+        [AssetType.WATER_HEATER]: 'Bình nước nóng',
+        [AssetType.FURNITURE]: 'Nội thất',
+        [AssetType.OTHER]: 'Khác',
+      };
+      
+      const ASSET_TYPE_PREFIX: Record<AssetType, string> = {
+        [AssetType.AIR_CONDITIONER]: 'AC',
+        [AssetType.KITCHEN]: 'KIT',
+        [AssetType.WATER_HEATER]: 'WH',
+        [AssetType.FURNITURE]: 'FUR',
+        [AssetType.OTHER]: 'OTH',
+      };
+      
+      const ASSET_TYPE_DEFAULT_PRICE: Record<AssetType, number> = {
+        [AssetType.AIR_CONDITIONER]: 8000000,
+        [AssetType.KITCHEN]: 5000000,
+        [AssetType.WATER_HEATER]: 3000000,
+        [AssetType.FURNITURE]: 2000000,
+        [AssetType.OTHER]: 1000000,
+      };
+      
+      const unit = unitsState.data.find(u => u.id === formState.unitId);
+      if (!unit) {
+        setCreateError('Không tìm thấy thông tin căn hộ');
+        return;
+      }
+      
+      for (const assetType of missingAssetTypes) {
+        // Generate asset code
+        const prefix = ASSET_TYPE_PREFIX[assetType];
+        const existingAssetsOfType = unitAssets.filter(
+          a => a.assetType === assetType && a.assetCode.startsWith(`${prefix}-${unit.code}-`)
+        );
+        
+        let nextNumber = 1;
+        if (existingAssetsOfType.length > 0) {
+          const numbers = existingAssetsOfType
+            .map(a => {
+              const match = a.assetCode.match(/-(\d+)$/);
+              return match ? parseInt(match[1], 10) : 0;
+            })
+            .filter(n => n > 0);
+          
+          if (numbers.length > 0) {
+            nextNumber = Math.max(...numbers) + 1;
+          }
+        }
+        
+        const numberStr = nextNumber.toString().padStart(3, '0');
+        const assetCode = `${prefix}-${unit.code}-${numberStr}`;
+        
+        try {
+          const payload: CreateAssetRequest = {
+            unitId: formState.unitId,
+            assetType,
+            assetCode,
+            name: ASSET_TYPE_LABELS[assetType],
+            active: true,
+            installedAt: new Date().toISOString().split('T')[0],
+            purchasePrice: ASSET_TYPE_DEFAULT_PRICE[assetType],
+          };
+          
+          await createAsset(payload);
+          successCount++;
+        } catch (error: any) {
+          const errorMsg = error?.response?.data?.message || error?.message || 'Lỗi không xác định';
+          errors.push(`${ASSET_TYPE_LABELS[assetType]}: ${errorMsg}`);
+        }
+      }
+      
+      if (successCount > 0) {
+        setCreateSuccess(`Đã tạo thành công ${successCount} thiết bị${errors.length > 0 ? `. ${errors.length} lỗi.` : ''}`);
+        // Refresh asset list
+        await checkUnitAssets(formState.unitId);
+      }
+      
+      if (errors.length > 0 && successCount === 0) {
+        setCreateError(`Không thể tạo thiết bị. Lỗi: ${errors.join('; ')}`);
+      }
+    } catch (error: any) {
+      console.error('Failed to create missing assets:', error);
+      setCreateError(error?.response?.data?.message || error?.message || 'Không thể tạo thiết bị');
+    } finally {
+      setCreatingMissingAssets(false);
+    }
+  };
+
   const handleSelectUnit = async (unitId: string) => {
     setSelectedUnitId(unitId);
     setFieldValue('unitId', unitId);
@@ -452,10 +666,13 @@ export default function ContractManagementPage() {
 
     if (!unitId) {
       setContractsState(DEFAULT_CONTRACTS_STATE);
+      setUnitAssets([]);
+      setMissingAssetTypes([]);
       return;
     }
 
     await loadContracts(unitId);
+    await checkUnitAssets(unitId);
   };
 
   const handleOpenCreateModal = async () => {
@@ -464,6 +681,7 @@ export default function ContractManagementPage() {
     setCreateModalOpen(true);
     if (selectedUnitId) {
       setFieldValue('unitId', selectedUnitId);
+      await checkUnitAssets(selectedUnitId);
     }
     setCreateFiles(null);
     setFormErrors({});
@@ -692,14 +910,21 @@ export default function ContractManagementPage() {
       } else if (!isValidDate(formState.endDate)) {
         errors.endDate = t('validation.endDateInvalid');
       } else if (formState.startDate) {
-        // Check if endDate > startDate by at least 1 month
-        const startDate = new Date(formState.startDate);
-        const endDate = new Date(formState.endDate);
-        const oneMonthLater = new Date(startDate);
-        oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-        if (endDate <= oneMonthLater) {
-            errors.endDate = t('validation.endDateMinDiff');
-          }
+        // TEMPORARILY COMMENTED FOR TESTING: Check if endDate > startDate by at least 1 month
+        // const startDate = new Date(formState.startDate);
+        // const endDate = new Date(formState.endDate);
+        // const oneMonthLater = new Date(startDate);
+        // oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+        // if (endDate <= oneMonthLater) {
+        //     errors.endDate = t('validation.endDateMinDiff');
+        //   }
+        // Commented out for testing - allow past dates for renewal reminder testing
+        // For now, just check if endDate > startDate (basic validation)
+        // const startDate = new Date(formState.startDate);
+        // const endDate = new Date(formState.endDate);
+        // if (endDate <= startDate) {
+        //   errors.endDate = t('validation.endDateAfterStartDate') || 'Ngày kết thúc phải sau ngày bắt đầu';
+        // }
         }
       if (!formState.paymentMethod || !formState.paymentMethod.trim()) {
         errors.paymentMethod = t('validation.paymentMethodRequired');
@@ -1004,34 +1229,40 @@ export default function ContractManagementPage() {
   }, [contractsState.data]);
 
   // Check if can create new contract: 
-  // - No ACTIVE contract (but can have CANCELLED contract that's still active)
-  // - Has expired RENTAL contract OR has CANCELLED RENTAL contract that's still active
+  // - Must have selectedUnitId
+  // - No ACTIVE contract that's still valid (endDate > today or no endDate)
   const canCreateNewContract = useMemo(() => {
     if (!selectedUnitId) {
       return false;
     }
-    // Check if there's an ACTIVE contract (not CANCELLED)
-    const hasActiveNonCancelledContract = contractsState.data?.some((contract) => {
+    
+    // If no contracts at all, allow creating
+    if (!contractsState.data || contractsState.data.length === 0) {
+      return true;
+    }
+    
+    // Check if there's an ACTIVE contract that's still valid (not expired)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const hasActiveValidContract = contractsState.data.some((contract) => {
+      // Only check ACTIVE status contracts (ignore CANCELLED)
       if (contract.status !== 'ACTIVE') {
         return false;
       }
+      // If no endDate, contract is still valid
       if (!contract.endDate) {
         return true;
       }
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Check if endDate > today (still valid)
       const endDate = new Date(contract.endDate);
       endDate.setHours(0, 0, 0, 0);
       return endDate > today;
-    }) || false;
+    });
     
-    // Cannot create if there's an ACTIVE contract (not CANCELLED)
-    if (hasActiveNonCancelledContract) {
-      return false;
-    }
-    // Can create if there's an expired RENTAL contract OR a CANCELLED RENTAL contract that's still active
-    return latestExpiredRentalContract !== null || latestActiveCancelledRentalContract !== null;
-  }, [selectedUnitId, contractsState.data, latestExpiredRentalContract, latestActiveCancelledRentalContract]);
+    // Can create if there's no active valid contract
+    return !hasActiveValidContract;
+  }, [selectedUnitId, contractsState.data]);
 
   // Get expired contracts, sorted by endDate (most recent first)
   // CANCELLED contracts with endDate >= today are in active tab, not expired
@@ -1076,9 +1307,7 @@ export default function ContractManagementPage() {
       });
   }, [contractsState.data]);
 
-  // Get active contracts (not expired)
-  // Includes ACTIVE contracts with endDate > today or no endDate
-  // Includes CANCELLED contracts with endDate >= today or no endDate
+  // Get active contracts (not expired) - show only active contracts in active tab
   const activeContracts = useMemo(() => {
     if (!contractsState.data || contractsState.data.length === 0) {
       return [];
@@ -1086,26 +1315,49 @@ export default function ContractManagementPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    return contractsState.data.filter((contract) => {
-      if (contract.status === 'ACTIVE') {
-        if (!contract.endDate) {
-          return true; // No endDate means still active
+    return contractsState.data
+      .filter((contract) => {
+        // CANCELLED contracts: active if endDate >= today or no endDate
+        if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
+          if (!contract.endDate) {
+            return true; // No endDate means still active
+          }
+          const endDate = new Date(contract.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          return endDate >= today;
         }
-        const endDate = new Date(contract.endDate);
-        endDate.setHours(0, 0, 0, 0);
-        return endDate > today;
-      }
-      // CANCELLED contracts are active if endDate >= today or no endDate
-      if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
-        if (!contract.endDate) {
-          return true; // No endDate means still active
+        // ACTIVE contracts: active if endDate > today or no endDate
+        if (contract.status === 'ACTIVE') {
+          if (!contract.endDate) {
+            return true; // No endDate means still active
+          }
+          const endDate = new Date(contract.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          return endDate > today;
         }
-        const endDate = new Date(contract.endDate);
-        endDate.setHours(0, 0, 0, 0);
-        return endDate >= today;
-      }
-      return false;
-    });
+        // EXPIRED status is not active
+        if (contract.status === 'EXPIRED') {
+          return false;
+        }
+        // INACTIVE contracts are considered active (they will become active when startDate arrives)
+        return true;
+      })
+      .sort((a, b) => {
+        // Sort by endDate descending (most recent first), then by startDate
+        if (a.endDate && b.endDate) {
+          const dateA = new Date(a.endDate);
+          const dateB = new Date(b.endDate);
+          return dateB.getTime() - dateA.getTime();
+        }
+        if (a.endDate) return -1;
+        if (b.endDate) return 1;
+        if (a.startDate && b.startDate) {
+          const dateA = new Date(a.startDate);
+          const dateB = new Date(b.startDate);
+          return dateB.getTime() - dateA.getTime();
+        }
+        return 0;
+      });
   }, [contractsState.data]);
 
   // Auto-switch to active tab if expired tab is selected but no expired contracts
@@ -1368,6 +1620,55 @@ export default function ContractManagementPage() {
                   </div>
                 </div>
 
+                {/* Asset check warning */}
+                {formState.unitId && (
+                  <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-4">
+                    {checkingAssets ? (
+                      <div className="text-sm text-yellow-800">Đang kiểm tra thiết bị...</div>
+                    ) : missingAssetTypes.length > 0 ? (
+                      <div>
+                        <div className="flex items-start">
+                          <svg className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-yellow-800 mb-1">
+                              Căn hộ này thiếu {missingAssetTypes.length} loại thiết bị
+                            </h3>
+                            <p className="text-sm text-yellow-700 mb-3">
+                              Căn hộ đang thiếu: {missingAssetTypes.map((type: AssetType) => {
+                                const labels: Record<AssetType, string> = {
+                                  [AssetType.AIR_CONDITIONER]: 'Điều hòa',
+                                  [AssetType.KITCHEN]: 'Bếp',
+                                  [AssetType.WATER_HEATER]: 'Bình nước nóng',
+                                  [AssetType.FURNITURE]: 'Nội thất',
+                                  [AssetType.OTHER]: 'Khác',
+                                };
+                                return labels[type];
+                              }).join(', ')}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => setShowCreateAssetsConfirm(true)}
+                              disabled={creatingMissingAssets}
+                              className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                              Tạo {missingAssetTypes.length} thiết bị còn thiếu
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-sm text-green-700">
+                        <svg className="h-5 w-5 text-green-600 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Căn hộ đã có đầy đủ các thiết bị cần thiết
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium text-[#02542D]">{t('fields.contractType')}</label>
@@ -1415,7 +1716,7 @@ export default function ContractManagementPage() {
                       value={formState.startDate ?? ''}
                       onChange={(event) => setFieldValue('startDate', event.target.value)}
                       placeholderText={t('placeholders.ddmmyyyy')}
-                      min={minStartDate}
+                      min={undefined}
                     />
                     {formErrors.startDate && (
                       <span className="mt-1 text-xs text-red-500">{formErrors.startDate}</span>
@@ -1424,15 +1725,21 @@ export default function ContractManagementPage() {
                   {formState.contractType !== 'PURCHASE' && (
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-medium text-[#02542D]">{t('fields.endDate')}</label>
-                      <DateBox
+                      <MonthYearPicker
                         value={formState.endDate ?? ''}
                         onChange={(event) =>
                           setFieldValue('endDate', event.target.value ? event.target.value : null)
                         }
-                        placeholderText={t('placeholders.ddmmyyyy')}
+                        placeholderText={t('placeholders.mmyyyy') || 'Chọn tháng/năm (tự động đặt cuối tháng)'}
+                        min={undefined}
                       />
                       {formErrors.endDate && (
                         <span className="mt-1 text-xs text-red-500">{formErrors.endDate}</span>
+                      )}
+                      {formState.endDate && (
+                        <span className="text-xs text-gray-500">
+                          {t('labels.endDatePreview', { date: formatDate(formState.endDate) }) || `Ngày kết thúc: ${formatDate(formState.endDate)} (cuối tháng)`}
+                        </span>
                       )}
                     </div>
                   )}
@@ -1461,20 +1768,48 @@ export default function ContractManagementPage() {
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-medium text-[#02542D]">{t('fields.monthlyRent')}</label>
                       <input
-                        type="number"
-                        min={0}
-                        value={formState.monthlyRent ?? ''}
-                        onChange={(event) =>
-                          setFieldValue(
-                            'monthlyRent',
-                            event.target.value ? Number(event.target.value) : null,
-                          )
-                        }
+                        type="text"
+                        inputMode="numeric"
+                        value={formatNumberWithDots(formState.monthlyRent)}
+                        onChange={(event) => {
+                          // Allow free input while typing, only parse and format when blur
+                          const inputValue = event.target.value.replace(/[^\d]/g, '');
+                          const parsedValue = inputValue ? Number(inputValue) : null;
+                          setFieldValue('monthlyRent', parsedValue);
+                        }}
+                        onBlur={(event) => {
+                          // Ensure proper format on blur
+                          const parsedValue = parseNumberFromFormattedString(event.target.value);
+                          setFieldValue('monthlyRent', parsedValue);
+                        }}
                         placeholder={t('placeholders.monthlyRent')}
                         className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       />
                       {formErrors.monthlyRent && (
                         <span className="mt-1 text-xs text-red-500">{formErrors.monthlyRent}</span>
+                      )}
+                      {calculatedTotalRent !== null && formState.startDate && (
+                        <div className="mt-2 rounded-lg border border-[#C7E8D2] bg-[#E9F4EE] p-3">
+                          <p className="mb-1">
+                            <span className="font-medium text-[#02542D]">{t('detailLabels.totalRent')}</span>{' '}
+                            <span className="text-lg font-semibold text-[#14AE5C]">
+                              {calculatedTotalRent.toLocaleString('vi-VN')} đ
+                            </span>
+                          </p>
+                          {formState.startDate && (
+                            <p className="text-xs text-gray-600 italic">
+                              {(() => {
+                                const startDate = new Date(formState.startDate);
+                                const startDay = startDate.getDate();
+                                if (startDay <= 15) {
+                                  return t('rentCalculation.fullMonth', { day: startDay });
+                                } else {
+                                  return t('rentCalculation.halfMonth', { day: startDay });
+                                }
+                              })()}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
@@ -1482,15 +1817,20 @@ export default function ContractManagementPage() {
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-medium text-[#02542D]">{t('fields.purchasePrice')}</label>
                       <input
-                        type="number"
-                        min={0}
-                        value={formState.purchasePrice ?? ''}
-                        onChange={(event) =>
-                          setFieldValue(
-                            'purchasePrice',
-                            event.target.value ? Number(event.target.value) : null,
-                          )
-                        }
+                        type="text"
+                        inputMode="numeric"
+                        value={formatNumberWithDots(formState.purchasePrice)}
+                        onChange={(event) => {
+                          // Allow free input while typing, only parse and format when blur
+                          const inputValue = event.target.value.replace(/[^\d]/g, '');
+                          const parsedValue = inputValue ? Number(inputValue) : null;
+                          setFieldValue('purchasePrice', parsedValue);
+                        }}
+                        onBlur={(event) => {
+                          // Ensure proper format on blur
+                          const parsedValue = parseNumberFromFormattedString(event.target.value);
+                          setFieldValue('purchasePrice', parsedValue);
+                        }}
                         placeholder={t('placeholders.purchasePrice')}
                         className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2]"
                       />
@@ -1700,6 +2040,40 @@ export default function ContractManagementPage() {
                           {detailState.data.monthlyRent.toLocaleString('vi-VN')} đ
                         </p>
                       )}
+                      {detailState.data.contractType === 'RENTAL' && detailState.data.monthlyRent != null && detailState.data.startDate && detailState.data.endDate && (
+                        <div className="col-span-2">
+                          {(() => {
+                            const totalRent = detailState.data.totalRent ?? calculateTotalRent(
+                              detailState.data.startDate!,
+                              detailState.data.endDate!,
+                              detailState.data.monthlyRent!
+                            );
+                            return totalRent !== null ? (
+                              <>
+                                <p className="mb-2">
+                                  <span className="font-medium text-[#02542D]">{t('detailLabels.totalRent')}</span>{' '}
+                                  <span className="text-lg font-semibold text-[#14AE5C]">
+                                    {totalRent.toLocaleString('vi-VN')} đ
+                                  </span>
+                                </p>
+                                {detailState.data.startDate && (
+                                  <p className="text-xs text-gray-600 italic">
+                                    {(() => {
+                                      const startDate = new Date(detailState.data.startDate!);
+                                      const startDay = startDate.getDate();
+                                      if (startDay <= 15) {
+                                        return t('rentCalculation.fullMonth', { day: startDay });
+                                      } else {
+                                        return t('rentCalculation.halfMonth', { day: startDay });
+                                      }
+                                    })()}
+                                  </p>
+                                )}
+                              </>
+                            ) : null;
+                          })()}
+                        </div>
+                      )}
                       {detailState.data.purchasePrice != null && (
                         <p>
                           <span className="font-medium text-[#02542D]">{t('detailLabels.purchasePrice')}</span>{' '}
@@ -1871,6 +2245,101 @@ export default function ContractManagementPage() {
           </div>
         )}
       </div>
+
+      {/* Create Missing Assets Confirmation Modal */}
+      {showCreateAssetsConfirm && formState.unitId && missingAssetTypes.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 relative z-[10000]">
+            <div className="p-6">
+              <div className="flex items-start mb-4">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Xác nhận tạo thiết bị tự động
+                  </h3>
+                </div>
+              </div>
+
+              <div className="mb-6 space-y-3">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                  <p className="text-sm font-medium text-yellow-800 mb-2">
+                    ⚠️ Cảnh báo: Bạn sắp tạo thiết bị tự động cho căn hộ
+                  </p>
+                  <div className="text-sm text-yellow-700 space-y-2">
+                    <p><strong>Căn hộ:</strong> {unitsState.data.find(u => u.id === formState.unitId)?.code || '-'}</p>
+                    <p><strong>Số lượng thiết bị:</strong> {missingAssetTypes.length} thiết bị</p>
+                    <div className="mt-2">
+                      <p className="font-medium mb-1">Các thiết bị sẽ được tạo:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-2">
+                        {missingAssetTypes.map((type: AssetType) => {
+                          const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+                            [AssetType.AIR_CONDITIONER]: 'Điều hòa',
+                            [AssetType.KITCHEN]: 'Bếp',
+                            [AssetType.WATER_HEATER]: 'Bình nước nóng',
+                            [AssetType.FURNITURE]: 'Nội thất',
+                            [AssetType.OTHER]: 'Khác',
+                          };
+                          const ASSET_TYPE_DEFAULT_PRICE: Record<AssetType, number> = {
+                            [AssetType.AIR_CONDITIONER]: 8000000,
+                            [AssetType.KITCHEN]: 5000000,
+                            [AssetType.WATER_HEATER]: 3000000,
+                            [AssetType.FURNITURE]: 2000000,
+                            [AssetType.OTHER]: 1000000,
+                          };
+                          return (
+                            <li key={type}>
+                              {ASSET_TYPE_LABELS[type]}: {formatNumberWithDots(ASSET_TYPE_DEFAULT_PRICE[type])} VND
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                    <p><strong>Ngày lắp đặt:</strong> {new Date().toLocaleDateString('vi-VN')} (hôm nay)</p>
+                    <p className="mt-2 pt-2 border-t border-yellow-300">
+                      <strong>Tổng số tiền:</strong> <span className="text-red-600 font-bold text-base">
+                        {formatNumberWithDots(missingAssetTypes.reduce((total, type) => {
+                          const ASSET_TYPE_DEFAULT_PRICE: Record<AssetType, number> = {
+                            [AssetType.AIR_CONDITIONER]: 8000000,
+                            [AssetType.KITCHEN]: 5000000,
+                            [AssetType.WATER_HEATER]: 3000000,
+                            [AssetType.FURNITURE]: 2000000,
+                            [AssetType.OTHER]: 1000000,
+                          };
+                          return total + ASSET_TYPE_DEFAULT_PRICE[type];
+                        }, 0))} VND
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Hệ thống sẽ tự động tạo thiết bị với mã, tên, giá mua và ngày lắp đặt theo mặc định cho căn hộ này.
+                </p>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowCreateAssetsConfirm(false)}
+                  disabled={creatingMissingAssets}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleCreateMissingAssets}
+                  disabled={creatingMissingAssets}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                >
+                  {creatingMissingAssets ? 'Đang tạo...' : `Xác nhận tạo ${missingAssetTypes.length} thiết bị`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

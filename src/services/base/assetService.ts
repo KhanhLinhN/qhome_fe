@@ -74,3 +74,8 @@ export async function deactivateAsset(id: string): Promise<Asset> {
   return response.data;
 }
 
+
+
+
+
+
