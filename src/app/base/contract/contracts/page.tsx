@@ -15,6 +15,8 @@ import {
   uploadContractFiles,
   getAllContracts,
 } from '@/src/services/base/contractService';
+import { getAssetsByUnit, createAsset } from '@/src/services/base/assetService';
+import { AssetType, type Asset, type CreateAssetRequest } from '@/src/types/asset';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import MonthYearPicker from '@/src/components/customer-interaction/MonthYearPicker';
 
@@ -90,6 +92,13 @@ export default function ContractManagementPage() {
   const [generatingContractNumber, setGeneratingContractNumber] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'expired'>('active');
   const [minStartDate, setMinStartDate] = useState<string>('');
+  
+  // Asset checking state
+  const [unitAssets, setUnitAssets] = useState<Asset[]>([]);
+  const [checkingAssets, setCheckingAssets] = useState(false);
+  const [missingAssetTypes, setMissingAssetTypes] = useState<AssetType[]>([]);
+  const [creatingMissingAssets, setCreatingMissingAssets] = useState(false);
+  const [showCreateAssetsConfirm, setShowCreateAssetsConfirm] = useState(false);
 
   const formatDate = (value?: string | null) => {
     if (!value) return t('common.notSet');
@@ -520,6 +529,136 @@ export default function ContractManagementPage() {
     }
   };
 
+  // Check unit assets
+  const checkUnitAssets = async (unitId: string) => {
+    if (!unitId) return;
+    
+    setCheckingAssets(true);
+    try {
+      const assets = await getAssetsByUnit(unitId);
+      setUnitAssets(assets);
+      
+      // Required asset types: AIR_CONDITIONER, KITCHEN, WATER_HEATER, FURNITURE
+      const requiredTypes: AssetType[] = [
+        AssetType.AIR_CONDITIONER,
+        AssetType.KITCHEN,
+        AssetType.WATER_HEATER,
+        AssetType.FURNITURE,
+      ];
+      
+      const existingTypes = new Set(assets.map(a => a.assetType));
+      const missing = requiredTypes.filter(type => !existingTypes.has(type));
+      setMissingAssetTypes(missing);
+    } catch (error: any) {
+      console.error('Failed to check unit assets:', error);
+      // Don't block contract creation if asset check fails
+      setUnitAssets([]);
+      setMissingAssetTypes([]);
+    } finally {
+      setCheckingAssets(false);
+    }
+  };
+  
+  // Create missing assets
+  const handleCreateMissingAssets = async () => {
+    if (!formState.unitId || missingAssetTypes.length === 0) return;
+    
+    setCreatingMissingAssets(true);
+    const errors: string[] = [];
+    let successCount = 0;
+    
+    try {
+      // Asset type labels and prefixes (same as asset management)
+      const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+        [AssetType.AIR_CONDITIONER]: 'Điều hòa',
+        [AssetType.KITCHEN]: 'Bếp',
+        [AssetType.WATER_HEATER]: 'Bình nước nóng',
+        [AssetType.FURNITURE]: 'Nội thất',
+        [AssetType.OTHER]: 'Khác',
+      };
+      
+      const ASSET_TYPE_PREFIX: Record<AssetType, string> = {
+        [AssetType.AIR_CONDITIONER]: 'AC',
+        [AssetType.KITCHEN]: 'KIT',
+        [AssetType.WATER_HEATER]: 'WH',
+        [AssetType.FURNITURE]: 'FUR',
+        [AssetType.OTHER]: 'OTH',
+      };
+      
+      const ASSET_TYPE_DEFAULT_PRICE: Record<AssetType, number> = {
+        [AssetType.AIR_CONDITIONER]: 8000000,
+        [AssetType.KITCHEN]: 5000000,
+        [AssetType.WATER_HEATER]: 3000000,
+        [AssetType.FURNITURE]: 2000000,
+        [AssetType.OTHER]: 1000000,
+      };
+      
+      const unit = unitsState.data.find(u => u.id === formState.unitId);
+      if (!unit) {
+        setCreateError('Không tìm thấy thông tin căn hộ');
+        return;
+      }
+      
+      for (const assetType of missingAssetTypes) {
+        // Generate asset code
+        const prefix = ASSET_TYPE_PREFIX[assetType];
+        const existingAssetsOfType = unitAssets.filter(
+          a => a.assetType === assetType && a.assetCode.startsWith(`${prefix}-${unit.code}-`)
+        );
+        
+        let nextNumber = 1;
+        if (existingAssetsOfType.length > 0) {
+          const numbers = existingAssetsOfType
+            .map(a => {
+              const match = a.assetCode.match(/-(\d+)$/);
+              return match ? parseInt(match[1], 10) : 0;
+            })
+            .filter(n => n > 0);
+          
+          if (numbers.length > 0) {
+            nextNumber = Math.max(...numbers) + 1;
+          }
+        }
+        
+        const numberStr = nextNumber.toString().padStart(3, '0');
+        const assetCode = `${prefix}-${unit.code}-${numberStr}`;
+        
+        try {
+          const payload: CreateAssetRequest = {
+            unitId: formState.unitId,
+            assetType,
+            assetCode,
+            name: ASSET_TYPE_LABELS[assetType],
+            active: true,
+            installedAt: new Date().toISOString().split('T')[0],
+            purchasePrice: ASSET_TYPE_DEFAULT_PRICE[assetType],
+          };
+          
+          await createAsset(payload);
+          successCount++;
+        } catch (error: any) {
+          const errorMsg = error?.response?.data?.message || error?.message || 'Lỗi không xác định';
+          errors.push(`${ASSET_TYPE_LABELS[assetType]}: ${errorMsg}`);
+        }
+      }
+      
+      if (successCount > 0) {
+        setCreateSuccess(`Đã tạo thành công ${successCount} thiết bị${errors.length > 0 ? `. ${errors.length} lỗi.` : ''}`);
+        // Refresh asset list
+        await checkUnitAssets(formState.unitId);
+      }
+      
+      if (errors.length > 0 && successCount === 0) {
+        setCreateError(`Không thể tạo thiết bị. Lỗi: ${errors.join('; ')}`);
+      }
+    } catch (error: any) {
+      console.error('Failed to create missing assets:', error);
+      setCreateError(error?.response?.data?.message || error?.message || 'Không thể tạo thiết bị');
+    } finally {
+      setCreatingMissingAssets(false);
+    }
+  };
+
   const handleSelectUnit = async (unitId: string) => {
     setSelectedUnitId(unitId);
     setFieldValue('unitId', unitId);
@@ -527,10 +666,13 @@ export default function ContractManagementPage() {
 
     if (!unitId) {
       setContractsState(DEFAULT_CONTRACTS_STATE);
+      setUnitAssets([]);
+      setMissingAssetTypes([]);
       return;
     }
 
     await loadContracts(unitId);
+    await checkUnitAssets(unitId);
   };
 
   const handleOpenCreateModal = async () => {
@@ -539,6 +681,7 @@ export default function ContractManagementPage() {
     setCreateModalOpen(true);
     if (selectedUnitId) {
       setFieldValue('unitId', selectedUnitId);
+      await checkUnitAssets(selectedUnitId);
     }
     setCreateFiles(null);
     setFormErrors({});
@@ -1477,6 +1620,55 @@ export default function ContractManagementPage() {
                   </div>
                 </div>
 
+                {/* Asset check warning */}
+                {formState.unitId && (
+                  <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-4">
+                    {checkingAssets ? (
+                      <div className="text-sm text-yellow-800">Đang kiểm tra thiết bị...</div>
+                    ) : missingAssetTypes.length > 0 ? (
+                      <div>
+                        <div className="flex items-start">
+                          <svg className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-yellow-800 mb-1">
+                              Căn hộ này thiếu {missingAssetTypes.length} loại thiết bị
+                            </h3>
+                            <p className="text-sm text-yellow-700 mb-3">
+                              Căn hộ đang thiếu: {missingAssetTypes.map((type: AssetType) => {
+                                const labels: Record<AssetType, string> = {
+                                  [AssetType.AIR_CONDITIONER]: 'Điều hòa',
+                                  [AssetType.KITCHEN]: 'Bếp',
+                                  [AssetType.WATER_HEATER]: 'Bình nước nóng',
+                                  [AssetType.FURNITURE]: 'Nội thất',
+                                  [AssetType.OTHER]: 'Khác',
+                                };
+                                return labels[type];
+                              }).join(', ')}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => setShowCreateAssetsConfirm(true)}
+                              disabled={creatingMissingAssets}
+                              className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                              Tạo {missingAssetTypes.length} thiết bị còn thiếu
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-sm text-green-700">
+                        <svg className="h-5 w-5 text-green-600 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Căn hộ đã có đầy đủ các thiết bị cần thiết
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium text-[#02542D]">{t('fields.contractType')}</label>
@@ -2053,6 +2245,101 @@ export default function ContractManagementPage() {
           </div>
         )}
       </div>
+
+      {/* Create Missing Assets Confirmation Modal */}
+      {showCreateAssetsConfirm && formState.unitId && missingAssetTypes.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 relative z-[10000]">
+            <div className="p-6">
+              <div className="flex items-start mb-4">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Xác nhận tạo thiết bị tự động
+                  </h3>
+                </div>
+              </div>
+
+              <div className="mb-6 space-y-3">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                  <p className="text-sm font-medium text-yellow-800 mb-2">
+                    ⚠️ Cảnh báo: Bạn sắp tạo thiết bị tự động cho căn hộ
+                  </p>
+                  <div className="text-sm text-yellow-700 space-y-2">
+                    <p><strong>Căn hộ:</strong> {unitsState.data.find(u => u.id === formState.unitId)?.code || '-'}</p>
+                    <p><strong>Số lượng thiết bị:</strong> {missingAssetTypes.length} thiết bị</p>
+                    <div className="mt-2">
+                      <p className="font-medium mb-1">Các thiết bị sẽ được tạo:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-2">
+                        {missingAssetTypes.map((type: AssetType) => {
+                          const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+                            [AssetType.AIR_CONDITIONER]: 'Điều hòa',
+                            [AssetType.KITCHEN]: 'Bếp',
+                            [AssetType.WATER_HEATER]: 'Bình nước nóng',
+                            [AssetType.FURNITURE]: 'Nội thất',
+                            [AssetType.OTHER]: 'Khác',
+                          };
+                          const ASSET_TYPE_DEFAULT_PRICE: Record<AssetType, number> = {
+                            [AssetType.AIR_CONDITIONER]: 8000000,
+                            [AssetType.KITCHEN]: 5000000,
+                            [AssetType.WATER_HEATER]: 3000000,
+                            [AssetType.FURNITURE]: 2000000,
+                            [AssetType.OTHER]: 1000000,
+                          };
+                          return (
+                            <li key={type}>
+                              {ASSET_TYPE_LABELS[type]}: {formatNumberWithDots(ASSET_TYPE_DEFAULT_PRICE[type])} VND
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                    <p><strong>Ngày lắp đặt:</strong> {new Date().toLocaleDateString('vi-VN')} (hôm nay)</p>
+                    <p className="mt-2 pt-2 border-t border-yellow-300">
+                      <strong>Tổng số tiền:</strong> <span className="text-red-600 font-bold text-base">
+                        {formatNumberWithDots(missingAssetTypes.reduce((total, type) => {
+                          const ASSET_TYPE_DEFAULT_PRICE: Record<AssetType, number> = {
+                            [AssetType.AIR_CONDITIONER]: 8000000,
+                            [AssetType.KITCHEN]: 5000000,
+                            [AssetType.WATER_HEATER]: 3000000,
+                            [AssetType.FURNITURE]: 2000000,
+                            [AssetType.OTHER]: 1000000,
+                          };
+                          return total + ASSET_TYPE_DEFAULT_PRICE[type];
+                        }, 0))} VND
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Hệ thống sẽ tự động tạo thiết bị với mã, tên, giá mua và ngày lắp đặt theo mặc định cho căn hộ này.
+                </p>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowCreateAssetsConfirm(false)}
+                  disabled={creatingMissingAssets}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleCreateMissingAssets}
+                  disabled={creatingMissingAssets}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                >
+                  {creatingMissingAssets ? 'Đang tạo...' : `Xác nhận tạo ${missingAssetTypes.length} thiết bị`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

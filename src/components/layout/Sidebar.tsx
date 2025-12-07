@@ -67,6 +67,8 @@ const adminSections: NavSection[] = [
     items: [
       {href: "/base/asset-management", labelKey: "assetManagement", icon: "🔧"},
       {href: "/base/meter-management", labelKey: "meterManagement", icon: "⚙️"},
+      {href: "/base/asset-inspection-management", labelKey: "assetInspectionManagement", icon: "📋"},
+      {href: "/base/asset-inspection-approval", labelKey: "assetInspectionApproval", icon: "✅"},
     ],
   },
   {
@@ -119,7 +121,7 @@ const technicianSections: NavSection[] = [
   {
     titleKey: "services",
     items: [
-      // {href: "base/showAssign", labelKey: "taskList", icon: "🧾"},
+      {href: "/base/asset-inspection-assignments", labelKey: "assetInspectionAssignments", icon: "🔧"},
     ],
   },
   {
