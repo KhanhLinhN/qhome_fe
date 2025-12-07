@@ -16,8 +16,11 @@ import { getBuildings, type Building } from '@/src/services/base/buildingService
 export default function NotificationList() {
     const t = useTranslations('Noti');
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, hasRole } = useAuth();
     const { show } = useNotifications();
+    
+    // Check if user is supporter (only show EXTERNAL items)
+    const isSupporter = hasRole('SUPPORTER');
     
     const [selectedType, setSelectedType] = useState<NotificationType | ''>('');
     const [pageNo, setPageNo] = useState<number>(0);
@@ -29,15 +32,23 @@ export default function NotificationList() {
 
     const headers = [t('title'), t('content'), t('type'), t('createdAt'), t('action')];
 
-    // Sort notifications by createdAt desc (newest first)
+    // Filter and sort notifications by createdAt desc (newest first)
+    // Supporter can only see EXTERNAL notifications
     const orderedNotifications = useMemo(() => {
         if (!notificationList || notificationList.length === 0) return [];
-        return notificationList.slice().sort((a, b) => {
+        
+        // Filter by scope if supporter
+        let filtered = notificationList;
+        if (isSupporter) {
+            filtered = notificationList.filter(n => n.scope === 'EXTERNAL');
+        }
+        
+        return filtered.slice().sort((a, b) => {
             const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             return tb - ta; // Descending order (newest first)
         });
-    }, [notificationList]);
+    }, [notificationList, isSupporter]);
 
     // Paginate the sorted notifications
     const paginatedNotifications = useMemo(() => {
@@ -102,11 +113,12 @@ export default function NotificationList() {
         // Prefill from existing item if available
         const item = notificationList.find(n => n.id === id);
         if (item) {
-            setChangeScope(item.scope ?? 'INTERNAL');
+            // Supporter can only change to EXTERNAL
+            setChangeScope(isSupporter ? 'EXTERNAL' : (item.scope ?? 'INTERNAL'));
             setChangeTargetRole(item.targetRole ?? 'ALL');
             setChangeBuildingId(item.targetBuildingId ?? 'all');
         } else {
-            setChangeScope('INTERNAL');
+            setChangeScope(isSupporter ? 'EXTERNAL' : 'INTERNAL');
             setChangeTargetRole('ALL');
             setChangeBuildingId('all');
         }
@@ -144,6 +156,13 @@ export default function NotificationList() {
 
     const handleConfirmChange = async () => {
         if (!changeId) return;
+        
+        // Prevent supporter from changing to INTERNAL
+        if (isSupporter && changeScope === 'INTERNAL') {
+            show(t('errors.supporterOnlyExternal') || 'Supporter chỉ được chọn external', 'error');
+            return;
+        }
+        
         try {
             setChanging(true);
             await updateNotification(changeId, {
@@ -302,11 +321,19 @@ export default function NotificationList() {
                                             <label className="text-sm font-medium text-[#02542D]">{t('changeScopeModal.scope')}</label>
                                             <Select
                                                 options={[
-                                                    { name: t('internal'), value: 'INTERNAL' },
+                                                    // Supporter can only select EXTERNAL
+                                                    ...(isSupporter ? [] : [{ name: t('internal'), value: 'INTERNAL' }]),
                                                     { name: t('external'), value: 'EXTERNAL' },
                                                 ]}
                                                 value={changeScope}
-                                                onSelect={(item) => setChangeScope(item.value as NotificationScope)}
+                                                onSelect={(item) => {
+                                                    // Prevent supporter from selecting INTERNAL
+                                                    if (isSupporter && item.value === 'INTERNAL') {
+                                                        show(t('errors.supporterOnlyExternal') || 'Supporter chỉ được chọn external', 'error');
+                                                        return;
+                                                    }
+                                                    setChangeScope(item.value as NotificationScope);
+                                                }}
                                                 renderItem={(item) => item.name}
                                                 getValue={(item) => item.value}
                                                 placeholder={t('changeScopeModal.selectScope')}
