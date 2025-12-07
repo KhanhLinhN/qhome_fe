@@ -52,10 +52,13 @@ export default function NewsEdit() {
     const router = useRouter();
     const params = useParams();
     const t = useTranslations('News');
-    const { user } = useAuth();
+    const { user, hasRole } = useAuth();
     const newsId = params?.id as string;
     const { news, updateNewsItem, loading: loadingNews, error, isSubmitting } = useNewEdit(newsId);
     const { show } = useNotifications();
+
+    // Check if user is supporter (only allowed EXTERNAL scope)
+    const isSupporter = hasRole('SUPPORTER');
 
     const [tenants, setTenants] = useState<Tenant[]>([]);
     const [selectedTenantId, setSelectedTenantId] = useState<string>('');
@@ -63,6 +66,7 @@ export default function NewsEdit() {
     const [buildings, setBuildings] = useState<Building[]>([]);
     const [selectedBuildingId, setSelectedBuildingId] = useState<string>('all'); // 'all' means all buildings, otherwise building.id
     const [loadingBuildings, setLoadingBuildings] = useState(false);
+    const [accessDenied, setAccessDenied] = useState(false);
 
     const [formData, setFormData] = useState<NewsFormData>({
         title: '',
@@ -105,6 +109,16 @@ export default function NewsEdit() {
     // Load existing news data when it's fetched
     useEffect(() => {
         if (news) {
+            // Check if supporter trying to edit INTERNAL news
+            if (isSupporter && news.scope === 'INTERNAL') {
+                setAccessDenied(true);
+                show(t('accessDenied') || 'Bạn không có quyền chỉnh sửa tin tức internal', 'error');
+                setTimeout(() => {
+                    router.push('/customer-interaction/new/newList');
+                }, 2000);
+                return;
+            }
+            
             const isAllBuildings = news.scope === 'EXTERNAL' && !news.targetBuildingId;
             
             setFormData({
@@ -132,7 +146,7 @@ export default function NewsEdit() {
             // Set selectedBuildingId based on targetBuildingId
             setSelectedBuildingId(isAllBuildings ? 'all' : (news.targetBuildingId || 'all'));
         }
-    }, [news]);
+    }, [news, isSupporter, show, router]);
 
     // Fetch buildings when tenant is selected or when news loads with targetBuildingId
     useEffect(() => {
@@ -279,6 +293,11 @@ export default function NewsEdit() {
         }
 
         // Additional validations
+        // Supporter can only use EXTERNAL scope
+        if (isSupporter && formData.scope === 'INTERNAL') {
+            show(t('supporterOnlyExternal') || 'Supporter chỉ được chỉnh sửa tin tức external', 'error');
+            return;
+        }
         if (formData.scope === 'EXTERNAL' && selectedBuildingId === '') {
             show(t('pleaseSelectBuildingForExternalNews'), 'error');
             return;
@@ -534,6 +553,11 @@ export default function NewsEdit() {
 
 
     const handleScopeChange = (item: { name: string; value: string }) => {
+        // Prevent supporter from selecting INTERNAL
+        if (isSupporter && item.value === 'INTERNAL') {
+            show(t('supporterOnlyExternal') || 'Supporter chỉ được chọn external', 'error');
+            return;
+        }
         setSelectedBuildingId('all');
         setFormData((prevData) => ({
             ...prevData,
@@ -637,6 +661,29 @@ export default function NewsEdit() {
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#02542D] mx-auto mb-4"></div>
                             <p className="text-gray-600">{t('loading')}</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (accessDenied) {
+        return (
+            <div className="min-h-screen p-4 sm:p-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
+                        <p className="text-red-600 mb-4 text-lg font-semibold">
+                            {t('accessDenied') || 'Bạn không có quyền chỉnh sửa tin tức này'}
+                        </p>
+                        <p className="text-gray-600 mb-4">
+                            {t('supporterCannotEditInternal') || 'Supporter chỉ có thể chỉnh sửa các tin tức external'}
+                        </p>
+                        <button
+                            onClick={() => router.push('/customer-interaction/new/newList')}
+                            className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-opacity-80"
+                        >
+                            {t('goBack')}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -859,7 +906,8 @@ export default function NewsEdit() {
                         </label>
                         <Select
                             options={[
-                                { name: t('internal'), value: 'INTERNAL' },
+                                // Supporter can only select EXTERNAL
+                                ...(isSupporter ? [] : [{ name: t('internal'), value: 'INTERNAL' }]),
                                 { name: t('external'), value: 'EXTERNAL' }
                             ]}
                             value={formData.scope}

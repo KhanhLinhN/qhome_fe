@@ -8,17 +8,23 @@ import { News } from '@/src/types/news';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { getBuilding, Building } from '@/src/services/base/buildingService';
 import { useTranslations } from 'next-intl';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 export default function NewsDetail() {
     const router = useRouter();
     const params = useParams();
     const { show } = useNotifications();
+    const { hasRole } = useAuth();
     const id = params?.id as string;
     const t = useTranslations('News');
+
+    // Check if user is supporter (cannot view/edit INTERNAL items)
+    const isSupporter = hasRole('SUPPORTER');
 
     const [news, setNews] = useState<News | null>(null);
     const [loading, setLoading] = useState(true);
     const [building, setBuilding] = useState<Building | null>(null);
+    const [accessDenied, setAccessDenied] = useState(false);
 
     useEffect(() => {
         const fetchNews = async () => {
@@ -27,6 +33,18 @@ export default function NewsDetail() {
             setLoading(true);
             try {
                 const data = await getNewsDetail(id);
+                
+                // Check if supporter trying to view INTERNAL news
+                if (isSupporter && data.scope === 'INTERNAL') {
+                    setAccessDenied(true);
+                    setLoading(false);
+                    show(t('accessDenied') || 'Bạn không có quyền xem tin tức internal', 'error');
+                    setTimeout(() => {
+                        router.push('/customer-interaction/new/newList');
+                    }, 2000);
+                    return;
+                }
+                
                 setNews(data);
                 
                 // Fetch building if targetBuildingId exists
@@ -47,7 +65,7 @@ export default function NewsDetail() {
         };
 
         fetchNews();
-    }, [id, show]);
+    }, [id, show, isSupporter, router]);
 
     const handleBack = () => {
         router.push(`/customer-interaction/new/newList`);
@@ -78,6 +96,29 @@ export default function NewsDetail() {
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#02542D] mx-auto mb-4"></div>
                             <p className="text-gray-600">{t('loading')}</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (accessDenied) {
+        return (
+            <div className="min-h-screen p-4 sm:p-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
+                        <p className="text-red-600 mb-4 text-lg font-semibold">
+                            {t('accessDenied') || 'Bạn không có quyền xem tin tức này'}
+                        </p>
+                        <p className="text-gray-600 mb-4">
+                            {t('supporterCannotViewInternal') || 'Supporter chỉ có thể xem các tin tức external'}
+                        </p>
+                        <button
+                            onClick={handleBack}
+                            className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-opacity-80"
+                        >
+                            {t('returnNewsList')}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -265,13 +306,16 @@ export default function NewsDetail() {
                         >
                             {t('back')}
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => router.push(`/customer-interaction/new/newEdit/${id}`)}
-                            className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md"
-                        >
-                            {t('edit')}
-                        </button>
+                        {/* Supporter cannot edit INTERNAL news */}
+                        {!(isSupporter && news.scope === 'INTERNAL') && (
+                            <button
+                                type="button"
+                                onClick={() => router.push(`/customer-interaction/new/newEdit/${id}`)}
+                                className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md"
+                            >
+                                {t('edit')}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

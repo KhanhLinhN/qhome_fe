@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import {
   PricingTierDto,
   getPricingTiersByService,
@@ -53,6 +55,14 @@ const EMPTY_FORM: TierFormState = {
 export default function PricingTiersManagementPage() {
   const t = useTranslations('PricingTiers');
   const { show } = useNotifications();
+  const { hasRole } = useAuth();
+  const router = useRouter();
+  
+  // Check user roles - only ADMIN and ACCOUNTANT can view
+  const isAdmin = hasRole('ADMIN');
+  const isAccountant = hasRole('ACCOUNTANT');
+  const canView = isAdmin || isAccountant;
+  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
   
   const SERVICE_OPTIONS = [
     { value: 'ELECTRIC', label: t('services.electric'), icon: '⚡' },
@@ -71,8 +81,14 @@ export default function PricingTiersManagementPage() {
   const [pendingDeleteTier, setPendingDeleteTier] = useState<PricingTierDto | null>(null);
 
   useEffect(() => {
+    // Check if user has permission to view
+    if (!canView) {
+      show('Bạn không có quyền truy cập trang này', 'error');
+      router.push('/');
+      return;
+    }
     loadTiers();
-  }, [selectedService]);
+  }, [selectedService, canView, show, router]);
 
   const loadTiers = async () => {
     setLoading(true);
@@ -252,7 +268,11 @@ export default function PricingTiersManagementPage() {
   const hasFinalTier = checkHasFinalTier();
 
   const startCreate = () => {
-    // Tính tierOrder tiếp theo dựa trên sortedTiers để đảm bảo tính đúng
+
+    if (!canEdit) {
+      show('Chỉ Accountant mới có quyền thêm bậc giá', 'error');
+      return;
+    }
     const maxOrder = sortedTiers.length > 0 ? Math.max(...sortedTiers.map((t) => t.tierOrder ?? 0)) : 0;
     setEditingTier({
       ...EMPTY_FORM,
@@ -264,6 +284,10 @@ export default function PricingTiersManagementPage() {
   };
 
   const startEdit = (tier: PricingTierDto) => {
+    if (!canEdit) {
+      show('Chỉ Accountant mới có quyền chỉnh sửa bậc giá', 'error');
+      return;
+    }
     setEditingTier({
       id: tier.id,
       tierOrder: tier.tierOrder ?? 1,
@@ -285,6 +309,10 @@ export default function PricingTiersManagementPage() {
   };
 
   const handleDeleteClick = (tier: PricingTierDto) => {
+    if (!canEdit) {
+      show('Chỉ Accountant mới có quyền xóa bậc giá', 'error');
+      return;
+    }
     setPendingDeleteTier(tier);
     setShowDeleteConfirm(true);
   };
@@ -492,7 +520,9 @@ export default function PricingTiersManagementPage() {
         </div>
         <button
           onClick={startCreate}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          disabled={!canEdit}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          title={!canEdit ? 'Chỉ Accountant mới có quyền thêm bậc giá' : ''}
         >
           {t('buttons.addNewTier')}
         </button>
@@ -896,9 +926,10 @@ export default function PricingTiersManagementPage() {
 
               <div className="flex gap-3 mt-6 relative z-0">
                 <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 relative z-10"
+                  onClick={() => handleSave()}
+                  disabled={saving || !canEdit}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed relative z-10"
+                  title={!canEdit ? 'Chỉ Accountant mới có quyền lưu' : ''}
                 >
                   {saving ? t('buttons.saving') : t('buttons.save')}
                 </button>
@@ -928,7 +959,9 @@ export default function PricingTiersManagementPage() {
           <p className="text-gray-500 mb-4">{t('empty.noTiers')}</p>
           <button
             onClick={startCreate}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            disabled={!canEdit}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            title={!canEdit ? 'Chỉ Accountant mới có quyền thêm bậc giá' : ''}
           >
             {t('buttons.addFirstTier')}
           </button>
@@ -1019,13 +1052,17 @@ export default function PricingTiersManagementPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => startEdit(tier)}
-                          className="text-blue-600 hover:text-blue-900 mr-4"
+                          disabled={!canEdit}
+                          className="text-blue-600 hover:text-blue-900 mr-4 disabled:text-gray-400 disabled:cursor-not-allowed"
+                          title={!canEdit ? 'Chỉ Accountant mới có quyền chỉnh sửa' : ''}
                         >
                           {t('buttons.edit')}
                         </button>
                         <button
                           onClick={() => handleDeleteClick(tier)}
-                          className="text-red-600 hover:text-red-900"
+                          disabled={!canEdit}
+                          className="text-red-600 hover:text-red-900 disabled:text-gray-400 disabled:cursor-not-allowed"
+                          title={!canEdit ? 'Chỉ Accountant mới có quyền xóa' : ''}
                         >
                           {t('buttons.delete')}
                         </button>

@@ -31,14 +31,18 @@ export default function NotificationEdit() {
     const router = useRouter();
     const params = useParams();
     const t = useTranslations('Noti');
-    const { user } = useAuth();
+    const { user, hasRole } = useAuth();
     const notificationId = params?.id as string;
     const { notification, updateNotificationItem, loading: loadingNotification, error, isSubmitting } = useNotificationEdit(notificationId);
     const { show } = useNotifications();
 
+    // Check if user is supporter (only allowed EXTERNAL scope)
+    const isSupporter = hasRole('SUPPORTER');
+
     const [buildings, setBuildings] = useState<Building[]>([]);
     const [selectedBuildingId, setSelectedBuildingId] = useState<string>('all'); // 'all' means all buildings, otherwise building.id
     const [loadingBuildings, setLoadingBuildings] = useState(false);
+    const [accessDenied, setAccessDenied] = useState(false);
 
     const [formData, setFormData] = useState<NotificationFormData>({
         type: 'INFO',
@@ -61,6 +65,16 @@ export default function NotificationEdit() {
     // Load existing notification data when it's fetched
     useEffect(() => {
         if (notification) {
+            // Check if supporter trying to edit INTERNAL notification
+            if (isSupporter && notification.scope === 'INTERNAL') {
+                setAccessDenied(true);
+                show(t('accessDenied') || 'Bạn không có quyền chỉnh sửa thông báo internal', 'error');
+                setTimeout(() => {
+                    router.push('/customer-interaction/notiList');
+                }, 2000);
+                return;
+            }
+            
             const isAllBuildings = notification.scope === 'EXTERNAL' && !notification.targetBuildingId;
             
             setFormData({
@@ -78,7 +92,7 @@ export default function NotificationEdit() {
             // Set selectedBuildingId based on targetBuildingId
             setSelectedBuildingId(isAllBuildings ? 'all' : (notification.targetBuildingId || 'all'));
         }
-    }, [notification]);
+    }, [notification, isSupporter, show, router]);
 
     // Fetch buildings when notification loads with targetBuildingId
     useEffect(() => {
@@ -163,6 +177,11 @@ export default function NotificationEdit() {
         }
 
         // Additional validations
+        // Supporter can only use EXTERNAL scope
+        if (isSupporter && formData.scope === 'INTERNAL') {
+            show(t('errors.supporterOnlyExternal') || 'Supporter chỉ được chỉnh sửa thông báo external', 'error');
+            return;
+        }
         if (formData.scope === 'INTERNAL' && !formData.targetRole) {
             show(t('errors.selectTargetRole'), 'error');
             return;
@@ -220,6 +239,11 @@ export default function NotificationEdit() {
     };
 
     const handleScopeChange = (item: { name: string; value: string }) => {
+        // Prevent supporter from selecting INTERNAL
+        if (isSupporter && item.value === 'INTERNAL') {
+            show(t('errors.supporterOnlyExternal') || 'Supporter chỉ được chọn external', 'error');
+            return;
+        }
         setSelectedBuildingId('all');
         setFormData((prevData) => ({
             ...prevData,
@@ -253,6 +277,29 @@ export default function NotificationEdit() {
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#02542D] mx-auto mb-4"></div>
                             <p className="text-gray-600">{t('loading')}</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (accessDenied) {
+        return (
+            <div className="min-h-screen p-4 sm:p-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
+                        <p className="text-red-600 mb-4 text-lg font-semibold">
+                            {t('accessDenied') || 'Bạn không có quyền chỉnh sửa thông báo này'}
+                        </p>
+                        <p className="text-gray-600 mb-4">
+                            {t('supporterCannotEditInternal') || 'Supporter chỉ có thể chỉnh sửa các thông báo external'}
+                        </p>
+                        <button
+                            onClick={() => router.push('/customer-interaction/notiList')}
+                            className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-opacity-80"
+                        >
+                            {t('back')}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -359,7 +406,8 @@ export default function NotificationEdit() {
                         </label>
                         <Select
                             options={[
-                                { name: t('internal'), value: 'INTERNAL' },
+                                // Supporter can only select EXTERNAL
+                                ...(isSupporter ? [] : [{ name: t('internal'), value: 'INTERNAL' }]),
                                 { name: t('external'), value: 'EXTERNAL' }
                             ]}
                             value={formData.scope}

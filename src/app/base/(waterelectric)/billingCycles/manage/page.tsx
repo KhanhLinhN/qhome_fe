@@ -17,6 +17,8 @@ import {
 import { getAllServices, ServiceDto } from '@/src/services/base/waterService';
 import { getBuildings, Building } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const STATUS_BADGES: Record<string, string> = {
   OPEN: 'bg-blue-100 text-blue-700',
@@ -32,6 +34,15 @@ const STATUS_BADGES: Record<string, string> = {
 export default function BillingCycleManagePage() {
   const t = useTranslations('BillingCyclesManage');
   const { show } = useNotifications();
+  const { hasRole } = useAuth();
+  const router = useRouter();
+  
+  // Check user roles - only ADMIN and ACCOUNTANT can view
+  const isAdmin = hasRole('ADMIN');
+  const isAccountant = hasRole('ACCOUNTANT');
+  const canView = isAdmin || isAccountant;
+  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
+  
   const [year, setYear] = useState(new Date().getFullYear());
   const [cycles, setCycles] = useState<BillingCycleDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -56,10 +67,16 @@ export default function BillingCycleManagePage() {
   const [loadingMissingServices, setLoadingMissingServices] = useState(false);
 
   useEffect(() => {
+    // Check if user has permission to view
+    if (!canView) {
+      show('Bạn không có quyền truy cập trang này', 'error');
+      router.push('/');
+      return;
+    }
     loadCycles();
     loadServices();
     loadBuildings();
-  }, [year]);
+  }, [year, canView, show, router]);
 
   const loadCycles = async () => {
     try {
@@ -398,8 +415,9 @@ export default function BillingCycleManagePage() {
         </button>
         <button
           onClick={handleExportExcel}
-          disabled={!selectedCycle || exporting}
+          disabled={!selectedCycle || exporting || !canEdit}
           className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm flex items-center gap-2"
+          title={!canEdit ? 'Chỉ Accountant mới có quyền export Excel' : ''}
         >
           {exporting ? (
             <>
