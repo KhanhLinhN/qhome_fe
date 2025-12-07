@@ -16,6 +16,8 @@ import {
 } from '@/src/services/finance/billingCycleService';
 import { getAllServices, ServiceDto } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const STATUS_BADGES: Record<string, string> = {
   OPEN: 'bg-blue-100 text-blue-700',
@@ -27,6 +29,15 @@ const STATUS_BADGES: Record<string, string> = {
 export default function BillingCyclesPage() {
   const t = useTranslations('BillingCycles');
   const { show } = useNotifications();
+  const { hasRole } = useAuth();
+  const router = useRouter();
+  
+  // Check user roles - only ADMIN and ACCOUNTANT can view
+  const isAdmin = hasRole('ADMIN');
+  const isAccountant = hasRole('ACCOUNTANT');
+  const canView = isAdmin || isAccountant;
+  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
+  
   const [year, setYear] = useState(new Date().getFullYear());
   const [cycles, setCycles] = useState<BillingCycleDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,9 +57,15 @@ export default function BillingCyclesPage() {
   const [loadingBuildingInvoices, setLoadingBuildingInvoices] = useState(false);
 
   useEffect(() => {
+    // Check if user has permission to view
+    if (!canView) {
+      show('Bạn không có quyền truy cập trang này', 'error');
+      router.push('/');
+      return;
+    }
     loadCycles();
     loadMissingCycles();
-  }, [year]);
+  }, [year, canView, show, router]);
 
   useEffect(() => {
     loadServices();
@@ -235,17 +252,28 @@ export default function BillingCyclesPage() {
                 setSyncingMissing(false);
               }
             }}
-            disabled={syncingMissing}
-            className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors disabled:opacity-60 text-sm leading-none whitespace-nowrap"
+            disabled={syncingMissing || !canEdit}
+            className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm leading-none whitespace-nowrap"
+            title={!canEdit ? 'Chỉ Accountant mới có quyền tạo billing cycles' : ''}
           >
             {syncingMissing ? t('buttons.creating') : t('buttons.createMissing')}
           </button>
-          <Link
-            href="/base/billingCycles/manage"
-            className="px-4 py-2 border border-[#02542D] text-[#02542D] rounded-md text-sm font-semibold hover:bg-[#f2fff6]"
-          >
-            {t('buttons.manageDetails')}
-          </Link>
+          {canEdit ? (
+            <Link
+              href="/base/billingCycles/manage"
+              className="px-4 py-2 border border-[#02542D] text-[#02542D] rounded-md text-sm font-semibold hover:bg-[#f2fff6]"
+            >
+              {t('buttons.manageDetails')}
+            </Link>
+          ) : (
+            <button
+              disabled
+              className="px-4 py-2 border border-gray-300 text-gray-400 rounded-md text-sm font-semibold cursor-not-allowed"
+              title="Chỉ Accountant mới có quyền quản lý chi tiết"
+            >
+              {t('buttons.manageDetails')}
+            </button>
+          )}
         </div>
       </div>
       <div className="mb-6 grid grid-cols-3 gap-3 items-end">

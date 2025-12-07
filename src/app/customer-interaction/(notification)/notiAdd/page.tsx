@@ -30,9 +30,13 @@ interface NotificationFormData {
 export default function NotificationAdd() {
     const router = useRouter();
     const t = useTranslations('Noti');
-    const { user } = useAuth();
+    const { user, hasRole } = useAuth();
     const { addNotification, loading, error, isSubmitting } = useNotificationAdd();
     const { show } = useNotifications();
+
+    // Check if user is supporter (only allowed EXTERNAL scope)
+    const isSupporter = hasRole('SUPPORTER');
+    const isAdmin = hasRole('ADMIN');
 
     const [buildings, setBuildings] = useState<Building[]>([]);
     const [selectedBuildingId, setSelectedBuildingId] = useState<string>('all'); // 'all' means all buildings, otherwise building.id
@@ -42,7 +46,7 @@ export default function NotificationAdd() {
         type: 'INFO',
         title: '',
         message: '',
-        scope: 'EXTERNAL',
+        scope: isSupporter ? 'EXTERNAL' : 'EXTERNAL', // Default to EXTERNAL, but supporter must use EXTERNAL
         targetRole: undefined,
         targetBuildingId: undefined,
         referenceId: null,
@@ -157,6 +161,11 @@ export default function NotificationAdd() {
         }
 
         // Additional validations
+        // Supporter can only use EXTERNAL scope
+        if (isSupporter && formData.scope === 'INTERNAL') {
+            show(t('errors.supporterOnlyExternal') || 'Supporter chỉ được gửi thông báo cho external', 'error');
+            return;
+        }
         if (formData.scope === 'INTERNAL' && !formData.targetRole) {
             show(t('errors.selectTargetRole'), 'error');
             return;
@@ -230,6 +239,11 @@ export default function NotificationAdd() {
     };
 
     const handleScopeChange = (item: { name: string; value: string }) => {
+        // Prevent supporter from selecting INTERNAL
+        if (isSupporter && item.value === 'INTERNAL') {
+            show(t('errors.supporterOnlyExternal') || 'Supporter chỉ được gửi thông báo cho external', 'error');
+            return;
+        }
         setSelectedBuildingId('all');
         setFormData((prevData) => ({
             ...prevData,
@@ -349,7 +363,8 @@ export default function NotificationAdd() {
                         </label>
                         <Select
                             options={[
-                                { name: t('internal'), value: 'INTERNAL' },
+                                // Supporter can only select EXTERNAL
+                                ...(isSupporter ? [] : [{ name: t('internal'), value: 'INTERNAL' }]),
                                 { name: t('external'), value: 'EXTERNAL' }
                             ]}
                             value={formData.scope}

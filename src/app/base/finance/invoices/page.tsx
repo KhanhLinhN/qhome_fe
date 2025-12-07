@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { getAllInvoicesForAdmin, InvoiceDto, InvoiceLineDto } from '@/src/services/finance/invoiceAdminService';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import axios from '@/src/lib/axios';
 
 // Options will be created inside component with translations
@@ -11,6 +13,14 @@ import axios from '@/src/lib/axios';
 export default function InvoicesManagementPage() {
   const t = useTranslations('Invoices');
   const { show } = useNotifications();
+  const { hasRole } = useAuth();
+  const router = useRouter();
+  
+  // Check user roles - only ADMIN and ACCOUNTANT can view
+  const isAdmin = hasRole('ADMIN');
+  const isAccountant = hasRole('ACCOUNTANT');
+  const canView = isAdmin || isAccountant;
+  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
   
   const SERVICE_CODE_OPTIONS = [
     { value: '', label: t('filters.allServices') },
@@ -67,8 +77,14 @@ export default function InvoicesManagementPage() {
   }, []);
 
   useEffect(() => {
+    // Check if user has permission to view
+    if (!canView) {
+      show('Bạn không có quyền truy cập trang này', 'error');
+      router.push('/');
+      return;
+    }
     loadInvoices();
-  }, [serviceCodeFilter, statusFilter, monthFilter]);
+  }, [serviceCodeFilter, statusFilter, monthFilter, canView, show, router]);
 
   const loadInvoices = async () => {
     setLoading(true);
@@ -227,7 +243,9 @@ export default function InvoicesManagementPage() {
         </div>
         <button
           onClick={handleExportExcel}
-          className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors flex items-center gap-2"
+          disabled={!canEdit}
+          className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+          title={!canEdit ? 'Chỉ Accountant mới có quyền export Excel' : ''}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
