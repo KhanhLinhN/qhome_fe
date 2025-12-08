@@ -154,7 +154,7 @@ export default function AssetImageEdit() {
                         <button
                             onClick={handleUpload}
                             disabled={selectedFiles.length === 0 || uploading}
-                            className="px-4 py-2 bg-[#739559] text-white rounded-md hover:bg-opacity-80 disabled:opacity-50"
+                            className="px-4 py-2 bg-[#739559] text-white rounded-md hover:bg-opacity-80 disabled:opacity/75"
                         >
                             {uploading ? t('upload.uploading') : t('upload.button')}
                         </button>
