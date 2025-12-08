@@ -58,8 +58,8 @@ export default function NewsAdd() {
     const { show } = useNotifications();
 
     // Check if user is supporter (only allowed EXTERNAL scope)
-    const isSupporter = hasRole('SUPPORTER');
-    const isAdmin = hasRole('ADMIN');
+    const isSupporter = hasRole('SUPPORTER') || hasRole('suppoter');
+    const isAdmin = hasRole('ADMIN') || hasRole('admin');
 
     const [buildings, setBuildings] = useState<Building[]>([]);
     const [selectedBuildingId, setSelectedBuildingId] = useState<string>(() => {

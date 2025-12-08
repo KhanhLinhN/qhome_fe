@@ -2432,11 +2432,11 @@
       "approved": "Approved",
       "completed": "Completed"
     },
-    "paymentStatus": {
-      "paid": "Paid",
+    "paymentStatusLabels": {
+      "unpaid": "Unpaid",
       "paymentPending": "Payment Pending",
       "paymentApproval": "Awaiting Approval",
-      "unpaid": "Unpaid"
+      "paid": "Paid"
     },
     "table": {
       "cardType": "Card Type",
@@ -3864,7 +3864,8 @@
       "creating": "Creating...",
       "createMissing": "Create missing billing",
       "refresh": "Refresh",
-      "manageDetails": "Manage details"
+      "manageDetails": "Manage details",
+      "close": "Close"
     },
     "loading": {
       "data": "Loading data...",
@@ -3905,7 +3906,10 @@
       "id": "Billing ID:",
       "relatedCycle": "Related reading cycle:",
       "viewDetails": "View details",
-      "noData": "No data"
+      "noData": "No data",
+      "externalCycleId": "External Cycle ID:",
+      "invoiceList": "Invoice List",
+      "noInvoices": "No invoices for this billing cycle"
     }
   },
   "BillingCyclesManage": {

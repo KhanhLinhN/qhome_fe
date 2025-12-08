@@ -1,17 +1,21 @@
 "use client";
-import React, {createContext, useContext, useState} from "react";
+import React, {createContext, useContext, useState, useCallback, useMemo} from "react";
 type Tone = "success"|"error"|"info";
 type Noti = {id:number; message:string; tone:Tone};
 const Ctx = createContext<{show:(m:string, tone?:Tone)=>void}|null>(null);
 
 export function NotificationsProvider({children}:{children:React.ReactNode}) {
   const [items, set] = useState<Noti[]>([]);
-  const show = (message:string, tone:Tone="info") => {
-    const id = Date.now(); set(v=>[...v, {id, message, tone}]);
+  const show = useCallback((message:string, tone:Tone="info") => {
+    const id = Date.now(); 
+    set(v=>[...v, {id, message, tone}]);
     setTimeout(()=> set(v=>v.filter(i=>i.id!==id)), 3000);
-  };
+  }, []);
+  
+  const contextValue = useMemo(() => ({show}), [show]);
+  
   return (
-    <Ctx.Provider value={{show}}>
+    <Ctx.Provider value={contextValue}>
       {children}
       <div className="fixed bottom-4 right-4 space-y-2 z-50">
         {items.map(i=>(

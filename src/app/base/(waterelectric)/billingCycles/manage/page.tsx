@@ -38,8 +38,8 @@ export default function BillingCycleManagePage() {
   const router = useRouter();
   
   // Check user roles - only ADMIN and ACCOUNTANT can view
-  const isAdmin = hasRole('ADMIN');
-  const isAccountant = hasRole('ACCOUNTANT');
+  const isAdmin = hasRole('ADMIN') || hasRole('admin');
+  const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant');
   const canView = isAdmin || isAccountant;
   const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
   
