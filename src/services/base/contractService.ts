@@ -57,7 +57,7 @@ export interface CreateContractPayload {
 
 export async function fetchActiveContractsByUnit(unitId: string): Promise<ContractSummary[]> {
   const response = await axios.get<ContractSummary[]>(
-    `${BASE_URL}/api/contracts/units/${unitId}/active`,
+    `${BASE_URL}/api/contracts/unit/${unitId}/active`,
     { withCredentials: true },
   );
   return response.data;
