@@ -245,6 +245,9 @@ export default function ContractManagementPage() {
           delete newErrors.unitId;
         }
         break;
+      case '':
+        
+        break;
       case 'contractNumber':
         if (!value || (typeof value === 'string' && !value.trim())) {
           newErrors.contractNumber = t('validation.contractNumberRequired');
@@ -316,9 +319,9 @@ export default function ContractManagementPage() {
             if (endDate <= startDate) {
               newErrors.endDate = t('validation.endDateAfterStartDate');
             } else {
-              // Second check: endDate must be at least 1 month after startDate
+              // Second check: endDate must be at least 3 month after startDate
               const oneMonthLater = new Date(startDate);
-              oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+              oneMonthLater.setMonth(oneMonthLater.getMonth() + 3);
               if (endDate <= oneMonthLater) {
                 newErrors.endDate = t('validation.endDateMinDiff');
               } else {
