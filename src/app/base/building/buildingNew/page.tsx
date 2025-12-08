@@ -481,13 +481,13 @@ export default function BuildingAdd () {
         if (name === 'name') {
             // enforce max length 40 on name input
             const limited = value.slice(0, 40);
-            const newCode = generateCodeFromName(limited);
+            // const newCode = generateCodeFromName(limited);
             setFormData(prevData => ({
                 ...prevData,
                 name: limited,
-                code: newCode,
+                // code: newCode,
             }));
-            validateField('name', limited);
+            // validateField('name', limited);
         }
     };
 
