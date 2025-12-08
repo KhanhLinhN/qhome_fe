@@ -2237,6 +2237,7 @@
       "subtitle": "Nhập thông tin hợp đồng thuê hoặc mua cho căn hộ được chọn."
     },
     "validation": {
+      "endDateAfterStartDate": "Ngày kết thúc phải sau ngày bắt đầu ít nhất 1 tháng.",
       "unitRequired": "Vui lòng chọn căn hộ trước khi tạo hợp đồng.",
       "contractNumberRequired": "Vui lòng nhập số hợp đồng.",
       "contractTypeRequired": "Vui lòng chọn loại hợp đồng.",

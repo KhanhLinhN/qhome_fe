@@ -307,26 +307,24 @@ export default function ContractManagementPage() {
           } else if (typeof value === 'string' && !isValidDate(value)) {
             newErrors.endDate = t('validation.endDateInvalid');
           } else if (typeof value === 'string' && value.trim() && state.startDate) {
-            // TEMPORARILY COMMENTED FOR TESTING: Check if endDate > startDate by at least 1 month
-            // const startDate = new Date(state.startDate);
-            // const endDate = new Date(value);
-            // const oneMonthLater = new Date(startDate);
-            // oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-            // if (endDate <= oneMonthLater) {
-            //   newErrors.endDate = t('validation.endDateMinDiff');
-            // } else {
-            //   delete newErrors.endDate;
-            // }
-            // Commented out for testing - allow past dates for renewal reminder testing
-            // For now, just check if endDate > startDate (basic validation)
-            // const startDate = new Date(state.startDate);
-            // const endDate = new Date(value);
-            // if (endDate <= startDate) {
-            //   newErrors.endDate = t('validation.endDateAfterStartDate');
-            // } else {
-            //   delete newErrors.endDate;
-            // }
-            delete newErrors.endDate;
+            const startDate = new Date(state.startDate);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(value);
+            endDate.setHours(0, 0, 0, 0);
+            
+            // First check: endDate must be after startDate
+            if (endDate <= startDate) {
+              newErrors.endDate = t('validation.endDateAfterStartDate');
+            } else {
+              // Second check: endDate must be at least 1 month after startDate
+              const oneMonthLater = new Date(startDate);
+              oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+              if (endDate <= oneMonthLater) {
+                newErrors.endDate = t('validation.endDateMinDiff');
+              } else {
+                delete newErrors.endDate;
+              }
+            }
           } else {
             delete newErrors.endDate;
           }
@@ -910,22 +908,23 @@ export default function ContractManagementPage() {
       } else if (!isValidDate(formState.endDate)) {
         errors.endDate = t('validation.endDateInvalid');
       } else if (formState.startDate) {
-        // TEMPORARILY COMMENTED FOR TESTING: Check if endDate > startDate by at least 1 month
-        // const startDate = new Date(formState.startDate);
-        // const endDate = new Date(formState.endDate);
-        // const oneMonthLater = new Date(startDate);
-        // oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-        // if (endDate <= oneMonthLater) {
-        //     errors.endDate = t('validation.endDateMinDiff');
-        //   }
-        // Commented out for testing - allow past dates for renewal reminder testing
-        // For now, just check if endDate > startDate (basic validation)
-        // const startDate = new Date(formState.startDate);
-        // const endDate = new Date(formState.endDate);
-        // if (endDate <= startDate) {
-        //   errors.endDate = t('validation.endDateAfterStartDate') || 'Ngày kết thúc phải sau ngày bắt đầu';
-        // }
+        const startDate = new Date(formState.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(formState.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        
+        // First check: endDate must be after startDate
+        if (endDate <= startDate) {
+          errors.endDate = t('validation.endDateAfterStartDate') || 'Ngày kết thúc phải sau ngày bắt đầu';
+        } else {
+          // Second check: endDate must be at least 1 month after startDate
+          const oneMonthLater = new Date(startDate);
+          oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+          if (endDate <= oneMonthLater) {
+            errors.endDate = t('validation.endDateMinDiff');
+          }
         }
+      }
       if (!formState.paymentMethod || !formState.paymentMethod.trim()) {
         errors.paymentMethod = t('validation.paymentMethodRequired');
       }

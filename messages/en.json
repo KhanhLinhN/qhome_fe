@@ -2186,6 +2186,7 @@
       "subtitle": "Enter rental or purchase contract for the selected unit."
     },
     "validation": {
+      "endDateAfterStartDate": "End date must be after start date at least 1 month.",
       "unitRequired": "Please select a unit before creating a contract.",
       "contractNumberRequired": "Please enter contract number.",
       "contractTypeRequired": "Please select a contract type.",
