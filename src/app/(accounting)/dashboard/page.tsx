@@ -1,15 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { getBuildings } from '@/src/services/base/buildingService';
+import { getUnitsByBuilding } from '@/src/services/base/unitService';
+import { getAllInvoicesForAdmin } from '@/src/services/finance/invoiceAdminService';
+import { fetchCurrentHouseholdByUnit, fetchHouseholdMembersByHousehold } from '@/src/services/base/householdService';
+import axios from '@/src/lib/axios';
 
 type DashboardVariant = 'admin' | 'technician' | 'tenant-owner';
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
   const { user } = useAuth();
+  
+  const [stats, setStats] = useState({
+    buildings: 0,
+    units: 0,
+    residents: 0,
+    invoices: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   const normalizedRoles = user?.roles?.map(role => role.toLowerCase()) ?? [];
 
@@ -20,7 +35,85 @@ export default function DashboardPage() {
         ? 'technician'
         : normalizedRoles.includes('tenant-owner') || normalizedRoles.includes('unit_owner')
           ? 'tenant-owner'
-          : 'admin'; // Default to admin
+          : 'admin';
+
+  useEffect(() => {
+    const loadStats = async () => {
+      if (resolvedVariant !== 'admin') {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        const buildingsData: any = await getBuildings();
+        const buildingsList = Array.isArray(buildingsData) ? buildingsData : (buildingsData?.content || buildingsData?.data || []);
+        const buildingsCount = buildingsList.length;
+
+        let unitsCount = 0;
+        for (const building of buildingsList) {
+          try {
+            const units = await getUnitsByBuilding(building.id);
+            unitsCount += units.length;
+          } catch (err) {
+            console.warn(`Failed to load units for building ${building.id}:`, err);
+          }
+        }
+
+        let residentsCount = 0;
+        try {
+          const uniqueResidentIds = new Set<string>();
+          for (const building of buildingsList) {
+            try {
+              const units = await getUnitsByBuilding(building.id);
+              for (const unit of units) {
+                try {
+                  const household = await fetchCurrentHouseholdByUnit(unit.id);
+                  if (household?.id) {
+                    const members = await fetchHouseholdMembersByHousehold(household.id);
+                    members.forEach(member => {
+                      if (member.residentId) {
+                        uniqueResidentIds.add(member.residentId);
+                      }
+                    });
+                  }
+                } catch (err) {
+                  console.warn(`Failed to load household for unit ${unit.id}:`, err);
+                }
+              }
+            } catch (err) {
+              console.warn(`Failed to load units for building ${building.id}:`, err);
+            }
+          }
+          residentsCount = uniqueResidentIds.size;
+        } catch (err) {
+          console.warn('Failed to load residents:', err);
+        }
+
+        let invoicesCount = 0;
+        try {
+          const invoices = await getAllInvoicesForAdmin();
+          invoicesCount = invoices.length;
+        } catch (err) {
+          console.warn('Failed to load invoices:', err);
+        }
+
+        setStats({
+          buildings: buildingsCount,
+          units: unitsCount,
+          residents: residentsCount,
+          invoices: invoicesCount,
+        });
+      } catch (error) {
+        console.error('Failed to load dashboard stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStats();
+  }, [resolvedVariant]);
 
   // Admin sections
   const adminSections = (
@@ -31,7 +124,9 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Tòa nhà</p>
-              <p className="text-2xl font-semibold text-gray-900 mt-1">—</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? '...' : stats.buildings}
+              </p>
             </div>
             <div className="text-3xl">🏢</div>
           </div>
@@ -41,7 +136,9 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Căn hộ</p>
-              <p className="text-2xl font-semibold text-gray-900 mt-1">—</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? '...' : stats.units}
+              </p>
             </div>
             <div className="text-3xl">🏠</div>
           </div>
@@ -51,7 +148,9 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Cư dân</p>
-              <p className="text-2xl font-semibold text-gray-900 mt-1">—</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? '...' : stats.residents}
+              </p>
             </div>
             <div className="text-3xl">👥</div>
           </div>
@@ -61,7 +160,9 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Hóa đơn</p>
-              <p className="text-2xl font-semibold text-gray-900 mt-1">—</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? '...' : stats.invoices}
+              </p>
             </div>
             <div className="text-3xl">🧾</div>
           </div>
