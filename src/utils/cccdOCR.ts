@@ -37,7 +37,7 @@ async function enhanceImageForOCR(file: File): Promise<File> {
           height = Math.round(height * ratio);
         }
         
-        // Don't make it smaller if already small
+        // Resize if too small 
         if (width < 800) {
           width = Math.max(width, 800);
           height = Math.max(height, (800 * img.height) / img.width);
@@ -179,23 +179,92 @@ function sharpenImage(imageData: ImageData, width: number, height: number): Imag
 /**
  * Extract information from CCCD image using OCR
  */
+/**
+ * Convert File to data URL
+ */
+async function fileToDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result && typeof e.target.result === 'string') {
+        resolve(e.target.result);
+      } else {
+        reject(new Error('Failed to read file as data URL'));
+      }
+    };
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function extractCCCDInfo(imageFile: File): Promise<CCCDInfo> {
-  // Enhance image quality first
-  const enhancedImage = await enhanceImageForOCR(imageFile);
+  let worker = null;
+  let enhancedImage: File | null = null;
   
-  const worker = await createWorker('vie'); // Vietnamese language
   try {
-    // Enhanced image is already processed for better OCR accuracy
-    // The image has been: grayscaled, contrast-enhanced, sharpened, and resized optimally
-    const { data } = await worker.recognize(enhancedImage);
-    const text = data.text;
+    // Try to enhance image quality first, but fallback to original if it fails
+    try {
+      enhancedImage = await enhanceImageForOCR(imageFile);
+    } catch (enhanceError) {
+      console.warn('Image enhancement failed, using original image:', enhanceError);
+      enhancedImage = imageFile;
+    }
+    
+    // Create worker - in tesseract.js v4, createWorker takes options or language string
+    // Using empty options first, then load language
+    worker = await createWorker();
+    
+    if (!worker) {
+      throw new Error('Failed to create Tesseract worker');
+    }
+    
+    // Load and initialize Vietnamese language
+    await worker.loadLanguage('vie');
+    await worker.initialize('vie');
+    
+    // Try with enhanced image first, fallback to original if it fails
+    let dataURL: string;
+    let recognitionResult;
+    
+    try {
+      // Convert File to data URL - Tesseract.js v4 handles data URLs reliably
+      dataURL = await fileToDataURL(enhancedImage);
+      
+      // Enhanced image is already processed for better OCR accuracy
+      // The image has been: grayscaled, contrast-enhanced, sharpened, and resized optimally
+      // Use data URL which Tesseract.js can reliably process
+      recognitionResult = await worker.recognize(dataURL);
+    } catch (recognizeError) {
+      // If enhanced image fails, try with original image
+      console.warn('Recognition with enhanced image failed, trying original:', recognizeError);
+      if (enhancedImage !== imageFile) {
+        dataURL = await fileToDataURL(imageFile);
+        recognitionResult = await worker.recognize(dataURL);
+      } else {
+        throw recognizeError;
+      }
+    }
+    
+    const text = recognitionResult.data.text;
     
     // Parse the extracted text
     const info = parseCCCDText(text);
     
     return info;
+  } catch (error) {
+    console.error('OCR Error:', error);
+    throw error;
   } finally {
-    await worker.terminate();
+    // Always terminate worker if it was created
+    if (worker) {
+      try {
+        await worker.terminate();
+      } catch (terminateError) {
+        console.error('Error terminating worker:', terminateError);
+      }
+    }
   }
 }
 
@@ -218,7 +287,6 @@ function parseCCCDText(text: string): CCCDInfo {
   // CCCD number can be 12 or 13 digits (old CMND is 9 digits, new CCCD is 12-13 digits)
   // Usually appears after keywords like "Số", "CCCD", "Căn cước"
   
-  // First, try to find number after keywords (most reliable)
   const keywordPatterns = [
     /(?:Số|Số\s+CCCD|CCCD|Căn\s+cước|sánh)[:\s]*(\d{12,13})/i, // OCR might misread "Số" as "sánh"
     /(?:Số|CCCD|Căn\s+cước)[:\s]*(\d{3}\s?\d{3}\s?\d{3}\s?\d{3,4})/i, // With spaces

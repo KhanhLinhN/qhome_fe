@@ -69,7 +69,7 @@
       "columns": {
         "resident": "Resident",
         "contact": "Contact",
-        "unit": "Unit",
+        "unit": "Apartment",
         "proposedAccount": "Proposed account",
         "submittedBy": "Submitted by",
         "relation": "Relation",
@@ -89,7 +89,7 @@
     },
     "fallbacks": {
       "unknownResidentName": "Not provided",
-      "unknownUnitCode": "Unknown unit code",
+      "unknownUnitCode": "Unknown apartment code",
       "missingHouseholdId": "No household ID",
       "unknownRequester": "Unknown",
       "notUpdated": "Not updated"
@@ -130,7 +130,7 @@
     "residentList": "Resident List",
     "approveResidentAccount": "Approve Resident Account",
     "approveFamilyMember": "Approve Family Member",
-    "unitContracts": "Unit Contracts",
+    "unitContracts": "Apartment Contracts",
     "rentalContractReview": "Rental Contract Review",
     "vehicleManagement": "Vehicle Management",
     "services": "Services",
@@ -158,7 +158,7 @@
     "buildings": "Buildings",
     "employees": "Employees",
     "home": "Home",
-    "unitManagement": "Unit Management",
+    "unitManagement": "Apartment Management",
     "elevatorCard": "Elevator Card",
     "residentCard": "Resident Card",
     "approvedCard": "Approved Card",
@@ -169,8 +169,8 @@
   },
   "Account": {
     "selectBuilding": "Select building",
-    "selectUnit": "Select unit",
-    "selectUnitPlaceholder": "-- Select unit --",
+    "selectUnit": "Select apartment",
+    "selectUnitPlaceholder": "-- Select apartment --",
     "selectBuildingFirst": "Select building first",
     "defaultRejectionReason": "Information is incomplete",
     "relation": {
@@ -179,20 +179,20 @@
     },
     "errors": {
       "loadBuildingsFailed": "Unable to load building list.",
-      "loadUnitsFailed": "Unable to load unit list.",
+      "loadUnitsFailed": "Unable to load apartment list.",
       "loadContractDetailFailed": "Unable to load contract details.",
       "contractDetailNotFound": "Contract information not found.",
       "buildingRequired": "Please select a building.",
-      "unitRequired": "Please select a unit.",
-      "householdNotFound": "This unit does not have a household. Please create one first.",
+      "unitRequired": "Please select a apartment.",
+      "householdNotFound": "This apartment does not have a household. Please create one first.",
       "householdInfoInvalid": "Please check household information again.",
       "householdAlreadyHasOwner": "This household already has a house owner.",
-      "contractNotFound": "This unit does not have a valid contract. Please create a contract first.",
-      "loadUnitDetailFailed": "Unable to load unit details",
-      "loadContractFailed": "Unable to load unit contracts.",
+      "contractNotFound": "This apartment does not have a valid contract. Please create a contract first.",
+      "loadUnitDetailFailed": "Unable to load apartment details",
+      "loadContractFailed": "Unable to load apartment contracts.",
       "loadContractInfoFailed": "Unable to load contract information. Please try again.",
       "loadHouseholdFailed": "Unable to load household information.",
-      "createHouseholdFailed": "Unable to create household for this unit.",
+      "createHouseholdFailed": "Unable to create household for this apartment.",
       "createAccountFailed": "Unable to create resident account. Please try again.",
       "fullNameRequired": "Resident name is required.",
       "emailRequired": "Email is required.",
@@ -316,7 +316,7 @@
       "technician": "Technician",
       "supporter": "Supporter",
       "resident": "Resident",
-      "unitOwner": "Unit Owner"
+      "unitOwner": "Apartment Owner"
     },
     "tabs": {
       "staff": "Staff ({count})",
@@ -434,7 +434,7 @@
       "title": "Quick Actions",
       "editProfile": "Edit Profile",
       "changePassword": "Change Password",
-      "viewUnitInfo": "View Unit Information",
+      "viewUnitInfo": "View Apartment Information",
       "logout": "Logout"
     },
     "accountInfo": {
@@ -719,8 +719,8 @@
       "Processing": "Processing",
       "Done": "Done",
       "back": "Back",
-      "unitCode": "Unit Code",
-      "unitName": "Unit Name",
+      "unitCode": "Apartment Code",
+      "unitName": "Apartment Name",
       "contactPhone": "Contact Phone",
       "location": "Location",
       "preferredDatetime": "Preferred Date/Time",
@@ -737,6 +737,67 @@
       "complete": "Complete",
       "cost": "Cost",
       "enterCost": "Enter cost (optional)"
+    },
+    "Feedback":{
+      "feedbackList": "Feedback List",
+      "feedbackNumber": "Feedback No.",
+      "feedbackTitle": "Feedback Title",
+      "residentName": "Resident Name",
+      "status": "Status",
+      "search": "Search",
+      "clear": "Clear",
+      "from": "From",
+      "to": "To",
+      "new": "New",
+      "processing": "Processing",
+      "completed": "Completed",
+      "closed": "Closed",
+      "totalFeedbacks": "Total Feedbacks",
+      "newFeedbacks": "New Feedbacks",
+      "processingFeedbacks": "Processing Feedbacks",
+      "respondedFeedbacks": "Responded Feedbacks",
+      "closedFeedbacks": "Closed Feedbacks",
+      "action": "Action",
+      "dateCreated": "Date created",
+      "selected": "selected",
+      "contextTitle": "Feedback title: ",
+      "contextContextTitle": "Feedback content: ",
+      "contextImageTitle": "Feedback image",
+      "feedbackDetails": "Feedback Details",
+      "response": "Response",
+      "responsePlaceholder": "Enter your response here...",
+      "save": "Save",
+      "cancel": "Cancel",
+      "loading": "Data is loading...",
+      "error": "Error loading data",
+      "retry": "Please try again",
+      "noData": "No data to display",
+      "viewDetails": "View Details",
+      "formInactiveMessage": "Feedback has completed/closed",
+      "reply": "Reply",
+      "replyFeedback": "Reply to Feedback",
+      "feedbacks": "Feedbacks",
+      "type": "Type",
+      "note": "Note",
+      "notePlaceholder": "Enter note...",
+      "enterNote": "Enter note",
+      "noteRequired": "Note is required",
+      "replyFailed": "Failed to send reply. Please try again.",
+      "saving": "Saving...",
+      "pending": "Pending",
+      "done": "Done",
+      "New": "New",
+      "Pending": "Pending",
+      "Processing": "Processing",
+      "Done": "Done",
+      "back": "Back",
+      "unitCode": "Apartment Code",
+      "unitName": "Apartment Name",
+      "Cancel": "Cancel",
+      "onlyStaffCanReply": "Only staff can reply to this feedback.",
+      "accessDenied": "Access Denied",
+      "accessDeniedMessage": "You do not have permission to view this feedback detail.",
+      "onlySupporterCanReply": "Only supporters can reply to this feedback."
     }
   },
   "Dashboard":{
@@ -819,13 +880,13 @@
     "nameError": "Name is required",
     "addressError": "Address is required",
     "floorsError": "Floors must be greater than 0",
-    "downloadUnitTemplate": "Download unit import template",
+    "downloadUnitTemplate": "Download apartment import template",
     "selectExcelFile": "Select Excel file",
     "importing": "Importing...",
     "exportExcel": "Export Excel",
     "addMeter": "Add Meter",
-    "unit": "Unit",
-    "selectUnit": "-- Select unit --",
+    "unit": "Apartment",
+    "selectUnit": "-- Select apartment --",
     "service": "Service",
     "selectService": "-- Select service --",
     "installedDate": "Installation date (optional)",
@@ -845,14 +906,14 @@
     "meterImportGuideDesc2": "Keep column names <bold>unitCode</bold>, <bold>serviceCode</bold>, <bold>installedAt</bold> unchanged and do not change the format.",
     "meterImportGuideDesc3": "Each template has an <bold>Available services</bold> table at the bottom to help you select valid service codes.",
     "messages": {
-      "failedToLoadUnits": "Unable to load unit list",
+      "failedToLoadUnits": "Unable to load apartment list",
       "failedToDownloadTemplate": "Failed to download template",
       "failedToExportExcel": "Failed to export Excel",
       "importFailed": "Import failed",
       "failedToDownloadMeterTemplate": "Failed to download meter template",
       "meterImportFailed": "Meter import failed",
       "failedToExportMeterExcel": "Failed to export meter Excel",
-      "pleaseSelectUnitAndService": "Please select unit and service",
+      "pleaseSelectUnitAndService": "Please select apartment and service",
       "meterAddedSuccess": "Meter added successfully",
       "failedToCreateMeter": "Unable to create meter"
     },
@@ -1050,7 +1111,7 @@
     "optionDescription": "Option description",
     "optionIsRequired": "Required option",
     "optionPrice": "Price",
-    "optionUnit": "Unit",
+    "optionUnit": "Apartment",
     "noOptions": "No additional options",
     "noDescription": "No description",
     "optionGroups": "Option groups",
@@ -1204,15 +1265,15 @@
     "deleteTicket": "Delete ticket"
   },
   "Unit": {
-    "unitCode": "Unit Code",
-    "unitName": "Unit Name",
-    "unitType": "Unit Type",
+    "unitCode": "Apartment Code",
+    "unitName": "Apartment Name",
+    "unitType": "Apartment Type",
     "unitStatus": "Status",
     "ownerName": "Owner Name",
     "ownerContact": "Owner Contact",
     "return": "Return building detail",
-    "unitDetail": "Unit detail",
-    "unitEdit": "Edit unit",
+    "unitDetail": "Apartment detail",
+    "unitEdit": "Edit apartment",
     "inactive": "Inactive",
     "active": "Active",
     "hotline": "Hotline",
@@ -1224,32 +1285,32 @@
     "load": "Data is loading...",
     "error": "Error loading data",
     "retry": "Please try again",
-    "createUnitError": "Error creating unit",
-    "errorUnit": "An error occurred while creating the unit",
+    "createUnitError": "Error creating apartment",
+    "errorUnit": "An error occurred while creating the apartment",
     "updateUnitError": "Error updating",
-    "updateUnitSuccess": "Unit updated successfully!",
-    "updateUnitFailed": "An error occurred while updating the unit!",
+    "updateUnitSuccess": "Apartment updated successfully!",
+    "updateUnitFailed": "An error occurred while updating the apartment!",
     "clear": "Clear",
     "yes": "Yes",
     "no": "No",
-    "deleteUnitT": "Delete unit?",
-    "deleteUnitC": "Are you sure you want to delete unit",
+    "deleteUnitT": "Delete apartment?",
+    "deleteUnitC": "Are you sure you want to delete apartment",
     "saveNewT": "Save new change?",
     "saveNewC": "Are you sure you want to save the following changes?",
     "leavingT": "Leaving page?",
     "leavingC": "You have not finished updating your information. Do you want to leave without finishing?",
     "saving": "Is saving",
-    "returnUnitList": "Return unit list",
-    "returnUnitDetail": "Return unit detail",
-    "deleteUnit": "Delete unit",
+    "returnUnitList": "Return apartment list",
+    "returnUnitDetail": "Return apartment detail",
+    "deleteUnit": "Delete apartment",
     "buildingName": "Building Name",
     "floor": "Floor",
     "bedrooms": "Bedrooms",
     "areaM2": "Area (m²)",
-    "addUnit": "Add unit",
-    "unitList": "Unit List",
-    "unit": "Unit",
-    "noUnit": "No unit",
+    "addUnit": "Add apartment",
+    "unitList": "Apartment List",
+    "unit": "Apartment",
+    "noUnit": "No apartment",
     "floorError": "Floor must be greater than 0",
     "bedroomsError": "Bedrooms must be greater than 0",
     "areaError": "Area must be greater than 0",
@@ -1275,7 +1336,7 @@
       "noData": "No data"
     },
     "unitSearch": {
-      "placeholder": "Search unit"
+      "placeholder": "Search apartment"
     },
     "summary": {
       "total": "Total: {count} units",
@@ -1284,9 +1345,9 @@
     "statusChange": {
       "buttonTitle": "Change status",
       "confirmTitle": "Confirm status change",
-      "confirmDeactivate": "Are you sure you want to deactivate this unit?",
-      "confirmActivate": "Are you sure you want to activate this unit?",
-      "updateFailed": "Failed to update unit status"
+      "confirmDeactivate": "Are you sure you want to deactivate this apartment?",
+      "confirmActivate": "Are you sure you want to activate this apartment?",
+      "updateFailed": "Failed to update apartment status"
     },
     "altText": {
       "viewDetail": "View Detail",
@@ -1295,9 +1356,9 @@
       "delete": "Delete"
     },
     "unitNew": {
-      "title": "Add Unit",
-      "nameMaxError": "Unit name must not exceed 40 characters",
-      "nameSpecialCharError": "Unit name must not contain special characters",
+      "title": "Add Apartment",
+      "nameMaxError": "Apartment name must not exceed 40 characters",
+      "nameSpecialCharError": "Apartment name must not contain special characters",
       "bedroomsErrorRange": "Bedrooms must be between 1-9",
       "areaErrorRange": "Area must be > 0 and < 150",
       "floorMaxError": "Floor must not exceed the building's maximum floors ({floorsMax})"
@@ -1352,7 +1413,7 @@
     "active": "Active",
     "inactive": "Inactive",
     "building": "Building",
-    "unit": "Unit",
+    "unit": "Apartment",
     "approveVehicle": "Approve",
     "rejectVehicle": "Reject",
     "deleteVehicle": "Delete",
@@ -1391,21 +1452,21 @@
     "vehicleListReturn": "Return vehicle list",
     "action": "Action",
     "buildingUnitList": "Buildings & Units",
-    "buildingUnitListDescription": "Select a building or unit to filter the vehicle list.",
+    "buildingUnitListDescription": "Select a building or apartment to filter the vehicle list.",
     "searchBuildingUnit": "Filter buildings or units",
     "toggleBuilding": "Toggle building",
     "all": "All",
-    "collapseBuildingUnitSection": "Collapse building and unit list",
-    "expandBuildingUnitSection": "Expand building and unit list",
+    "collapseBuildingUnitSection": "Collapse building and apartment list",
+    "expandBuildingUnitSection": "Expand building and apartment list",
     "vehiclePanelTitle": "Vehicle List",
     "vehiclePanelDescriptionAll": "Showing all {total} vehicles.",
     "vehiclePanelDescriptionBuilding": "Showing {total} vehicles in the selected building.",
-    "vehiclePanelDescriptionUnit": "Showing {total} vehicles in the selected unit.",
+    "vehiclePanelDescriptionUnit": "Showing {total} vehicles in the selected apartment.",
     "searchVehicle": "Filter vehicles",
     "residentsVehiclesTitle": "Residents & Vehicles",
     "residentsVehiclesAllDescription": "Showing all {total} vehicles.",
     "residentsVehiclesBuildingDescription": "Showing {total} vehicles in the selected building.",
-    "residentsVehiclesUnitDescription": "Showing {total} vehicles in the selected unit.",
+    "residentsVehiclesUnitDescription": "Showing {total} vehicles in the selected apartment.",
     "searchResidentVehicle": "Filter residents or vehicles",
     "altText": {
       "viewDetail": "View Detail",
@@ -1426,7 +1487,7 @@
     "title": "Resident Directory",
     "viewRegistrationButton": "View resident registration requests",
     "buildingUnitList": "Buildings & Units",
-    "buildingUnitDescription": "Choose a building or unit to filter the resident list.",
+    "buildingUnitDescription": "Choose a building or apartment to filter the resident list.",
     "collapseBuildingUnit": "Collapse buildings and units",
     "expandBuildingUnit": "Expand buildings and units",
     "searchBuildingUnit": "Filter buildings or units",
@@ -1436,13 +1497,13 @@
     "residentsPanelTitle": "Residents & Accounts",
     "residentsPanelAll": "Showing {count} residents",
     "residentsPanelBuilding": "Showing {count} residents in the selected building",
-    "residentsPanelUnit": "Showing {count} residents in the selected unit",
+    "residentsPanelUnit": "Showing {count} residents in the selected apartment",
     "searchResident": "Filter by name, email, phone...",
     "tableName": "Resident Name",
     "tableContact": "Contact",
     "tableRelation": "Relation",
     "tableBuilding": "Building",
-    "tableUnit": "Unit",
+    "tableUnit": "Apartment",
     "tablePrimary": "Primary Resident",
     "tableAction": "Action",
     "primaryYes": "Primary",
@@ -1483,7 +1544,7 @@
     "all": "All",
     "active": "Active",
     "inactive": "Inactive",
-    "filterByUnit": "Filter by Unit",
+    "filterByUnit": "Filter by Apartment",
     "allUnits": "All Units",
     "meters": "Meters",
     "meterCode": "Meter Code",
@@ -1502,8 +1563,8 @@
     "noMetersOrApartments": "No meters or apartments found for this building",
     "createMeter": "Create Meter",
     "editMeter": "Edit Meter",
-    "unit": "Unit",
-    "selectUnit": "Select unit",
+    "unit": "Apartment",
+    "selectUnit": "Select apartment",
     "meterType": "Meter Type",
     "cancel": "Cancel",
     "saving": "Saving...",
@@ -1768,10 +1829,10 @@
       "noBuildingInfo": "No building information linked."
     },
     "units": {
-      "loading": "Loading unit list...",
+      "loading": "Loading apartment list...",
       "noUnits": "No units assigned to this resident.",
       "unknownBuilding": "Unknown building",
-      "unknownUnitCode": "Unknown unit code",
+      "unknownUnitCode": "Unknown apartment code",
       "houseOwner": "House owner",
       "from": "From"
     },
@@ -1845,16 +1906,16 @@
       "assignedUnits": "Assigned units list"
     },
     "units": {
-      "loading": "Loading unit list...",
+      "loading": "Loading apartment list...",
       "loadingBuildings": "Loading building list...",
       "noUnits": "No units assigned to this resident account.",
       "noUnitsInBuilding": "No units found in the selected building.",
       "unknownBuilding": "Unknown building",
-      "unknownUnitCode": "Unknown unit code",
+      "unknownUnitCode": "Unknown apartment code",
       "houseOwner": "House owner",
       "from": "From",
       "building": "Building",
-      "selectUnit": "Select unit",
+      "selectUnit": "Select apartment",
       "floor": "Floor",
       "assigned": "Assigned"
     },
@@ -1863,8 +1924,8 @@
       "save": "Save changes",
       "saving": "Saving...",
       "cancel": "Cancel",
-      "addUnit": "Add unit",
-      "assignUnit": "Assign unit",
+      "addUnit": "Add apartment",
+      "assignUnit": "Assign apartment",
       "assigning": "Assigning..."
     },
     "validation": {
@@ -1884,15 +1945,15 @@
       "loadFailed": "Unable to load resident account information.",
       "accountNotFound": "Account information not found.",
       "loadBuildingsFailed": "Unable to load building list.",
-      "loadUnitsFailed": "Unable to load unit list.",
+      "loadUnitsFailed": "Unable to load apartment list.",
       "userNotIdentified": "Unable to identify resident.",
-      "noUnitsSelected": "Please select at least one unit that has not been assigned to the resident.",
+      "noUnitsSelected": "Please select at least one apartment that has not been assigned to the resident.",
       "assignUnitsFailed": "Unable to assign units to resident. Please try again."
     },
     "messages": {
       "updateSuccess": "Resident account updated successfully.",
       "updateError": "Failed to update account. Please try again.",
-      "assignUnitsSuccess": "Successfully assigned {count} unit(s) to resident."
+      "assignUnitsSuccess": "Successfully assigned {count} apartment(s) to resident."
     }
   },
   "Table": {
@@ -1921,7 +1982,7 @@
       "technician": "Technician",
       "supporter": "Supporter",
       "resident": "Resident",
-      "unitOwner": "Unit Owner"
+      "unitOwner": "Apartment Owner"
     },
     "actions": {
       "viewDetail": "View detail",
@@ -2006,7 +2067,7 @@
   },
   "Contracts": {
     "title": "Apartment contract management",
-    "subtitle": "Create and track rental/purchase contracts for each unit.",
+    "subtitle": "Create and track rental/purchase contracts for each apartment.",
     "buttons": {
       "addContract": "Add contract",
       "cancel": "Cancel",
@@ -2021,7 +2082,7 @@
     },
     "fields": {
       "building": "Building",
-      "unit": "Unit",
+      "unit": "Apartment",
       "contractNumber": "Contract number",
       "contractType": "Contract type",
       "status": "Status",
@@ -2039,7 +2100,7 @@
     },
     "placeholders": {
       "selectBuilding": "-- Select building --",
-      "selectUnit": "-- Select unit --",
+      "selectUnit": "-- Select apartment --",
       "selectBuildingFirst": "Select building first",
       "ddmmyyyy": "dd/mm/yyyy",
       "mmyyyy": "MM/YYYY",
@@ -2082,10 +2143,10 @@
       "generatingContractNumber": "Generating contract number..."
     },
     "empty": {
-      "noContracts": "This unit currently has no contracts.",
-      "noActiveContracts": "This unit currently has no active contracts.",
-      "noExpiredContracts": "This unit currently has no expired contracts.",
-      "selectToView": "Select a building and a unit to view contracts.",
+      "noContracts": "This apartment currently has no contracts.",
+      "noActiveContracts": "This apartment currently has no active contracts.",
+      "noExpiredContracts": "This apartment currently has no expired contracts.",
+      "selectToView": "Select a building and a apartment to view contracts.",
       "noAttachments": "This contract has no attachments yet. You can upload files here."
     },
     "tabs": {
@@ -2119,10 +2180,11 @@
     },
     "create": {
       "title": "Add new contract",
-      "subtitle": "Enter rental or purchase contract for the selected unit."
+      "subtitle": "Enter rental or purchase contract for the selected apartment."
     },
     "validation": {
-      "unitRequired": "Please select a unit before creating a contract.",
+      "endDateAfterStartDate": "End date must be after start date at least 1 month.",
+      "unitRequired": "Please select a apartment before creating a contract.",
       "contractNumberRequired": "Please enter contract number.",
       "contractTypeRequired": "Please select a contract type.",
       "startDateRequired": "Please select the contract start date.",
@@ -2145,7 +2207,7 @@
     },
     "errors": {
       "loadBuildings": "Unable to load building list.",
-      "loadUnits": "Unable to load unit list for this building.",
+      "loadUnits": "Unable to load apartment list for this building.",
       "loadContracts": "An error occurred while loading contracts. Please try again.",
       "createFailed": "Unable to create contract. Please try again.",
       "uploadFilesFailed": "Unable to upload attachment files. Please try again.",
@@ -2286,7 +2348,7 @@
       "floor": "Floor {floor}",
       "unitsCount": "({count} units)",
       "selectedCount": "({count} selected)",
-      "selectedUnits": "Selected: {count} unit(s)",
+      "selectedUnits": "Selected: {count} apartment(s)",
       "note": "Note",
       "optional": "Optional"
     },
@@ -2304,7 +2366,7 @@
       "selectCycle": "Please select a cycle",
       "selectService": "Please select a service",
       "selectStaff": "Please select a staff member to assign to",
-      "selectAtLeastOneUnit": "Please select at least one unit",
+      "selectAtLeastOneUnit": "Please select at least one apartment",
       "startDateBeforeCycle": "Start date cannot be before the cycle start date",
       "endDateAfterCycle": "End date cannot be after the cycle end date"
     },
@@ -2340,7 +2402,7 @@
       },
       "createMeter": {
         "label": "Create Meter",
-        "description": "Select building, unit then add new meter by service."
+        "description": "Select building, apartment then add new meter by service."
       },
       "readingAssignment": {
         "label": "Reading Assignment",
@@ -2370,11 +2432,11 @@
       "approved": "Approved",
       "completed": "Completed"
     },
-    "paymentStatus": {
-      "paid": "Paid",
+    "paymentStatusLabels": {
+      "unpaid": "Unpaid",
       "paymentPending": "Payment Pending",
       "paymentApproval": "Awaiting Approval",
-      "unpaid": "Unpaid"
+      "paid": "Paid"
     },
     "table": {
       "cardType": "Card Type",
@@ -2596,21 +2658,21 @@
     },
     "list": {
       "title": "Household Management",
-      "subtitle": "Select building and unit to view list of households currently/past residing.",
+      "subtitle": "Select building and apartment to view list of households currently/past residing.",
       "createNew": "Create New Household",
       "householdList": "Household List",
-      "showingSelectedUnit": "Showing households for selected unit.",
-      "selectToView": "Please select building and unit to view household list.",
-      "viewUnitDetail": "View Unit Detail"
+      "showingSelectedUnit": "Showing households for selected apartment.",
+      "selectToView": "Please select building and apartment to view household list.",
+      "viewUnitDetail": "View Apartment Detail"
     },
     "new": {
       "title": "Create New Household",
-      "subtitle": "Link household to unit and set residence period.",
+      "subtitle": "Link household to apartment and set residence period.",
       "backToList": "Back to List"
     },
     "fields": {
       "building": "Building",
-      "unit": "Unit",
+      "unit": "Apartment",
       "kind": "Household Type",
       "startDate": "Start Date",
       "endDate": "End Date",
@@ -2618,7 +2680,7 @@
     },
     "placeholders": {
       "selectBuilding": "-- Select Building --",
-      "selectUnit": "-- Select Unit --",
+      "selectUnit": "-- Select apartment --",
       "selectBuildingFirst": "Please select building first",
       "primaryResidentId": "Enter resident UUID if available"
     },
@@ -2641,16 +2703,16 @@
       "households": "Loading households..."
     },
     "empty": {
-      "noHouseholds": "No households found for this unit."
+      "noHouseholds": "No households found for this apartment."
     },
     "validation": {
-      "unitRequired": "Please select unit to create household.",
+      "unitRequired": "Please select apartment to create household.",
       "startDateRequired": "Please select start date."
     },
     "errors": {
       "loadBuildings": "Failed to load buildings list.",
       "loadUnits": "Failed to load units list for this building.",
-      "loadHouseholds": "Failed to load households list for the unit.",
+      "loadHouseholds": "Failed to load households list for the apartment.",
       "createFailed": "Failed to create household. Please try again."
     },
     "messages": {
@@ -2680,7 +2742,7 @@
     },
     "householdCode": "Household {code}",
     "noHouseholdCode": "No household code",
-    "unit": "Unit",
+    "unit": "Apartment",
     "relation": "Relation",
     "relationUnknown": "Unknown",
     "note": "Note",
@@ -2761,7 +2823,7 @@
       "loading": "Loading meter data...",
       "headers": {
         "building": "Building",
-        "unit": "Unit",
+        "unit": "Apartment",
         "floor": "Floor",
         "service": "Service",
         "meterCode": "Meter Code",
@@ -2786,7 +2848,7 @@
       "hasMissing": "There are {count} units without meters.",
       "headers": {
         "building": "Building",
-        "unit": "Unit",
+        "unit": "Apartment",
         "floor": "Floor"
       }
     },
@@ -2932,7 +2994,7 @@
       "title": "House owner information",
       "fields": {
         "building": "Building",
-        "unit": "Unit",
+        "unit": "Apartment",
         "fullName": "Resident full name",
         "email": "Email",
         "phone": "Phone number",
@@ -2943,13 +3005,13 @@
       },
       "placeholders": {
         "selectBuilding": "-- Select building --",
-        "selectUnit": "-- Select unit --",
+        "selectUnit": "-- Select apartment --",
         "selectBuildingFirst": "Select building first",
         "fullName": "Enter full name",
         "email": "example@domain.com",
         "phone": "Enter phone number (10 digits, starting with 0)",
         "dob": "Select date of birth",
-        "nationalId": "Enter ID card/Citizen ID number (13 digits)",
+        "nationalId": "Enter ID card/Citizen ID number (12 digits)",
         "username": "Leave blank for system to auto-generate",
         "relation": "House owner"
       },
@@ -2960,8 +3022,8 @@
         "effectiveFrom": "Effective from:",
         "effectiveTo": "Effective to:",
         "unlimited": "Unlimited",
-        "noContract": "This unit does not have a valid contract. Please create a contract before creating house owner account.",
-        "selectFirst": "Select building and unit to view contract information.",
+        "noContract": "This apartment does not have a valid contract. Please create a contract before creating house owner account.",
+        "selectFirst": "Select building and apartment to view contract information.",
         "viewDetail": "View contract details"
       },
       "householdInfo": {
@@ -2971,7 +3033,7 @@
         "startDate": "Start date:",
         "endDate": "End date:",
         "notSet": "Not set",
-        "unit": "Unit:",
+        "unit": "Apartment",
         "building": "Building:",
         "floor": "Floor:",
         "area": "Area:"
@@ -2986,7 +3048,7 @@
       },
       "loading": {
         "buildings": "Loading building list...",
-        "units": "Loading unit list...",
+        "units": "Loading apartment list...",
         "household": "Loading household information..."
       }
     },
@@ -3006,7 +3068,8 @@
       "nationalId": {
         "required": "ID card/Citizen ID cannot be empty.",
         "specialChars": "ID card/Citizen ID cannot contain special characters.",
-        "mustBe13Digits": "ID card/Citizen ID must be exactly 12 digits."
+        "mustBe13Digits": "ID card/Citizen ID must be exactly 12 digits.",
+        "exists": "Citizen ID number already exists in the system."
       },
       "username": {
         "noWhitespace": "Username cannot contain whitespace.",
@@ -3030,23 +3093,23 @@
         "required": "Please select a building."
       },
       "unit": {
-        "required": "Please select a unit.",
-        "noHousehold": "This unit does not have a household. Please create one first.",
+        "required": "Please select a apartment.",
+        "noHousehold": "This apartment does not have a household. Please create one first.",
         "householdInvalid": "Please check household information again.",
         "hasOwner": "This household already has a house owner.",
-        "noContract": "This unit does not have a valid contract. Please create a contract first."
+        "noContract": "This apartment does not have a valid contract. Please create a contract first."
       }
     },
     "messages": {
-      "createHouseholdSuccess": "Created new household for unit.",
+      "createHouseholdSuccess": "Created new household for apartment.",
       "createAccountSuccess": "Created house owner and resident account successfully.",
       "createAccountError": "Unable to create resident account. Please try again.",
       "loadBuildingsError": "Unable to load building list.",
-      "loadUnitsError": "Unable to load unit list.",
+      "loadUnitsError": "Unable to load apartment list.",
       "loadContractError": "Unable to load contract details.",
       "loadHouseholdError": "Unable to load household information.",
       "loadContractInfoError": "Unable to load contract information. Please try again.",
-      "createHouseholdError": "Unable to create household for this unit."
+      "createHouseholdError": "Unable to create household for this apartment."
     },
     "requestsTab": {
       "title": "List of account creation requests from residents",
@@ -3110,14 +3173,14 @@
     },
     "errors": {
       "loadBuildingsFailed": "Unable to load building list.",
-      "loadUnitsFailed": "Unable to load unit list.",
+      "loadUnitsFailed": "Unable to load apartment list.",
       "loadContractDetailFailed": "Unable to load contract details.",
       "loadContractNotFound": "Contract information not found.",
-      "loadUnitFailed": "Unable to load unit information",
-      "loadContractByUnitFailed": "Unable to load unit contracts.",
+      "loadUnitFailed": "Unable to load apartment information",
+      "loadContractByUnitFailed": "Unable to load apartment contracts.",
       "loadContractInfoFailed": "Unable to load contract information. Please try again.",
       "loadHouseholdFailed": "Unable to load household information.",
-      "createHouseholdFailed": "Unable to create household for this unit.",
+      "createHouseholdFailed": "Unable to create household for this apartment.",
       "processRequestFailed": "Unable to process request. Please try again."
     },
     "success": {
@@ -3127,11 +3190,6 @@
         "username": "Username:",
         "email": "Login email:",
         "autoGenerated": "Auto-generated"
-      }
-    },
-    "validation": {
-      "nationalId": {
-        "exists": "Citizen ID number already exists in the system."
       }
     }
   },
@@ -3173,14 +3231,14 @@
         }
       },
       "buildingUnit": {
-        "title": "🏢 Building & Unit Management",
+        "title": "🏢 Building & Apartment Management",
         "buildings": {
           "title": "Buildings",
           "description": "Building management"
         },
         "units": {
           "title": "Units",
-          "description": "Unit management"
+          "description": "Apartment management"
         },
         "households": {
           "title": "Households",
@@ -3806,7 +3864,8 @@
       "creating": "Creating...",
       "createMissing": "Create missing billing",
       "refresh": "Refresh",
-      "manageDetails": "Manage details"
+      "manageDetails": "Manage details",
+      "close": "Close"
     },
     "loading": {
       "data": "Loading data...",
@@ -3847,7 +3906,10 @@
       "id": "Billing ID:",
       "relatedCycle": "Related reading cycle:",
       "viewDetails": "View details",
-      "noData": "No data"
+      "noData": "No data",
+      "externalCycleId": "External Cycle ID:",
+      "invoiceList": "Invoice List",
+      "noInvoices": "No invoices for this billing cycle"
     }
   },
   "BillingCyclesManage": {
@@ -3888,7 +3950,7 @@
       "status": "Status:",
       "invoiceList": "Invoice List",
       "floor": "Floor {floor}",
-      "unit": "Unit:",
+      "unit": "Apartment",
       "due": "Due:",
       "noBuildingSelected": "No building selected"
     },
@@ -3905,7 +3967,7 @@
       "loadFailed": "Unable to load billing cycles",
       "loadBuildingsFailed": "Unable to load building data",
       "loadInvoicesFailed": "Unable to load invoices",
-      "loadUnitsFailed": "Unable to load unit list",
+      "loadUnitsFailed": "Unable to load apartment list",
       "selectCycleRequired": "Please select a billing cycle",
       "exportFailed": "Excel export failed"
     },
@@ -3988,7 +4050,7 @@
       "tierOrder": "Tier order *",
       "minQuantity": "Min quantity (kWh/m³)",
       "maxQuantity": "Max quantity (kWh/m³)",
-      "unitPrice": "Unit price (VND/kWh or VND/m³) *",
+      "unitPrice": "Apartment price (VND/kWh or VND/m³) *",
       "effectiveFrom": "Effective from *",
       "effectiveUntil": "Effective until",
       "description": "Description",
@@ -4003,7 +4065,7 @@
     "table": {
       "tier": "Tier",
       "quantityRange": "Quantity range",
-      "unitPrice": "Unit price",
+      "unitPrice": "Apartment price",
       "effective": "Effective",
       "status": "Status",
       "actions": "Actions",
@@ -4016,7 +4078,7 @@
       "tierOrderMin": "Tier order must be >= 1",
       "minQuantityNonNegative": "Min quantity must be >= 0",
       "maxQuantityGreater": "Max quantity must be > min quantity",
-      "unitPricePositive": "Unit price must be > 0",
+      "unitPricePositive": "Apartment price must be > 0",
       "effectiveFromRequired": "Effective from date is required",
       "effectiveUntilAfterFrom": "Effective until must be >= effective from"
     },
@@ -4027,13 +4089,13 @@
       "missingFinalTierDescription": "The system requires at least one final tier with maxQuantity = null (unlimited) to cover all remaining cases.",
       "missingFinalTierExample": "Example: Final tier could be \"≥ 50 kWh\" or \"≥ 50 m³\" with maxQuantity left empty.",
       "overlappingDescription": "The following tiers have overlapping ranges:",
-      "overlappingRange": "{tier1} and {tier2} overlap from {from} to {to} {unit}",
-      "overlappingRangeFrom": "{tier1} and {tier2} overlap from {from} onwards {unit}",
-      "overlappingRangeAt": "{tier1} and {tier2} overlap at {from} {unit}",
+      "overlappingRange": "{tier1} and {tier2} overlap from {from} to {to} {apartment}",
+      "overlappingRangeFrom": "{tier1} and {tier2} overlap from {from} onwards {apartment}",
+      "overlappingRangeAt": "{tier1} and {tier2} overlap at {from} {apartment}",
       "overlappingAdjust": "Please adjust min/max of tiers to avoid overlap.",
       "gapsDescription": "The following ranges are not covered by any tier:",
-      "gapFromTo": "From {from} to {to} {unit}",
-      "gapFromUp": "From {from} onwards {unit} - Need final tier (maxQuantity = null)",
+      "gapFromTo": "From {from} to {to} {apartment}",
+      "gapFromUp": "From {from} onwards {apartment} - Need final tier (maxQuantity = null)",
       "gapsAdjust": "Please add tiers to cover these ranges or adjust max of previous tier."
     },
     "common": {
@@ -4114,7 +4176,7 @@
       "service": "Service",
       "description": "Description",
       "quantity": "Quantity",
-      "unitPrice": "Unit Price",
+      "unitPrice": "Apartment Price",
       "lineTotal": "Line Total",
       "total": "Total"
     },
@@ -4277,7 +4339,7 @@
       "requestedBy": "Requested by:",
       "requestedAt": "Request date:",
       "progress": {
-        "title": "Unit Deletion Progress:",
+        "title": "Apartment Deletion Progress:",
         "units": "{deleted} / {total} units",
         "completed": "✅ All units deleted! Can complete building deletion.",
         "remaining": "⏳ {remaining} units remaining to delete...",
