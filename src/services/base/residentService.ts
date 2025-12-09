@@ -43,6 +43,13 @@ export async function fetchResidentById(residentId: string): Promise<ResidentDto
   return response.data;
 }
 
+export async function getAllResidents(): Promise<ResidentDto[]> {
+  const response = await axios.get<ResidentDto[]>(`${BASE_URL}/api/residents`, {
+    withCredentials: true,
+  });
+  return response.data;
+}
+
 
 export async function checkNationalIdExists(nationalId: string): Promise<boolean> {
   if (!nationalId || !nationalId.trim()) {

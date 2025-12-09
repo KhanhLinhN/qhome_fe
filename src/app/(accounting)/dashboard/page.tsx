@@ -1,15 +1,33 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { getBuildings } from '@/src/services/base/buildingService';
+import { getUnitsByBuilding } from '@/src/services/base/unitService';
+import { getAllResidents } from '@/src/services/base/residentService';
+import axios from '@/src/lib/axios';
 
 type DashboardVariant = 'admin' | 'technician' | 'tenant-owner';
+
+interface DashboardStats {
+  buildingCount: number | null;
+  unitCount: number | null;
+  residentCount: number | null;
+  invoiceCount: number | null;
+}
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
   const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats>({
+    buildingCount: null,
+    unitCount: null,
+    residentCount: null,
+    invoiceCount: null,
+  });
+  const [loading, setLoading] = useState(true);
 
   const normalizedRoles = user?.roles?.map(role => role.toLowerCase()) ?? [];
 
@@ -22,6 +40,76 @@ export default function DashboardPage() {
           ? 'tenant-owner'
           : 'admin'; // Default to admin
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (resolvedVariant !== 'admin') {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // Fetch buildings
+        const buildings = await getBuildings();
+        const buildingCount = buildings.length;
+
+        // Fetch units for all buildings
+        let unitCount = 0;
+        const unitPromises = buildings.map(async (building) => {
+          try {
+            const units = await getUnitsByBuilding(building.id);
+            return units.length;
+          } catch (error) {
+            console.error(`Failed to fetch units for building ${building.id}:`, error);
+            return 0;
+          }
+        });
+        const unitCounts = await Promise.all(unitPromises);
+        unitCount = unitCounts.reduce((sum, count) => sum + count, 0);
+
+        // Fetch residents count using getAllResidents endpoint
+        let residentCount: number | null = null;
+        try {
+          const residents = await getAllResidents();
+          residentCount = residents.length;
+        } catch (error) {
+          console.error('Failed to fetch resident count:', error);
+        }
+
+        // Fetch invoice count
+        let invoiceCount: number | null = null;
+        try {
+          const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
+          // Get invoice count from admin endpoint
+          const response = await axios.get(`${BASE_URL}/api/invoices/admin/all`, {
+            withCredentials: true,
+          });
+          // The endpoint returns a list, so count the items
+          if (Array.isArray(response.data)) {
+            invoiceCount = response.data.length;
+          }
+        } catch (error) {
+          // If admin endpoint doesn't work, leave it as null
+          console.warn('Could not fetch invoice count from admin endpoint:', error);
+        }
+
+        setStats({
+          buildingCount,
+          unitCount,
+          residentCount,
+          invoiceCount,
+        });
+      } catch (error) {
+        console.error('Failed to fetch dashboard statistics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchStats();
+  }, [resolvedVariant]);
+
   // Admin sections
   const adminSections = (
     <>
@@ -31,7 +119,15 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Tòa nhà</p>
-              <p className="text-2xl font-semibold text-gray-900 mt-1">—</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? (
+                  <span className="text-gray-400">...</span>
+                ) : stats.buildingCount !== null ? (
+                  stats.buildingCount.toLocaleString('vi-VN')
+                ) : (
+                  '—'
+                )}
+              </p>
             </div>
             <div className="text-3xl">🏢</div>
           </div>
@@ -41,7 +137,15 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Căn hộ</p>
-              <p className="text-2xl font-semibold text-gray-900 mt-1">—</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? (
+                  <span className="text-gray-400">...</span>
+                ) : stats.unitCount !== null ? (
+                  stats.unitCount.toLocaleString('vi-VN')
+                ) : (
+                  '—'
+                )}
+              </p>
             </div>
             <div className="text-3xl">🏠</div>
           </div>
@@ -51,7 +155,15 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Cư dân</p>
-              <p className="text-2xl font-semibold text-gray-900 mt-1">—</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? (
+                  <span className="text-gray-400">...</span>
+                ) : stats.residentCount !== null ? (
+                  stats.residentCount.toLocaleString('vi-VN')
+                ) : (
+                  '—'
+                )}
+              </p>
             </div>
             <div className="text-3xl">👥</div>
           </div>
@@ -61,7 +173,15 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Hóa đơn</p>
-              <p className="text-2xl font-semibold text-gray-900 mt-1">—</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? (
+                  <span className="text-gray-400">...</span>
+                ) : stats.invoiceCount !== null ? (
+                  stats.invoiceCount.toLocaleString('vi-VN')
+                ) : (
+                  '—'
+                )}
+              </p>
             </div>
             <div className="text-3xl">🧾</div>
           </div>
