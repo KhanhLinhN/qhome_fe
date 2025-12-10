@@ -3942,7 +3942,8 @@
       "creating": "Đang tạo...",
       "createMissing": "Tạo billing thiếu",
       "refresh": "Làm mới",
-      "manageDetails": "Quản lý chi tiết"
+      "manageDetails": "Quản lý chi tiết",
+      "close": "Đóng"
     },
     "loading": {
       "data": "Đang lấy dữ liệu...",
@@ -3983,7 +3984,10 @@
       "id": "ID billing:",
       "relatedCycle": "Chu kỳ đọc liên quan:",
       "viewDetails": "Xem chi tiết",
-      "noData": "Không có dữ liệu"
+      "noData": "Không có dữ liệu",
+      "externalCycleId": "Mã chu kỳ bên ngoài:",
+      "invoiceList": "Danh sách hóa đơn",
+      "noInvoices": "Chưa có hóa đơn nào cho chu kỳ này"
     }
   },
   "BillingCyclesManage": {
