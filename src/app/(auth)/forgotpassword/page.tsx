@@ -114,10 +114,10 @@ export default function Page() {
               {loading ? t('forgotPassword.buttons.processing') : t('forgotPassword.buttons.submit')}
             </button>
 
-            <div className="text-center">
+            <div>
               <a 
                 href="/login" 
-                className="text-sm text-green-600 hover:text-green-700 hover:underline"
+                className="w-full inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors no-underline"
               >
                 {t('forgotPassword.backToLogin')}
               </a>

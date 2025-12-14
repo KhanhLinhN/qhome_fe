@@ -455,11 +455,11 @@ export default function AccountListPage() {
           {t('title')}
         </h1>
         <div className="bg-white p-6 rounded-xl w-full min-h-[200px] shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center">
             <div className="flex flex-col gap-1">
               <p className="text-sm text-gray-500">{t('filters.label')}</p>
             </div>
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 md:justify-start md:flex-1">
               <div className="w-full md:w-64">
                 <input
                   type="text"
@@ -469,7 +469,7 @@ export default function AccountListPage() {
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                 />
               </div>
-              {activeTab === 'STAFF' ? (
+              {activeTab === 'STAFF' && (
                 <div className="w-full md:w-48">
                   <Select
                     options={roleOptions}
@@ -482,20 +482,22 @@ export default function AccountListPage() {
                     placeholder={t('filters.allRoles')}
                   />
                 </div>
-              ) : (
-                <div className="w-full md:w-48">
-                  <Select
-                    options={buildingOptions}
-                    value={buildingFilter}
-                    onSelect={(option) =>
-                      setBuildingFilter(option.id === 'ALL' ? 'ALL' : option.id)
-                    }
-                    renderItem={(option) => option.label}
-                    getValue={(option) => option.id}
-                    placeholder={t('filters.allBuildings')}
-                  />
-                </div>
-              )}
+              )
+              //  : (
+              //   <div className="w-full md:w-48">
+              //     <Select
+              //       options={buildingOptions}
+              //       value={buildingFilter}
+              //       onSelect={(option) =>
+              //         setBuildingFilter(option.id === 'ALL' ? 'ALL' : option.id)
+              //       }
+              //       renderItem={(option) => option.label}
+              //       getValue={(option) => option.id}
+              //       placeholder={t('filters.allBuildings')}
+              //     />
+              //   </div>
+              // )
+              }
               <div className="w-full md:w-48">
                 <Select
                   options={statusOptions}
@@ -509,15 +511,17 @@ export default function AccountListPage() {
                 />
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() =>
-                router.push(activeTab === 'STAFF' ? '/accountNewStaff' : '/accountNewRe')
-              }
-              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-            >
-              {t('buttons.addAccount')}
-            </button>
+            <div className="md:justify-end">
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(activeTab === 'STAFF' ? '/accountNewStaff' : '/accountNewRe')
+                }
+                className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                {t('buttons.addAccount')}
+              </button>
+            </div>
           </div>
 
           <div className="mt-6 flex gap-2 border-b border-gray-200">

@@ -917,7 +917,8 @@
       "failedToExportMeterExcel": "Failed to export meter Excel",
       "pleaseSelectUnitAndService": "Please select apartment and service",
       "meterAddedSuccess": "Meter added successfully",
-      "failedToCreateMeter": "Unable to create meter"
+      "failedToCreateMeter": "Unable to create meter",
+      "pleaseSelectUnitAndService":"Please select apartment and service"
     },
     "selectCity": "Select city",
     "selectDistrict": "Select district",
@@ -2300,7 +2301,8 @@
       "unknownService": "Unknown service"
     },
     "errors": {
-      "onlyCurrentMonth": "Only current month cycles can have their status changed"
+      "onlyCurrentMonth": "Only current month cycles can have their status changed",
+      "alreadyInProgress": "Cycle is already in progress"
     },
     "messages": {
       "loadError": "Failed to load reading cycles",
@@ -3665,13 +3667,13 @@
     "forgotPassword": {
       "title": "Forgot Password",
       "heading": "Forgot Password",
-      "description": "Enter your email to receive a new password",
+      "description": "Enter your email to receive a new OTP code",
       "emailLabel": "Email",
       "emailPlaceholder": "you@example.com",
       "logoAlt": "Qhome Base Logo",
       "copyright": "© {year} Qhome Base. All rights reserved.",
       "buttons": {
-        "submit": "Send New Password",
+        "submit": "Send New OTP",
         "processing": "Processing..."
       },
       "submit": "Send OTP Code",
