@@ -109,6 +109,25 @@ export async function completeInspection(
   return response.data;
 }
 
+export async function getAllInspections(
+  inspectorId?: string,
+  status?: InspectionStatus
+): Promise<AssetInspection[]> {
+  const params: Record<string, string> = {};
+  if (inspectorId) {
+    params.inspectorId = inspectorId;
+  }
+  if (status) {
+    params.status = status;
+  }
+  
+  const response = await axios.get<AssetInspection[]>(
+    `${BASE_URL}/api/asset-inspections`,
+    { params }
+  );
+  return response.data;
+}
+
 
 
 
