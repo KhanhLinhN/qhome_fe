@@ -57,7 +57,7 @@ export interface CreateContractPayload {
 
 export async function fetchActiveContractsByUnit(unitId: string): Promise<ContractSummary[]> {
   const response = await axios.get<ContractSummary[]>(
-    `${BASE_URL}/api/contracts/units/${unitId}/active`,
+    `${BASE_URL}/api/contracts/unit/${unitId}/active`,
     { withCredentials: true },
   );
   return response.data;
@@ -79,8 +79,16 @@ export async function fetchContractDetail(contractId: string): Promise<ContractD
     );
     return response.data;
   } catch (error: any) {
-    if (error?.response?.status === 404) {
-      return null;
+    const status = error?.response?.status;
+    const errorMessage = error?.response?.data?.message || error?.message || '';
+    
+    if (status === 404 || status === 400) {
+      const isNotFoundError = status === 404 || 
+                              errorMessage.toLowerCase().includes('not found') ||
+                              errorMessage.toLowerCase().includes('không tìm thấy');
+      if (isNotFoundError) {
+        return null;
+      }
     }
     throw error;
   }

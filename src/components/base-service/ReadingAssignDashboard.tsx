@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   getAllReadingCycles,
@@ -34,9 +35,9 @@ const getCycleReferenceDate = (cycle: ReadingCycleDto): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const formatMonthLabel = (date: Date | null): string => {
+const formatMonthLabel = (date: Date | null, t?: (key: string) => string): string => {
   if (!date) {
-    return 'tháng chưa xác định';
+    return t ? t('monthUnknown') : 'tháng chưa xác định';
   }
   return date.toLocaleString('vi-VN', { month: 'long', year: 'numeric' });
 };
@@ -69,6 +70,7 @@ export default function ReadingAssignDashboard({
 }: ReadingAssignDashboardProps) {
   const router = useRouter();
   const { show } = useNotifications();
+  const t = useTranslations('ReadingAssign');
   const [cyclesWithAssignments, setCyclesWithAssignments] = useState<CycleWithAssignments[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedCycleId, setExpandedCycleId] = useState<string | null>(null);
@@ -163,7 +165,7 @@ export default function ReadingAssignDashboard({
     (buildingId?: string) => {
       if (!activeUnassignedModal || !buildingId) return;
       if (!activeUnassignedModal.assignmentAllowed) {
-        show('Chỉ được phân công chu kỳ trong tháng hiện tại', 'error');
+        show(t('onlyCurrentMonthAllowed'), 'error');
         return;
       }
       const params = new URLSearchParams();
@@ -320,7 +322,7 @@ export default function ReadingAssignDashboard({
       setCyclesWithAssignments(cyclesData);
     } catch (error) {
       console.error('Failed to load cycles:', error);
-      show('Failed to load cycles', 'error');
+      show(t('failedToLoadCycles'), 'error');
     } finally {
       setLoading(false);
     }
@@ -339,18 +341,18 @@ export default function ReadingAssignDashboard({
       setAssignmentMeters(meters);
       setIsDetailsOpen(true);
     } catch (error: any) {
-      show(error?.message || 'Failed to load assignment details', 'error');
+      show(error?.message || t('failedToLoadDetails'), 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteAssignment = async (assignmentId: string) => {
-    if (!confirm('Are you sure you want to delete this assignment? This action cannot be undone.')) return;
+    if (!confirm(t('confirmDeleteAssignment'))) return;
 
     try {
       await deleteAssignment(assignmentId);
-      show('Assignment deleted successfully', 'success');
+      show(t('assignmentDeleted'), 'success');
       loadCyclesWithAssignments();
 
       if (selectedAssignment?.id === assignmentId) {
@@ -358,7 +360,7 @@ export default function ReadingAssignDashboard({
         setSelectedAssignment(null);
       }
     } catch (error: any) {
-      show(error?.message || 'Failed to delete assignment', 'error');
+      show(error?.message || t('failedToDelete'), 'error');
     }
   };
 
@@ -389,7 +391,7 @@ export default function ReadingAssignDashboard({
   const handleExportInvoices = async (cycle: ReadingCycleDto) => {
     const cycleInfo = cyclesWithAssignments.find((item) => item.cycle.id === cycle.id);
     if (!cycleInfo) {
-      show('Unable to locate cycle in current view. Please refresh the page.', 'error');
+      show(t('unableToLocateCycle'), 'error');
       return;
     }
 
@@ -397,7 +399,7 @@ export default function ReadingAssignDashboard({
       setIsExporting(true);
       if (cycleInfo.cycle.status !== 'COMPLETED') {
         if (!cycleInfo.allAssignmentsCompleted) {
-          show('All assignments in this cycle must be completed before exporting invoices.', 'error');
+          show(t('allAssignmentsMustComplete'), 'error');
           return;
         }
         if ((cycleInfo.unassignedInfo?.totalUnassigned ?? 0) > 0) {
@@ -410,9 +412,9 @@ export default function ReadingAssignDashboard({
         try {
           setCompletingCycleId(cycleInfo.cycle.id);
           await changeReadingCycleStatus(cycleInfo.cycle.id, 'COMPLETED');
-          show('Cycle marked as completed. Proceeding with invoice export.', 'success');
+          show(t('cycleMarkedCompleted'), 'success');
         } catch (err: any) {
-          const msg = err?.response?.data?.message || err?.message || 'Failed to update cycle status.';
+          const msg = err?.response?.data?.message || err?.message || t('failedToUpdateStatus');
           show(msg, 'error');
           return;
         } finally {
@@ -422,13 +424,13 @@ export default function ReadingAssignDashboard({
       const result: MeterReadingImportResponse = await exportMeterReadingsByCycle(cycle.id);
       const successMessage =
         result.message ||
-        `Exported ${result.invoicesCreated} invoices from ${result.totalReadings} readings.`;
+        t('exportedInvoices', { invoicesCreated: result.invoicesCreated, totalReadings: result.totalReadings });
       show(successMessage, 'success');
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Failed to export invoices. Please try again.';
+        t('failedToExport');
       show(message, 'error');
     } finally {
       setIsExporting(false);
@@ -438,18 +440,18 @@ export default function ReadingAssignDashboard({
 
   const handleCompleteAssignment = async (assignment: MeterReadingAssignmentDto) => {
     if (!assignment.id) return;
-    if (!confirm('Mark this assignment as completed?')) return;
+    if (!confirm(t('confirmCompleteAssignment'))) return;
     try {
       setCompletingAssignmentId(assignment.id);
       await completeAssignment(assignment.id);
-      show('Assignment marked as completed.', 'success');
+      show(t('assignmentCompleted'), 'success');
       await handleViewAssignment(assignment);
       await loadCyclesWithAssignments();
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Failed to complete assignment. Please try again.';
+        t('failedToComplete');
       show(message, 'error');
     } finally {
       setCompletingAssignmentId(null);
@@ -458,17 +460,17 @@ export default function ReadingAssignDashboard({
 
   const handleCompleteCycle = async (cycle: ReadingCycleDto) => {
     if (!cycle.id) return;
-    if (!confirm('Mark this reading cycle as completed?')) return;
+    if (!confirm(t('confirmCompleteCycle'))) return;
     try {
       setCompletingCycleId(cycle.id);
       await changeReadingCycleStatus(cycle.id, 'COMPLETED');
-      show('Reading cycle marked as completed.', 'success');
+      show(t('cycleCompleted'), 'success');
       await loadCyclesWithAssignments();
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Failed to complete cycle. Please try again.';
+        t('failedToComplete');
       show(message, 'error');
     } finally {
       setCompletingCycleId(null);
@@ -479,15 +481,15 @@ export default function ReadingAssignDashboard({
     <div className="px-[41px] py-12">
       <div className="flex flex-wrap gap-3 items-center justify-between mb-6">
         <div>
-          <p className="text-xs uppercase tracking-wide text-gray-500">Assignment Management</p>
+          <p className="text-xs uppercase tracking-wide text-gray-500">{t('assignmentManagement')}</p>
           <h1 className="text-2xl font-semibold text-[#02542D]">
-            {serviceLabel ? `${serviceLabel} - Assignment Management` : 'Assignment Management'}
+            {serviceLabel ? `${serviceLabel} - ${t('assignmentManagement')}` : t('assignmentManagement')}
           </h1>
         </div>
         <div className="flex gap-3 flex-wrap items-center">
           <div className="flex items-center gap-2">
             <label htmlFor="statusFilter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
-              Lọc theo trạng thái:
+              {t('filterByStatus')}
             </label>
             <select
               id="statusFilter"
@@ -495,7 +497,7 @@ export default function ReadingAssignDashboard({
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#02542D] focus:border-transparent"
             >
-              <option value="ALL">Tất cả</option>
+              <option value="ALL">{t('all')}</option>
               <option value="OPEN">OPEN</option>
               <option value="IN_PROGRESS">IN_PROGRESS</option>
               <option value="COMPLETED">COMPLETED</option>
@@ -507,27 +509,27 @@ export default function ReadingAssignDashboard({
               href="/base/readingAssign"
               className="text-sm text-[#02542D] font-semibold hover:underline whitespace-nowrap"
             >
-              ← Chọn dịch vụ khác
+              {t('selectOtherService')}
             </Link>
           )}
         </div>
       </div>
       {hasRestrictedCycles && (
         <div className="text-sm text-gray-500 mb-4">
-          Chỉ tạo assignment trong tháng {currentMonthLabel}; các chu kỳ còn lại chỉ để tham khảo.
+          {t('restrictedCyclesMessage', { month: currentMonthLabel })}
         </div>
       )}
 
       {loading && cyclesWithAssignments.length === 0 ? (
         <div className="bg-white p-6 rounded-xl text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#739559] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">{t('loading')}</p>
         </div>
       ) : (
         <div className="space-y-6">
           {serviceCycleGroups.length === 0 ? (
             <div className="bg-white p-6 rounded-xl text-center text-gray-500">
-              No reading cycles found
+              {t('noCyclesFound')}
             </div>
           ) : (
             serviceCycleGroups.map((group) => (
@@ -535,30 +537,30 @@ export default function ReadingAssignDashboard({
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Dịch vụ
+                      {t('service')}
                     </p>
                     <h2 className="text-lg font-semibold text-[#02542D]">
-                      {group.serviceName || group.serviceCode || 'Dịch vụ chưa xác định'}
+                      {group.serviceName || group.serviceCode || t('serviceUnknown')}
                     </h2>
                     {group.serviceCode && (
                       <p className="text-sm text-gray-500">
-                        Mã dịch vụ: {group.serviceCode}
+                        {t('serviceCode')} {group.serviceCode}
                       </p>
                     )}
                   </div>
                   <span className="text-sm font-medium text-gray-500">
-                    {group.cycles.length} chu kỳ
+                    {group.cycles.length} {t('cycles')}
                   </span>
                 </div>
 
                 <div className="mt-6 space-y-4">
                   {group.cycles.map(({ cycle, assignments, unassignedInfo, canCompleteCycle }) => {
-                    const cycleMonthLabel = formatMonthLabel(getCycleReferenceDate(cycle));
+                    const cycleMonthLabel = formatMonthLabel(getCycleReferenceDate(cycle), t);
                     let assignmentBlockedReason: string | undefined;
                     if (!isCycleCurrentMonth(cycle)) {
-                      assignmentBlockedReason = `Chu kỳ ${cycleMonthLabel} chỉ được giao trong tháng ${cycleMonthLabel}.`;
+                      assignmentBlockedReason = t('cycleRestrictedMessage', { month: cycleMonthLabel });
                     } else if (cycle.status !== 'IN_PROGRESS') {
-                      assignmentBlockedReason = 'Chu kỳ chưa chuyển sang trạng thái IN_PROGRESS nên chưa thể phân công.';
+                      assignmentBlockedReason = t('cycleNotInProgress');
                     }
                     return (
                       <CycleCard
@@ -616,12 +618,12 @@ export default function ReadingAssignDashboard({
           <div className="max-w-4xl w-full rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
             <div className="flex items-start justify-between gap-4 px-6 py-4 border-b">
               <div className="space-y-1">
-                <p className="text-xs uppercase tracking-wide text-gray-500">Chưa phân công</p>
+                <p className="text-xs uppercase tracking-wide text-gray-500">{t('unassigned')}</p>
                 <h3 className="text-lg font-semibold text-[#02542D]">
                   Chu kỳ {activeUnassignedModal.cycle.name}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {activeUnassignedModal.info.totalUnassigned} căn hộ chưa được assign.
+                  {t('unitsUnassigned', { count: activeUnassignedModal.info.totalUnassigned })}
                 </p>
               </div>
               <button
@@ -629,7 +631,7 @@ export default function ReadingAssignDashboard({
                 onClick={handleCloseUnassignedModal}
                 className="text-gray-500 hover:text-gray-900 text-sm"
               >
-                Đóng
+                {t('close')}
               </button>
             </div>
             <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
@@ -637,7 +639,7 @@ export default function ReadingAssignDashboard({
                 {activeUnassignedModal.info.message}
               </p>
               {buildingGroups.length === 0 ? (
-                <p className="text-sm text-gray-500">Không có dữ liệu chi tiết.</p>
+                <p className="text-sm text-gray-500">{t('noData')}</p>
               ) : (
                 <div className="space-y-4">
                   {buildingGroups.map((group) => (
@@ -645,7 +647,7 @@ export default function ReadingAssignDashboard({
                       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                         <div>
                           <p className="text-sm font-semibold text-gray-800">
-                            {group.buildingCode || group.buildingName || 'Tòa nhà chưa rõ'}
+                            {group.buildingCode || group.buildingName || t('buildingUnknown')}
                           </p>
                           {group.buildingName && group.buildingName !== group.buildingCode && (
                             <p className="text-xs text-gray-500">{group.buildingName}</p>
@@ -660,9 +662,9 @@ export default function ReadingAssignDashboard({
                           >
                             {group.buildingId
                               ? activeUnassignedModal.assignmentAllowed
-                                ? 'Tạo assignment cho tòa này'
-                                : 'Chu kỳ chưa được mở'
-                              : 'Không có ID tòa'}
+                                ? t('createAssignmentForBuilding')
+                                : t('cycleNotOpen')
+                              : t('noBuildingId')}
                           </button>
                         </div>
                       </div>
@@ -670,7 +672,7 @@ export default function ReadingAssignDashboard({
                         {group.floors.map((floor) => (
                           <div key={`${group.key}-${floor.floor}-${floor.unitCodes.join(',')}`}>
                             <span className="font-semibold">
-                              Tầng {floor.floor ?? 'N/A'}:
+                              {t('floorLabel', { floor: floor.floor ?? 'N/A' })}
                             </span>{' '}
                             {floor.unitCodes.join(', ')}
                           </div>

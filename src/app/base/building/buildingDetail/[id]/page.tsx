@@ -151,6 +151,22 @@ export default function BuildingDetail () {
         });
     }, [units]);
 
+    const maxFloorFromUnits = useMemo(() => {
+        const floors = units.map(unit => unit.floor).filter(floor => floor != null && !Number.isNaN(floor)) as number[];
+        return floors.length > 0 ? Math.max(...floors) : null;
+    }, [units]);
+
+    const displayFloorsMax = useMemo(() => {
+        // Use buildingData.floorsMax if available, otherwise calculate from units
+        if (buildingData?.floorsMax != null && buildingData.floorsMax !== undefined) {
+            return buildingData.floorsMax.toString();
+        }
+        if (maxFloorFromUnits != null) {
+            return maxFloorFromUnits.toString();
+        }
+        return "";
+    }, [buildingData?.floorsMax, maxFloorFromUnits]);
+
     const filteredUnits = selectedFloor
         ? units.filter(unit => unit.floor?.toString() === selectedFloor)
         : units;
@@ -390,7 +406,7 @@ export default function BuildingDetail () {
                     />
                     <DetailField 
                         label="Số tầng"
-                        value={buildingData?.floorsMax?.toString() ?? ""} 
+                        value={displayFloorsMax} 
                         readonly={true}
                     />
 
@@ -466,7 +482,7 @@ export default function BuildingDetail () {
                 </div>
 
                 {meterFormVisible && (
-                    <div className="border-b pb-4 mb-6">
+                    <div className="border-b pb-4 mb-6 relative z-10">
                         <form
                             onSubmit={async (e) => {
                                 e.preventDefault();
@@ -502,15 +518,24 @@ export default function BuildingDetail () {
                                     <select
                                         value={meterForm.unitId}
                                         onChange={(e) => setMeterForm(prev => ({ ...prev, unitId: e.target.value }))}
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                        disabled={loadingUnits || units.length === 0}
+                                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#739559] focus:border-[#739559] relative z-20"
                                     >
-                                        <option value="">{t('selectUnit')}</option>
+                                        <option value="">
+                                            {loadingUnits ? t('loading') : units.length === 0 ? tUnits('noUnit') : t('selectUnit')}
+                                        </option>
                                         {units.map(unit => (
                                             <option key={unit.id} value={unit.id}>
-                                                {unit.code}
+                                                {unit.code}{unit.floor != null ? ` (Tầng ${unit.floor})` : ''}
                                             </option>
                                         ))}
                                     </select>
+                                    {loadingUnits && (
+                                        <div className="text-xs text-gray-500 mt-1">Đang tải danh sách căn hộ...</div>
+                                    )}
+                                    {!loadingUnits && units.length === 0 && (
+                                        <div className="text-xs text-orange-600 mt-1">Không có căn hộ nào trong tòa nhà này</div>
+                                    )}
                                 </label>
                                 <label className="text-sm text-gray-600">
                                     {t('service')}

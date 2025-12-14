@@ -11,6 +11,7 @@ import { useUnitPage } from '@/src/hooks/useUnitPage';
 import { Unit } from '@/src/types/unit';
 import { updateUnitStatus } from '@/src/services/base/unitService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
+import { getAllInspections, AssetInspection, InspectionStatus } from '@/src/services/base/assetInspectionService';
 
 type UnitWithContext = Unit & {
   buildingId: string;
@@ -36,6 +37,10 @@ export default function UnitListPage() {
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [selectedUnitStatus, setSelectedUnitStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
+  // Asset inspection data
+  const [inspections, setInspections] = useState<AssetInspection[]>([]);
+  const [loadingInspections, setLoadingInspections] = useState(false);
 
   const unitsWithContext = useMemo<UnitWithContext[]>(() => {
     const result: UnitWithContext[] = [];
@@ -54,6 +59,37 @@ export default function UnitListPage() {
 
     return result;
   }, [buildings]);
+
+  // Create map of unitId -> latest inspection
+  const unitInspectionMap = useMemo(() => {
+    const map = new Map<string, AssetInspection>();
+    inspections.forEach((inspection) => {
+      if (inspection.unitId) {
+        const existing = map.get(inspection.unitId);
+        // Keep the most recent inspection (by inspectionDate)
+        if (!existing || new Date(inspection.inspectionDate) > new Date(existing.inspectionDate)) {
+          map.set(inspection.unitId, inspection);
+        }
+      }
+    });
+    return map;
+  }, [inspections]);
+
+  // Load inspections on mount
+  useEffect(() => {
+    const loadInspections = async () => {
+      try {
+        setLoadingInspections(true);
+        const data = await getAllInspections();
+        setInspections(data);
+      } catch (err) {
+        console.error('Failed to load inspections:', err);
+      } finally {
+        setLoadingInspections(false);
+      }
+    };
+    loadInspections();
+  }, []);
 
   useEffect(() => {
     if (selectedBuildingId === 'all') {
@@ -341,6 +377,9 @@ export default function UnitListPage() {
                     {t('ownerName')}
                   </th>
                   <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    Trạng thái kiểm tra thiết bị
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
                     {t('action')}
                   </th>
                 </tr>
@@ -349,7 +388,7 @@ export default function UnitListPage() {
                 {unitsToDisplay.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-4 py-6 text-center text-sm text-slate-500"
                     >
                       {t('noUnit')}
@@ -398,6 +437,55 @@ export default function UnitListPage() {
                               <span className="text-xs text-slate-500">{unit.ownerContact}</span>
                             )}
                           </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {(() => {
+                            const inspection = unitInspectionMap.get(unit.id);
+                            if (loadingInspections) {
+                              return <span className="text-xs text-slate-400">Đang tải...</span>;
+                            }
+                            if (!inspection) {
+                              return (
+                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
+                                  Chưa kiểm tra
+                                </span>
+                              );
+                            }
+                            const statusLabels: Record<InspectionStatus, { label: string; className: string }> = {
+                              [InspectionStatus.PENDING]: {
+                                label: 'Chờ kiểm tra',
+                                className: 'bg-blue-100 text-blue-800',
+                              },
+                              [InspectionStatus.IN_PROGRESS]: {
+                                label: 'Đang kiểm tra',
+                                className: 'bg-orange-100 text-orange-800',
+                              },
+                              [InspectionStatus.COMPLETED]: {
+                                label: 'Đã hoàn thành',
+                                className: 'bg-green-100 text-green-800',
+                              },
+                              [InspectionStatus.CANCELLED]: {
+                                label: 'Đã hủy',
+                                className: 'bg-red-100 text-red-800',
+                              },
+                            };
+                            const statusInfo = statusLabels[inspection.status] || {
+                              label: inspection.status,
+                              className: 'bg-gray-100 text-gray-800',
+                            };
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded ${statusInfo.className}`}>
+                                  {statusInfo.label}
+                                </span>
+                                {inspection.inspectionDate && (
+                                  <span className="text-xs text-slate-500">
+                                    {new Date(inspection.inspectionDate).toLocaleDateString('vi-VN')}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">

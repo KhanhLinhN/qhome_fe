@@ -62,7 +62,7 @@ export default function PricingTiersManagementPage() {
   const isAdmin = hasRole('ADMIN') || hasRole('admin') ;
   const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') ;
   const canView = isAdmin || isAccountant;
-  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
+  const canEdit = isAdmin || isAccountant; // ADMIN and ACCOUNTANT can edit/create/delete
   
   const SERVICE_OPTIONS = [
     { value: 'ELECTRIC', label: t('services.electric'), icon: '⚡' },
@@ -270,7 +270,7 @@ export default function PricingTiersManagementPage() {
   const startCreate = () => {
 
     if (!canEdit) {
-      show('Chỉ Accountant mới có quyền thêm bậc giá', 'error');
+      show('Bạn không có quyền thêm bậc giá', 'error');
       return;
     }
     const maxOrder = sortedTiers.length > 0 ? Math.max(...sortedTiers.map((t) => t.tierOrder ?? 0)) : 0;
@@ -285,7 +285,7 @@ export default function PricingTiersManagementPage() {
 
   const startEdit = (tier: PricingTierDto) => {
     if (!canEdit) {
-      show('Chỉ Accountant mới có quyền chỉnh sửa bậc giá', 'error');
+      show('Bạn không có quyền chỉnh sửa bậc giá', 'error');
       return;
     }
     setEditingTier({
@@ -310,7 +310,7 @@ export default function PricingTiersManagementPage() {
 
   const handleDeleteClick = (tier: PricingTierDto) => {
     if (!canEdit) {
-      show('Chỉ Accountant mới có quyền xóa bậc giá', 'error');
+      show('Bạn không có quyền xóa bậc giá', 'error');
       return;
     }
     setPendingDeleteTier(tier);
@@ -522,7 +522,7 @@ export default function PricingTiersManagementPage() {
           onClick={startCreate}
           disabled={!canEdit}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-          title={!canEdit ? 'Chỉ Accountant mới có quyền thêm bậc giá' : ''}
+          title={!canEdit ? 'Bạn không có quyền thêm bậc giá' : ''}
         >
           {t('buttons.addNewTier')}
         </button>
@@ -929,7 +929,7 @@ export default function PricingTiersManagementPage() {
                   onClick={() => handleSave()}
                   disabled={saving || !canEdit}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed relative z-10"
-                  title={!canEdit ? 'Chỉ Accountant mới có quyền lưu' : ''}
+                  title={!canEdit ? 'Bạn không có quyền lưu' : ''}
                 >
                   {saving ? t('buttons.saving') : t('buttons.save')}
                 </button>
@@ -961,7 +961,7 @@ export default function PricingTiersManagementPage() {
             onClick={startCreate}
             disabled={!canEdit}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-            title={!canEdit ? 'Chỉ Accountant mới có quyền thêm bậc giá' : ''}
+            title={!canEdit ? 'Bạn không có quyền thêm bậc giá' : ''}
           >
             {t('buttons.addFirstTier')}
           </button>
@@ -1054,7 +1054,7 @@ export default function PricingTiersManagementPage() {
                           onClick={() => startEdit(tier)}
                           disabled={!canEdit}
                           className="text-blue-600 hover:text-blue-900 mr-4 disabled:text-gray-400 disabled:cursor-not-allowed"
-                          title={!canEdit ? 'Chỉ Accountant mới có quyền chỉnh sửa' : ''}
+                          title={!canEdit ? 'Bạn không có quyền chỉnh sửa' : ''}
                         >
                           {t('buttons.edit')}
                         </button>
@@ -1062,7 +1062,7 @@ export default function PricingTiersManagementPage() {
                           onClick={() => handleDeleteClick(tier)}
                           disabled={!canEdit}
                           className="text-red-600 hover:text-red-900 disabled:text-gray-400 disabled:cursor-not-allowed"
-                          title={!canEdit ? 'Chỉ Accountant mới có quyền xóa' : ''}
+                          title={!canEdit ? 'Bạn không có quyền xóa' : ''}
                         >
                           {t('buttons.delete')}
                         </button>

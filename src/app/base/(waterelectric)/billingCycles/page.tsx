@@ -37,7 +37,7 @@ export default function BillingCyclesPage() {
   const isAdmin = hasRole('admin') || hasRole('ADMIN');
   const isAccountant = hasRole('accountant') || hasRole('ACCOUNTANT');
   const canView = isAdmin || isAccountant;
-  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
+  const canEdit = isAdmin || isAccountant; // ADMIN and ACCOUNTANT can edit/create/delete
   
   const [year, setYear] = useState(new Date().getFullYear());
   const [cycles, setCycles] = useState<BillingCycleDto[]>([]);
@@ -255,7 +255,7 @@ export default function BillingCyclesPage() {
             }}
             disabled={syncingMissing || !canEdit}
             className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm leading-none whitespace-nowrap"
-            title={!canEdit ? 'Chỉ Accountant mới có quyền tạo billing cycles' : ''}
+            title={!canEdit ? 'Chỉ Admin và Accountant mới có quyền tạo billing cycles' : ''}
           >
             {syncingMissing ? t('buttons.creating') : t('buttons.createMissing')}
           </button>
@@ -270,7 +270,7 @@ export default function BillingCyclesPage() {
             <button
               disabled
               className="px-4 py-2 border border-gray-300 text-gray-400 rounded-md text-sm font-semibold cursor-not-allowed"
-              title="Chỉ Accountant mới có quyền quản lý chi tiết"
+              title="Chỉ Admin và Accountant mới có quyền quản lý chi tiết"
             >
               {t('buttons.manageDetails')}
             </button>

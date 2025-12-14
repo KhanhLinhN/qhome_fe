@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
@@ -214,11 +215,27 @@ export default function RentalContractReviewPage() {
     setDetailModalOpen(true);
     try {
       const detail = await fetchContractDetail(contractId);
+      if (!detail) {
+        setDetailContract(null);
+        setDetailLoading(false);
+        return;
+      }
       setDetailContract(detail);
     } catch (error: any) {
       console.error('Failed to load contract detail:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể tải chi tiết hợp đồng', 'error');
-      setDetailContract(null);
+      const status = error?.response?.status;
+      const errorMessage = error?.response?.data?.message || error?.message || '';
+      const isNotFoundError = status === 404 || 
+                              status === 400 ||
+                              errorMessage.toLowerCase().includes('not found') ||
+                              errorMessage.toLowerCase().includes('không tìm thấy');
+      
+      if (isNotFoundError) {
+        setDetailContract(null);
+      } else {
+        show(errorMessage || 'Không thể tải chi tiết hợp đồng', 'error');
+        setDetailContract(null);
+      }
     } finally {
       setDetailLoading(false);
     }
@@ -899,7 +916,19 @@ export default function RentalContractReviewPage() {
                   )}
                 </div>
               ) : (
-                <div className="text-center text-gray-500">Không tìm thấy chi tiết hợp đồng</div>
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 text-center">
+                    Không tìm thấy hợp đồng. Hợp đồng có thể đã bị xóa hoặc không tồn tại.
+                  </div>
+                  <div className="flex justify-center">
+                    <Link
+                      href="/base/contract/contracts"
+                      className="px-4 py-2 bg-[#02542D] text-white rounded-lg hover:bg-[#023a20] transition-colors"
+                    >
+                      Đi đến trang tạo hợp đồng
+                    </Link>
+                  </div>
+                </div>
               )}
             </div>
             

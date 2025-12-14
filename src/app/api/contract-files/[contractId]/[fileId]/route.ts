@@ -4,10 +4,10 @@ const DATA_DOCS_URL = process.env.NEXT_PUBLIC_DATA_DOCS_URL || 'http://localhost
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { contractId: string; fileId: string } }
+  { params }: { params: Promise<{ contractId: string; fileId: string }> }
 ) {
   try {
-    const { contractId, fileId } = params;
+    const { contractId, fileId } = await params;
     
     if (!contractId || !fileId) {
       return NextResponse.json(
@@ -58,6 +58,7 @@ export async function GET(
     );
   }
 }
+
 
 
 

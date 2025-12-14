@@ -1089,17 +1089,24 @@ export default function ContractManagementPage() {
         setDetailState({
           data: null,
           loading: false,
-          error: t('errors.contractNotFound'),
+          error: 'contractNotFound',
         });
         return;
       }
       setDetailState({ data: detail, loading: false, error: null });
     } catch (err: any) {
-      if (err?.response?.status === 404) {
+      const status = err?.response?.status;
+      const errorMessage = err?.response?.data?.message || err?.message || '';
+      const isNotFoundError = status === 404 || 
+                              status === 400 ||
+                              errorMessage.toLowerCase().includes('not found') ||
+                              errorMessage.toLowerCase().includes('không tìm thấy');
+      
+      if (isNotFoundError) {
         setDetailState({
           data: null,
           loading: false,
-          error: t('errors.contractNotFound'),
+          error: 'contractNotFound',
         });
         return;
       }
@@ -2013,8 +2020,25 @@ export default function ContractManagementPage() {
                   <p className="text-sm text-gray-500">{t('loading.detail')}</p>
                 )}
                 {detailState.error && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                    {detailState.error}
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                      {detailState.error === 'contractNotFound' 
+                        ? 'Không tìm thấy hợp đồng. Hợp đồng có thể đã bị xóa hoặc không tồn tại.'
+                        : detailState.error}
+                    </div>
+                    {detailState.error === 'contractNotFound' && (
+                      <div className="flex justify-center">
+                        <button
+                          onClick={() => {
+                            handleCloseContractDetail();
+                            handleOpenCreateModal();
+                          }}
+                          className="px-4 py-2 bg-[#02542D] text-white rounded-lg hover:bg-[#023a20] transition-colors"
+                        >
+                          Tạo hợp đồng mới
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
                 {!detailState.loading && !detailState.error && detailState.data && (

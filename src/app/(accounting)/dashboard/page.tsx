@@ -7,25 +7,23 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { getBuildings } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding } from '@/src/services/base/unitService';
 import { getAllResidents } from '@/src/services/base/residentService';
+import { getAllInvoicesForAdmin } from '@/src/services/finance/invoiceAdminService';
+import { fetchCurrentHouseholdByUnit, fetchHouseholdMembersByHousehold } from '@/src/services/base/householdService';
 import axios from '@/src/lib/axios';
 
 type DashboardVariant = 'admin' | 'technician' | 'tenant-owner';
 
-interface DashboardStats {
-  buildingCount: number | null;
-  unitCount: number | null;
-  residentCount: number | null;
-  invoiceCount: number | null;
-}
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
   const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>({
-    buildingCount: null,
-    unitCount: null,
-    residentCount: null,
-    invoiceCount: null,
+  
+  const [stats, setStats] = useState({
+    buildings: 0,
+    units: 0,
+    residents: 0,
+    invoices: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +36,7 @@ export default function DashboardPage() {
         ? 'technician'
         : normalizedRoles.includes('tenant-owner') || normalizedRoles.includes('unit_owner')
           ? 'tenant-owner'
-          : 'admin'; // Default to admin
+          : 'admin';
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -51,12 +49,13 @@ export default function DashboardPage() {
         setLoading(true);
         
         // Fetch buildings
-        const buildings = await getBuildings();
-        const buildingCount = buildings.length;
+        const buildingsData: any = await getBuildings();
+        const buildingsList = Array.isArray(buildingsData) ? buildingsData : (buildingsData?.content || buildingsData?.data || []);
+        const buildingCount = buildingsList.length;
 
         // Fetch units for all buildings
         let unitCount = 0;
-        const unitPromises = buildings.map(async (building) => {
+        const unitPromises = buildingsList.map(async (building: any) => {
           try {
             const units = await getUnitsByBuilding(building.id);
             return units.length;
@@ -69,7 +68,7 @@ export default function DashboardPage() {
         unitCount = unitCounts.reduce((sum, count) => sum + count, 0);
 
         // Fetch residents count using getAllResidents endpoint
-        let residentCount: number | null = null;
+        let residentCount = 0;
         try {
           const residents = await getAllResidents();
           residentCount = residents.length;
@@ -78,10 +77,8 @@ export default function DashboardPage() {
         }
 
         // Fetch invoice count
-        let invoiceCount: number | null = null;
+        let invoiceCount = 0;
         try {
-          const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
-          // Get invoice count from admin endpoint
           const response = await axios.get(`${BASE_URL}/api/invoices/admin/all`, {
             withCredentials: true,
           });
@@ -90,15 +87,20 @@ export default function DashboardPage() {
             invoiceCount = response.data.length;
           }
         } catch (error) {
-          // If admin endpoint doesn't work, leave it as null
-          console.warn('Could not fetch invoice count from admin endpoint:', error);
+          // If admin endpoint doesn't work, try alternative method
+          try {
+            const invoices = await getAllInvoicesForAdmin();
+            invoiceCount = invoices.length;
+          } catch (err) {
+            console.warn('Could not fetch invoice count:', err);
+          }
         }
 
         setStats({
-          buildingCount,
-          unitCount,
-          residentCount,
-          invoiceCount,
+          buildings: buildingCount,
+          units: unitCount,
+          residents: residentCount,
+          invoices: invoiceCount,
         });
       } catch (error) {
         console.error('Failed to fetch dashboard statistics:', error);
@@ -120,13 +122,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm text-gray-600">Tòa nhà</p>
               <p className="text-2xl font-semibold text-gray-900 mt-1">
-                {loading ? (
-                  <span className="text-gray-400">...</span>
-                ) : stats.buildingCount !== null ? (
-                  stats.buildingCount.toLocaleString('vi-VN')
-                ) : (
-                  '—'
-                )}
+                {loading ? '...' : stats.buildings}
               </p>
             </div>
             <div className="text-3xl">🏢</div>
@@ -138,13 +134,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm text-gray-600">Căn hộ</p>
               <p className="text-2xl font-semibold text-gray-900 mt-1">
-                {loading ? (
-                  <span className="text-gray-400">...</span>
-                ) : stats.unitCount !== null ? (
-                  stats.unitCount.toLocaleString('vi-VN')
-                ) : (
-                  '—'
-                )}
+                {loading ? '...' : stats.units}
               </p>
             </div>
             <div className="text-3xl">🏠</div>
@@ -156,13 +146,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm text-gray-600">Cư dân</p>
               <p className="text-2xl font-semibold text-gray-900 mt-1">
-                {loading ? (
-                  <span className="text-gray-400">...</span>
-                ) : stats.residentCount !== null ? (
-                  stats.residentCount.toLocaleString('vi-VN')
-                ) : (
-                  '—'
-                )}
+                {loading ? '...' : stats.residents}
               </p>
             </div>
             <div className="text-3xl">👥</div>
@@ -174,13 +158,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm text-gray-600">Hóa đơn</p>
               <p className="text-2xl font-semibold text-gray-900 mt-1">
-                {loading ? (
-                  <span className="text-gray-400">...</span>
-                ) : stats.invoiceCount !== null ? (
-                  stats.invoiceCount.toLocaleString('vi-VN')
-                ) : (
-                  '—'
-                )}
+                {loading ? '...' : stats.invoices}
               </p>
             </div>
             <div className="text-3xl">🧾</div>
