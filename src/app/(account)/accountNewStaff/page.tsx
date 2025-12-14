@@ -59,7 +59,6 @@ export default function AccountNewStaffPage() {
   }, [user, isLoading, router]);
 
   const STAFF_ROLE_OPTIONS = [
-    { id: 'ADMIN', label: t('roles.admin') },
     { id: 'ACCOUNTANT', label: t('roles.accountant') },
     { id: 'TECHNICIAN', label: t('roles.technician') },
     { id: 'SUPPORTER', label: t('roles.supporter') },
@@ -376,7 +375,7 @@ export default function AccountNewStaffPage() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
       <div
-        className="mx-auto mb-6 flex max-w-3xl cursor-pointer items-center"
+        className="mx-auto mb-6 flex max-w-6xl cursor-pointer items-center"
         onClick={handleBack}
       >
         <Image src={Arrow} alt={t('back')} width={20} height={20} className="mr-2 h-5 w-5" />

@@ -148,3 +148,22 @@ export async function getAllRentalContracts(): Promise<ContractSummary[]> {
   }
 }
 
+/**
+ * GET /api/contracts/user/:userId
+ * Get all contracts for a user (to extract unit IDs)
+ */
+export async function fetchContractsByUserId(userId: string): Promise<ContractSummary[]> {
+  try {
+    const response = await axios.get<ContractSummary[]>(
+      `${BASE_URL}/api/contracts/user/${userId}`,
+      { withCredentials: true },
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      return [];
+    }
+    throw error;
+  }
+}
+

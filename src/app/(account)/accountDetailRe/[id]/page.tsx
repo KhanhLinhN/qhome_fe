@@ -17,6 +17,7 @@ import {
   fetchUserStatus,
 } from '@/src/services/iam/userService';
 import { useResidentUnits } from '@/src/hooks/useResidentUnits';
+import { fetchResidentByUserId } from '@/src/services/base/residentService';
 
 type FetchState = 'idle' | 'loading' | 'error' | 'success';
 
@@ -33,12 +34,13 @@ export default function AccountDetailResidentPage() {
   const [status, setStatus] = useState<UserStatusInfo | null>(null);
   const [state, setState] = useState<FetchState>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [residentId, setResidentId] = useState<string | undefined>(undefined);
 
   const {
     assignments: residentUnits,
     loading: residentUnitsLoading,
     error: residentUnitsError,
-  } = useResidentUnits(userId || undefined);
+  } = useResidentUnits(residentId);
 
   useEffect(() => {
     if (!userId) {
@@ -66,6 +68,24 @@ export default function AccountDetailResidentPage() {
         setAccount(accountRes);
         setProfile(profileRes);
         setStatus(statusRes);
+
+        // Lấy residentId từ account hoặc fetch từ userId
+        console.log('accountRes:', accountRes);
+        console.log('accountRes.residentId:', accountRes.residentId);
+        let finalResidentId = accountRes.residentId;
+        if (!finalResidentId && userId) {
+          try {
+            console.log('Fetching residentId from userId:', userId);
+            const resident = await fetchResidentByUserId(userId);
+            console.log('Fetched resident:', resident);
+            finalResidentId = resident.id;
+          } catch (err) {
+            console.warn('Could not fetch residentId from userId:', err);
+          }
+        }
+        console.log('Final residentId:', finalResidentId);
+        setResidentId(finalResidentId);
+
         setState('success');
       } catch (err: any) {
         if (!active) {
@@ -125,23 +145,6 @@ export default function AccountDetailResidentPage() {
       return value;
     }
     return date.toLocaleDateString('vi-VN');
-  };
-
-  const buildingSection = () => {
-    if (!account?.buildingName && !account?.buildingId) {
-      return <p className="text-sm text-gray-500">{t('building.noBuildingInfo')}</p>;
-    }
-    if (account?.buildingId) {
-      return (
-        <Link
-          href={`/base/building/buildingDetail/${account.buildingId}`}
-          className="text-sm font-medium text-emerald-600 hover:underline"
-        >
-          {account.buildingName ?? account.buildingId}
-        </Link>
-      );
-    }
-    return <p className="text-sm font-medium text-[#02542D]">{account.buildingName}</p>;
   };
 
   const renderResidentUnits = () => {
@@ -290,7 +293,7 @@ export default function AccountDetailResidentPage() {
                 </span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleEdit}
@@ -299,18 +302,13 @@ export default function AccountDetailResidentPage() {
               <Image src={Edit} alt={t('buttons.edit')} width={20} height={20} />
               {t('buttons.edit')}
             </button>
-          </div>
+          </div> */}
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
           <DetailField label={t('fields.username')} value={account.username} readonly />
           <DetailField label={t('fields.email')} value={account.email} readonly />
           <DetailField label={t('fields.status')} value={isActive ? t('status.active') : t('status.inactive')} readonly />
-        </div>
-
-        <div className="mt-6">
-          <h2 className="text-md font-semibold text-[#02542D]">{t('sections.building')}</h2>
-          <div className="mt-2">{buildingSection()}</div>
         </div>
 
         <div className="mt-6">
