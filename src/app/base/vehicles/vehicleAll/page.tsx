@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -11,6 +11,7 @@ import EditTable from '@/src/assets/EditTable.svg';
 import { useVehiclePage } from '@/src/hooks/useVehiclePage';
 import { Vehicle, VehicleKind } from '@/src/types/vehicle';
 import { fetchResidentById, fetchResidentByUserId, ResidentSummary } from '@/src/services/base/residentService';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 type VehicleWithContext = Vehicle & {
   buildingId: string;
@@ -33,6 +34,11 @@ export default function VehicleAllPage() {
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [residentLookup, setResidentLookup] = useState<Record<string, ResidentSummary>>({});
+  
+  // Pagination
+  const initialPageSize = 10;
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(initialPageSize);
 
   const vehicleKindLabels = useMemo(
     () => ({
@@ -151,7 +157,6 @@ export default function VehicleAllPage() {
     const loadResidents = async () => {
       const results = await Promise.allSettled(
         missingResidentIds.map(async (userId) => {
-          // Note: vehicle.residentId is actually userId from vehicle registration
           // Use by-user endpoint to get resident by userId
           const resident = await fetchResidentByUserId(userId);
           return { residentId: userId, resident };
@@ -181,7 +186,7 @@ export default function VehicleAllPage() {
     };
   }, [residentLookupKey, vehiclesWithContext]);
 
-  const vehiclesToDisplay = useMemo(() => {
+  const filteredVehicles = useMemo(() => {
     const vehicleQuery = normalizeText(vehicleSearch);
 
     let scopedVehicles = vehiclesWithContext;
@@ -225,6 +230,26 @@ export default function VehicleAllPage() {
     residentLookupKey,
   ]);
 
+  // Apply pagination to filtered vehicles
+  const vehiclesToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredVehicles.slice(startIndex, endIndex);
+  }, [filteredVehicles, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(filteredVehicles.length / pageSize) : 0;
+  }, [filteredVehicles.length, pageSize]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPageNo(newPage);
+  }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPageNo(0);
+  }, [selectedBuildingId, selectedUnitId, vehicleSearch]);
+
   const handleNavigateToPending = () => {
     router.push('/base/vehicles/vehicleRegis');
   };
@@ -232,16 +257,19 @@ export default function VehicleAllPage() {
   const handleSelectAll = () => {
     setSelectedBuildingId('all');
     setSelectedUnitId('all');
+    setPageNo(0);
   };
 
   const handleSelectBuilding = (buildingId: string) => {
     setSelectedBuildingId(buildingId);
     setSelectedUnitId('all');
+    setPageNo(0);
   };
 
   const handleSelectUnit = (buildingId: string, unitId: string) => {
     setSelectedBuildingId(buildingId);
     setSelectedUnitId(unitId);
+    setPageNo(0);
   };
 
   if (loading) {
@@ -418,20 +446,23 @@ export default function VehicleAllPage() {
               <h2 className="text-lg font-semibold text-slate-800">{t('vehiclePanelTitle')}</h2>
               <p className="text-sm text-slate-500">
                 {selectedUnitId === 'all' && selectedBuildingId === 'all'
-                  ? t('vehiclePanelDescriptionAll', { total: vehiclesToDisplay.length })
+                  ? t('vehiclePanelDescriptionAll', { total: filteredVehicles.length })
                   : selectedUnitId === 'all'
-                  ? t('vehiclePanelDescriptionBuilding', { total: vehiclesToDisplay.length })
-                  : t('vehiclePanelDescriptionUnit', { total: vehiclesToDisplay.length })}
+                  ? t('vehiclePanelDescriptionBuilding', { total: filteredVehicles.length })
+                  : t('vehiclePanelDescriptionUnit', { total: filteredVehicles.length })}
               </p>
             </div>
             <div className="w-full max-w-xs">
-              <input
-                type="text"
-                value={vehicleSearch}
-                onChange={(event) => setVehicleSearch(event.target.value)}
-                placeholder={t('searchVehicle')}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-              />
+            <input
+              type="text"
+              value={vehicleSearch}
+              onChange={(event) => {
+                setVehicleSearch(event.target.value);
+                setPageNo(0);
+              }}
+              placeholder={t('searchVehicle')}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            />
             </div>
           </div>
 
@@ -531,6 +562,15 @@ export default function VehicleAllPage() {
               </tbody>
             </table>
           </div>
+          {totalPages > 0 && (
+            <div className="px-6 py-4 border-t border-slate-200">
+              <Pagination
+                currentPage={pageNo + 1}
+                totalPages={totalPages}
+                onPageChange={(page) => handlePageChange(page - 1)}
+              />
+            </div>
+          )}
         </section>
       </div>
     </div>

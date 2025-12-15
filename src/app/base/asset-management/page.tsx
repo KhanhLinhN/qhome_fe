@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import {
@@ -22,6 +22,7 @@ import {
 import { getBuildings } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import PopupComfirm from '@/src/components/common/PopupComfirm';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 interface AssetFormState {
   id?: string;
@@ -117,6 +118,11 @@ export default function AssetManagementPage() {
   // State for create all units in building
   const [showCreateAllConfirm, setShowCreateAllConfirm] = useState(false);
   const [creatingAll, setCreatingAll] = useState(false);
+  
+  // Pagination
+  const initialPageSize = 10;
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(initialPageSize);
 
   useEffect(() => {
     loadAssets();
@@ -134,7 +140,23 @@ export default function AssetManagementPage() {
 
   useEffect(() => {
     loadAssets();
+    setPageNo(0);
   }, [selectedBuildingId, selectedUnitId, selectedAssetType, showActiveOnly]);
+
+  // Apply pagination to assets
+  const assetsToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return assets.slice(startIndex, endIndex);
+  }, [assets, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(assets.length / pageSize) : 0;
+  }, [assets.length, pageSize]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPageNo(newPage);
+  }, []);
 
   // Auto-generate asset code, name and price when unit or asset type changes in create mode
   useEffect(() => {
@@ -208,6 +230,7 @@ export default function AssetManagementPage() {
       }
 
       setAssets(data);
+      setPageNo(0);
     } catch (error: any) {
       console.error('Failed to load assets:', error);
       show(error?.response?.data?.message || error?.message || 'Không thể tải danh sách thiết bị', 'error');
@@ -777,6 +800,7 @@ export default function AssetManagementPage() {
               onChange={(e) => {
                 setSelectedBuildingId(e.target.value);
                 setSelectedUnitId('');
+                setPageNo(0);
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loadingBuildings}
@@ -796,7 +820,10 @@ export default function AssetManagementPage() {
             </label>
             <select
               value={selectedUnitId}
-              onChange={(e) => setSelectedUnitId(e.target.value)}
+              onChange={(e) => {
+                setSelectedUnitId(e.target.value);
+                setPageNo(0);
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={!selectedBuildingId || loadingUnits}
             >
@@ -815,7 +842,10 @@ export default function AssetManagementPage() {
             </label>
             <select
               value={selectedAssetType}
-              onChange={(e) => setSelectedAssetType(e.target.value as AssetType | '')}
+              onChange={(e) => {
+                setSelectedAssetType(e.target.value as AssetType | '');
+                setPageNo(0);
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Tất cả loại</option>
@@ -832,7 +862,10 @@ export default function AssetManagementPage() {
               <input
                 type="checkbox"
                 checked={showActiveOnly}
-                onChange={(e) => setShowActiveOnly(e.target.checked)}
+                onChange={(e) => {
+                  setShowActiveOnly(e.target.checked);
+                  setPageNo(0);
+                }}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <span className="ml-2 text-sm text-gray-700">Chỉ hiển thị thiết bị đang hoạt động</span>
@@ -905,7 +938,7 @@ export default function AssetManagementPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {assets.map((asset) => (
+                {assetsToDisplay.map((asset) => (
                   <tr key={asset.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
@@ -996,6 +1029,15 @@ export default function AssetManagementPage() {
               </tbody>
             </table>
           </div>
+          {totalPages > 0 && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <Pagination
+                currentPage={pageNo + 1}
+                totalPages={totalPages}
+                onPageChange={(page) => handlePageChange(page - 1)}
+              />
+            </div>
+          )}
         </div>
       )}
 

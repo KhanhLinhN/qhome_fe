@@ -16,6 +16,7 @@ import {
   updateService,
 } from '@/src/services/asset-maintenance/serviceService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 const formatDate = (value?: string) => {
   if (!value) return '-';
@@ -80,6 +81,11 @@ export default function ServiceCategoryListPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [serviceLoading, setServiceLoading] = useState<boolean>(true);
   const [serviceError, setServiceError] = useState<string | null>(null);
+  
+  // Pagination
+  const initialPageSize = 10;
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(initialPageSize);
 
   const fetchServices = useCallback(async () => {
     setServiceLoading(true);
@@ -210,7 +216,7 @@ export default function ServiceCategoryListPage() {
     }, {});
   }, [services]);
 
-  const tableData = useMemo(
+  const tableDataAll = useMemo(
     () =>
       categories.map((category) => ({
         categoryId: category.id,
@@ -223,6 +229,21 @@ export default function ServiceCategoryListPage() {
       })),
     [categories, categoryServiceCounts],
   );
+
+  // Apply pagination to table data
+  const tableData = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return tableDataAll.slice(startIndex, endIndex);
+  }, [tableDataAll, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(tableDataAll.length / pageSize) : 0;
+  }, [tableDataAll.length, pageSize]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPageNo(newPage);
+  }, []);
 
   const validate = () => {
     const errors: Record<string, string> = {};
@@ -278,6 +299,7 @@ export default function ServiceCategoryListPage() {
   const handleRefresh = () => {
     refetch();
     fetchServices();
+    setPageNo(0);
   };
 
   const statusOptions = [
@@ -341,6 +363,15 @@ export default function ServiceCategoryListPage() {
             onDelete={handleDeleteCategory}
             onServiceCategoryStatusChange={handleOpenChangeStatus}
           />
+          {totalPages > 0 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={pageNo + 1}
+                totalPages={totalPages}
+                onPageChange={(page) => handlePageChange(page - 1)}
+              />
+            </div>
+          )}
         </div>
       </div>
 
