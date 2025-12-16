@@ -604,7 +604,7 @@ export default function RentalContractReviewPage() {
 
   const isContractExpired = (contract: RentalContractWithUnit): boolean => {
     // Chỉ hiển thị nút "Kiểm tra thiết bị" với hợp đồng EXPIRED hoặc CANCELLED
-    return contract.status === 'EXPIRED' || contract.status === 'CANCELLED';
+    return contract.status === 'EXPIRED' || contract.status === 'CANCELLED' || contract.status === 'CANCELED';
   };
 
   const formatDate = (value?: string | null) => {
@@ -653,11 +653,33 @@ export default function RentalContractReviewPage() {
           endDate.setHours(0, 0, 0, 0);
           return endDate > today;
         } else if (statusFilter === 'expired') {
-          if (c.status !== 'ACTIVE') return true;
+          // Chỉ hiển thị contracts có status = EXPIRED hoặc ACTIVE đã hết hạn
+          if (c.status === 'EXPIRED') return true;
+          if (c.status !== 'ACTIVE') return false;
           if (!c.endDate) return false;
-          const endDate = new Date(c.endDate);
-          endDate.setHours(0, 0, 0, 0);
-          return endDate <= today;
+          
+          const parseDateOnly = (dateStr: string): Date => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+            return new Date(utcDate.getFullYear(), utcDate.getMonth(), utcDate.getDate());
+          };
+          
+          let endDate: Date;
+          try {
+            if (c.endDate.includes('T')) {
+              const isoDate = new Date(c.endDate);
+              endDate = new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate());
+            } else {
+              endDate = parseDateOnly(c.endDate);
+            }
+            endDate.setHours(0, 0, 0, 0);
+          } catch (e) {
+            const fallbackEnd = new Date(c.endDate);
+            endDate = new Date(fallbackEnd.getFullYear(), fallbackEnd.getMonth(), fallbackEnd.getDate());
+            endDate.setHours(0, 0, 0, 0);
+          }
+          
+          return endDate < today;
         } else if (statusFilter === 'expiring') {
           // Hợp đồng còn <= 30 ngày nữa sẽ hết hạn (tính từ today đến endDate)
           if (c.status !== 'ACTIVE') return false;
@@ -691,11 +713,11 @@ export default function RentalContractReviewPage() {
           const remainingDays = Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
           return remainingDays <= 30 && remainingDays >= 0; // Còn <= 30 ngày nữa
         } else if (statusFilter === 'cancelled') {
-          return c.status === 'CANCELLED';
+          return c.status === 'CANCELLED' || c.status === 'CANCELED';
         } else if (statusFilter === 'notInspected') {
           // Chỉ hiển thị các hợp đồng chưa có inspection
           // Và hợp đồng phải là EXPIRED hoặc CANCELLED (theo điều kiện isContractExpired)
-          const isExpiredOrCancelled = c.status === 'EXPIRED' || c.status === 'CANCELLED';
+          const isExpiredOrCancelled = c.status === 'EXPIRED' || c.status === 'CANCELLED' || c.status === 'CANCELED';
           const hasInspection = contractsWithInspection.has(c.id);
           return isExpiredOrCancelled && !hasInspection;
         }
@@ -749,7 +771,7 @@ export default function RentalContractReviewPage() {
   }, [selectedBuildingId, selectedUnitId, statusFilter, searchTerm]);
 
   const getContractStatusLabel = (contract: RentalContractWithUnit) => {
-    if (contract.status === 'CANCELLED') {
+    if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
       return { label: t('status.cancelled'), className: 'bg-red-100 text-red-700' };
     }
     if (contract.status === 'INACTIVE') {
@@ -862,7 +884,7 @@ export default function RentalContractReviewPage() {
   // Calculate contracts that need inspection (EXPIRED or CANCELLED without inspection)
   const contractsNeedingInspection = useMemo(() => {
     const needingInspection = contracts.filter(c => {
-      const isExpiredOrCancelled = c.status === 'EXPIRED' || c.status === 'CANCELLED';
+      const isExpiredOrCancelled = c.status === 'EXPIRED' || c.status === 'CANCELLED' || c.status === 'CANCELED';
       const hasInspection = contractsWithInspection.has(c.id);
       return isExpiredOrCancelled && !hasInspection;
     });
