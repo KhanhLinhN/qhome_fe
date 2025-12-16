@@ -9,6 +9,8 @@ import { getUnitsByBuilding } from '@/src/services/base/unitService';
 import { getAllResidents } from '@/src/services/base/residentService';
 import { getAllInvoicesForAdmin } from '@/src/services/finance/invoiceAdminService';
 import { fetchCurrentHouseholdByUnit, fetchHouseholdMembersByHousehold } from '@/src/services/base/householdService';
+import { getAllInspections } from '@/src/services/base/assetInspectionService';
+import { getAssignmentsByStaff } from '@/src/services/base/waterService';
 import axios from '@/src/lib/axios';
 
 type DashboardVariant = 'admin' | 'technician' | 'tenant-owner';
@@ -24,6 +26,7 @@ export default function DashboardPage() {
     units: 0,
     residents: 0,
     invoices: 0,
+    tasks: 0, // For technician
   });
   const [loading, setLoading] = useState(true);
 
@@ -40,6 +43,44 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchStats = async () => {
+      if (resolvedVariant === 'technician') {
+        // Fetch technician tasks
+        try {
+          setLoading(true);
+          if (!user?.userId) {
+            setLoading(false);
+            return;
+          }
+
+          // Fetch both inspection assignments and meter reading assignments
+          const [inspections, assignments] = await Promise.all([
+            getAllInspections(user.userId).catch(() => []),
+            getAssignmentsByStaff(user.userId).catch(() => [])
+          ]);
+
+          const totalTasks = inspections.length + assignments.length;
+          setStats({
+            buildings: 0,
+            units: 0,
+            residents: 0,
+            invoices: 0,
+            tasks: totalTasks,
+          });
+        } catch (error) {
+          console.error('Failed to fetch technician tasks:', error);
+          setStats({
+            buildings: 0,
+            units: 0,
+            residents: 0,
+            invoices: 0,
+            tasks: 0,
+          });
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       if (resolvedVariant !== 'admin') {
         setLoading(false);
         return;
@@ -430,7 +471,9 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Nhiệm vụ</p>
-              <p className="text-2xl font-semibold text-gray-900 mt-1">—</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? '...' : stats.tasks}
+              </p>
             </div>
             <div className="text-3xl">📋</div>
           </div>

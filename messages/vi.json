@@ -2635,6 +2635,12 @@
       "approved": "Đã duyệt",
       "completed": "Đã hoàn tất"
     },
+    "paymentStatusLabels": {
+      "unpaid": "Chưa thanh toán",
+      "paymentPending": "Đang thanh toán",
+      "paymentApproval": "Đang chờ xác nhận",
+      "paid": "Đã thanh toán"
+    },
     "errors": {
       "loadError": "Không thể tải danh sách thẻ đã duyệt",
       "loadFailed": "Không thể tải danh sách thẻ đã duyệt"

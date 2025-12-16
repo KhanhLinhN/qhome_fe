@@ -75,9 +75,27 @@ export const useFeedbacks = (loadOnMount: boolean = true) => {
                 size: PAGE_SIZE,
                 number: 0
             });
-        } catch (err) {
-            setError('Failed to fetch feedbacks.');
-            console.error(err);
+        } catch (err: any) {
+            const errorMessage = err?.message || 'Failed to fetch feedbacks. Please try again later.';
+            setError(errorMessage);
+            console.error('Error fetching feedbacks:', err);
+            // Set empty data structure to prevent crashes
+            setData({
+                content: [],
+                totalPages: 0,
+                totalElements: 0,
+                size: 10,
+                number: 0
+            });
+            setAllFeedbacksList([]);
+            setStatusCounts({
+                New: 0,
+                Pending: 0,
+                Processing: 0,
+                Done: 0,
+                Cancelled: 0,
+                total: 0
+            });
         } finally {
             setLoading(false);
         }

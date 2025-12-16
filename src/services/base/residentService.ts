@@ -57,24 +57,20 @@ export async function checkNationalIdExists(nationalId: string): Promise<boolean
   }
 
   try {
-
     const cleanedId = nationalId.trim().replace(/\s+/g, '');
-    await axios.get<ResidentDto>(
+    const response = await axios.get<ResidentDto>(
       `${BASE_URL}/api/residents/by-national-id/${encodeURIComponent(cleanedId)}`,
-      { withCredentials: true }
+      { 
+        withCredentials: true,
+        validateStatus: (status) => status === 200 || status === 404 // Không throw error cho 404
+      }
     );
-    return true; // Số CCCD tồn tại (status 200)
+    return response.status === 200; // Số CCCD tồn tại nếu status 200
   } catch (err: any) {
-    const status = err?.response?.status;
-    if (status === 404) {
-      return false; // Số CCCD chưa tồn tại
-    }
-    // Nếu có lỗi khác (network, 500, endpoint không tồn tại), 
-    // return false để không block submit, backend sẽ validate khi submit form
+    // Chỉ catch các lỗi không phải 404 (network, 500, etc.)
+    // Return false để không block submit, backend sẽ validate khi submit form
     // Backend có unique constraint trên national_id nên sẽ báo lỗi nếu trùng
-    if (status !== 404) {
-      console.warn('Error checking national ID (endpoint may not exist):', err?.response?.status || err?.message);
-    }
+    console.warn('Error checking national ID (non-404):', err?.response?.status || err?.message);
     return false;
   }
 }

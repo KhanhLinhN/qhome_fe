@@ -2703,6 +2703,25 @@
       "paymentPending": "Payment Pending",
       "paid": "Paid"
     },
+    "statusLabels": {
+      "pending": "Pending",
+      "readyForPayment": "Ready for Payment",
+      "paymentPending": "Payment Pending",
+      "approved": "Approved",
+      "completed": "Completed",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "paymentStatusLabels": {
+      "unpaid": "Unpaid",
+      "paymentPending": "Payment Pending",
+      "paymentApproval": "Awaiting Approval",
+      "paid": "Paid"
+    },
+    "requestTypes": {
+      "newCard": "New Card",
+      "renewal": "Renewal"
+    },
     "table": {
       "resident": "Resident",
       "apartment": "Apartment",

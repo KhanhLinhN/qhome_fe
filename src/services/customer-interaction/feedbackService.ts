@@ -64,9 +64,20 @@ export class FeedbackService {
             console.log('Fetched all feedbacks:', result);
             return result.map(feedback => this.mapFeedbackDtoToRequest(feedback));
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('An error occurred while fetching all feedbacks:', error);
-            throw error;
+            // Provide more detailed error information
+            if (error?.response) {
+                const status = error.response.status;
+                const message = error.response.data?.message || error.response.data?.error || `Server error (${status})`;
+                console.error(`Backend error ${status}:`, message);
+                throw new Error(`Failed to fetch feedbacks: ${message}`);
+            } else if (error?.request) {
+                console.error('Network error: No response received from server');
+                throw new Error('Network error: Unable to connect to server');
+            } else {
+                throw new Error(`Failed to fetch feedbacks: ${error?.message || 'Unknown error'}`);
+            }
         }
     }
 
