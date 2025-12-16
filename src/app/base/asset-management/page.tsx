@@ -921,13 +921,7 @@ export default function AssetManagementPage() {
                     Căn hộ
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thương hiệu
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ngày lắp đặt
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bảo hành đến
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Trạng thái
@@ -978,17 +972,7 @@ export default function AssetManagementPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {asset.brand || '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
                         {formatDate(asset.installedAt)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {formatDate(asset.warrantyUntil)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1426,12 +1410,6 @@ export default function AssetManagementPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      console.log('Button clicked', { 
-                        showCreateAllConfirm, 
-                        missingAssetsBuildingId, 
-                        missingAssetsType, 
-                        unitsCount: unitsWithoutAsset.length 
-                      });
                       setShowCreateAllConfirm(true);
                     }}
                     className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"

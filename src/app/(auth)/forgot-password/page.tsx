@@ -20,7 +20,13 @@ export default function Page() {
     if (!email.trim()) {
       return t('forgotPassword.errors.emailRequired');
     }
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Ensure email contains exactly one @
+    const atCount = (email.match(/@/g) || []).length;
+    if (atCount !== 1) {
+      return t('forgotPassword.errors.emailInvalid');
+    }
+    // Only accept emails ending with .com: ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/i;
     if (!emailPattern.test(email)) {
       return t('forgotPassword.errors.emailInvalid');
     }

@@ -259,10 +259,17 @@
         "noWhitespace": "Email không được chứa ký tự trắng.",
         "maxLength": "Email không được vượt quá 40 ký tự.",
         "invalid": "Email không hợp lệ.",
-        "exists": "Email đã tồn tại trong hệ thống."
+        "exists": "Email đã tồn tại trong hệ thống.",
+        "missingAt": "Email phải có ký tự @.",
+        "multipleAt": "Email chỉ được có 1 ký tự @.",
+        "mustEndWithCom": "Email phải có đuôi .com. Ví dụ: user@example.com",
+        "invalidLocalPart": "Phần trước @ chỉ được chứa chữ cái (a-z, A-Z), số (0-9) và các ký tự: . _ % + -",
+        "invalidDomain": "Phần domain chỉ được chứa chữ cái (a-z, A-Z), số (0-9) và các ký tự: . -",
+        "invalidFormat": "Email không đúng định dạng. Email phải có đuôi .com. Ví dụ: user@example.com"
       },
       "role": {
-        "required": "Vui lòng chọn vai trò cho nhân viên."
+        "required": "Vui lòng chọn vai trò cho nhân viên.",
+        "adminNotAllowed": "Không thể tạo tài khoản với vai trò Admin."
       },
       "excelFileRequired": "Vui lòng chọn file Excel (.xlsx).",
       "excelFileFormat": "File phải có định dạng .xlsx."
@@ -278,7 +285,7 @@
     },
     "import": {
       "title": "Import nhanh bằng Excel",
-      "description": "Sử dụng file Excel với các cột: username, email, role, active. Role có thể chứa nhiều giá trị, phân tách bằng dấu phẩy.",
+      "description": "Sử dụng file Excel với các cột: username, email, role, active. Role chỉ được phép có 1 giá trị.",
       "fileLabel": "File Excel (.xlsx)",
       "fileSelected": "Đã chọn:",
       "tableHeaders": {
@@ -331,7 +338,9 @@
     },
     "buttons": {
       "addAccount": "+ Thêm tài khoản",
-      "reload": "Tải lại"
+      "reload": "Tải lại",
+      "exportExcel": "Xuất Excel",
+      "exporting": "Đang xuất..."
     },
     "loading": "Đang tải dữ liệu...",
     "errors": {
@@ -342,7 +351,9 @@
       "deleteError": "Có lỗi xảy ra khi xóa tài khoản",
       "activateSuccess": "Đã kích hoạt tài khoản thành công.",
       "deactivateSuccess": "Đã vô hiệu hóa tài khoản thành công.",
-      "updateStatusError": "Không thể cập nhật trạng thái tài khoản. Vui lòng thử lại."
+      "updateStatusError": "Không thể cập nhật trạng thái tài khoản. Vui lòng thử lại.",
+      "exportSuccess": "Xuất Excel thành công",
+      "exportError": "Có lỗi xảy ra khi xuất Excel"
     },
     "popups": {
       "statusChange": {
@@ -481,7 +492,11 @@
     "validation": {
       "password": {
         "minLength": "Mật khẩu mới phải có ít nhất 8 ký tự.",
-        "mismatch": "Xác nhận mật khẩu không khớp."
+        "mismatch": "Xác nhận mật khẩu không khớp.",
+        "missingLetter": "Mật khẩu phải chứa ít nhất 1 chữ cái (a-z, A-Z).",
+        "missingDigit": "Mật khẩu phải chứa ít nhất 1 số (0-9).",
+        "missingSpecialChar": "Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (@ $ ! % * ? &).",
+        "invalidCharacters": "Mật khẩu chỉ được chứa chữ cái Latinh không dấu (a-z, A-Z), số (0-9) và ký tự đặc biệt (@ $ ! % * ? &)."
       },
       "userNotIdentified": "Không xác định được người dùng hiện tại."
     },
@@ -2196,13 +2211,21 @@
     "empty": {
       "noContracts": "Căn hộ này hiện không có hợp đồng.",
       "noActiveContracts": "Căn hộ này hiện không có hợp đồng còn hạn.",
-      "noExpiredContracts": "Căn hộ này hiện không có hợp đồng đã hết hạn.",
+      "noUnavailableContracts": "Căn hộ này hiện không có hợp đồng không khả dụng (đã hủy hoặc hết hạn).",
       "selectToView": "Chọn tòa nhà và căn hộ để xem danh sách hợp đồng.",
       "noAttachments": "Hợp đồng chưa có tệp đính kèm. Bạn có thể tải tệp ngay tại đây."
     },
     "tabs": {
       "active": "Hợp đồng còn hạn",
-      "expired": "Hợp đồng đã hết hạn"
+      "unavailable": "Hợp đồng không khả dụng"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "activeDefault": "Đang hiệu lực (mặc định)",
+      "expired": "Đã hết hạn",
+      "cancelled": "Đã hủy",
+      "inactive": "Không hoạt động",
+      "unknown": "Không xác định"
     },
     "labels": {
       "endDatePreview": "Ngày kết thúc: {date} (cuối tháng)"
@@ -2254,7 +2277,8 @@
       "purchaseDateInvalid": "Ngày mua phải theo định dạng YYYY-MM-DD.",
       "purchaseDateAfterStartDate": "Ngày mua phải lớn hơn hoặc bằng ngày bắt đầu.",
       "dateFormat": "Ngày phải theo định dạng dd/mm/yyyy.",
-      "filesRequired": "Vui lòng tải lên ít nhất 1 tệp đính kèm."
+      "filesRequired": "Vui lòng tải lên ít nhất 1 tệp đính kèm.",
+      "metersRequiredForRental": "Hợp đồng cho thuê yêu cầu phải có đồng hồ đo cho: {services}. Vui lòng tạo đồng hồ đo trước khi tạo hợp đồng."
     },
     "errors": {
       "loadBuildings": "Không thể tải danh sách tòa nhà.",
@@ -2306,7 +2330,61 @@
     },
     "rentCalculation": {
       "fullMonth": "Tháng đầu (ngày {day} ≤ 15): tính cả tháng",
-      "halfMonth": "Tháng đầu (ngày {day} > 15): tính nửa tháng"
+      "halfMonth": "Tháng đầu (ngày {day} > 15): tính nửa tháng",
+      "formula": "Công thức: Ngày lẻ < 15 ngày tính nửa tháng, >= 15 ngày tính full tháng",
+      "breakdown": "Chi tiết tính toán:",
+      "fullMonths": "{count} tháng đầy đủ",
+      "startMonthDays": "Tháng đầu: {days} ngày",
+      "endMonthDays": "Tháng cuối: {days} ngày",
+      "fullMonthLabel": "full tháng",
+      "halfMonthLabel": "nửa tháng",
+      "startMonth": "Tháng đầu",
+      "endMonth": "Tháng cuối",
+      "days": "ngày",
+      "remaining": "lẻ"
+    },
+    "paymentTerms": {
+      "auto": "Tự động",
+      "autoGenerateTooltip": "Tự động tạo điều khoản thanh toán dựa trên thời gian thuê",
+      "monthlyPayment": "Thanh toán hàng tháng từ {start} đến {end} ({months} tháng)",
+      "oneTimePayment": "Thanh toán một lần từ {start} đến {end}",
+      "placeholderExample": "VD: Thanh toán hàng tháng từ {start} đến {end}",
+      "months": "tháng"
+    },
+    "assetWarning": {
+      "checking": "Đang kiểm tra thiết bị...",
+      "missingTypes": "Căn hộ này thiếu {count} loại thiết bị",
+      "missingList": "Căn hộ đang thiếu: {list}",
+      "createMissing": "Tạo {count} thiết bị còn thiếu",
+      "allComplete": "Căn hộ đã có đầy đủ các thiết bị cần thiết",
+      "types": {
+        "AIR_CONDITIONER": "Điều hòa",
+        "KITCHEN": "Bếp",
+        "WATER_HEATER": "Bình nước nóng",
+        "FURNITURE": "Nội thất",
+        "OTHER": "Khác"
+      }
+    },
+    "meterWarning": {
+      "checking": "Đang kiểm tra đồng hồ đo...",
+      "missingTypes": "Căn hộ này thiếu {count} đồng hồ đo",
+      "missingList": "Căn hộ đang thiếu đồng hồ đo: {list}",
+      "createMissing": "Tạo {count} đồng hồ đo còn thiếu",
+      "allComplete": "Căn hộ đã có đầy đủ đồng hồ đo",
+      "confirmTitle": "Xác nhận tạo đồng hồ đo tự động",
+      "confirmWarning": "⚠️ Cảnh báo: Bạn sắp tạo đồng hồ đo tự động cho căn hộ",
+      "unit": "Căn hộ",
+      "count": "Số lượng đồng hồ",
+      "meter": "đồng hồ",
+      "willCreate": "Các đồng hồ sẽ được tạo",
+      "installDate": "Ngày lắp đặt",
+      "today": "hôm nay",
+      "confirmMessage": "Hệ thống sẽ tự động tạo đồng hồ đo với mã và ngày lắp đặt theo mặc định cho căn hộ này.",
+      "cancel": "Hủy",
+      "creating": "Đang tạo...",
+      "confirmCreate": "Xác nhận tạo {count} đồng hồ đo",
+      "requiredForRental": "BẮT BUỘC: Thiếu {count} đồng hồ đo cho hợp đồng cho thuê",
+      "rentalRequirement": "⚠️ Hợp đồng cho thuê yêu cầu phải có đầy đủ đồng hồ đo điện và nước. Vui lòng tạo đồng hồ đo trước khi tiếp tục."
     },
     "unitLabel": {
       "floor": "Tầng"
@@ -3182,7 +3260,7 @@
         "specialChars": "Số điện thoại không được chứa ký tự đặc biệt.",
         "mustStartWithZero": "Số điện thoại phải bắt đầu bằng số 0.",
         "mustBe10Digits": "Số điện thoại phải có đúng 10 số.",
-        "invalidPrefix": "Số điện thoại không hợp lệ. Vui lòng kiểm tra lại đầu số."
+        "invalidPrefix": "Số điện thoại không hợp lệ. Đầu số phải là một trong các nhà mạng: Viettel (032-039, 096-098), MobiFone (070, 076-079, 089, 090, 093), Vinaphone (081-085, 088, 091, 094), Vietnamobile (056, 058, 092), GMobile (059, 099) hoặc các đầu số khác (052-057)."
       },
       "fullName": {
         "required": "Họ và tên cư dân không được để trống.",
@@ -3211,7 +3289,13 @@
         "noWhitespace": "Email không được chứa ký tự trắng.",
         "maxLength": "Email không được vượt quá 40 ký tự.",
         "invalid": "Email không hợp lệ.",
-        "exists": "Email đã tồn tại trong hệ thống."
+        "exists": "Email đã tồn tại trong hệ thống.",
+        "missingAt": "Email phải có ký tự @.",
+        "multipleAt": "Email chỉ được có 1 ký tự @.",
+        "mustEndWithCom": "Email phải có đuôi .com. Ví dụ: user@example.com",
+        "invalidLocalPart": "Phần trước @ chỉ được chứa chữ cái (a-z, A-Z), số (0-9) và các ký tự: . _ % + -",
+        "invalidDomain": "Phần domain chỉ được chứa chữ cái (a-z, A-Z), số (0-9) và các ký tự: . -",
+        "invalidFormat": "Email không đúng định dạng. Email phải có đuôi .com. Ví dụ: user@example.com"
       },
       "building": {
         "required": "Vui lòng chọn tòa nhà."
@@ -3759,15 +3843,15 @@
         "emailInvalid": "Email không đúng định dạng"
       },
       "messages": {
-        "otpSent": "Nếu email tồn tại trong hệ thống, mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
-        "success": "Nếu email tồn tại trong hệ thống, mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
+        "otpSent": "Đã gửi email reset mật khẩu. Vui lòng kiểm tra hộp thư.",
+        "success": "Đã gửi email reset mật khẩu. Vui lòng kiểm tra hộp thư.",
         "checkEmail": "Chúng tôi đã gửi mã OTP đến email {email}. Vui lòng kiểm tra hộp thư của bạn.",
         "redirecting": "Đang chuyển hướng..."
       },
       "errors": {
         "general": "Có lỗi xảy ra. Vui lòng thử lại.",
         "emailRequired": "Email không được để trống",
-        "emailInvalid": "Email không đúng định dạng",
+        "emailInvalid": "Email phải có đuôi @gmail.com. Ví dụ: user@gmail.com",
         "tooManyRequests": "Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi một chút trước khi thử lại.",
         "invalidEmail": "Email không hợp lệ.",
         "networkError": "Không thể kết nối đến server. Vui lòng kiểm tra backend đang chạy.",
@@ -3782,14 +3866,15 @@
       "newPasswordPlaceholder": "Nhập mật khẩu mới",
       "confirmPasswordLabel": "Xác nhận mật khẩu",
       "confirmPasswordPlaceholder": "Nhập lại mật khẩu mới",
-      "passwordHint": "Mật khẩu phải có ít nhất 6 ký tự",
+      "passwordHint": "Mật khẩu phải có ít nhất 8 ký tự và chứa ít nhất 1 ký tự đặc biệt (@$!%*?&)",
       "submit": "Đặt lại mật khẩu",
       "submitting": "Đang xử lý...",
       "backToLogin": "Quay lại đăng nhập",
       "errors": {
         "invalidInfo": "Thông tin không hợp lệ. Vui lòng quay lại trang quên mật khẩu.",
         "passwordRequired": "Mật khẩu không được để trống",
-        "passwordMinLength": "Mật khẩu phải có ít nhất 6 ký tự",
+        "passwordMinLength": "Mật khẩu phải có ít nhất 8 ký tự",
+        "passwordSpecialChar": "Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (@$!%*?&)",
         "passwordMaxLength": "Mật khẩu không được vượt quá 100 ký tự",
         "passwordMismatch": "Mật khẩu xác nhận không khớp",
         "invalidOtp": "Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng thử lại từ đầu.",
@@ -4478,6 +4563,292 @@
     "messages": {
       "completeSuccess": "✅ Đã hoàn tất xóa building \"{name}\"!",
       "completeError": "❌ Hoàn tất xóa thất bại: {message}"
+    }
+  },
+  "RentalReview": {
+    "title": "Xét hợp đồng các căn hộ cho thuê",
+    "subtitle": "Quản lý và xem xét tất cả hợp đồng cho thuê trong hệ thống",
+    "statistics": {
+      "totalContracts": "Tổng số hợp đồng",
+      "expiringContracts": "Hợp đồng sắp hết hạn",
+      "expiringDays": "Còn ≤ 30 ngày",
+      "needingInspection": "Cần kiểm tra thiết bị",
+      "needingInspectionDesc": "Hợp đồng đã hết hạn/hủy chưa kiểm tra"
+    },
+    "filters": {
+      "building": "Tòa nhà",
+      "unit": "Căn hộ",
+      "status": "Trạng thái",
+      "search": "Tìm kiếm",
+      "allBuildings": "Tất cả tòa nhà",
+      "allUnits": "Tất cả căn hộ",
+      "allStatus": "Tất cả",
+      "active": "Đang hoạt động",
+      "expiring": "Sắp hết hạn (≤30 ngày)",
+      "expired": "Đã hết hạn",
+      "cancelled": "Đã hủy",
+      "notInspected": "Chưa được kiểm tra",
+      "searchPlaceholder": "Số hợp đồng, mã căn hộ..."
+    },
+    "table": {
+      "contractNumber": "Số hợp đồng",
+      "building": "Tòa nhà",
+      "unit": "Căn hộ",
+      "startDate": "Ngày bắt đầu",
+      "endDate": "Ngày kết thúc",
+      "monthlyRent": "Tiền thuê/tháng",
+      "status": "Trạng thái",
+      "actions": "Thao tác",
+      "contractList": "Danh sách hợp đồng",
+      "refresh": "🔄 Làm mới",
+      "viewDetail": "Xem chi tiết",
+      "inspectAssets": "Kiểm tra thiết bị",
+      "loading": "Đang tải...",
+      "noContracts": "Chưa có hợp đồng cho thuê nào",
+      "noResults": "Không tìm thấy hợp đồng nào phù hợp với bộ lọc"
+    },
+    "status": {
+      "cancelled": "Đã hủy",
+      "inactive": "Không hoạt động",
+      "expired": "Đã hết hạn",
+      "invalid": "Đã hết hiệu lực",
+      "active": "Đang hoạt động",
+      "expiring": "Sắp hết hạn (còn {days} ngày)"
+    },
+    "detailModal": {
+      "title": "Chi tiết hợp đồng",
+      "close": "Đóng",
+      "loading": "Đang tải...",
+      "contractNumber": "Số hợp đồng",
+      "contractType": "Loại hợp đồng",
+      "rental": "Cho thuê",
+      "purchase": "Mua bán",
+      "startDate": "Ngày bắt đầu",
+      "endDate": "Ngày kết thúc",
+      "monthlyRent": "Tiền thuê/tháng",
+      "paymentMethod": "Phương thức thanh toán",
+      "status": "Trạng thái",
+      "paymentTerms": "Điều khoản thanh toán",
+      "notes": "Ghi chú",
+      "attachments": "Tệp đính kèm",
+      "file": "Tệp",
+      "view": "Xem",
+      "notFound": "Không tìm thấy hợp đồng. Hợp đồng có thể đã bị xóa hoặc không tồn tại.",
+      "goToCreate": "Đi đến trang tạo hợp đồng"
+    },
+    "inspectionModal": {
+      "title": "Kiểm tra thiết bị khi hợp đồng hết hạn",
+      "close": "Đóng",
+      "loading": "Đang tải...",
+      "expiredContract": "Hợp đồng đã hết hạn",
+      "assignTechnician": "Cần gán kỹ thuật viên để kiểm tra thiết bị",
+      "selectTechnician": "Vui lòng chọn kỹ thuật viên từ danh sách để gán công việc kiểm tra thiết bị cho hợp đồng này.",
+      "selectTechnicianLabel": "Chọn kỹ thuật viên",
+      "required": "*",
+      "loadingTechnicians": "Đang tải danh sách kỹ thuật viên...",
+      "noTechnicians": "Không có kỹ thuật viên nào trong hệ thống",
+      "noTechniciansDesc": "Vui lòng tạo tài khoản kỹ thuật viên (role: TECHNICIAN) trước khi gán việc kiểm tra thiết bị.",
+      "selectPlaceholder": "-- Chọn kỹ thuật viên (bắt buộc) --",
+      "assigning": "Đang gán việc...",
+      "assign": "Gán việc kiểm tra thiết bị",
+      "inspectionDate": "Ngày kiểm tra",
+      "status": "Trạng thái",
+      "inspector": "Người kiểm tra",
+      "pending": "Chờ kiểm tra",
+      "inProgress": "Đang kiểm tra",
+      "completed": "Đã hoàn thành",
+      "cancelled": "Đã hủy",
+      "startInspection": "Bắt đầu kiểm tra",
+      "equipmentList": "Danh sách thiết bị cần kiểm tra",
+      "noEquipment": "Chưa có thiết bị nào trong checklist",
+      "inspectionNotes": "Ghi chú kiểm tra",
+      "notesPlaceholder": "Nhập ghi chú về tình trạng thiết bị...",
+      "completeInspection": "Hoàn thành kiểm tra",
+      "results": "Kết quả kiểm tra",
+      "meterReadings": "Đo chỉ số đồng hồ điện nước",
+      "loadingMeters": "Đang tải danh sách đồng hồ đo...",
+      "readingDate": "Ngày đo",
+      "activeCycle": "Chu kỳ đọc",
+      "noAssignment": "⚠️ Chưa có assignment cho chu kỳ này. Chỉ số đồng hồ đo sẽ không được lưu vào chu kỳ đọc.",
+      "currentIndex": "Chỉ số hiện tại",
+      "indexPlaceholder": "Nhập chỉ số đồng hồ",
+      "note": "Ghi chú",
+      "notePlaceholder": "Ghi chú (tùy chọn)",
+      "adminNote": "Lưu ý",
+      "adminNoteDesc": "Bạn chỉ cần gán kỹ thuật viên. Kỹ thuật viên sẽ thực hiện kiểm tra thiết bị và đo chỉ số đồng hồ điện nước sau khi được gán.",
+      "lastReading": "Chỉ số trước",
+      "noMeters": "Căn hộ này chưa có đồng hồ đo điện nước.",
+      "condition": {
+        "good": "Tốt",
+        "damaged": "Hư hỏng",
+        "missing": "Thiếu",
+        "repaired": "Đã sửa",
+        "replaced": "Đã thay thế",
+        "notInspected": "Chưa kiểm tra"
+      },
+      "item": {
+        "condition": "Tình trạng",
+        "selectCondition": "Chọn tình trạng",
+        "notes": "Ghi chú",
+        "notesPlaceholder": "Ghi chú về tình trạng thiết bị...",
+        "save": "Lưu",
+        "inspected": "Đã kiểm tra"
+      }
+    },
+    "errors": {
+      "loadData": "Không thể tải dữ liệu",
+      "loadBuildings": "Không thể tải danh sách tòa nhà",
+      "loadUnits": "Không thể tải danh sách căn hộ",
+      "loadContracts": "Không thể tải danh sách hợp đồng",
+      "loadDetail": "Không thể tải chi tiết hợp đồng",
+      "loadTechnicians": "Không thể tải danh sách kỹ thuật viên",
+      "createInspection": "Không thể tạo checklist kiểm tra thiết bị",
+      "startInspection": "Không thể bắt đầu kiểm tra",
+      "updateItem": "Không thể cập nhật",
+      "completeInspection": "Không thể hoàn thành kiểm tra",
+      "selectTechnician": "Vui lòng chọn kỹ thuật viên để gán việc kiểm tra thiết bị",
+      "technicianNotFound": "Không tìm thấy thông tin kỹ thuật viên đã chọn. Vui lòng chọn lại.",
+      "notTechnician": "Người được chọn không phải là kỹ thuật viên. Vui lòng chọn kỹ thuật viên khác.",
+      "noTechnicians": "Không có kỹ thuật viên nào trong hệ thống. Vui lòng tạo tài khoản kỹ thuật viên trước.",
+      "someReadingsFailed": "Đã tạo kiểm tra thiết bị nhưng {count} chỉ số đồng hồ đo thất bại"
+    },
+    "success": {
+      "assignInspection": "Đã gán việc kiểm tra thiết bị cho kỹ thuật viên {name}",
+      "startInspection": "Bắt đầu kiểm tra thiết bị",
+      "completeInspection": "Hoàn thành kiểm tra thiết bị",
+      "createInspectionWithReadings": "Đã tạo kiểm tra thiết bị và {readingCount} chỉ số đồng hồ đo",
+      "completeInspectionWithReadings": "Đã hoàn thành kiểm tra thiết bị và {readingCount} chỉ số đồng hồ đo"
+    },
+    "errors": {
+      "someReadingsFailed": "Đã tạo kiểm tra thiết bị nhưng {count} chỉ số đồng hồ đo thất bại"
+    },
+    "notification": {
+      "title": "Cần kiểm tra thiết bị",
+      "message": "Có {count} căn hộ cần kiểm tra thiết bị sau khi hợp đồng hết hạn hoặc bị hủy."
+    }
+  },
+  "TechnicianInspections": {
+    "title": "Nhiệm vụ kiểm tra thiết bị",
+    "subtitle": "Danh sách các nhiệm vụ kiểm tra thiết bị được gán cho bạn",
+    "loading": "Đang tải...",
+    "sections": {
+      "pending": "Chờ thực hiện",
+      "inProgress": "Đang thực hiện",
+      "completed": "Đã hoàn thành"
+    },
+    "table": {
+      "unitCode": "Mã căn hộ",
+      "inspectionDate": "Ngày kiểm tra",
+      "status": "Trạng thái",
+      "completedAt": "Ngày hoàn thành",
+      "actions": "Thao tác",
+      "view": "Xem",
+      "continue": "Tiếp tục"
+    },
+    "status": {
+      "pending": "Chờ kiểm tra",
+      "inProgress": "Đang kiểm tra",
+      "completed": "Đã hoàn thành",
+      "cancelled": "Đã hủy"
+    },
+    "empty": {
+      "noInspections": "Bạn chưa có nhiệm vụ kiểm tra thiết bị nào."
+    },
+    "modal": {
+      "title": "Chi tiết kiểm tra thiết bị",
+      "unitCode": "Mã căn hộ",
+      "inspectionDate": "Ngày kiểm tra",
+      "status": "Trạng thái",
+      "startInspection": "Bắt đầu kiểm tra",
+      "startInspectionDesc": "Nhấn nút bên dưới để bắt đầu kiểm tra thiết bị. Sau khi bắt đầu, bạn sẽ có thể nhập tình trạng và ghi chú cho từng thiết bị.",
+      "equipmentList": "Danh sách thiết bị",
+      "noEquipment": "Chưa có thiết bị nào",
+      "noEquipmentDesc": "Danh sách thiết bị sẽ được tạo tự động khi bắt đầu kiểm tra. Vui lòng nhấn \"Bắt đầu kiểm tra\" hoặc làm mới trang.",
+      "loadingAssets": "Đang tải danh sách thiết bị...",
+      "itemsNotReady": "Danh sách thiết bị đang được tạo...",
+      "itemsNotReadyDesc": "Vui lòng nhấn nút \"Làm mới\" ở trên để tải lại danh sách thiết bị sau khi hệ thống đã tạo xong.",
+      "tempFormDesc": "Bạn có thể nhập tình trạng thiết bị ngay bây giờ. Dữ liệu sẽ được lưu khi danh sách thiết bị được tạo xong.",
+      "tempForm": "Form tạm thời",
+      "tempFormNote": "💡 Dữ liệu sẽ được lưu tự động khi danh sách thiết bị được tạo. Vui lòng nhấn \"Làm mới\" để kiểm tra.",
+      "previewAssets": "Danh sách thiết bị sẽ được tạo tự động khi bắt đầu kiểm tra. Dưới đây là danh sách thiết bị trong căn hộ:",
+      "preview": "Xem trước",
+      "refresh": "Làm mới",
+      "meterReadings": "Đo chỉ số đồng hồ điện nước",
+      "loadingMeters": "Đang tải danh sách đồng hồ đo...",
+      "meterUsage": "Sử dụng: {usage} {unit}",
+      "readingDate": "Ngày đo",
+      "activeCycle": "Chu kỳ đọc",
+      "noAssignment": "⚠️ Chưa có assignment cho chu kỳ này. Chỉ số đồng hồ đo sẽ không được lưu vào chu kỳ đọc.",
+      "currentIndex": "Chỉ số hiện tại",
+      "indexPlaceholder": "Nhập chỉ số đồng hồ",
+      "note": "Ghi chú",
+      "notePlaceholder": "Ghi chú (tùy chọn)",
+      "lastReading": "Chỉ số trước",
+      "noMeters": "Căn hộ này chưa có đồng hồ đo điện nước.",
+      "inspectionNotes": "Ghi chú kiểm tra",
+      "notesPlaceholder": "Nhập ghi chú về tình trạng thiết bị...",
+      "completeInspection": "Hoàn thành kiểm tra",
+      "results": "Kết quả kiểm tra",
+      "close": "Đóng",
+      "condition": {
+        "good": "Tốt",
+        "damaged": "Hư hỏng",
+        "missing": "Thiếu",
+        "repaired": "Đã sửa",
+        "replaced": "Đã thay thế",
+        "notInspected": "Chưa kiểm tra"
+      },
+      "item": {
+        "condition": "Tình trạng",
+        "selectCondition": "Chọn tình trạng",
+        "originalPrice": "Giá gốc",
+        "noPrice": "⚠️ Chưa có thông tin giá gốc của thiết bị này",
+        "repairCost": "Chi phí sửa chữa/thay thế (VNĐ)",
+        "repairCostPlaceholder": "Nhập chi phí hoặc để tự động tính",
+        "costExplanation": {
+          "damaged": "Tự động tính: 30% giá gốc ({purchasePrice} VNĐ × 30% = {repairCost} VNĐ)",
+          "repaired": "Tự động tính: 20% giá gốc ({purchasePrice} VNĐ × 20% = {repairCost} VNĐ)",
+          "replacement": "Tự động tính: 100% giá gốc (Thay thế hoàn toàn)",
+          "custom": "Giá đã được chỉnh sửa thủ công"
+        },
+        "notes": "Ghi chú",
+        "notesPlaceholder": "Ghi chú về tình trạng thiết bị...",
+        "save": "Lưu",
+        "inspected": "Đã kiểm tra",
+        "damageCost": "Chi phí thiệt hại"
+      },
+      "totalDamageCost": "Tổng chi phí thiệt hại",
+      "invoiceId": "Mã hóa đơn",
+      "damagedAssetsBreakdown": "Chi tiết thiết bị bị hư hỏng",
+      "errors": {
+        "invalidIndex": "Chỉ số đồng hồ phải lớn hơn hoặc bằng 0"
+      }
+    },
+    "success": {
+      "startInspection": "Đã bắt đầu kiểm tra thiết bị",
+      "updateItem": "Cập nhật thiết bị thành công",
+      "itemsLoaded": "Đã tải {count} thiết bị",
+      "refreshItems": "Đã làm mới danh sách thiết bị",
+      "completeInspection": "Đã hoàn thành kiểm tra thiết bị",
+      "completeWithReadings": "Đã hoàn thành kiểm tra thiết bị và {readingCount} chỉ số đồng hồ đo",
+      "assignmentCreated": "Đã tự động tạo assignment cho chu kỳ này",
+      "invoiceGenerated": "Đã tự động tạo hóa đơn cho thiệt hại thiết bị"
+    },
+    "warnings": {
+      "itemsNotReady": "Danh sách thiết bị đang được tạo. Vui lòng nhấn \"Làm mới\" sau vài giây.",
+      "invoiceGenerationFailed": "Đã hoàn thành kiểm tra nhưng không thể tạo hóa đơn tự động"
+    },
+    "errors": {
+      "loadFailed": "Không thể tải danh sách nhiệm vụ",
+      "startFailed": "Không thể bắt đầu kiểm tra",
+      "updateFailed": "Không thể cập nhật",
+      "refreshFailed": "Không thể làm mới danh sách thiết bị",
+      "completeFailed": "Không thể hoàn thành kiểm tra",
+      "someReadingsFailed": "Đã hoàn thành kiểm tra nhưng {count} chỉ số đồng hồ đo thất bại",
+      "itemsMissingStatus": "Vui lòng cập nhật tình trạng cho tất cả thiết bị trước khi hoàn thành kiểm tra!",
+      "itemsInvalidCost": "Vui lòng nhập chi phí thiệt hại > 0 cho {count} thiết bị có tình trạng không tốt!",
+      "metersMissingReading": "Vui lòng nhập chỉ số đồng hồ cho {count} đồng hồ: {meters}!",
+      "metersInvalidReading": "Chỉ số đồng hồ phải > 0 cho {count} đồng hồ: {meters}!"
     }
   }
 }

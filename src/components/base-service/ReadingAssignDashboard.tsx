@@ -18,13 +18,17 @@ import {
   completeAssignment,
   changeReadingCycleStatus,
   getCycleUnassignedInfo,
+  createMeterReadingAssignment,
   type ReadingCycleUnassignedInfoDto,
+  type MeterReadingAssignmentCreateReq,
 } from '@/src/services/base/waterService';
-import { getEmployees } from '@/src/services/iam/employeeService';
+import { getEmployees, getEmployeesByRoleNew, type EmployeeRoleDto } from '@/src/services/iam/employeeService';
+import { getUnitsByBuilding } from '@/src/services/base/unitService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import CycleCard from '@/src/components/base-service/CycleCard';
 import AssignmentDetailsModal from '@/src/components/base-service/AssignmentDetailsModal';
 import CycleDetailsModal from '@/src/components/base-service/CycleDetailsModal';
+import DateBox from '@/src/components/customer-interaction/DateBox';
 
 const getCycleReferenceDate = (cycle: ReadingCycleDto): Date | null => {
   const source = cycle.periodFrom || cycle.fromDate || cycle.periodTo || cycle.toDate;
@@ -89,6 +93,18 @@ export default function ReadingAssignDashboard({
     info: ReadingCycleUnassignedInfoDto;
     assignmentAllowed: boolean;
   } | null>(null);
+  const [selectedBuildings, setSelectedBuildings] = useState<Set<string>>(new Set());
+  const [creatingAssignments, setCreatingAssignments] = useState(false);
+  const [showStaffSelectionModal, setShowStaffSelectionModal] = useState(false);
+  const [staffList, setStaffList] = useState<EmployeeRoleDto[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [startDateError, setStartDateError] = useState<string>('');
+  const [endDateError, setEndDateError] = useState<string>('');
+  const [note, setNote] = useState<string>('');
 
   const normalizedServiceCode = serviceCode?.toUpperCase();
   const currentDate = useMemo(() => new Date(), []);
@@ -124,6 +140,7 @@ export default function ReadingAssignDashboard({
 
   const handleCloseUnassignedModal = useCallback(() => {
     setActiveUnassignedModal(null);
+    setSelectedBuildings(new Set());
   }, []);
 
   const buildingGroups = useMemo(() => {
@@ -174,9 +191,193 @@ export default function ReadingAssignDashboard({
       params.set('buildingId', buildingId);
       router.push(`/base/addAssignment?${params.toString()}`);
       setActiveUnassignedModal(null);
+      setSelectedBuildings(new Set());
     },
-    [activeUnassignedModal, router, show]
+    [activeUnassignedModal, router, show, t]
   );
+
+  const handleToggleBuildingSelection = useCallback((buildingId?: string) => {
+    if (!buildingId) return;
+    setSelectedBuildings(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(buildingId)) {
+        newSet.delete(buildingId);
+      } else {
+        newSet.add(buildingId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleSelectAllBuildings = useCallback(() => {
+    if (!activeUnassignedModal) return;
+    const allBuildingIds = buildingGroups
+      .map(group => group.buildingId)
+      .filter((id): id is string => Boolean(id));
+    
+    if (selectedBuildings.size === allBuildingIds.length) {
+      // Deselect all
+      setSelectedBuildings(new Set());
+    } else {
+      // Select all
+      setSelectedBuildings(new Set(allBuildingIds));
+    }
+  }, [activeUnassignedModal, buildingGroups, selectedBuildings.size]);
+
+  const handleOpenStaffSelectionModal = useCallback(async () => {
+    if (!activeUnassignedModal || selectedBuildings.size === 0) {
+      show('Vui lòng chọn ít nhất một tòa nhà', 'error');
+      return;
+    }
+    if (!activeUnassignedModal.assignmentAllowed) {
+      show(t('onlyCurrentMonthAllowed'), 'error');
+      return;
+    }
+
+    // Auto-fill dates from cycle
+    if (activeUnassignedModal.cycle) {
+      const cycle = activeUnassignedModal.cycle;
+      if (cycle.periodFrom) {
+        setStartDate(cycle.periodFrom.split('T')[0]);
+      }
+      if (cycle.periodTo) {
+        setEndDate(cycle.periodTo.split('T')[0]);
+      }
+    }
+
+    setLoadingStaff(true);
+    try {
+      const staffData = await getEmployeesByRoleNew('technician');
+      setStaffList(staffData.filter(s => s.active !== false));
+      if (staffData.length === 0) {
+        show('Không tìm thấy kỹ thuật viên nào', 'error');
+        return;
+      }
+      setShowStaffSelectionModal(true);
+    } catch (error: any) {
+      show(error?.message || 'Không thể tải danh sách kỹ thuật viên', 'error');
+    } finally {
+      setLoadingStaff(false);
+    }
+  }, [activeUnassignedModal, selectedBuildings, show, t]);
+
+  const handleCreateAssignmentsForSelected = useCallback(async () => {
+    if (!activeUnassignedModal || selectedBuildings.size === 0 || !selectedStaffId) {
+      show('Vui lòng chọn kỹ thuật viên', 'error');
+      return;
+    }
+
+    // Validate dates against cycle period
+    setStartDateError('');
+    setEndDateError('');
+
+    const parseDateOnly = (value: string) => {
+      const [datePart] = value.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
+    const cycle = activeUnassignedModal.cycle;
+    if (cycle) {
+      const cycleStartDate = parseDateOnly(cycle.periodFrom);
+      const cycleEndDate = parseDateOnly(cycle.periodTo);
+
+      if (startDate) {
+        const startDateValue = parseDateOnly(startDate);
+        if (startDateValue < cycleStartDate) {
+          setStartDateError('Ngày bắt đầu không được trước chu kỳ');
+          return;
+        }
+      }
+
+      if (endDate) {
+        const endDateValue = parseDateOnly(endDate);
+        if (endDateValue > cycleEndDate) {
+          setEndDateError('Ngày kết thúc không được sau chu kỳ');
+          return;
+        }
+      }
+
+      // Validate endDate >= startDate if both are provided
+      if (startDate && endDate) {
+        const startDateValue = parseDateOnly(startDate);
+        const endDateValue = parseDateOnly(endDate);
+        if (endDateValue < startDateValue) {
+          setEndDateError('Ngày kết thúc phải sau ngày bắt đầu');
+          return;
+        }
+      }
+    }
+
+    setCreatingAssignments(true);
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+
+    try {
+      // Get all units for each building and create assignment
+      for (const buildingId of selectedBuildings) {
+        try {
+          // Get all units in this building
+          const units = await getUnitsByBuilding(buildingId);
+          const unitIds = units.map(u => u.id);
+
+          if (unitIds.length === 0) {
+            const buildingName = buildingGroups.find(g => g.buildingId === buildingId)?.buildingCode || buildingId;
+            errors.push(`${buildingName}: Không có căn hộ nào`);
+            errorCount++;
+            continue;
+          }
+
+          // Create assignment request
+          const assignmentReq: MeterReadingAssignmentCreateReq = {
+            cycleId: activeUnassignedModal.cycle.id,
+            serviceId: activeUnassignedModal.info.serviceId,
+            buildingId: buildingId,
+            assignedTo: selectedStaffId,
+            unitIds: unitIds,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+            note: note || undefined,
+          };
+
+          await createMeterReadingAssignment(assignmentReq);
+          successCount++;
+        } catch (error: any) {
+          errorCount++;
+          const buildingName = buildingGroups.find(g => g.buildingId === buildingId)?.buildingCode || buildingId;
+          const errorMsg = error?.response?.data?.message || error?.message || 'Lỗi không xác định';
+          errors.push(`${buildingName}: ${errorMsg}`);
+        }
+      }
+
+      if (successCount > 0) {
+        show(
+          `Đã tạo thành công ${successCount} assignment${successCount > 1 ? 's' : ''} cho ${selectedBuildings.size} tòa nhà${errorCount > 0 ? `. ${errorCount} lỗi.` : ''}`,
+          'success'
+        );
+        setShowStaffSelectionModal(false);
+        setSelectedStaffId('');
+        setStartDate('');
+        setEndDate('');
+        setStartDateError('');
+        setEndDateError('');
+        setNote('');
+        setSelectedBuildings(new Set());
+        setActiveUnassignedModal(null);
+        // Trigger reload by updating reloadTrigger
+        setReloadTrigger(prev => prev + 1);
+      }
+
+      if (errorCount > 0 && successCount === 0) {
+        show(`Không thể tạo assignment. Lỗi: ${errors.join('; ')}`, 'error');
+      }
+    } catch (error: any) {
+      show(error?.message || 'Không thể tạo assignment', 'error');
+    } finally {
+      setCreatingAssignments(false);
+    }
+  }, [activeUnassignedModal, selectedBuildings, selectedStaffId, buildingGroups, show]);
 
   const handleAddAssignment = (cycle: ReadingCycleDto) => {
     const params = new URLSearchParams();
@@ -190,7 +391,7 @@ export default function ReadingAssignDashboard({
   // Load cycles and assignments
   useEffect(() => {
     loadCyclesWithAssignments();
-  }, [normalizedServiceCode]);
+  }, [normalizedServiceCode, reloadTrigger]);
 
   const filteredCycles = useMemo(() => {
     if (statusFilter === 'ALL') {
@@ -579,6 +780,7 @@ export default function ReadingAssignDashboard({
                         onViewUnassigned={handleOpenUnassignedModal}
                         onViewCycle={handleViewCycle}
                         assignmentBlockedReason={assignmentBlockedReason}
+                        onMetersCreated={loadCyclesWithAssignments}
                       />
                     );
                   })}
@@ -641,46 +843,238 @@ export default function ReadingAssignDashboard({
               {buildingGroups.length === 0 ? (
                 <p className="text-sm text-gray-500">{t('noData')}</p>
               ) : (
-                <div className="space-y-4">
-                  {buildingGroups.map((group) => (
-                    <div key={group.key} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">
-                            {group.buildingCode || group.buildingName || t('buildingUnknown')}
-                          </p>
-                          {group.buildingName && group.buildingName !== group.buildingCode && (
-                            <p className="text-xs text-gray-500">{group.buildingName}</p>
-                          )}
-                        </div>
-                        <div>
-                          <button
-                            type="button"
-                            disabled={!group.buildingId || !activeUnassignedModal.assignmentAllowed}
-                            onClick={() => handleAssignBuilding(group.buildingId)}
-                            className="text-xs font-semibold text-[#02542D] hover:underline disabled:text-gray-400"
-                          >
-                            {group.buildingId
-                              ? activeUnassignedModal.assignmentAllowed
-                                ? t('createAssignmentForBuilding')
-                                : t('cycleNotOpen')
-                              : t('noBuildingId')}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="mt-3 space-y-2 text-sm text-gray-700">
-                        {group.floors.map((floor) => (
-                          <div key={`${group.key}-${floor.floor}-${floor.unitCodes.join(',')}`}>
-                            <span className="font-semibold">
-                              {t('floorLabel', { floor: floor.floor ?? 'N/A' })}
-                            </span>{' '}
-                            {floor.unitCodes.join(', ')}
-                          </div>
-                        ))}
-                      </div>
+                <>
+                  {/* Select All / Deselect All */}
+                  <div className="flex items-center justify-between pb-2 border-b">
+                    <span className="text-sm text-gray-600">
+                      {selectedBuildings.size > 0 && `${selectedBuildings.size} tòa nhà đã chọn`}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllBuildings}
+                        className="text-xs font-semibold text-[#02542D] hover:underline"
+                      >
+                        {selectedBuildings.size === buildingGroups.filter(g => g.buildingId).length
+                          ? 'Bỏ chọn tất cả'
+                          : 'Chọn tất cả'}
+                      </button>
+                      {selectedBuildings.size > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleOpenStaffSelectionModal}
+                          disabled={!activeUnassignedModal.assignmentAllowed || creatingAssignments}
+                          className="text-xs font-semibold bg-[#02542D] text-white px-3 py-1 rounded hover:bg-[#024428] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {creatingAssignments ? 'Đang tạo...' : `Tạo assignment cho ${selectedBuildings.size} tòa`}
+                        </button>
+                      )}
                     </div>
-                  ))}
+                  </div>
+                  <div className="space-y-4">
+                    {buildingGroups.map((group) => {
+                      const isSelected = group.buildingId ? selectedBuildings.has(group.buildingId) : false;
+                      return (
+                        <div key={group.key} className={`rounded-xl border p-4 ${
+                          isSelected ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'
+                        }`}>
+                          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                            <div className="flex items-start gap-3 flex-1">
+                              {group.buildingId && (
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleBuildingSelection(group.buildingId)}
+                                  disabled={!activeUnassignedModal.assignmentAllowed}
+                                  className="mt-1 h-4 w-4 text-[#02542D] focus:ring-[#02542D] border-gray-300 rounded"
+                                />
+                              )}
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold text-gray-800">
+                                  {group.buildingCode || group.buildingName || t('buildingUnknown')}
+                                </p>
+                                {group.buildingName && group.buildingName !== group.buildingCode && (
+                                  <p className="text-xs text-gray-500">{group.buildingName}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <button
+                                type="button"
+                                disabled={!group.buildingId || !activeUnassignedModal.assignmentAllowed}
+                                onClick={() => handleAssignBuilding(group.buildingId)}
+                                className="text-xs font-semibold text-[#02542D] hover:underline disabled:text-gray-400"
+                              >
+                                {group.buildingId
+                                  ? activeUnassignedModal.assignmentAllowed
+                                    ? t('createAssignmentForBuilding')
+                                    : t('cycleNotOpen')
+                                  : t('noBuildingId')}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="mt-3 space-y-2 text-sm text-gray-700">
+                            {group.floors.map((floor) => (
+                              <div key={`${group.key}-${floor.floor}-${floor.unitCodes.join(',')}`}>
+                                <span className="font-semibold">
+                                  {t('floorLabel', { floor: floor.floor ?? 'N/A' })}
+                                </span>{' '}
+                                {floor.unitCodes.join(', ')}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Selection Modal for Multiple Buildings */}
+      {showStaffSelectionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="max-w-md w-full rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
+            <div className="flex items-start justify-between gap-4 px-6 py-4 border-b">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Chọn kỹ thuật viên</p>
+                <h3 className="text-lg font-semibold text-[#02542D]">
+                  Tạo assignment cho {selectedBuildings.size} tòa nhà
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Vui lòng chọn kỹ thuật viên để gán cho tất cả các tòa nhà đã chọn
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowStaffSelectionModal(false);
+                  setSelectedStaffId('');
+                  setStartDate('');
+                  setEndDate('');
+                  setStartDateError('');
+                  setEndDateError('');
+                  setNote('');
+                }}
+                className="text-gray-500 hover:text-gray-900 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              {loadingStaff ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#02542D] mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-600">Đang tải danh sách kỹ thuật viên...</p>
                 </div>
+              ) : staffList.length === 0 ? (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-700">Không tìm thấy kỹ thuật viên nào</p>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Kỹ thuật viên <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={selectedStaffId}
+                      onChange={(e) => setSelectedStaffId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#02542D]"
+                    >
+                      <option value="">Chọn kỹ thuật viên</option>
+                      {staffList.map((staff) => (
+                        <option key={staff.userId} value={staff.userId}>
+                          {staff.username || staff.email || staff.userId}
+                          {staff.email && ` (${staff.email})`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Date Range */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ngày bắt đầu <span className="text-gray-500 text-xs">(Tùy chọn)</span>
+                      </label>
+                      <DateBox
+                        value={startDate}
+                        onChange={(e) => {
+                          setStartDate(e.target.value);
+                          if (startDateError) {
+                            setStartDateError('');
+                          }
+                        }}
+                        placeholderText="Chọn ngày bắt đầu"
+                      />
+                      {startDateError && (
+                        <span className="text-red-500 text-xs mt-1 block">{startDateError}</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ngày kết thúc <span className="text-gray-500 text-xs">(Tùy chọn)</span>
+                      </label>
+                      <DateBox
+                        value={endDate}
+                        onChange={(e) => {
+                          setEndDate(e.target.value);
+                          if (endDateError) {
+                            setEndDateError('');
+                          }
+                        }}
+                        placeholderText="Chọn ngày kết thúc"
+                      />
+                      {endDateError && (
+                        <span className="text-red-500 text-xs mt-1 block">{endDateError}</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Note */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ghi chú <span className="text-gray-500 text-xs">(Tùy chọn)</span>
+                    </label>
+                    <textarea
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="Ghi chú bổ sung (tùy chọn)"
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#02542D]"
+                    />
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleCreateAssignmentsForSelected}
+                      disabled={!selectedStaffId || creatingAssignments}
+                      className="flex-1 px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#024428] disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    >
+                      {creatingAssignments ? 'Đang tạo...' : `Tạo assignment cho ${selectedBuildings.size} tòa`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowStaffSelectionModal(false);
+                        setSelectedStaffId('');
+                        setStartDate('');
+                        setEndDate('');
+                        setStartDateError('');
+                        setEndDateError('');
+                        setNote('');
+                      }}
+                      disabled={creatingAssignments}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>

@@ -37,11 +37,16 @@ export default function Page() {
     if (!pwd.trim()) {
       return t('confirmReset.errors.passwordRequired');
     }
-    if (pwd.length < 6) {
+    if (pwd.length < 8) {
       return t('confirmReset.errors.passwordMinLength');
     }
     if (pwd.length > 100) {
       return t('confirmReset.errors.passwordMaxLength');
+    }
+    // Check for at least one special character
+    const specialCharPattern = /[@$!%*?&]/;
+    if (!specialCharPattern.test(pwd)) {
+      return t('confirmReset.errors.passwordSpecialChar');
     }
     return "";
   };

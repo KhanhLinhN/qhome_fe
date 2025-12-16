@@ -1,11 +1,15 @@
-import React, { useMemo } from 'react';
+'use client';
+
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ReadingCycleDto,
   MeterReadingAssignmentDto,
   type ReadingCycleUnassignedInfoDto,
+  createMissingMeters,
 } from '@/src/services/base/waterService';
 import AssignmentTable from './AssignmentTable';
+import { useNotifications } from '@/src/hooks/useNotifications';
 
 interface CycleCardProps {
   cycle: ReadingCycleDto;
@@ -22,6 +26,7 @@ interface CycleCardProps {
   onViewUnassigned?: (cycle: ReadingCycleDto, info: ReadingCycleUnassignedInfoDto) => void;
   onViewCycle?: (cycle: ReadingCycleDto) => void;
   assignmentBlockedReason?: string;
+  onMetersCreated?: () => void;
 }
 
 const CycleCard = ({
@@ -39,8 +44,11 @@ const CycleCard = ({
   onViewUnassigned,
   onViewCycle,
   assignmentBlockedReason,
+  onMetersCreated,
 }: CycleCardProps) => {
   const router = useRouter();
+  const { show } = useNotifications();
+  const [creatingMeters, setCreatingMeters] = useState<Set<string>>(new Set());
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -66,7 +74,13 @@ const CycleCard = ({
 
     const map = new Map<
       string,
-      { title: string; units: string[]; buildingId?: string; unitId?: string }
+      { 
+        title: string; 
+        units: string[]; 
+        unitIds: string[];
+        buildingId?: string; 
+        unitId?: string;
+      }
     >();
     unassignedInfo.missingMeterUnits.forEach((unit) => {
       const buildingLabel =
@@ -77,6 +91,7 @@ const CycleCard = ({
       const unitLabel = unit.unitCode || unit.unitId;
       if (existing) {
         existing.units.push(unitLabel);
+        existing.unitIds.push(unit.unitId);
         if (!existing.unitId) {
           existing.unitId = unit.unitId;
         }
@@ -84,6 +99,7 @@ const CycleCard = ({
         map.set(key, {
           title: `${buildingLabel}${floorLabel}`,
           units: [unitLabel],
+          unitIds: [unit.unitId],
           buildingId: unit.buildingId,
           unitId: unit.unitId,
         });
@@ -103,6 +119,55 @@ const CycleCard = ({
       return;
     }
     router.push(`/base/addAssignment?cycleId=${cycle.id}`);
+  };
+
+  const handleCreateMeters = async (
+    event: React.MouseEvent<HTMLButtonElement>,
+    group: { title: string; units: string[]; unitIds: string[]; buildingId?: string; unitId?: string }
+  ) => {
+    event.stopPropagation();
+    
+    if (!cycle.serviceId) {
+      show('Không tìm thấy thông tin dịch vụ', 'error');
+      return;
+    }
+
+    if (!group.buildingId) {
+      show('Không tìm thấy thông tin tòa nhà', 'error');
+      return;
+    }
+
+    const groupKey = `${group.buildingId}-${group.title}`;
+    setCreatingMeters(prev => new Set(prev).add(groupKey));
+
+    try {
+      // Tạo công tơ cho tất cả units thiếu trong building này
+      const createdMeters = await createMissingMeters(cycle.serviceId, group.buildingId);
+      
+      show(
+        `Đã tự động tạo ${createdMeters.length} công tơ cho ${group.units.length} căn hộ trong ${group.title}`,
+        'success'
+      );
+      
+      // Callback to reload data if provided
+      if (onMetersCreated) {
+        onMetersCreated();
+      } else {
+        // Fallback: reload page after a short delay to show updated data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Không thể tạo công tơ';
+      show(errorMessage, 'error');
+    } finally {
+      setCreatingMeters(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(groupKey);
+        return newSet;
+      });
+    }
   };
 
   return (
@@ -205,26 +270,30 @@ const CycleCard = ({
           {missingMeterGroups.length > 0 && (
             <div className="px-4 pb-3 border-t border-yellow-200 pt-2 text-[#6b4500] text-xs space-y-1">
               <div className="font-semibold text-sm">Các căn chưa có công tơ</div>
-              {missingMeterGroups.map((group) => (
-                <div key={group.title} className="flex items-start justify-between gap-3">
-                  <div>
-                    <span className="font-semibold">{group.title}:</span> {group.units.join(', ')}
+              {missingMeterGroups.map((group) => {
+                const groupKey = `${group.buildingId}-${group.title}`;
+                const isCreating = creatingMeters.has(groupKey);
+                
+                return (
+                  <div key={group.title} className="flex items-start justify-between gap-3">
+                    <div>
+                      <span className="font-semibold">{group.title}:</span> {group.units.join(', ')}
+                    </div>
+                    {group.buildingId && cycle.serviceId && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleCreateMeters(e, group)}
+                        disabled={isCreating}
+                        className={`text-[11px] font-semibold bg-white border border-[#02542D] rounded-full px-3 py-1 text-[#02542D] hover:bg-[#02542D] hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isCreating ? 'animate-pulse' : ''
+                        }`}
+                      >
+                        {isCreating ? 'Đang tạo...' : 'Thêm công tơ'}
+                      </button>
+                    )}
                   </div>
-                  {group.buildingId && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        router.push(
-                          `/base/building/buildingDetail/${group.buildingId}?unitId=${group.unitId ?? ''}&serviceId=${cycle.serviceId}`
-                        )
-                      }
-                      className="text-[11px] font-semibold bg-white border border-[#02542D] rounded-full px-3 py-1 text-[#02542D] hover:bg-[#02542D] hover:text-white transition"
-                    >
-                      Thêm công tơ
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
