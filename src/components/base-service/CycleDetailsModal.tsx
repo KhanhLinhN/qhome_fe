@@ -15,8 +15,6 @@ interface CycleDetailsModalProps {
   onClose: () => void;
   onExport?: (cycle: ReadingCycleDto) => void;
   isExporting?: boolean;
-  onCompleteCycle?: (cycle: ReadingCycleDto) => void;
-  isCompleting?: boolean;
 }
 
 const CycleDetailsModal = ({
@@ -29,8 +27,6 @@ const CycleDetailsModal = ({
   onClose,
   onExport,
   isExporting = false,
-  onCompleteCycle,
-  isCompleting = false,
 }: CycleDetailsModalProps) => {
   if (!isOpen || !cycle) return null;
 
@@ -168,19 +164,6 @@ const CycleDetailsModal = ({
                   : 'Complete all assignments and ensure no unassigned units before exporting invoices.'}
               </p>
               <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                {cycle.status !== 'COMPLETED' && canCompleteCycle && onCompleteCycle && (
-                  <button
-                    onClick={() => onCompleteCycle(cycle)}
-                    disabled={isCompleting}
-                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                      canCompleteCycle
-                        ? 'bg-blue-600 text-white hover:bg-blue-500'
-                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    } ${isCompleting ? 'opacity-70 cursor-wait' : ''}`}
-                  >
-                    {isCompleting ? 'Completing...' : 'Mark Cycle Completed'}
-                  </button>
-                )}
                 {onExport && (
                   <button
                     onClick={() => canExport && onExport(cycle)}

@@ -17,8 +17,9 @@ import Select from '@/src/components/customer-interaction/Select';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import { getEmployeesByRole, EmployeeRoleDto, getEmployeesByRoleNew } from '@/src/services/iam/employeeService';
 import { getUnitsByBuilding, getUnitsByFloor, Unit } from '@/src/services/base/unitService';
+import { fetchCurrentHouseholdByUnit } from '@/src/services/base/householdService';
 import Checkbox from '@/src/components/customer-interaction/Checkbox';
-import { getAssignmentsByCycle, MeterReadingAssignmentDto } from '@/src/services/base/waterService';
+import { getAssignmentsByCycle, MeterReadingAssignmentDto, getMetersByUnit } from '@/src/services/base/waterService';
 
 export default function AddAssignmentPage() {
   const t = useTranslations('AddAssignment');
@@ -171,14 +172,40 @@ export default function AddAssignmentPage() {
 
   // Load available floors and all units when building is selected
   // Filter out units that are already assigned for this cycle/service/building
+  // Only show units with primary resident AND meter for the selected service
   useEffect(() => {
     const loadFloors = async () => {
-      if (selectedBuildingId) {
+      if (selectedBuildingId && selectedServiceId) {
         try {
           const units = await getUnitsByBuilding(selectedBuildingId);
           
+          // Filter units: only keep those with primary resident AND meter for the selected service
+          const unitsWithResidentAndMeter: Unit[] = [];
+          for (const unit of units) {
+            try {
+              // Check primary resident
+              const household = await fetchCurrentHouseholdByUnit(unit.id);
+              if (!household || !household.primaryResidentId) {
+                continue; // Skip units without primary resident
+              }
+              
+              // Check if unit has meter for the selected service
+              const meters = await getMetersByUnit(unit.id);
+              const hasMeterForService = meters.some(meter => 
+                meter.serviceId === selectedServiceId && meter.active === true
+              );
+              
+              if (hasMeterForService) {
+                unitsWithResidentAndMeter.push(unit);
+              }
+            } catch (error) {
+              // Skip units without household, primary resident, or meter
+              // fetchCurrentHouseholdByUnit returns null for 404, which is valid
+            }
+          }
+          
           // Filter out units that are already assigned
-          const availableUnits = units.filter(unit => !assignedUnitIds.has(unit.id));
+          const availableUnits = unitsWithResidentAndMeter.filter(unit => !assignedUnitIds.has(unit.id));
           setAllBuildingUnits(availableUnits); // Store only available units for dropdown selection
           
           // Extract unique floors from available units and sort them
@@ -190,7 +217,7 @@ export default function AddAssignmentPage() {
           const available = uniqueFloors.filter(floor => !assignedFloors.has(floor));
           setAvailableFloors(available);
           
-          // Load units for each available floor (filter out assigned units)
+          // Load units for each available floor (filter out assigned units and units without primary resident)
           const unitsMap = new Map<number, Unit[]>();
           const loadingMap = new Map<number, boolean>();
           
@@ -198,8 +225,34 @@ export default function AddAssignmentPage() {
             loadingMap.set(floor, true);
             try {
               const floorUnits = await getUnitsByFloor(selectedBuildingId, floor);
+              
+              // Filter units: only keep those with primary resident AND meter for the selected service
+              const floorUnitsWithResidentAndMeter: Unit[] = [];
+              for (const unit of floorUnits) {
+                try {
+                  // Check primary resident
+                  const household = await fetchCurrentHouseholdByUnit(unit.id);
+                  if (!household || !household.primaryResidentId) {
+                    continue; // Skip units without primary resident
+                  }
+                  
+                  // Check if unit has meter for the selected service
+                  const meters = await getMetersByUnit(unit.id);
+                  const hasMeterForService = meters.some(meter => 
+                    meter.serviceId === selectedServiceId && meter.active === true
+                  );
+                  
+                  if (hasMeterForService) {
+                    floorUnitsWithResidentAndMeter.push(unit);
+                  }
+                } catch (error) {
+                  // Skip units without household, primary resident, or meter
+                  // fetchCurrentHouseholdByUnit returns null for 404, which is valid
+                }
+              }
+              
               // Filter out units that are already assigned
-              const availableFloorUnits = floorUnits.filter(unit => !assignedUnitIds.has(unit.id));
+              const availableFloorUnits = floorUnitsWithResidentAndMeter.filter(unit => !assignedUnitIds.has(unit.id));
               unitsMap.set(floor, availableFloorUnits);
             } catch (error) {
               console.error(`Failed to load units for floor ${floor}:`, error);
@@ -228,7 +281,7 @@ export default function AddAssignmentPage() {
     };
 
     loadFloors();
-  }, [selectedBuildingId, assignedFloors, assignedUnitIds]);
+  }, [selectedBuildingId, selectedServiceId, assignedFloors, assignedUnitIds]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

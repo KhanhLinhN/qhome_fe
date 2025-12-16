@@ -4780,6 +4780,7 @@
       "startInspection": "Bắt đầu kiểm tra",
       "startInspectionDesc": "Nhấn nút bên dưới để bắt đầu kiểm tra thiết bị. Sau khi bắt đầu, bạn sẽ có thể nhập tình trạng và ghi chú cho từng thiết bị.",
       "equipmentList": "Danh sách thiết bị",
+      "inspectionResult": "Kết quả kiểm tra",
       "noEquipment": "Chưa có thiết bị nào",
       "noEquipmentDesc": "Danh sách thiết bị sẽ được tạo tự động khi bắt đầu kiểm tra. Vui lòng nhấn \"Bắt đầu kiểm tra\" hoặc làm mới trang.",
       "loadingAssets": "Đang tải danh sách thiết bị...",

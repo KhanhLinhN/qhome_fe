@@ -69,6 +69,7 @@ export async function checkNationalIdExists(nationalId: string): Promise<boolean
     
     return exists;
   } catch (err: any) {
+<<<<<<< Updated upstream
     console.warn('Error checking national ID:', err?.response?.status || err?.message);
     return false; // Return false để không block submit, backend sẽ validate khi submit form
   }
@@ -117,6 +118,17 @@ export async function checkResidentEmailExists(email: string): Promise<boolean> 
   } catch (err: any) {
     console.warn('Error checking resident email:', err?.response?.status || err?.message);
     return false; // Return false để không block submit, backend sẽ validate khi submit form
+=======
+    // Nếu là 404, đây là expected behavior (CCCD không tồn tại) - không log như error
+    if (err?.response?.status === 404) {
+      return false;
+    }
+    // Chỉ log các lỗi không phải 404 (network, 500, etc.)
+    // Return false để không block submit, backend sẽ validate khi submit form
+    // Backend có unique constraint trên national_id nên sẽ báo lỗi nếu trùng
+    console.warn('Error checking national ID (non-404):', err?.response?.status || err?.message);
+    return false;
+>>>>>>> Stashed changes
   }
 }
 

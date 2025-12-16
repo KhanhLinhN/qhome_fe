@@ -19,11 +19,16 @@ import {
   changeReadingCycleStatus,
   getCycleUnassignedInfo,
   createMeterReadingAssignment,
+  createMeter,
+  getMetersByUnit,
   type ReadingCycleUnassignedInfoDto,
   type MeterReadingAssignmentCreateReq,
+  type MeterCreateReq,
+  type UnitWithoutMeterDto,
 } from '@/src/services/base/waterService';
 import { getEmployees, getEmployeesByRoleNew, type EmployeeRoleDto } from '@/src/services/iam/employeeService';
-import { getUnitsByBuilding } from '@/src/services/base/unitService';
+import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
+import { fetchCurrentHouseholdByUnit } from '@/src/services/base/householdService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import CycleCard from '@/src/components/base-service/CycleCard';
 import AssignmentDetailsModal from '@/src/components/base-service/AssignmentDetailsModal';
@@ -105,6 +110,13 @@ export default function ReadingAssignDashboard({
   const [startDateError, setStartDateError] = useState<string>('');
   const [endDateError, setEndDateError] = useState<string>('');
   const [note, setNote] = useState<string>('');
+  const [showCreateMeterModal, setShowCreateMeterModal] = useState(false);
+  const [selectedUnitsForMeter, setSelectedUnitsForMeter] = useState<Set<string>>(new Set());
+  const [creatingMeters, setCreatingMeters] = useState(false);
+  const [unitsWithPrimaryResident, setUnitsWithPrimaryResident] = useState<UnitWithoutMeterDto[]>([]);
+  const [loadingUnitsWithResident, setLoadingUnitsWithResident] = useState(false);
+  const [unitsWithResidentMap, setUnitsWithResidentMap] = useState<Map<string, boolean>>(new Map());
+  const [checkingResidents, setCheckingResidents] = useState(false);
 
   const normalizedServiceCode = serviceCode?.toUpperCase();
   const currentDate = useMemo(() => new Date(), []);
@@ -131,9 +143,31 @@ export default function ReadingAssignDashboard({
   );
 
   const handleOpenUnassignedModal = useCallback(
-    (cycle: ReadingCycleDto, info: ReadingCycleUnassignedInfoDto) => {
+    async (cycle: ReadingCycleDto, info: ReadingCycleUnassignedInfoDto) => {
       const assignmentAllowed = isCycleCurrentMonth(cycle);
       setActiveUnassignedModal({ cycle, info, assignmentAllowed });
+      
+      // Debug log
+      console.log('[ReadingAssignDashboard] Unassigned info:', {
+        totalUnassigned: info.totalUnassigned,
+        floorsCount: info.floors?.length ?? 0,
+        floors: info.floors,
+        missingMeterUnitsCount: info.missingMeterUnits?.length ?? 0,
+      });
+      
+      // Backend now filters by onlyWithOwner=true, so all units in missingMeterUnits have primary resident
+      // Mark all as having resident
+      const map = new Map<string, boolean>();
+      if (info.missingMeterUnits && info.missingMeterUnits.length > 0) {
+        for (const unit of info.missingMeterUnits) {
+          map.set(unit.unitId, true);
+          if (unit.unitCode) {
+            map.set(unit.unitCode, true);
+          }
+        }
+      }
+      setUnitsWithResidentMap(map);
+      setCheckingResidents(false);
     },
     [isCycleCurrentMonth]
   );
@@ -145,9 +179,13 @@ export default function ReadingAssignDashboard({
 
   const buildingGroups = useMemo(() => {
     const info = activeUnassignedModal?.info;
+    // Don't calculate if data is missing
     if (!info?.floors) {
       return [];
     }
+
+    // Backend already filters by onlyWithOwner=true, so all units in floors have primary resident
+    // We should display ALL units in floors (both units with meters and without meters)
     const map = new Map<
       string,
       {
@@ -160,6 +198,11 @@ export default function ReadingAssignDashboard({
     >();
 
     for (const floor of info.floors) {
+      // Display all unitCodes in this floor (backend already filtered by primary resident)
+      if (floor.unitCodes.length === 0) {
+        continue;
+      }
+
       const key = floor.buildingId ?? floor.buildingCode ?? floor.buildingName ?? 'unknown';
       const existing = map.get(key);
       if (existing) {
@@ -176,7 +219,7 @@ export default function ReadingAssignDashboard({
     }
 
     return Array.from(map.values());
-  }, [activeUnassignedModal]);
+  }, [activeUnassignedModal?.info]);
 
   const handleAssignBuilding = useCallback(
     (buildingId?: string) => {
@@ -248,7 +291,7 @@ export default function ReadingAssignDashboard({
     setLoadingStaff(true);
     try {
       const staffData = await getEmployeesByRoleNew('technician');
-      setStaffList(staffData.filter(s => s.active !== false));
+      setStaffList(staffData);
       if (staffData.length === 0) {
         show('Không tìm thấy kỹ thuật viên nào', 'error');
         return;
@@ -315,27 +358,36 @@ export default function ReadingAssignDashboard({
     const errors: string[] = [];
 
     try {
-      // Get all units for each building and create assignment
+      // Get all units for each building and create assignment (only for units with primary resident)
       for (const buildingId of selectedBuildings) {
         try {
           // Get all units in this building
           const units = await getUnitsByBuilding(buildingId);
-          const unitIds = units.map(u => u.id);
+          
+          // Filter units that have primary resident
+          const unitsWithResident: string[] = [];
+          for (const unit of units) {
+            // fetchCurrentHouseholdByUnit returns null for 404 (no household), which is valid
+            const household = await fetchCurrentHouseholdByUnit(unit.id);
+            if (household && household.primaryResidentId) {
+              unitsWithResident.push(unit.id);
+            }
+          }
 
-          if (unitIds.length === 0) {
+          if (unitsWithResident.length === 0) {
             const buildingName = buildingGroups.find(g => g.buildingId === buildingId)?.buildingCode || buildingId;
-            errors.push(`${buildingName}: Không có căn hộ nào`);
+            errors.push(`${buildingName}: Không có căn hộ nào có chủ nhà`);
             errorCount++;
             continue;
           }
 
-          // Create assignment request
+          // Create assignment request (only for units with primary resident)
           const assignmentReq: MeterReadingAssignmentCreateReq = {
             cycleId: activeUnassignedModal.cycle.id,
             serviceId: activeUnassignedModal.info.serviceId,
             buildingId: buildingId,
             assignedTo: selectedStaffId,
-            unitIds: unitIds,
+            unitIds: unitsWithResident,
             startDate: startDate || undefined,
             endDate: endDate || undefined,
             note: note || undefined,
@@ -387,6 +439,203 @@ export default function ReadingAssignDashboard({
     }
     router.push(`/base/addAssignment?${params.toString()}`);
   };
+
+  const handleOpenCreateMeterModal = useCallback(async () => {
+    if (!activeUnassignedModal || selectedBuildings.size === 0) {
+      show('Vui lòng chọn ít nhất một tòa nhà', 'error');
+      return;
+    }
+    if (!activeUnassignedModal.assignmentAllowed) {
+      show(t('onlyCurrentMonthAllowed'), 'error');
+      return;
+    }
+
+    setLoadingUnitsWithResident(true);
+    setSelectedUnitsForMeter(new Set());
+    try {
+      const serviceId = activeUnassignedModal.info.serviceId;
+      const allUnitsFromBuildings: Unit[] = [];
+      
+      // Get ALL units from selected buildings (not just missingMeterUnits)
+      for (const buildingId of selectedBuildings) {
+        try {
+          const units = await getUnitsByBuilding(buildingId);
+          allUnitsFromBuildings.push(...units);
+        } catch (error: any) {
+          console.warn(`Failed to load units for building ${buildingId}:`, error);
+        }
+      }
+
+      // Check which units have primary resident AND don't have meter yet
+      const unitsWithResidentAndNoMeter: UnitWithoutMeterDto[] = [];
+      let unitsWithResidentButHasMeter = 0;
+      let unitsWithoutResident = 0;
+      
+      for (const unit of allUnitsFromBuildings) {
+        // fetchCurrentHouseholdByUnit returns null for 404 (no household), which is valid
+        const household = await fetchCurrentHouseholdByUnit(unit.id);
+        if (!household || !household.primaryResidentId) {
+          unitsWithoutResident++;
+          continue; // Skip units without primary resident
+        }
+        
+        // Check if unit already has meter for this service
+        try {
+          const meters = await getMetersByUnit(unit.id);
+          const hasMeterForService = meters.some(meter => 
+            meter.serviceId === serviceId && meter.active === true
+          );
+          if (hasMeterForService) {
+            unitsWithResidentButHasMeter++;
+            continue; // Skip units that already have meter
+          }
+        } catch (error) {
+          // If error checking meters, skip this unit to be safe
+          console.warn(`Failed to check meters for unit ${unit.id}:`, error);
+          continue;
+        }
+        
+        // Unit has primary resident and no meter - add to list
+        const buildingCode = buildingGroups.find(g => g.buildingId === unit.buildingId)?.buildingCode;
+        unitsWithResidentAndNoMeter.push({
+          unitId: unit.id,
+          unitCode: unit.code,
+          floor: unit.floor,
+          buildingId: unit.buildingId,
+          buildingCode: buildingCode,
+          serviceId: serviceId,
+        });
+      }
+
+      setUnitsWithPrimaryResident(unitsWithResidentAndNoMeter);
+      if (unitsWithResidentAndNoMeter.length === 0) {
+        // Provide more specific message based on the situation
+        if (unitsWithResidentButHasMeter > 0) {
+          show('Các căn hộ trong tòa nhà đã chọn đã có công tơ', 'info');
+        } else if (unitsWithoutResident > 0) {
+          show('Không có căn hộ nào có chủ nhà trong các tòa nhà đã chọn', 'error');
+        } else {
+          show('Không có căn hộ nào có chủ nhà và chưa có công tơ trong các tòa nhà đã chọn', 'error');
+        }
+        return;
+      }
+      setShowCreateMeterModal(true);
+    } catch (error: any) {
+      show(error?.message || 'Không thể tải danh sách căn hộ', 'error');
+    } finally {
+      setLoadingUnitsWithResident(false);
+    }
+  }, [activeUnassignedModal, selectedBuildings, buildingGroups, show, t]);
+
+  const handleToggleUnitSelection = useCallback((unitId: string) => {
+    setSelectedUnitsForMeter(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(unitId)) {
+        newSet.delete(unitId);
+      } else {
+        newSet.add(unitId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleSelectAllUnits = useCallback(() => {
+    if (selectedUnitsForMeter.size === unitsWithPrimaryResident.length) {
+      setSelectedUnitsForMeter(new Set());
+    } else {
+      setSelectedUnitsForMeter(new Set(unitsWithPrimaryResident.map(u => u.unitId)));
+    }
+  }, [selectedUnitsForMeter.size, unitsWithPrimaryResident]);
+
+  const handleCreateMetersForSelected = useCallback(async () => {
+    if (!activeUnassignedModal || selectedUnitsForMeter.size === 0) {
+      show('Vui lòng chọn ít nhất một căn hộ', 'error');
+      return;
+    }
+
+    setCreatingMeters(true);
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+
+    try {
+      const serviceId = activeUnassignedModal.info.serviceId;
+      
+      for (const unitId of selectedUnitsForMeter) {
+        try {
+          const unit = unitsWithPrimaryResident.find(u => u.unitId === unitId);
+          if (!unit) continue;
+
+          // Double-check: verify unit doesn't already have meter for this service
+          try {
+            const meters = await getMetersByUnit(unitId);
+            const hasMeterForService = meters.some(meter => 
+              meter.serviceId === serviceId && meter.active === true
+            );
+            if (hasMeterForService) {
+              // Unit already has meter, skip silently or log
+              console.log(`Unit ${unit.unitCode || unitId} already has meter for service ${serviceId}, skipping`);
+              continue;
+            }
+          } catch (checkError) {
+            // If check fails, proceed with creation (might be network issue)
+            console.warn(`Failed to check existing meters for unit ${unitId}:`, checkError);
+          }
+
+          const meterReq: MeterCreateReq = {
+            unitId: unitId,
+            serviceId: serviceId,
+            installedAt: new Date().toISOString().split('T')[0],
+          };
+
+          await createMeter(meterReq);
+          successCount++;
+        } catch (error: any) {
+          const unit = unitsWithPrimaryResident.find(u => u.unitId === unitId);
+          const unitCode = unit?.unitCode || unitId;
+          
+          // Check if error is due to duplicate meter
+          const errorMsg = error?.response?.data?.message || error?.message || 'Lỗi không xác định';
+          const isDuplicateError = errorMsg.toLowerCase().includes('duplicate') || 
+                                   errorMsg.toLowerCase().includes('đã tồn tại') ||
+                                   errorMsg.toLowerCase().includes('already exists') ||
+                                   error?.response?.status === 409; // Conflict
+          
+          if (isDuplicateError) {
+            // Skip duplicate errors silently (meter already exists)
+            console.log(`Unit ${unitCode} already has meter, skipping`);
+            continue; // Don't increment errorCount for duplicate errors
+          }
+          
+          // Only count non-duplicate errors
+          errorCount++;
+          errors.push(`${unitCode}: ${errorMsg}`);
+        }
+      }
+
+      if (successCount > 0) {
+        show(
+          `Đã tạo thành công ${successCount} công tơ${successCount > 1 ? '' : ''}${errorCount > 0 ? `. ${errorCount} lỗi.` : ''}`,
+          'success'
+        );
+        setShowCreateMeterModal(false);
+        setSelectedUnitsForMeter(new Set());
+        setSelectedBuildings(new Set());
+        // Close unassigned modal and reload data
+        setActiveUnassignedModal(null);
+        setUnitsWithResidentMap(new Map());
+        setReloadTrigger(prev => prev + 1);
+      }
+
+      if (errorCount > 0 && successCount === 0) {
+        show(`Không thể tạo công tơ. Lỗi: ${errors.join('; ')}`, 'error');
+      }
+    } catch (error: any) {
+      show(error?.message || 'Không thể tạo công tơ', 'error');
+    } finally {
+      setCreatingMeters(false);
+    }
+  }, [activeUnassignedModal, selectedUnitsForMeter, unitsWithPrimaryResident, show]);
 
   // Load cycles and assignments
   useEffect(() => {
@@ -490,7 +739,7 @@ export default function ReadingAssignDashboard({
 
             let unassignedInfo: ReadingCycleUnassignedInfoDto | null = null;
             try {
-              unassignedInfo = await getCycleUnassignedInfo(cycle.id);
+              unassignedInfo = await getCycleUnassignedInfo(cycle.id, true); // onlyWithOwner = true
             } catch (error) {
               console.warn(
                 `[ReadingAssignDashboard] Failed to load unassigned info for cycle ${cycle.id}:`,
@@ -811,8 +1060,6 @@ export default function ReadingAssignDashboard({
           onClose={handleCloseCycleModal}
           onExport={handleExportInvoices}
           isExporting={isExporting}
-          onCompleteCycle={handleCompleteCycle}
-          isCompleting={completingCycleId === selectedCycle.cycle.id}
         />
       )}
       {activeUnassignedModal && (
@@ -837,96 +1084,145 @@ export default function ReadingAssignDashboard({
               </button>
             </div>
             <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
-              <p className="text-sm text-gray-600 whitespace-pre-line">
-                {activeUnassignedModal.info.message}
-              </p>
-              {buildingGroups.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('noData')}</p>
+              {checkingResidents ? (
+                <div className="flex items-center gap-2 py-4">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#02542D]"></div>
+                  <span className="text-sm text-gray-600">Đang kiểm tra căn hộ có chủ nhà...</span>
+                </div>
               ) : (
                 <>
-                  {/* Select All / Deselect All */}
-                  <div className="flex items-center justify-between pb-2 border-b">
-                    <span className="text-sm text-gray-600">
-                      {selectedBuildings.size > 0 && `${selectedBuildings.size} tòa nhà đã chọn`}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleSelectAllBuildings}
-                        className="text-xs font-semibold text-[#02542D] hover:underline"
-                      >
-                        {selectedBuildings.size === buildingGroups.filter(g => g.buildingId).length
-                          ? 'Bỏ chọn tất cả'
-                          : 'Chọn tất cả'}
-                      </button>
-                      {selectedBuildings.size > 0 && (
-                        <button
-                          type="button"
-                          onClick={handleOpenStaffSelectionModal}
-                          disabled={!activeUnassignedModal.assignmentAllowed || creatingAssignments}
-                          className="text-xs font-semibold bg-[#02542D] text-white px-3 py-1 rounded hover:bg-[#024428] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {creatingAssignments ? 'Đang tạo...' : `Tạo assignment cho ${selectedBuildings.size} tòa`}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    {buildingGroups.map((group) => {
-                      const isSelected = group.buildingId ? selectedBuildings.has(group.buildingId) : false;
-                      return (
-                        <div key={group.key} className={`rounded-xl border p-4 ${
-                          isSelected ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'
-                        }`}>
-                          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                            <div className="flex items-start gap-3 flex-1">
-                              {group.buildingId && (
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => handleToggleBuildingSelection(group.buildingId)}
-                                  disabled={!activeUnassignedModal.assignmentAllowed}
-                                  className="mt-1 h-4 w-4 text-[#02542D] focus:ring-[#02542D] border-gray-300 rounded"
-                                />
-                              )}
-                              <div className="flex-1">
-                                <p className="text-sm font-semibold text-gray-800">
-                                  {group.buildingCode || group.buildingName || t('buildingUnknown')}
-                                </p>
-                                {group.buildingName && group.buildingName !== group.buildingCode && (
-                                  <p className="text-xs text-gray-500">{group.buildingName}</p>
-                                )}
-                              </div>
+                  {buildingGroups.length > 0 ? (
+                    <div className="text-sm text-gray-600 mb-4">
+                      <p className="font-semibold mb-2">
+                        Còn {buildingGroups.reduce((sum, group) => 
+                          sum + group.floors.reduce((floorSum, floor) => floorSum + floor.unitCodes.length, 0), 0
+                        )} căn hộ/phòng chưa được assign (chỉ hiển thị căn có chủ nhà):
+                      </p>
+                      <div className="space-y-1 text-xs">
+                        {buildingGroups.map((group) => 
+                          group.floors.map((floor) => (
+                            <div key={`${group.key}-${floor.floor}`}>
+                              <span className="font-semibold">
+                                {group.buildingCode || group.buildingName || 'Tòa nhà chưa rõ'} - Tầng {floor.floor ?? 'N/A'}:
+                              </span>{' '}
+                              {floor.unitCodes.join(', ')}
                             </div>
-                            <div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ) : unitsWithResidentMap.size > 0 ? (
+                    <p className="text-sm text-gray-500">
+                      Không có căn hộ nào có chủ nhà trong danh sách chưa được assign.
+                    </p>
+                  ) : null}
+                </>
+              )}
+              {!checkingResidents && (
+                <>
+                  {buildingGroups.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      {activeUnassignedModal?.info?.totalUnassigned && activeUnassignedModal.info.totalUnassigned > 0
+                        ? `Có ${activeUnassignedModal.info.totalUnassigned} căn hộ chưa được assign nhưng không có dữ liệu chi tiết.`
+                        : t('noData')}
+                    </p>
+                  ) : (
+                    <>
+                      {/* Select All / Deselect All */}
+                      <div className="flex items-center justify-between pb-2 border-b">
+                        <span className="text-sm text-gray-600">
+                          {selectedBuildings.size > 0 && `${selectedBuildings.size} tòa nhà đã chọn`}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleSelectAllBuildings}
+                            className="text-xs font-semibold text-[#02542D] hover:underline"
+                          >
+                            {selectedBuildings.size === buildingGroups.filter(g => g.buildingId).length
+                              ? 'Bỏ chọn tất cả'
+                              : 'Chọn tất cả'}
+                          </button>
+                          {selectedBuildings.size > 0 && (
+                            <>
                               <button
                                 type="button"
-                                disabled={!group.buildingId || !activeUnassignedModal.assignmentAllowed}
-                                onClick={() => handleAssignBuilding(group.buildingId)}
-                                className="text-xs font-semibold text-[#02542D] hover:underline disabled:text-gray-400"
+                                onClick={handleOpenCreateMeterModal}
+                                disabled={!activeUnassignedModal.assignmentAllowed || creatingMeters}
+                                className="text-xs font-semibold bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                {group.buildingId
-                                  ? activeUnassignedModal.assignmentAllowed
-                                    ? t('createAssignmentForBuilding')
-                                    : t('cycleNotOpen')
-                                  : t('noBuildingId')}
+                                {creatingMeters ? 'Đang tải...' : 'Tạo công tơ cho nhiều căn hộ'}
                               </button>
-                            </div>
-                          </div>
-                          <div className="mt-3 space-y-2 text-sm text-gray-700">
-                            {group.floors.map((floor) => (
-                              <div key={`${group.key}-${floor.floor}-${floor.unitCodes.join(',')}`}>
-                                <span className="font-semibold">
-                                  {t('floorLabel', { floor: floor.floor ?? 'N/A' })}
-                                </span>{' '}
-                                {floor.unitCodes.join(', ')}
-                              </div>
-                            ))}
-                          </div>
+                              <button
+                                type="button"
+                                onClick={handleOpenStaffSelectionModal}
+                                disabled={!activeUnassignedModal.assignmentAllowed || creatingAssignments}
+                                className="text-xs font-semibold bg-[#02542D] text-white px-3 py-1 rounded hover:bg-[#024428] disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {creatingAssignments ? 'Đang tạo...' : `Tạo assignment cho ${selectedBuildings.size} tòa`}
+                              </button>
+                            </>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                      <div className="space-y-4">
+                        {buildingGroups.map((group) => {
+                          const isSelected = group.buildingId ? selectedBuildings.has(group.buildingId) : false;
+                          return (
+                            <div key={group.key} className={`rounded-xl border p-4 ${
+                              isSelected ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'
+                            }`}>
+                              <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                                <div className="flex items-start gap-3 flex-1">
+                                  {group.buildingId && (
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => handleToggleBuildingSelection(group.buildingId)}
+                                      disabled={!activeUnassignedModal.assignmentAllowed}
+                                      className="mt-1 h-4 w-4 text-[#02542D] focus:ring-[#02542D] border-gray-300 rounded"
+                                    />
+                                  )}
+                                  <div className="flex-1">
+                                    <p className="text-sm font-semibold text-gray-800">
+                                      {group.buildingCode || group.buildingName || t('buildingUnknown')}
+                                    </p>
+                                    {group.buildingName && group.buildingName !== group.buildingCode && (
+                                      <p className="text-xs text-gray-500">{group.buildingName}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div>
+                                  <button
+                                    type="button"
+                                    disabled={!group.buildingId || !activeUnassignedModal.assignmentAllowed}
+                                    onClick={() => handleAssignBuilding(group.buildingId)}
+                                    className="text-xs font-semibold text-[#02542D] hover:underline disabled:text-gray-400"
+                                  >
+                                    {group.buildingId
+                                      ? activeUnassignedModal.assignmentAllowed
+                                        ? t('createAssignmentForBuilding')
+                                        : t('cycleNotOpen')
+                                      : t('noBuildingId')}
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="mt-3 space-y-2 text-sm text-gray-700">
+                                {group.floors.map((floor) => (
+                                  <div key={`${group.key}-${floor.floor}-${floor.unitCodes.join(',')}`}>
+                                    <span className="font-semibold">
+                                      {t('floorLabel', { floor: floor.floor ?? 'N/A' })}
+                                    </span>{' '}
+                                    {floor.unitCodes.join(', ')}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -1073,6 +1369,109 @@ export default function ReadingAssignDashboard({
                     >
                       Hủy
                     </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Meter Modal for Multiple Units */}
+      {showCreateMeterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="max-w-4xl w-full rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
+            <div className="flex items-start justify-between gap-4 px-6 py-4 border-b">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Tạo công tơ</p>
+                <h3 className="text-lg font-semibold text-[#02542D]">
+                  Tạo công tơ cho nhiều căn hộ
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Chỉ hiển thị các căn hộ có chủ nhà và chưa có công tơ
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateMeterModal(false);
+                  setSelectedUnitsForMeter(new Set());
+                }}
+                className="text-gray-500 hover:text-gray-900 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+              {loadingUnitsWithResident ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#02542D] mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-600">Đang tải danh sách căn hộ...</p>
+                </div>
+              ) : unitsWithPrimaryResident.length === 0 ? (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-700">Không có căn hộ nào có chủ nhà trong các tòa nhà đã chọn</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between pb-2 border-b">
+                    <span className="text-sm text-gray-600">
+                      {selectedUnitsForMeter.size > 0 && `${selectedUnitsForMeter.size} căn hộ đã chọn`}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllUnits}
+                        className="text-xs font-semibold text-[#02542D] hover:underline"
+                      >
+                        {selectedUnitsForMeter.size === unitsWithPrimaryResident.length
+                          ? 'Bỏ chọn tất cả'
+                          : 'Chọn tất cả'}
+                      </button>
+                      {selectedUnitsForMeter.size > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleCreateMetersForSelected}
+                          disabled={creatingMeters}
+                          className="text-xs font-semibold bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {creatingMeters ? 'Đang tạo...' : `Tạo công tơ cho ${selectedUnitsForMeter.size} căn hộ`}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {unitsWithPrimaryResident.map((unit) => {
+                      const isSelected = selectedUnitsForMeter.has(unit.unitId);
+                      return (
+                        <div
+                          key={unit.unitId}
+                          className={`rounded-lg border p-3 ${
+                            isSelected ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleUnitSelection(unit.unitId)}
+                              className="h-4 w-4 text-[#02542D] focus:ring-[#02542D] border-gray-300 rounded"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-gray-800">
+                                {unit.unitCode}
+                              </p>
+                              {unit.buildingCode && (
+                                <p className="text-xs text-gray-500">Tòa {unit.buildingCode}</p>
+                              )}
+                              {unit.floor !== null && unit.floor !== undefined && (
+                                <p className="text-xs text-gray-500">Tầng {unit.floor}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </>
               )}
