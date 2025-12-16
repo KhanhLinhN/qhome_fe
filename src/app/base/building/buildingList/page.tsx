@@ -114,7 +114,25 @@ export default function Home() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setImportError(e?.response?.data?.message || t('messages.downloadTemplateError'));
+      console.error('Download template error:', e);
+      let errorMessage = t('messages.downloadTemplateError');
+      
+      if (e?.response?.data) {
+        errorMessage = e.response.data.message 
+          || e.response.data.error 
+          || e.response.data 
+          || errorMessage;
+        
+        if (typeof errorMessage === 'object') {
+          errorMessage = JSON.stringify(errorMessage);
+        }
+      } else if (e?.message) {
+        errorMessage = e.message;
+      } else if (e?.response?.statusText) {
+        errorMessage = `${e.response.status} ${e.response.statusText}`;
+      }
+      
+      setImportError(errorMessage);
     }
   };
 
@@ -128,7 +146,25 @@ export default function Home() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setImportError(e?.response?.data?.message || t('messages.exportError'));
+      console.error('Export buildings error:', e);
+      let errorMessage = t('messages.exportError');
+      
+      if (e?.response?.data) {
+        errorMessage = e.response.data.message 
+          || e.response.data.error 
+          || e.response.data 
+          || errorMessage;
+        
+        if (typeof errorMessage === 'object') {
+          errorMessage = JSON.stringify(errorMessage);
+        }
+      } else if (e?.message) {
+        errorMessage = e.message;
+      } else if (e?.response?.statusText) {
+        errorMessage = `${e.response.status} ${e.response.statusText}`;
+      }
+      
+      setImportError(errorMessage);
     }
   };
 
@@ -142,7 +178,25 @@ export default function Home() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setImportError(e?.response?.data?.message || t('messages.exportError'));
+      console.error('Export buildings with units error:', e);
+      let errorMessage = t('messages.exportError');
+      
+      if (e?.response?.data) {
+        errorMessage = e.response.data.message 
+          || e.response.data.error 
+          || e.response.data 
+          || errorMessage;
+        
+        if (typeof errorMessage === 'object') {
+          errorMessage = JSON.stringify(errorMessage);
+        }
+      } else if (e?.message) {
+        errorMessage = e.message;
+      } else if (e?.response?.statusText) {
+        errorMessage = `${e.response.status} ${e.response.statusText}`;
+      }
+      
+      setImportError(errorMessage);
     }
   };
 
@@ -162,7 +216,27 @@ export default function Home() {
       const res = await importBuildings(f);
       setImportResult(res);
     } catch (e: any) {
-      setImportError(e?.response?.data?.message || t('messages.importError'));
+      console.error('Import buildings error:', e);
+      let errorMessage = t('messages.importError');
+      
+      if (e?.response?.data) {
+        // Try to get error message from different possible locations
+        errorMessage = e.response.data.message 
+          || e.response.data.error 
+          || e.response.data 
+          || errorMessage;
+        
+        // If it's an object, try to stringify it
+        if (typeof errorMessage === 'object') {
+          errorMessage = JSON.stringify(errorMessage);
+        }
+      } else if (e?.message) {
+        errorMessage = e.message;
+      } else if (e?.response?.statusText) {
+        errorMessage = `${e.response.status} ${e.response.statusText}`;
+      }
+      
+      setImportError(errorMessage);
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -250,38 +324,83 @@ export default function Home() {
                 />
               </div>
               {importError && (
-                <div className="text-red-600 mb-3">{importError}</div>
+                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-700">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-semibold">Lỗi import:</span>
+                  </div>
+                  <p className="mt-1 text-red-600 text-sm">{importError}</p>
+                </div>
               )}
               {importResult && (
                 <div className="mb-4">
-                  <div className="mb-2">
-                    {t('importResult.summary', { 
-                      totalRows: importResult.totalRows, 
-                      successCount: importResult.successCount, 
-                      errorCount: importResult.errorCount 
-                    })}
+                  <div className="mb-3 p-3 rounded-lg border" style={{
+                    backgroundColor: importResult.errorCount > 0 ? '#fef2f2' : '#f0fdf4',
+                    borderColor: importResult.errorCount > 0 ? '#fecaca' : '#bbf7d0'
+                  }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      {importResult.errorCount > 0 ? (
+                        <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      <span className={`font-semibold ${importResult.errorCount > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                        {t('importResult.summary', { 
+                          totalRows: importResult.totalRows, 
+                          successCount: importResult.successCount, 
+                          errorCount: importResult.errorCount 
+                        })}
+                      </span>
+                    </div>
                   </div>
-                  <div className="max-h-64 overflow-auto border rounded">
+                  <div className="max-h-96 overflow-auto border rounded-lg shadow-sm">
                     <table className="min-w-full">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-gray-50 sticky top-0">
                         <tr>
-                          <th className="border px-2 py-1 text-left">{t('importResult.row')}</th>
-                          <th className="border px-2 py-1 text-left">{t('importResult.success')}</th>
-                          <th className="border px-2 py-1 text-left">{t('importResult.message')}</th>
-                          <th className="border px-2 py-1 text-left">{t('importResult.buildingId')}</th>
-                          <th className="border px-2 py-1 text-left">{t('importResult.code')}</th>
-                          <th className="border px-2 py-1 text-left">{t('importResult.name')}</th>
+                          <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('importResult.row')}</th>
+                          <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('importResult.success')}</th>
+                          <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('importResult.message')}</th>
+                          <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('importResult.buildingId')}</th>
+                          <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('importResult.code')}</th>
+                          <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('importResult.name')}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {importResult.rows.map((r, i) => (
-                          <tr key={i}>
-                            <td className="border px-2 py-1">{r.rowNumber}</td>
-                            <td className="border px-2 py-1">{r.success ? '✓' : '✗'}</td>
-                            <td className="border px-2 py-1">{r.message}</td>
-                            <td className="border px-2 py-1">{r.buildingId}</td>
-                            <td className="border px-2 py-1">{r.code}</td>
-                            <td className="border px-2 py-1">{r.name}</td>
+                          <tr 
+                            key={i}
+                            className={r.success ? 'bg-green-50 hover:bg-green-100' : 'bg-red-50 hover:bg-red-100'}
+                          >
+                            <td className="border px-3 py-2 text-sm font-medium">{r.rowNumber}</td>
+                            <td className="border px-3 py-2 text-sm">
+                              {r.success ? (
+                                <span className="inline-flex items-center gap-1 text-green-700 font-semibold">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                  Thành công
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-red-700 font-semibold">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                  </svg>
+                                  Lỗi
+                                </span>
+                              )}
+                            </td>
+                            <td className={`border px-3 py-2 text-sm ${r.success ? 'text-green-800' : 'text-red-800 font-medium'}`}>
+                              {r.message}
+                            </td>
+                            <td className="border px-3 py-2 text-sm text-gray-600">{r.buildingId || '—'}</td>
+                            <td className="border px-3 py-2 text-sm text-gray-600">{r.code || '—'}</td>
+                            <td className="border px-3 py-2 text-sm text-gray-600">{r.name || '—'}</td>
                           </tr>
                         ))}
                       </tbody>

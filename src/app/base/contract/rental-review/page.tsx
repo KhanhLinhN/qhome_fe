@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
+import { useNotificationAdd } from '@/src/hooks/useNotificationAdd';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import {
@@ -17,6 +19,7 @@ import {
   AssetInspectionItem,
   InspectionStatus,
   getInspectionByContractId,
+  getAllInspections,
   createInspection,
   updateInspectionItem,
   startInspection,
@@ -25,6 +28,16 @@ import {
   type UpdateAssetInspectionItemRequest,
 } from '@/src/services/base/assetInspectionService';
 import { fetchStaffAccounts, type UserAccountInfo } from '@/src/services/iam/userService';
+import { 
+  getMetersByUnit, 
+  createMeterReading, 
+  getReadingCyclesByStatus,
+  getAssignmentsByStaff,
+  type MeterDto,
+  type MeterReadingCreateReq,
+  type ReadingCycleDto,
+  type MeterReadingAssignmentDto,
+} from '@/src/services/base/waterService';
 
 interface RentalContractWithUnit extends ContractSummary {
   unitCode?: string;
@@ -36,6 +49,9 @@ interface RentalContractWithUnit extends ContractSummary {
 
 export default function RentalContractReviewPage() {
   const { show } = useNotifications();
+  const { addNotification } = useNotificationAdd();
+  const t = useTranslations('RentalReview');
+  const searchParams = useSearchParams();
 
   const [contracts, setContracts] = useState<RentalContractWithUnit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,8 +63,11 @@ export default function RentalContractReviewPage() {
   // Filters
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
   const [selectedUnitId, setSelectedUnitId] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'expiring' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'notInspected'>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  
+  // Map to track which contracts have inspections
+  const [contractsWithInspection, setContractsWithInspection] = useState<Set<string>>(new Set());
 
   // Detail modal
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -69,6 +88,14 @@ export default function RentalContractReviewPage() {
   const [loadingTechnicians, setLoadingTechnicians] = useState(false);
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>('');
   const [showTechnicianModal, setShowTechnicianModal] = useState(false);
+  
+  // Meter reading
+  const [unitMeters, setUnitMeters] = useState<MeterDto[]>([]);
+  const [loadingMeters, setLoadingMeters] = useState(false);
+  const [meterReadings, setMeterReadings] = useState<Record<string, { index: string; note?: string }>>({});
+  const [readingDate, setReadingDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [activeCycle, setActiveCycle] = useState<ReadingCycleDto | null>(null);
+  const [activeAssignment, setActiveAssignment] = useState<MeterReadingAssignmentDto | null>(null);
   
 
 
@@ -119,9 +146,22 @@ export default function RentalContractReviewPage() {
         });
         
         setContracts(enrichedContracts);
+        
+        // Step 4: Load all inspections to track which contracts have been inspected
+        try {
+          const allInspections = await getAllInspections();
+          const contractsWithInspectionSet = new Set<string>();
+          allInspections.forEach(inspection => {
+            contractsWithInspectionSet.add(inspection.contractId);
+          });
+          setContractsWithInspection(contractsWithInspectionSet);
+        } catch (error: any) {
+          console.warn('Failed to load inspections:', error);
+          // Continue without inspection data
+        }
       } catch (error: any) {
         console.error('Failed to initialize data:', error);
-        show(error?.response?.data?.message || error?.message || 'Không thể tải dữ liệu', 'error');
+        show(error?.response?.data?.message || error?.message || t('errors.loadData'), 'error');
       } finally {
         setLoading(false);
       }
@@ -139,6 +179,14 @@ export default function RentalContractReviewPage() {
     }
   }, [selectedBuildingId]);
 
+  // Handle filter from URL query parameter (e.g., from notification link)
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam === 'notInspected') {
+      setStatusFilter('notInspected');
+    }
+  }, [searchParams]);
+
   const loadBuildings = async () => {
     try {
       const data: any = await getBuildings();
@@ -153,7 +201,7 @@ export default function RentalContractReviewPage() {
       setBuildingsMap(map);
     } catch (error: any) {
       console.error('Failed to load buildings:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể tải danh sách tòa nhà', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.loadBuildings'), 'error');
     }
   };
 
@@ -176,7 +224,7 @@ export default function RentalContractReviewPage() {
       });
     } catch (error: any) {
       console.error('Failed to load units:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể tải danh sách căn hộ', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.loadUnits'), 'error');
     }
   };
 
@@ -200,9 +248,21 @@ export default function RentalContractReviewPage() {
       });
       
       setContracts(enrichedContracts);
+      
+      // Reload inspections to update the map
+      try {
+        const allInspections = await getAllInspections();
+        const contractsWithInspectionSet = new Set<string>();
+        allInspections.forEach(inspection => {
+          contractsWithInspectionSet.add(inspection.contractId);
+        });
+        setContractsWithInspection(contractsWithInspectionSet);
+      } catch (error: any) {
+        console.warn('Failed to load inspections:', error);
+      }
     } catch (error: any) {
       console.error('Failed to load rental contracts:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể tải danh sách hợp đồng', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.loadContracts'), 'error');
       setContracts([]);
     } finally {
       setLoading(false);
@@ -233,7 +293,7 @@ export default function RentalContractReviewPage() {
       if (isNotFoundError) {
         setDetailContract(null);
       } else {
-        show(errorMessage || 'Không thể tải chi tiết hợp đồng', 'error');
+        show(errorMessage || t('errors.loadDetail'), 'error');
         setDetailContract(null);
       }
     } finally {
@@ -241,17 +301,93 @@ export default function RentalContractReviewPage() {
     }
   };
 
+  // Helper function để check xem user có role TECHNICIAN không
+  // Backend trả về role name dưới dạng lowercase ("technician")
+  const hasTechnicianRole = (roles: string[] | undefined): boolean => {
+    if (!roles || roles.length === 0) return false;
+    return roles.some(role => 
+      role?.toUpperCase() === 'TECHNICIAN' || role?.toLowerCase() === 'technician'
+    );
+  };
+
   const loadTechnicians = async () => {
     setLoadingTechnicians(true);
     try {
       const staffList = await fetchStaffAccounts();
-      setTechnicians(staffList.filter(staff => staff.active !== false));
+      console.log('All staff accounts:', staffList);
+      
+      // Chỉ lấy những staff có role TECHNICIAN và đang active
+      const techniciansList = staffList.filter(staff => {
+        const isActive = staff.active !== false;
+        const hasTechRole = hasTechnicianRole(staff.roles);
+        
+        console.log(`Staff ${staff.username}: active=${isActive}, roles=${JSON.stringify(staff.roles)}, hasTechnician=${hasTechRole}`);
+        
+        return isActive && hasTechRole;
+      });
+      
+      console.log('Filtered technicians:', techniciansList);
+      setTechnicians(techniciansList);
+      
+      if (techniciansList.length === 0) {
+        console.warn('No technicians found. Total staff:', staffList.length);
+        show(t('errors.noTechnicians'), 'info');
+      }
     } catch (error: any) {
       console.error('Failed to load technicians:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể tải danh sách kỹ thuật viên', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.loadTechnicians'), 'error');
       setTechnicians([]);
     } finally {
       setLoadingTechnicians(false);
+    }
+  };
+
+  const loadUnitMeters = async (unitId: string) => {
+    if (!unitId) return;
+    setLoadingMeters(true);
+    try {
+      const meters = await getMetersByUnit(unitId);
+      setUnitMeters(meters.filter(m => m.active)); // Only active meters
+      
+      // Initialize meter readings with empty values
+      const readings: Record<string, { index: string; note?: string }> = {};
+      meters.forEach(meter => {
+        if (meter.active) {
+          readings[meter.id] = { index: '' };
+        }
+      });
+      setMeterReadings(readings);
+    } catch (error: any) {
+      console.error('Failed to load unit meters:', error);
+      setUnitMeters([]);
+    } finally {
+      setLoadingMeters(false);
+    }
+  };
+
+  const loadActiveCycleAndAssignment = async (technicianId: string) => {
+    if (!technicianId) return;
+    try {
+      // Get active cycles (OPEN or IN_PROGRESS)
+      const openCycles = await getReadingCyclesByStatus('OPEN');
+      const inProgressCycles = await getReadingCyclesByStatus('IN_PROGRESS');
+      const activeCycles = [...openCycles, ...inProgressCycles];
+      
+      if (activeCycles.length > 0) {
+        // Use the first active cycle
+        const cycle = activeCycles[0];
+        setActiveCycle(cycle);
+        
+        // Get assignments for this technician
+        const assignments = await getAssignmentsByStaff(technicianId);
+        // Find assignment for this cycle
+        const assignment = assignments.find(a => a.cycleId === cycle.id && !a.completedAt);
+        if (assignment) {
+          setActiveAssignment(assignment);
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to load active cycle/assignment:', error);
     }
   };
 
@@ -259,11 +395,30 @@ export default function RentalContractReviewPage() {
     setCurrentContract(contract);
     setInspectionLoading(true);
     setInspectionModalOpen(true);
+    // Reset meter reading states (not needed for admin, but keep for cleanup)
+    setMeterReadings({});
+    setReadingDate(new Date().toISOString().split('T')[0]);
+    setActiveCycle(null);
+    setActiveAssignment(null);
+    
     try {
+      // Admin chỉ gán technician, không cần load meters
+      // Technician sẽ load meters khi thực hiện kiểm tra
+      
       // Try to get existing inspection
       const existingInspection = await getInspectionByContractId(contract.id);
       if (existingInspection) {
         setCurrentInspection(existingInspection);
+        
+        // If inspection is IN_PROGRESS, load meters and cycle/assignment for technician
+        if (existingInspection.status === InspectionStatus.IN_PROGRESS && existingInspection.unitId) {
+          await loadUnitMeters(existingInspection.unitId);
+          
+          // Load active cycle and assignment if inspectorId exists
+          if (existingInspection.completedBy) {
+            await loadActiveCycleAndAssignment(existingInspection.completedBy);
+          }
+        }
       } else {
         // No inspection exists yet, will need to create one
         setCurrentInspection(null);
@@ -282,14 +437,20 @@ export default function RentalContractReviewPage() {
   };
 
   const handleCreateInspection = async (contract: RentalContractWithUnit) => {
-    if (!selectedTechnicianId) {
-      show('Vui lòng chọn kỹ thuật viên', 'error');
+    if (!selectedTechnicianId || selectedTechnicianId.trim() === '') {
+      show(t('errors.selectTechnician'), 'error');
       return;
     }
 
-    const selectedTechnician = technicians.find(t => t.userId === selectedTechnicianId);
+    const selectedTechnician = technicians.find(tech => tech.userId === selectedTechnicianId);
     if (!selectedTechnician) {
-      show('Không tìm thấy thông tin kỹ thuật viên', 'error');
+      show(t('errors.technicianNotFound'), 'error');
+      return;
+    }
+
+    // Kiểm tra lại role TECHNICIAN
+    if (!hasTechnicianRole(selectedTechnician.roles)) {
+      show(t('errors.notTechnician'), 'error');
       return;
     }
 
@@ -300,14 +461,17 @@ export default function RentalContractReviewPage() {
         unitId: contract.unitId,
         inspectionDate: new Date().toISOString().split('T')[0],
         inspectorName: selectedTechnician.username || selectedTechnician.email || 'N/A',
+        inspectorId: selectedTechnician.userId, // Gửi inspectorId để backend có thể validate và lưu
       };
       const inspection = await createInspection(request);
       setCurrentInspection(inspection);
       setSelectedTechnicianId('');
-      show(`Đã gán việc kiểm tra thiết bị cho ${selectedTechnician.username}`, 'success');
+      // Update contractsWithInspection map
+      setContractsWithInspection(prev => new Set(prev).add(contract.id));
+      show(t('success.assignInspection', { name: selectedTechnician.username }), 'success');
     } catch (error: any) {
       console.error('Failed to create inspection:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể tạo checklist', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.createInspection'), 'error');
     } finally {
       setCreatingInspection(false);
     }
@@ -318,10 +482,21 @@ export default function RentalContractReviewPage() {
     try {
       const updated = await startInspection(currentInspection.id);
       setCurrentInspection(updated);
-      show('Bắt đầu kiểm tra thiết bị', 'success');
+      
+      // Load meters and cycle/assignment when technician starts inspection
+      if (updated.unitId) {
+        await loadUnitMeters(updated.unitId);
+        
+        // Load active cycle and assignment if inspectorId exists
+        if (updated.completedBy) {
+          await loadActiveCycleAndAssignment(updated.completedBy);
+        }
+      }
+      
+      show(t('success.startInspection'), 'success');
     } catch (error: any) {
       console.error('Failed to start inspection:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể bắt đầu kiểm tra', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.startInspection'), 'error');
     }
   };
 
@@ -341,19 +516,77 @@ export default function RentalContractReviewPage() {
       }
     } catch (error: any) {
       console.error('Failed to update inspection item:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể cập nhật', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.updateItem'), 'error');
     }
   };
 
   const handleCompleteInspection = async () => {
     if (!currentInspection) return;
     try {
+      // Create meter readings if meters exist and readings are provided
+      if (unitMeters.length > 0 && activeAssignment) {
+        const readingPromises: Promise<any>[] = [];
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const meter of unitMeters) {
+          const reading = meterReadings[meter.id];
+          if (reading && reading.index && reading.index.trim() !== '') {
+            try {
+              const readingReq: MeterReadingCreateReq = {
+                assignmentId: activeAssignment.id,
+                meterId: meter.id,
+                readingDate: readingDate,
+                currIndex: parseFloat(reading.index),
+                note: reading.note || `Đo cùng với kiểm tra thiết bị - Hợp đồng ${currentContract?.contractNumber || 'N/A'}`,
+              };
+              readingPromises.push(createMeterReading(readingReq));
+              successCount++;
+            } catch (err) {
+              console.error(`Failed to create reading for meter ${meter.meterCode}:`, err);
+              errorCount++;
+            }
+          }
+        }
+        
+        if (readingPromises.length > 0) {
+          try {
+            await Promise.all(readingPromises);
+            if (errorCount > 0) {
+              show(t('errors.someReadingsFailed', { 
+                count: errorCount,
+                defaultValue: `Đã hoàn thành kiểm tra nhưng ${errorCount} chỉ số đồng hồ đo thất bại`
+              }), 'error');
+            }
+          } catch (err) {
+            console.error('Some meter readings failed:', err);
+            show(t('errors.someReadingsFailed', { 
+              count: errorCount,
+              defaultValue: `Đã hoàn thành kiểm tra nhưng một số chỉ số đồng hồ đo thất bại`
+            }), 'error');
+          }
+        }
+      }
+      
       const updated = await completeInspection(currentInspection.id, inspectorNotes);
       setCurrentInspection(updated);
-      show('Hoàn thành kiểm tra thiết bị', 'success');
+      
+      if (unitMeters.length > 0 && activeAssignment) {
+        const readingsCount = Object.values(meterReadings).filter(r => r.index && r.index.trim() !== '').length;
+        if (readingsCount > 0) {
+          show(t('success.completeInspectionWithReadings', { 
+            readingCount: readingsCount,
+            defaultValue: `Đã hoàn thành kiểm tra thiết bị và ${readingsCount} chỉ số đồng hồ đo`
+          }), 'success');
+        } else {
+          show(t('success.completeInspection'), 'success');
+        }
+      } else {
+        show(t('success.completeInspection'), 'success');
+      }
     } catch (error: any) {
       console.error('Failed to complete inspection:', error);
-      show(error?.response?.data?.message || error?.message || 'Không thể hoàn thành kiểm tra', 'error');
+      show(error?.response?.data?.message || error?.message || t('errors.completeInspection'), 'error');
     }
   };
 
@@ -447,6 +680,12 @@ export default function RentalContractReviewPage() {
           return remainingDays <= 30 && remainingDays >= 0; // Còn <= 30 ngày nữa
         } else if (statusFilter === 'cancelled') {
           return c.status === 'CANCELLED';
+        } else if (statusFilter === 'notInspected') {
+          // Chỉ hiển thị các hợp đồng chưa có inspection
+          // Và hợp đồng phải là EXPIRED hoặc CANCELLED (theo điều kiện isContractExpired)
+          const isExpiredOrCancelled = c.status === 'EXPIRED' || c.status === 'CANCELLED';
+          const hasInspection = contractsWithInspection.has(c.id);
+          return isExpiredOrCancelled && !hasInspection;
         }
         return true;
       });
@@ -475,24 +714,24 @@ export default function RentalContractReviewPage() {
     });
 
     return filtered;
-  }, [contracts, selectedBuildingId, selectedUnitId, statusFilter, searchTerm, unitsMap]);
+  }, [contracts, selectedBuildingId, selectedUnitId, statusFilter, searchTerm, unitsMap, contractsWithInspection]);
 
   const getContractStatusLabel = (contract: RentalContractWithUnit) => {
     if (contract.status === 'CANCELLED') {
-      return { label: 'Đã hủy', className: 'bg-red-100 text-red-700' };
+      return { label: t('status.cancelled'), className: 'bg-red-100 text-red-700' };
     }
     if (contract.status === 'INACTIVE') {
-      return { label: 'Không hoạt động', className: 'bg-gray-100 text-gray-700' };
+      return { label: t('status.inactive'), className: 'bg-gray-100 text-gray-700' };
     }
     if (contract.status === 'EXPIRED') {
-      return { label: 'Đã hết hạn', className: 'bg-red-100 text-red-700' };
+      return { label: t('status.expired'), className: 'bg-red-100 text-red-700' };
     }
     if (contract.status !== 'ACTIVE') {
-      return { label: 'Đã hết hiệu lực', className: 'bg-gray-100 text-gray-700' };
+      return { label: t('status.invalid'), className: 'bg-gray-100 text-gray-700' };
     }
     
     if (!contract.endDate || !contract.startDate) {
-      return { label: 'Đang hoạt động', className: 'bg-green-100 text-green-700' };
+      return { label: t('status.active'), className: 'bg-green-100 text-green-700' };
     }
     
     // Parse date string properly (YYYY-MM-DD format from API) - avoid timezone issues
@@ -537,17 +776,17 @@ export default function RentalContractReviewPage() {
     }
     
     if (endDate < today) {
-      return { label: 'Đã hết hạn', className: 'bg-red-100 text-red-700' };
+      return { label: t('status.expired'), className: 'bg-red-100 text-red-700' };
     }
     
     // Calculate remaining days: from today to end date (days until expiration)
     const daysUntilExpiry = Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     
     if (daysUntilExpiry <= 30 && daysUntilExpiry >= 0) {
-      return { label: `Sắp hết hạn (còn ${daysUntilExpiry} ngày)`, className: 'bg-yellow-100 text-yellow-700' };
+      return { label: t('status.expiring', { days: daysUntilExpiry }), className: 'bg-yellow-100 text-yellow-700' };
     }
     
-    return { label: 'Đang hoạt động', className: 'bg-green-100 text-green-700' };
+    return { label: t('status.active'), className: 'bg-green-100 text-green-700' };
   };
 
   // Calculate statistics
@@ -588,27 +827,144 @@ export default function RentalContractReviewPage() {
     }).length;
   }, [contracts]);
 
+  // Calculate contracts that need inspection (EXPIRED or CANCELLED without inspection)
+  const contractsNeedingInspection = useMemo(() => {
+    const needingInspection = contracts.filter(c => {
+      const isExpiredOrCancelled = c.status === 'EXPIRED' || c.status === 'CANCELLED';
+      const hasInspection = contractsWithInspection.has(c.id);
+      return isExpiredOrCancelled && !hasInspection;
+    });
+    
+    // Debug logging
+    console.log('📊 Contracts needing inspection:', {
+      totalContracts: contracts.length,
+      expiredOrCancelled: contracts.filter(c => c.status === 'EXPIRED' || c.status === 'CANCELLED').length,
+      withInspection: contractsWithInspection.size,
+      needingInspection: needingInspection.length,
+      contracts: needingInspection.map(c => ({
+        id: c.id,
+        contractNumber: c.contractNumber,
+        status: c.status,
+        hasInspection: contractsWithInspection.has(c.id)
+      }))
+    });
+    
+    return needingInspection.length;
+  }, [contracts, contractsWithInspection]);
+
+  // Track if we've already created a notification for this count
+  const lastNotifiedCountRef = useRef<number>(0);
+
+  // Create notification when there are contracts needing inspection
+  // NOTE: Currently disabled - Backend notification API may need additional implementation
+  // The warning card in the UI already provides visibility for contracts needing inspection.
+  // TODO: Uncomment and enable when backend notification API is fully implemented
+  useEffect(() => {
+    const createInspectionNotification = async () => {
+      // Only create notification if:
+      // 1. Initial load is complete (contracts are loaded)
+      // 2. There are contracts needing inspection
+      // 3. The count has changed (to avoid duplicate notifications)
+      if (
+        !loading && 
+        contracts.length > 0 && 
+        contractsNeedingInspection > 0 && 
+        contractsNeedingInspection !== lastNotifiedCountRef.current
+      ) {
+        // DISABLED: Backend notification API needs to be implemented/verified
+        // Uncomment the code below when backend is ready:
+        
+        /*
+        try {
+          // Create notification request
+          // For INTERNAL scope, targetRole is REQUIRED and must not be null/blank
+          // Use 'ALL' to send to all staff roles
+          const notificationPayload = {
+            type: 'WARNING' as const,
+            title: t('notification.title', { defaultValue: 'Cần kiểm tra thiết bị' }),
+            message: t('notification.message', { 
+              count: contractsNeedingInspection,
+              defaultValue: `Có ${contractsNeedingInspection} căn hộ cần kiểm tra thiết bị sau khi hợp đồng hết hạn hoặc bị hủy.` 
+            }),
+            scope: 'INTERNAL' as const,
+            targetRole: 'ALL', // Required for INTERNAL scope - 'ALL' means all staff roles
+            targetBuildingId: null, // Must be null for INTERNAL scope
+            targetResidentId: null,
+            referenceId: null,
+            referenceType: 'ASSET_INSPECTION',
+            actionUrl: '/base/contract/rental-review?filter=notInspected',
+            iconUrl: null,
+          };
+          
+          await addNotification(notificationPayload);
+          lastNotifiedCountRef.current = contractsNeedingInspection;
+        } catch (error: any) {
+          console.warn('⚠️ Failed to create inspection notification:', error?.response?.status || error?.message);
+          // Still update the ref to prevent retrying immediately
+          lastNotifiedCountRef.current = contractsNeedingInspection;
+        }
+        */
+        
+        // For now, just update the ref without creating notification
+        // The warning card in the UI provides sufficient visibility
+        lastNotifiedCountRef.current = contractsNeedingInspection;
+      }
+    };
+
+    createInspectionNotification();
+  }, [contractsNeedingInspection, contracts.length, loading, addNotification, t]);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Xét hợp đồng các căn hộ cho thuê</h1>
-        <p className="text-gray-600 mt-2">Quản lý và xem xét tất cả hợp đồng cho thuê trong hệ thống</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+        <p className="text-gray-600 mt-2">{t('subtitle')}</p>
       </div>
 
       {/* Statistics Cards */}
       {contracts.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="text-sm text-gray-600">Tổng số hợp đồng</div>
+            <div className="text-sm text-gray-600">{t('statistics.totalContracts')}</div>
             <div className="text-2xl font-bold text-gray-900 mt-1">{contracts.length}</div>
           </div>
           {expiringContractsCount > 0 && (
             <div className="bg-yellow-50 rounded-lg shadow-sm border border-yellow-200 p-4">
-              <div className="text-sm text-yellow-700 font-medium">Hợp đồng sắp hết hạn</div>
+              <div className="text-sm text-yellow-700 font-medium">{t('statistics.expiringContracts')}</div>
               <div className="text-2xl font-bold text-yellow-900 mt-1">{expiringContractsCount}</div>
-              <div className="text-xs text-yellow-600 mt-1">Còn ≤ 30 ngày</div>
+              <div className="text-xs text-yellow-600 mt-1">{t('statistics.expiringDays')}</div>
             </div>
           )}
+          {/* Always show inspection card - red if > 0, gray if 0 (for debugging) */}
+          <div className={`rounded-lg shadow-sm border p-4 ${
+            contractsNeedingInspection > 0 
+              ? 'bg-red-50 border-red-200' 
+              : 'bg-gray-50 border-gray-200 opacity-60'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-sm font-medium ${
+                  contractsNeedingInspection > 0 ? 'text-red-700' : 'text-gray-500'
+                }`}>
+                  {t('statistics.needingInspection', { defaultValue: 'Cần kiểm tra thiết bị' })}
+                </div>
+                <div className={`text-2xl font-bold mt-1 ${
+                  contractsNeedingInspection > 0 ? 'text-red-900' : 'text-gray-600'
+                }`}>
+                  {contractsNeedingInspection}
+                </div>
+                <div className={`text-xs mt-1 ${
+                  contractsNeedingInspection > 0 ? 'text-red-600' : 'text-gray-400'
+                }`}>
+                  {contractsNeedingInspection > 0 
+                    ? t('statistics.needingInspectionDesc', { defaultValue: 'Hợp đồng đã hết hạn/hủy chưa kiểm tra' })
+                    : 'Tất cả hợp đồng đã được kiểm tra'
+                  }
+                </div>
+              </div>
+              <div className="text-3xl">{contractsNeedingInspection > 0 ? '⚠️' : '✅'}</div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -617,7 +973,7 @@ export default function RentalContractReviewPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tòa nhà
+              {t('filters.building')}
             </label>
             <select
               value={selectedBuildingId}
@@ -627,7 +983,7 @@ export default function RentalContractReviewPage() {
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Tất cả tòa nhà</option>
+              <option value="">{t('filters.allBuildings')}</option>
               {buildings.map((building) => (
                 <option key={building.id} value={building.id}>
                   {building.code} - {building.name}
@@ -638,7 +994,7 @@ export default function RentalContractReviewPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Căn hộ
+              {t('filters.unit')}
             </label>
             <select
               value={selectedUnitId}
@@ -646,7 +1002,7 @@ export default function RentalContractReviewPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={!selectedBuildingId}
             >
-              <option value="">Tất cả căn hộ</option>
+              <option value="">{t('filters.allUnits')}</option>
               {units.map((unit) => (
                 <option key={unit.id} value={unit.id}>
                   {unit.code} - {unit.name}
@@ -657,30 +1013,31 @@ export default function RentalContractReviewPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Trạng thái
+              {t('filters.status')}
             </label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled')}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'notInspected')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">Tất cả</option>
-              <option value="active">Đang hoạt động</option>
-              <option value="expiring">Sắp hết hạn (≤30 ngày)</option>
-              <option value="expired">Đã hết hạn</option>
-              <option value="cancelled">Đã hủy</option>
+              <option value="all">{t('filters.allStatus')}</option>
+              <option value="active">{t('filters.active')}</option>
+              <option value="expiring">{t('filters.expiring')}</option>
+              <option value="expired">{t('filters.expired')}</option>
+              <option value="cancelled">{t('filters.cancelled')}</option>
+              <option value="notInspected">{t('filters.notInspected')}</option>
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tìm kiếm
+              {t('filters.search')}
             </label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Số hợp đồng, mã căn hộ..."
+              placeholder={t('filters.searchPlaceholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -690,25 +1047,25 @@ export default function RentalContractReviewPage() {
       {/* Contracts Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Đang tải...</div>
+          <div className="p-8 text-center text-gray-500">{t('table.loading')}</div>
         ) : filteredContracts.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             {contracts.length === 0 
-              ? 'Chưa có hợp đồng cho thuê nào'
-              : 'Không tìm thấy hợp đồng nào phù hợp với bộ lọc'}
+              ? t('table.noContracts')
+              : t('table.noResults')}
           </div>
         ) : (
           <>
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  Danh sách hợp đồng ({filteredContracts.length})
+                  {t('table.contractList')} ({filteredContracts.length})
                 </h2>
                 <button
                   onClick={loadContracts}
                   className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
                 >
-                  🔄 Làm mới
+                  {t('table.refresh')}
                 </button>
               </div>
             </div>
@@ -717,28 +1074,28 @@ export default function RentalContractReviewPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Số hợp đồng
+                      {t('table.contractNumber')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tòa nhà
+                      {t('table.building')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Căn hộ
+                      {t('table.unit')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ngày bắt đầu
+                      {t('table.startDate')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ngày kết thúc
+                      {t('table.endDate')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tiền thuê/tháng
+                      {t('table.monthlyRent')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Trạng thái
+                      {t('table.status')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Thao tác
+                      {t('table.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -792,14 +1149,14 @@ export default function RentalContractReviewPage() {
                               onClick={() => handleViewDetail(contract.id)}
                               className="text-blue-600 hover:text-blue-900"
                             >
-                              Xem chi tiết
+                              {t('table.viewDetail')}
                             </button>
                             {isContractExpired(contract) && (
                               <button
                                 onClick={() => handleOpenInspection(contract)}
                                 className="text-green-600 hover:text-green-900"
                               >
-                                Kiểm tra thiết bị
+                                {t('table.inspectAssets')}
                               </button>
                             )}
                           </div>
@@ -827,7 +1184,7 @@ export default function RentalContractReviewPage() {
         >
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
             <div className="p-6 flex-shrink-0 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Chi tiết hợp đồng</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('detailModal.title')}</h2>
               <button
                 onClick={() => {
                   setDetailModalOpen(false);
@@ -841,64 +1198,64 @@ export default function RentalContractReviewPage() {
             
             <div className="px-6 py-6 flex-1 min-h-0 overflow-y-auto">
               {detailLoading ? (
-                <div className="text-center text-gray-500">Đang tải...</div>
+                <div className="text-center text-gray-500">{t('detailModal.loading')}</div>
               ) : detailContract ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Số hợp đồng</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('detailModal.contractNumber')}</label>
                       <p className="mt-1 text-sm text-gray-900">{detailContract.contractNumber || '-'}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Loại hợp đồng</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('detailModal.contractType')}</label>
                       <p className="mt-1 text-sm text-gray-900">
-                        {detailContract.contractType === 'RENTAL' ? 'Cho thuê' : 'Mua bán'}
+                        {detailContract.contractType === 'RENTAL' ? t('detailModal.rental') : t('detailModal.purchase')}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Ngày bắt đầu</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('detailModal.startDate')}</label>
                       <p className="mt-1 text-sm text-gray-900">{formatDate(detailContract.startDate)}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Ngày kết thúc</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('detailModal.endDate')}</label>
                       <p className="mt-1 text-sm text-gray-900">{formatDate(detailContract.endDate)}</p>
                     </div>
                     {detailContract.monthlyRent && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Tiền thuê/tháng</label>
+                        <label className="block text-sm font-medium text-gray-700">{t('detailModal.monthlyRent')}</label>
                         <p className="mt-1 text-sm text-gray-900">{formatCurrency(detailContract.monthlyRent)}</p>
                       </div>
                     )}
                     {detailContract.paymentMethod && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Phương thức thanh toán</label>
+                        <label className="block text-sm font-medium text-gray-700">{t('detailModal.paymentMethod')}</label>
                         <p className="mt-1 text-sm text-gray-900">{detailContract.paymentMethod}</p>
                       </div>
                     )}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('detailModal.status')}</label>
                       <p className="mt-1 text-sm text-gray-900">{detailContract.status || '-'}</p>
                     </div>
                   </div>
                   {detailContract.paymentTerms && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Điều khoản thanh toán</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('detailModal.paymentTerms')}</label>
                       <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{detailContract.paymentTerms}</p>
                     </div>
                   )}
                   {detailContract.notes && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Ghi chú</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('detailModal.notes')}</label>
                       <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{detailContract.notes}</p>
                     </div>
                   )}
                   {detailContract.files && detailContract.files.length > 0 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Tệp đính kèm</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('detailModal.attachments')}</label>
                       <div className="space-y-2">
                         {detailContract.files.map((file) => (
                           <div key={file.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <span className="text-sm text-gray-900">{file.originalFileName || file.fileName || 'Tệp'}</span>
+                            <span className="text-sm text-gray-900">{file.originalFileName || file.fileName || t('detailModal.file')}</span>
                             {file.fileUrl && (
                               <a
                                 href={file.fileUrl}
@@ -906,7 +1263,7 @@ export default function RentalContractReviewPage() {
                                 rel="noopener noreferrer"
                                 className="text-sm text-blue-600 hover:text-blue-800"
                               >
-                                Xem
+                                {t('detailModal.view')}
                               </a>
                             )}
                           </div>
@@ -918,14 +1275,14 @@ export default function RentalContractReviewPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 text-center">
-                    Không tìm thấy hợp đồng. Hợp đồng có thể đã bị xóa hoặc không tồn tại.
+                    {t('detailModal.notFound')}
                   </div>
                   <div className="flex justify-center">
                     <Link
                       href="/base/contract/contracts"
                       className="px-4 py-2 bg-[#02542D] text-white rounded-lg hover:bg-[#023a20] transition-colors"
                     >
-                      Đi đến trang tạo hợp đồng
+                      {t('detailModal.goToCreate')}
                     </Link>
                   </div>
                 </div>
@@ -964,7 +1321,7 @@ export default function RentalContractReviewPage() {
         >
           <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] flex flex-col">
             <div className="p-6 flex-shrink-0 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Kiểm tra thiết bị khi hợp đồng hết hạn</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('inspectionModal.title')}</h2>
               <button
                 onClick={() => {
                   setInspectionModalOpen(false);
@@ -980,33 +1337,40 @@ export default function RentalContractReviewPage() {
             
             <div className="px-6 py-6 flex-1 min-h-0 overflow-y-auto">
               {inspectionLoading ? (
-                <div className="text-center text-gray-500">Đang tải...</div>
+                <div className="text-center text-gray-500">{t('inspectionModal.loading')}</div>
               ) : !currentInspection ? (
                 <div className="space-y-4">
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
                     <p className="text-sm text-blue-800 mb-2">
-                      <strong>Hợp đồng đã hết hạn</strong> - Cần gán kỹ thuật viên để kiểm tra thiết bị
+                      <strong>{t('inspectionModal.expiredContract')}</strong> - {t('inspectionModal.assignTechnician')}
                     </p>
                     <p className="text-sm text-blue-700">
-                      Vui lòng chọn kỹ thuật viên từ danh sách để gán công việc kiểm tra thiết bị cho hợp đồng này.
+                      {t('inspectionModal.selectTechnician')}
                     </p>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Chọn kỹ thuật viên <span className="text-red-500">*</span>
+                      {t('inspectionModal.selectTechnicianLabel')} <span className="text-red-500">{t('inspectionModal.required')}</span>
                     </label>
                     {loadingTechnicians ? (
-                      <div className="text-sm text-gray-500 py-2">Đang tải danh sách kỹ thuật viên...</div>
+                      <div className="text-sm text-gray-500 py-2">{t('inspectionModal.loadingTechnicians')}</div>
                     ) : technicians.length === 0 ? (
-                      <div className="text-sm text-red-500 py-2">Không có kỹ thuật viên nào trong hệ thống</div>
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                        <p className="text-sm text-red-700 font-medium mb-1">{t('inspectionModal.noTechnicians')}</p>
+                        <p className="text-xs text-red-600">{t('inspectionModal.noTechniciansDesc')}</p>
+                      </div>
                     ) : (
                       <select
                         value={selectedTechnicianId}
-                        onChange={(e) => setSelectedTechnicianId(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedTechnicianId(e.target.value);
+                          // Admin chỉ gán technician, không cần load cycle/assignment
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
                       >
-                        <option value="">-- Chọn kỹ thuật viên --</option>
+                        <option value="">{t('inspectionModal.selectPlaceholder')}</option>
                         {technicians.map((tech) => (
                           <option key={tech.userId} value={tech.userId}>
                             {tech.username} {tech.email ? `(${tech.email})` : ''}
@@ -1015,6 +1379,17 @@ export default function RentalContractReviewPage() {
                         ))}
                       </select>
                     )}
+                  </div>
+
+                  {/* Info: Technician will perform inspection and meter reading */}
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                      <p className="text-sm text-blue-800">
+                        <strong>{t('inspectionModal.adminNote', { defaultValue: 'Lưu ý' })}:</strong> {t('inspectionModal.adminNoteDesc', { 
+                          defaultValue: 'Bạn chỉ cần gán kỹ thuật viên. Kỹ thuật viên sẽ thực hiện kiểm tra thiết bị và đo chỉ số đồng hồ điện nước sau khi được gán.' 
+                        })}
+                      </p>
+                    </div>
                   </div>
                   
                   <button
@@ -1026,31 +1401,31 @@ export default function RentalContractReviewPage() {
                     disabled={creatingInspection || !selectedTechnicianId}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
                   >
-                    {creatingInspection ? 'Đang gán việc...' : 'Gán việc kiểm tra thiết bị'}
+                    {creatingInspection ? t('inspectionModal.assigning') : t('inspectionModal.assign')}
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Ngày kiểm tra</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('inspectionModal.inspectionDate')}</label>
                       <p className="mt-1 text-sm text-gray-900">{formatDate(currentInspection.inspectionDate)}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('inspectionModal.status')}</label>
                       <span className={`mt-1 inline-block px-2 py-1 text-xs font-medium rounded ${
                         currentInspection.status === InspectionStatus.COMPLETED ? 'bg-green-100 text-green-700' :
                         currentInspection.status === InspectionStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700' :
                         'bg-yellow-100 text-yellow-700'
                       }`}>
-                        {currentInspection.status === InspectionStatus.PENDING ? 'Chờ kiểm tra' :
-                         currentInspection.status === InspectionStatus.IN_PROGRESS ? 'Đang kiểm tra' :
-                         currentInspection.status === InspectionStatus.COMPLETED ? 'Đã hoàn thành' : 'Đã hủy'}
+                        {currentInspection.status === InspectionStatus.PENDING ? t('inspectionModal.pending') :
+                         currentInspection.status === InspectionStatus.IN_PROGRESS ? t('inspectionModal.inProgress') :
+                         currentInspection.status === InspectionStatus.COMPLETED ? t('inspectionModal.completed') : t('inspectionModal.cancelled')}
                       </span>
                     </div>
                     {currentInspection.inspectorName && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Người kiểm tra</label>
+                        <label className="block text-sm font-medium text-gray-700">{t('inspectionModal.inspector')}</label>
                         <p className="mt-1 text-sm text-gray-900">{currentInspection.inspectorName}</p>
                       </div>
                     )}
@@ -1061,14 +1436,14 @@ export default function RentalContractReviewPage() {
                       onClick={handleStartInspection}
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                     >
-                      Bắt đầu kiểm tra
+                      {t('inspectionModal.startInspection')}
                     </button>
                   )}
 
                   {currentInspection.status === InspectionStatus.IN_PROGRESS && (
                     <>
                       <div className="border-t border-gray-200 pt-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Danh sách thiết bị cần kiểm tra</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('inspectionModal.equipmentList')}</h3>
                         <div className="space-y-3">
                           {currentInspection.items && currentInspection.items.length > 0 ? (
                             currentInspection.items.map((item) => (
@@ -1080,21 +1455,135 @@ export default function RentalContractReviewPage() {
                               />
                             ))
                           ) : (
-                            <p className="text-gray-500">Chưa có thiết bị nào trong checklist</p>
+                            <p className="text-gray-500">{t('inspectionModal.noEquipment')}</p>
                           )}
                         </div>
                       </div>
 
+                      {/* Meter Reading Section for Technician */}
+                      {currentInspection.unitId && (
+                        <div className="border-t border-gray-200 pt-4">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                            {t('inspectionModal.meterReadings', { defaultValue: 'Đo chỉ số đồng hồ điện nước' })}
+                          </h3>
+                          {loadingMeters ? (
+                            <div className="text-sm text-gray-500 py-2">{t('inspectionModal.loadingMeters', { defaultValue: 'Đang tải danh sách đồng hồ đo...' })}</div>
+                          ) : unitMeters.length > 0 ? (
+                            <>
+                              <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  {t('inspectionModal.readingDate', { defaultValue: 'Ngày đo' })}
+                                </label>
+                                <input
+                                  type="date"
+                                  value={readingDate}
+                                  onChange={(e) => setReadingDate(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                              {activeCycle && (
+                                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                  <p className="text-sm text-blue-800">
+                                    <strong>{t('inspectionModal.activeCycle', { defaultValue: 'Chu kỳ đọc' })}:</strong> {activeCycle.name}
+                                    {activeCycle.periodFrom && activeCycle.periodTo && (
+                                      <span className="ml-2">
+                                        ({new Date(activeCycle.periodFrom).toLocaleDateString('vi-VN')} - {new Date(activeCycle.periodTo).toLocaleDateString('vi-VN')})
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                              )}
+                              {!activeAssignment && (
+                                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                                  <p className="text-sm text-yellow-800">
+                                    {t('inspectionModal.noAssignment', { defaultValue: '⚠️ Chưa có assignment cho chu kỳ này. Chỉ số đồng hồ đo sẽ không được lưu vào chu kỳ đọc.' })}
+                                  </p>
+                                </div>
+                              )}
+                              <div className="space-y-3">
+                                {unitMeters.map((meter) => (
+                                  <div key={meter.id} className="border border-gray-200 rounded-lg p-4">
+                                    <div className="flex justify-between items-start mb-3">
+                                      <div>
+                                        <h4 className="font-medium text-gray-900">{meter.meterCode}</h4>
+                                        <p className="text-sm text-gray-500">
+                                          {meter.serviceName || meter.serviceCode || 'Unknown Service'}
+                                        </p>
+                                        {meter.lastReading !== null && meter.lastReading !== undefined && (
+                                          <p className="text-xs text-gray-400 mt-1">
+                                            {t('inspectionModal.lastReading', { defaultValue: 'Chỉ số trước' })}: {meter.lastReading}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          {t('inspectionModal.currentIndex', { defaultValue: 'Chỉ số hiện tại' })} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          value={meterReadings[meter.id]?.index || ''}
+                                          onChange={(e) => {
+                                            setMeterReadings(prev => ({
+                                              ...prev,
+                                              [meter.id]: {
+                                                ...prev[meter.id],
+                                                index: e.target.value
+                                              }
+                                            }));
+                                          }}
+                                          placeholder={t('inspectionModal.indexPlaceholder', { defaultValue: 'Nhập chỉ số đồng hồ' })}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          {t('inspectionModal.note', { defaultValue: 'Ghi chú' })}
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={meterReadings[meter.id]?.note || ''}
+                                          onChange={(e) => {
+                                            setMeterReadings(prev => ({
+                                              ...prev,
+                                              [meter.id]: {
+                                                ...prev[meter.id],
+                                                note: e.target.value
+                                              }
+                                            }));
+                                          }}
+                                          placeholder={t('inspectionModal.notePlaceholder', { defaultValue: 'Ghi chú (tùy chọn)' })}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+                              <p className="text-sm text-gray-600">
+                                {t('inspectionModal.noMeters', { defaultValue: 'Căn hộ này chưa có đồng hồ đo điện nước.' })}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="border-t border-gray-200 pt-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Ghi chú kiểm tra
+                          {t('inspectionModal.inspectionNotes')}
                         </label>
                         <textarea
                           value={inspectorNotes}
                           onChange={(e) => setInspectorNotes(e.target.value)}
                           rows={3}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Nhập ghi chú về tình trạng thiết bị..."
+                          placeholder={t('inspectionModal.notesPlaceholder')}
                         />
                       </div>
 
@@ -1102,7 +1591,7 @@ export default function RentalContractReviewPage() {
                         onClick={handleCompleteInspection}
                         className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                       >
-                        Hoàn thành kiểm tra
+                        {t('inspectionModal.completeInspection')}
                       </button>
                     </>
                   )}
@@ -1110,7 +1599,7 @@ export default function RentalContractReviewPage() {
                   {currentInspection.status === InspectionStatus.COMPLETED && (
                     <>
                       <div className="border-t border-gray-200 pt-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Kết quả kiểm tra</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('inspectionModal.results')}</h3>
                         <div className="space-y-3">
                           {currentInspection.items && currentInspection.items.map((item) => (
                             <div key={item.id} className="border border-gray-200 rounded-lg p-4">
@@ -1125,10 +1614,10 @@ export default function RentalContractReviewPage() {
                                   item.conditionStatus === 'MISSING' ? 'bg-gray-100 text-gray-700' :
                                   'bg-yellow-100 text-yellow-700'
                                 }`}>
-                                  {item.conditionStatus === 'GOOD' ? 'Tốt' :
-                                   item.conditionStatus === 'DAMAGED' ? 'Hư hỏng' :
-                                   item.conditionStatus === 'MISSING' ? 'Thiếu' :
-                                   item.conditionStatus || 'Chưa kiểm tra'}
+                                  {item.conditionStatus === 'GOOD' ? t('inspectionModal.condition.good') :
+                                   item.conditionStatus === 'DAMAGED' ? t('inspectionModal.condition.damaged') :
+                                   item.conditionStatus === 'MISSING' ? t('inspectionModal.condition.missing') :
+                                   item.conditionStatus || t('inspectionModal.condition.notInspected')}
                                 </span>
                               </div>
                               {item.notes && (
@@ -1140,7 +1629,7 @@ export default function RentalContractReviewPage() {
                       </div>
                       {currentInspection.inspectorNotes && (
                         <div className="border-t border-gray-200 pt-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú kiểm tra</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">{t('inspectionModal.inspectionNotes')}</label>
                           <p className="text-sm text-gray-900 whitespace-pre-wrap">{currentInspection.inspectorNotes}</p>
                         </div>
                       )}
@@ -1180,6 +1669,7 @@ function InspectionItemRow({
   onUpdate: (conditionStatus: string, notes: string) => void;
   disabled: boolean;
 }) {
+  const t = useTranslations('RentalReview.inspectionModal');
   const [conditionStatus, setConditionStatus] = useState(item.conditionStatus || '');
   const [notes, setNotes] = useState(item.notes || '');
 
@@ -1198,7 +1688,7 @@ function InspectionItemRow({
         </div>
         {item.checked && (
           <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700">
-            Đã kiểm tra
+            {t('item.inspected')}
           </span>
         )}
       </div>
@@ -1206,29 +1696,29 @@ function InspectionItemRow({
       {!disabled && (
         <div className="space-y-3 mt-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tình trạng</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('item.condition')}</label>
             <select
               value={conditionStatus}
               onChange={(e) => setConditionStatus(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Chọn tình trạng</option>
-              <option value="GOOD">Tốt</option>
-              <option value="DAMAGED">Hư hỏng</option>
-              <option value="MISSING">Thiếu</option>
-              <option value="REPAIRED">Đã sửa</option>
-              <option value="REPLACED">Đã thay thế</option>
+              <option value="">{t('item.selectCondition')}</option>
+              <option value="GOOD">{t('condition.good')}</option>
+              <option value="DAMAGED">{t('condition.damaged')}</option>
+              <option value="MISSING">{t('condition.missing')}</option>
+              <option value="REPAIRED">{t('condition.repaired')}</option>
+              <option value="REPLACED">{t('condition.replaced')}</option>
             </select>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('item.notes')}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Ghi chú về tình trạng thiết bị..."
+              placeholder={t('item.notesPlaceholder')}
             />
           </div>
           
@@ -1237,7 +1727,7 @@ function InspectionItemRow({
             disabled={!conditionStatus}
             className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
           >
-            Lưu
+            {t('item.save')}
           </button>
         </div>
       )}
@@ -1250,9 +1740,9 @@ function InspectionItemRow({
             item.conditionStatus === 'MISSING' ? 'bg-gray-100 text-gray-700' :
             'bg-yellow-100 text-yellow-700'
           }`}>
-            {item.conditionStatus === 'GOOD' ? 'Tốt' :
-             item.conditionStatus === 'DAMAGED' ? 'Hư hỏng' :
-             item.conditionStatus === 'MISSING' ? 'Thiếu' :
+            {item.conditionStatus === 'GOOD' ? t('condition.good') :
+             item.conditionStatus === 'DAMAGED' ? t('condition.damaged') :
+             item.conditionStatus === 'MISSING' ? t('condition.missing') :
              item.conditionStatus}
           </span>
           {item.notes && (

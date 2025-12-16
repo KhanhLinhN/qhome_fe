@@ -20,6 +20,9 @@ export interface AssetInspectionItem {
   checked: boolean;
   checkedAt?: string;
   checkedBy?: string;
+  repairCost?: number; // Frontend uses repairCost for display
+  damageCost?: number; // Backend returns damageCost - map this to repairCost
+  purchasePrice?: number;
 }
 
 export interface AssetInspection {
@@ -36,6 +39,8 @@ export interface AssetInspection {
   createdAt: string;
   updatedAt: string;
   items: AssetInspectionItem[];
+  totalDamageCost?: number;
+  invoiceId?: string;
 }
 
 export interface CreateAssetInspectionRequest {
@@ -43,6 +48,8 @@ export interface CreateAssetInspectionRequest {
   unitId: string;
   inspectionDate: string;
   inspectorName?: string;
+  inspectorId?: string;
+  scheduledDate?: string;
 }
 
 export interface UpdateAssetInspectionItemRequest {
@@ -50,6 +57,7 @@ export interface UpdateAssetInspectionItemRequest {
   notes?: string;
   checked?: boolean;
   checkedBy?: string;
+  damageCost?: number; // Backend uses 'damageCost', not 'repairCost'
 }
 
 export async function getInspectionByContractId(contractId: string): Promise<AssetInspection | null> {
@@ -57,6 +65,22 @@ export async function getInspectionByContractId(contractId: string): Promise<Ass
     const response = await axios.get<AssetInspection>(
       `${BASE_URL}/api/asset-inspections/contract/${contractId}`,
     );
+    // Map damageCost from backend to repairCost for frontend compatibility
+    // Backend uses damageCost as source of truth, so always use it if available
+    if (response.data && response.data.items) {
+      response.data.items = response.data.items.map(item => ({
+        ...item,
+        repairCost: item.damageCost !== undefined && item.damageCost !== null 
+          ? item.damageCost 
+          : (item.repairCost !== undefined && item.repairCost !== null ? item.repairCost : undefined)
+      }));
+    }
+    console.log('📥 getInspectionByContractId: Mapped items:', response.data?.items?.map(item => ({
+      id: item.id,
+      assetName: item.assetName || item.assetCode,
+      damageCost: item.damageCost,
+      repairCost: item.repairCost
+    })));
     return response.data;
   } catch (error: any) {
     if (error?.response?.status === 404) {
@@ -79,17 +103,54 @@ export async function updateInspectionItem(
   itemId: string,
   request: UpdateAssetInspectionItemRequest
 ): Promise<AssetInspectionItem> {
+  console.log('🌐 API: Updating inspection item:', {
+    itemId,
+    url: `${BASE_URL}/api/asset-inspections/items/${itemId}`,
+    request: JSON.stringify(request, null, 2),
+    requestKeys: Object.keys(request),
+    hasConditionStatus: 'conditionStatus' in request,
+    conditionStatusValue: (request as any).conditionStatus
+  });
+  
   const response = await axios.put<AssetInspectionItem>(
     `${BASE_URL}/api/asset-inspections/items/${itemId}`,
     request,
   );
-  return response.data;
+  
+  console.log('📥 API: Raw response from backend:', {
+    status: response.status,
+    data: JSON.stringify(response.data, null, 2),
+    conditionStatusInResponse: response.data.conditionStatus,
+    damageCostInResponse: response.data.damageCost
+  });
+  
+  // Map damageCost from backend to repairCost for frontend compatibility
+  const mappedItem: AssetInspectionItem = {
+    ...response.data,
+    repairCost: response.data.damageCost !== undefined ? response.data.damageCost : response.data.repairCost
+  };
+  
+  console.log('✅ API: Mapped item after update:', {
+    ...mappedItem,
+    conditionStatus: mappedItem.conditionStatus,
+    damageCost: mappedItem.damageCost,
+    repairCost: mappedItem.repairCost
+  });
+  
+  return mappedItem;
 }
 
 export async function startInspection(inspectionId: string): Promise<AssetInspection> {
   const response = await axios.put<AssetInspection>(
     `${BASE_URL}/api/asset-inspections/${inspectionId}/start`,
   );
+  // Map damageCost from backend to repairCost for frontend compatibility
+  if (response.data && response.data.items) {
+    response.data.items = response.data.items.map(item => ({
+      ...item,
+      repairCost: item.damageCost !== undefined ? item.damageCost : item.repairCost
+    }));
+  }
   return response.data;
 }
 
@@ -106,7 +167,36 @@ export async function completeInspection(
       },
     }
   );
+  // Map damageCost from backend to repairCost for frontend compatibility
+  if (response.data && response.data.items) {
+    response.data.items = response.data.items.map(item => ({
+      ...item,
+      repairCost: item.damageCost !== undefined ? item.damageCost : item.repairCost
+    }));
+  }
   return response.data;
+}
+
+export async function generateInvoice(inspectionId: string): Promise<AssetInspection> {
+  console.log('Calling generateInvoice API for inspection:', inspectionId);
+  try {
+    const response = await axios.post<AssetInspection>(
+      `${BASE_URL}/api/asset-inspections/${inspectionId}/generate-invoice`,
+    );
+    // Map damageCost from backend to repairCost for frontend compatibility
+    if (response.data && response.data.items) {
+      response.data.items = response.data.items.map(item => ({
+        ...item,
+        repairCost: item.damageCost !== undefined ? item.damageCost : item.repairCost
+      }));
+    }
+    console.log('GenerateInvoice API response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('GenerateInvoice API error:', error);
+    console.error('Error response:', error?.response?.data);
+    throw error;
+  }
 }
 
 export async function getAllInspections(
@@ -125,7 +215,38 @@ export async function getAllInspections(
     `${BASE_URL}/api/asset-inspections`,
     { params }
   );
-  return response.data;
+  // Map damageCost from backend to repairCost for frontend compatibility
+  return response.data.map(inspection => ({
+    ...inspection,
+    items: inspection.items?.map(item => ({
+      ...item,
+      repairCost: item.damageCost !== undefined ? item.damageCost : item.repairCost
+    }))
+  }));
+}
+
+export async function getInspectionById(inspectionId: string): Promise<AssetInspection | null> {
+  try {
+    const response = await axios.get<AssetInspection>(
+      `${BASE_URL}/api/asset-inspections/${inspectionId}`,
+    );
+    // Map damageCost from backend to repairCost for frontend compatibility
+    if (response.data && response.data.items) {
+      response.data.items = response.data.items.map(item => ({
+        ...item,
+        repairCost: item.damageCost !== undefined ? item.damageCost : item.repairCost
+      }));
+    }
+    return response.data;
+  } catch (error: any) {
+    // If endpoint doesn't exist or returns error, return null instead of throwing
+    // This allows fallback to getInspectionByContractId
+    if (error?.response?.status === 404 || error?.response?.status === 500) {
+      console.warn(`getInspectionById failed (${error?.response?.status}), falling back to contract-based lookup`);
+      return null;
+    }
+    throw error;
+  }
 }
 
 

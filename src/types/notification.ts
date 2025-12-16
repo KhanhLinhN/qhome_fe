@@ -29,6 +29,7 @@ export interface CreateNotificationRequest {
     scope: NotificationScope;
     targetRole?: string;
     targetBuildingId?: string | null;
+    targetResidentId?: string | null;
     referenceId?: string | null;
     referenceType?: string | null;
     actionUrl?: string | null;
