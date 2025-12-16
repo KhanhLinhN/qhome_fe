@@ -12,6 +12,7 @@ import {
   fetchElevatorCardRegistrations,
 } from '@/src/services/card';
 import PopupComfirm from '@/src/components/common/PopupComfirm';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 export default function ElevatorCardAdminPage() {
   const t = useTranslations('ElevatorCards');
@@ -29,6 +30,11 @@ export default function ElevatorCardAdminPage() {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
+  
+  // Pagination
+  const initialPageSize = 10;
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(initialPageSize);
 
   const statusOptions = useMemo(() => [
     { value: '', label: t('filters.allStatuses') },
@@ -109,6 +115,7 @@ export default function ElevatorCardAdminPage() {
     try {
       const data = await fetchElevatorCardRegistrations(filters);
       setRegistrations(data);
+      setPageNo(0);
     } catch (err) {
       console.error('Failed to load elevator card registrations', err);
       setError(t('errors.loadError'));
@@ -154,7 +161,23 @@ export default function ElevatorCardAdminPage() {
       ...prev,
       [field]: value || undefined,
     }));
+    setPageNo(0);
   };
+
+  // Apply pagination to registrations
+  const registrationsToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return registrations.slice(startIndex, endIndex);
+  }, [registrations, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(registrations.length / pageSize) : 0;
+  }, [registrations.length, pageSize]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPageNo(newPage);
+  }, []);
 
   const handleRefresh = () => {
     void loadRegistrations();
@@ -300,7 +323,7 @@ export default function ElevatorCardAdminPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200 text-sm">
-                  {registrations.map(item => (
+                  {registrationsToDisplay.map(item => (
                     <tr
                       key={item.id}
                       className={`hover:bg-gray-50 ${
@@ -368,6 +391,15 @@ export default function ElevatorCardAdminPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {totalPages > 0 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={pageNo + 1}
+                totalPages={totalPages}
+                onPageChange={(page) => handlePageChange(page - 1)}
+              />
             </div>
           )}
         </div>

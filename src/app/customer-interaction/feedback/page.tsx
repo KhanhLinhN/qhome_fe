@@ -120,10 +120,10 @@ export default function Home() {
     // Filter by status
     if (activeStatus === '') {
       // Filter Done and Cancelled when showing "All" tab
-      filtered = filtered.filter(item => item.status !== 'Done' && item.status !== 'Cancelled');
+      filtered = filtered.filter(item => item.status !== 'Resolved');
     } else if (activeStatus === 'New') {
       // Show both New and Pending for "New" tab
-      filtered = filtered.filter(item => item.status === 'New' || item.status === 'Pending');
+      filtered = filtered.filter(item => item.status === 'New');
     } else {
       // Filter by specific status
       filtered = filtered.filter(item => item.status === activeStatus);
@@ -206,10 +206,7 @@ export default function Home() {
     return [
         { title: t('totalFeedbacks'), count: totalCount, status: '' },
         { title: t('New'), count: counts.New || 0, status: 'New' },
-        { title: t('Pending'), count: counts.Pending || 0, status: 'Pending' },
-        { title: t('Processing'), count: counts.Processing || 0, status: 'Processing' },
-        { title: t('Done'), count: counts.Done || 0, status: 'Done' },
-        { title: t('Cancel'), count: counts.Cancelled || 0, status: 'Cancelled' },
+        { title: t('Done'), count: counts.Done || 0, status: 'Resolved' },
     ];
   }, [statusCounts, t]);
   
