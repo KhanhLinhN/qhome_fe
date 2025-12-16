@@ -167,7 +167,8 @@
     "personalInfo": "Personal Information",
     "cardPricingManagement": "Card Pricing Management",
     "incomeExpenseManagement": "Income & Expense Management",
-    "pricingTiersManagement": "Pricing Tiers Management"
+    "pricingTiersManagement": "Pricing Tiers Management",
+    "feedback": "Feedback"
   },
   "Account": {
     "selectBuilding": "Select building",

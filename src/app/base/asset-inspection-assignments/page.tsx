@@ -37,9 +37,12 @@ import { getAssetsByUnit, getAssetById } from '@/src/services/base/assetService'
 import { type Asset } from '@/src/types/asset';
 
 export default function TechnicianInspectionAssignmentsPage() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const { show } = useNotifications();
   const t = useTranslations('TechnicianInspections');
+  
+  // Check if user is admin
+  const isAdmin = hasRole('ADMIN') || hasRole('admin') || hasRole('ROLE_ADMIN') || hasRole('ROLE_admin');
 
   const [loading, setLoading] = useState(false);
   const [inspections, setInspections] = useState<AssetInspection[]>([]);
@@ -74,10 +77,10 @@ export default function TechnicianInspectionAssignmentsPage() {
   const [calculatedPrices, setCalculatedPrices] = useState<Record<string, number>>({}); // meterId -> calculated price
 
   useEffect(() => {
-    if (user?.userId) {
+    if (user?.userId || isAdmin) {
       loadMyInspections();
     }
-  }, [user?.userId]);
+  }, [user?.userId, isAdmin]);
 
   // Load water/electric invoices when inspection is opened
   useEffect(() => {
@@ -88,12 +91,14 @@ export default function TechnicianInspectionAssignmentsPage() {
   }, [selectedInspection?.unitId, activeCycle?.id]);
 
   const loadMyInspections = async () => {
-    if (!user?.userId) return;
+    if (!user?.userId && !isAdmin) return;
     
     setLoading(true);
     try {
-      // Load inspections assigned to current technician
-      const data = await getAllInspections(user.userId);
+      // If admin, load all inspections; otherwise load only assigned inspections
+      const data = isAdmin 
+        ? await getAllInspections() // No userId parameter = get all inspections
+        : await getAllInspections(user?.userId);
       setInspections(data);
     } catch (error: any) {
       show(error?.response?.data?.message || error?.message || t('errors.loadFailed'), 'error');

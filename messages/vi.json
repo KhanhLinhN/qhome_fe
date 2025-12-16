@@ -172,7 +172,8 @@
     "personalInfo": "Thông tin cá nhân",
     "cardPricingManagement": "Quản lý giá thẻ",
     "incomeExpenseManagement": "Quản lý Thu Chi",
-    "pricingTiersManagement": "Quản lý bậc giá"
+    "pricingTiersManagement": "Quản lý bậc giá",
+    "feedback": "Phản hồi"
   },
   "Account": {
     "selectBuilding": "Chọn tòa nhà",

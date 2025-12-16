@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, FormEvent, useMemo, useState, useEffect } from 'react';
+import { ChangeEvent, FormEvent, useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -68,6 +68,7 @@ export default function AccountNewStaffPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<StaffImportResponse | null>(null);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // IMPORTANT: All hooks must be called before any conditional returns
   const importSummary = useMemo(() => {
@@ -366,6 +367,13 @@ export default function AccountNewStaffPage() {
     setImportResult(null);
     const file = event.target.files?.[0];
     setImportFile(file ?? null);
+    // Reset input value after a short delay to allow selecting the same file again
+    // This ensures onChange fires even when selecting the same file
+    setTimeout(() => {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }, 0);
   };
 
   const handleImport = async () => {
@@ -386,6 +394,8 @@ export default function AccountNewStaffPage() {
       setImporting(true);
       const result = await importStaffAccounts(importFile);
       setImportResult(result);
+      // Clear the file after successful import to allow re-selecting
+      setImportFile(null);
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
@@ -570,6 +580,7 @@ export default function AccountNewStaffPage() {
             <div className="flex-1">
               <label className="block text-sm font-medium text-slate-700">{t('import.fileLabel')}</label>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 onChange={handleFileChange}
