@@ -10,6 +10,7 @@ import {
   fetchPendingAccountRequests,
 } from '@/src/services/base/residentAccountService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 const approveIcon = (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Check-2-Fill--Streamline-Mingcute-Fill" height="16" width="16">
@@ -32,6 +33,8 @@ const rejectIcon = (
   </svg>
 );
 
+const initialPageSize = 10;
+
 export default function ResidentAccountApprovalPage() {
   const t = useTranslations('ResidentAccountApproval');
   const router = useRouter();
@@ -40,6 +43,8 @@ export default function ResidentAccountApprovalPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(initialPageSize);
   const [confirmPopup, setConfirmPopup] = useState<{
     isOpen: boolean;
     request: AccountCreationRequest | null;
@@ -66,6 +71,7 @@ export default function ResidentAccountApprovalPage() {
     try {
       const data = await fetchPendingAccountRequests();
       setRequests(data);
+      setPageNo(0);
     } catch (err: any) {
       const message =
         err?.response?.data?.message || err?.message || t('messages.loadError');
@@ -157,6 +163,21 @@ export default function ResidentAccountApprovalPage() {
     [confirmPopup, removeRequest, t, updateProcessing],
   );
 
+  // Apply pagination to requests
+  const requestsToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return requests.slice(startIndex, endIndex);
+  }, [requests, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(requests.length / pageSize) : 0;
+  }, [requests.length, pageSize]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPageNo(newPage);
+  }, []);
+
   const pendingMessage = useMemo(() => {
     if (loading) {
       return t('states.loading');
@@ -174,15 +195,6 @@ export default function ResidentAccountApprovalPage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-[#02542D]">{t('title')}</h1>
             <p className="text-sm text-slate-600">{t('description')}</p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => router.push('/accountList')}
-              className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700"
-            >
-              {t('buttons.back')}
-            </button>
           </div>
         </header>
 
@@ -252,7 +264,7 @@ export default function ResidentAccountApprovalPage() {
                     </td>
                   </tr>
                 ) : (
-                  requests.map((request) => {
+                  requestsToDisplay.map((request) => {
                     const isProcessing = processingIds.has(request.id);
                     return (
                       <tr key={request.id} className="hover:bg-emerald-50/40">
@@ -334,6 +346,13 @@ export default function ResidentAccountApprovalPage() {
               </tbody>
             </table>
           </div>
+          {totalPages > 0 && (
+            <Pagination
+              currentPage={pageNo + 1}
+              totalPages={totalPages}
+              onPageChange={(page) => handlePageChange(page - 1)}
+            />
+          )}
         </div>
 
         {/* Confirm Popup */}

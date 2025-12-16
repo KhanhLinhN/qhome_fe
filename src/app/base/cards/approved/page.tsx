@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   fetchApprovedCards,
@@ -8,6 +8,7 @@ import {
 } from '@/src/services/card/cardRegistrationQueryService';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 export default function ApprovedCardsAdminPage() {
   const t = useTranslations('ApprovedCards');
@@ -19,6 +20,11 @@ export default function ApprovedCardsAdminPage() {
   const [selectedCardType, setSelectedCardType] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination
+  const initialPageSize = 10;
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(initialPageSize);
 
   useEffect(() => {
     const loadBuildings = async () => {
@@ -59,13 +65,14 @@ export default function ApprovedCardsAdminPage() {
         selectedUnitId || undefined
       );
       setCards(response.data);
+      setPageNo(0);
     } catch (err: any) {
       console.error('Failed to load approved cards', err);
       setError(err?.response?.data?.message || t('errors.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [selectedBuildingId, selectedUnitId]);
+  }, [selectedBuildingId, selectedUnitId, t]);
 
   useEffect(() => {
     loadCards();
@@ -136,19 +143,41 @@ export default function ApprovedCardsAdminPage() {
     }
   };
 
-  const filteredCards = cards
-    .filter((card) => {
-      // Loại bỏ các card có status inactive
-      const status = card.status?.toUpperCase();
-      return status !== 'INACTIVE';
-    })
-    .filter((card) => {
-      // Filter theo loại thẻ nếu có chọn
-      if (selectedCardType) {
-        return card.cardType === selectedCardType;
-      }
-      return true;
-    });
+  const filteredCards = useMemo(() => {
+    return cards
+      .filter((card) => {
+        // Loại bỏ các card có status inactive
+        const status = card.status?.toUpperCase();
+        return status !== 'INACTIVE';
+      })
+      .filter((card) => {
+        // Filter theo loại thẻ nếu có chọn
+        if (selectedCardType) {
+          return card.cardType === selectedCardType;
+        }
+        return true;
+      });
+  }, [cards, selectedCardType]);
+
+  // Apply pagination to filtered cards
+  const cardsToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredCards.slice(startIndex, endIndex);
+  }, [filteredCards, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(filteredCards.length / pageSize) : 0;
+  }, [filteredCards.length, pageSize]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPageNo(newPage);
+  }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPageNo(0);
+  }, [selectedCardType, selectedBuildingId, selectedUnitId]);
 
   return (
     <div className="space-y-6">
@@ -173,7 +202,10 @@ export default function ApprovedCardsAdminPage() {
             </label>
             <select
               value={selectedCardType}
-              onChange={(e) => setSelectedCardType(e.target.value)}
+              onChange={(e) => {
+                setSelectedCardType(e.target.value);
+                setPageNo(0);
+              }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
             >
               <option value="">{t('filters.allCardTypes')}</option>
@@ -191,6 +223,7 @@ export default function ApprovedCardsAdminPage() {
               onChange={(e) => {
                 setSelectedBuildingId(e.target.value);
                 setSelectedUnitId('');
+                setPageNo(0);
               }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E]"
             >
@@ -208,7 +241,10 @@ export default function ApprovedCardsAdminPage() {
             </label>
             <select
               value={selectedUnitId}
-              onChange={(e) => setSelectedUnitId(e.target.value)}
+              onChange={(e) => {
+                setSelectedUnitId(e.target.value);
+                setPageNo(0);
+              }}
               disabled={!selectedBuildingId}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6B9B6E] disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
@@ -261,7 +297,7 @@ export default function ApprovedCardsAdminPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200 text-sm">
-                {filteredCards.map((card) => (
+                {cardsToDisplay.map((card) => (
                   <tr key={card.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {getCardTypeLabel(card.cardType)}
@@ -304,7 +340,15 @@ export default function ApprovedCardsAdminPage() {
             </table>
           </div>
         )}
-
+        {totalPages > 0 && (
+          <div className="mt-4">
+            <Pagination
+              currentPage={pageNo + 1}
+              totalPages={totalPages}
+              onPageChange={(page) => handlePageChange(page - 1)}
+            />
+          </div>
+        )}
         {filteredCards.length > 0 && (
           <div className="mt-4 text-sm text-gray-600">
             {t('showing', { filtered: filteredCards.length, total: cards.length })}

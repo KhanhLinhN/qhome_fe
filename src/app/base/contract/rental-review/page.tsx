@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -29,6 +29,7 @@ import {
   type UpdateAssetInspectionItemRequest,
 } from '@/src/services/base/assetInspectionService';
 import { fetchStaffAccounts, type UserAccountInfo } from '@/src/services/iam/userService';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 import { 
   getMetersByUnit, 
   createMeterReading, 
@@ -94,6 +95,10 @@ export default function RentalContractReviewPage() {
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>('');
   const [showTechnicianModal, setShowTechnicianModal] = useState(false);
   
+  // Pagination
+  const initialPageSize = 10;
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(initialPageSize);
   // Meter reading
   const [unitMeters, setUnitMeters] = useState<MeterDto[]>([]);
   const [loadingMeters, setLoadingMeters] = useState(false);
@@ -151,6 +156,7 @@ export default function RentalContractReviewPage() {
         });
         
         setContracts(enrichedContracts);
+        setPageNo(0);
         
         // Step 4: Load all inspections to track which contracts have been inspected
         try {
@@ -253,6 +259,7 @@ export default function RentalContractReviewPage() {
       });
       
       setContracts(enrichedContracts);
+      setPageNo(0);
       
       // Reload inspections to update the map
       try {
@@ -721,6 +728,26 @@ export default function RentalContractReviewPage() {
     return filtered;
   }, [contracts, selectedBuildingId, selectedUnitId, statusFilter, searchTerm, unitsMap, contractsWithInspection]);
 
+  // Apply pagination to filtered contracts
+  const contractsToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredContracts.slice(startIndex, endIndex);
+  }, [filteredContracts, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(filteredContracts.length / pageSize) : 0;
+  }, [filteredContracts.length, pageSize]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPageNo(newPage);
+  }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPageNo(0);
+  }, [selectedBuildingId, selectedUnitId, statusFilter, searchTerm]);
+
   const getContractStatusLabel = (contract: RentalContractWithUnit) => {
     if (contract.status === 'CANCELLED') {
       return { label: t('status.cancelled'), className: 'bg-red-100 text-red-700' };
@@ -985,6 +1012,7 @@ export default function RentalContractReviewPage() {
               onChange={(e) => {
                 setSelectedBuildingId(e.target.value);
                 setSelectedUnitId('');
+                setPageNo(0);
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -1003,7 +1031,10 @@ export default function RentalContractReviewPage() {
             </label>
             <select
               value={selectedUnitId}
-              onChange={(e) => setSelectedUnitId(e.target.value)}
+              onChange={(e) => {
+                setSelectedUnitId(e.target.value);
+                setPageNo(0);
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={!selectedBuildingId}
             >
@@ -1022,7 +1053,10 @@ export default function RentalContractReviewPage() {
             </label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'notInspected')}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'notInspected');
+                setPageNo(0);
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">{t('filters.allStatus')}</option>
@@ -1041,7 +1075,10 @@ export default function RentalContractReviewPage() {
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPageNo(0);
+              }}
               placeholder={t('filters.searchPlaceholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -1105,7 +1142,7 @@ export default function RentalContractReviewPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredContracts.map((contract) => {
+                  {contractsToDisplay.map((contract) => {
                     const statusInfo = getContractStatusLabel(contract);
                     return (
                       <tr key={contract.id} className="hover:bg-gray-50">
@@ -1172,6 +1209,15 @@ export default function RentalContractReviewPage() {
                 </tbody>
               </table>
             </div>
+            {totalPages > 0 && (
+              <div className="px-6 py-4 border-t border-gray-200">
+                <Pagination
+                  currentPage={pageNo + 1}
+                  totalPages={totalPages}
+                  onPageChange={(page) => handlePageChange(page - 1)}
+                />
+              </div>
+            )}
           </>
         )}
       </div>

@@ -12,6 +12,7 @@ import { Unit } from '@/src/types/unit';
 import { updateUnitStatus } from '@/src/services/base/unitService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { getAllInspections, AssetInspection, InspectionStatus } from '@/src/services/base/assetInspectionService';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 type UnitWithContext = Unit & {
   buildingId: string;
@@ -25,7 +26,7 @@ const normalizeText = (value?: string | null) => value?.toLowerCase().trim() ?? 
 export default function UnitListPage() {
   const t = useTranslations('Unit');
   const router = useRouter();
-  const { buildings, loading, error, refresh } = useUnitPage();
+  const { buildings, loading, error, refresh, pageNo, pageSize, handlePageChange } = useUnitPage();
 
   const [selectedBuildingId, setSelectedBuildingId] = useState<'all' | string>('all');
   const [buildingSearch, setBuildingSearch] = useState('');
@@ -116,7 +117,7 @@ export default function UnitListPage() {
     });
   }, [buildingSearch, buildings]);
 
-  const unitsToDisplay = useMemo(() => {
+  const filteredUnits = useMemo(() => {
     const unitQuery = normalizeText(unitSearch);
 
     let scopedUnits = unitsWithContext;
@@ -151,12 +152,25 @@ export default function UnitListPage() {
     unitsWithContext,
   ]);
 
+  // Apply pagination to filtered units
+  const unitsToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredUnits.slice(startIndex, endIndex);
+  }, [filteredUnits, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(filteredUnits.length / pageSize) : 0;
+  }, [filteredUnits.length, pageSize]);
+
   const handleSelectAll = () => {
     setSelectedBuildingId('all');
+    handlePageChange(0);
   };
 
   const handleSelectBuilding = (buildingId: string) => {
     setSelectedBuildingId(buildingId);
+    handlePageChange(0);
   };
 
   const onUnitStatusChange = (unitId: string) => {
@@ -339,15 +353,18 @@ export default function UnitListPage() {
               <h2 className="text-lg font-semibold text-slate-800">{t('unitList')}</h2>
               <p className="text-sm text-slate-500">
                 {selectedBuildingId === 'all'
-                  ? t('summary.total', { count: unitsToDisplay.length })
-                  : t('summary.selectedBuilding', { count: unitsToDisplay.length })}
+                  ? t('summary.total', { count: filteredUnits.length })
+                  : t('summary.selectedBuilding', { count: filteredUnits.length })}
               </p>
             </div>
             <div className="w-full max-w-xs">
               <input
                 type="text"
                 value={unitSearch}
-                onChange={(event) => setUnitSearch(event.target.value)}
+                onChange={(event) => {
+                  setUnitSearch(event.target.value);
+                  handlePageChange(0);
+                }}
                 placeholder={t('unitSearch.placeholder')}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               />
@@ -531,6 +548,13 @@ export default function UnitListPage() {
               </tbody>
             </table>
           </div>
+          {totalPages > 0 && (
+            <Pagination
+              currentPage={pageNo + 1}
+              totalPages={totalPages}
+              onPageChange={(page) => handlePageChange(page - 1)}
+            />
+          )}
         </section>
       </div>
       <PopupConfirm
