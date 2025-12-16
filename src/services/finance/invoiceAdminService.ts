@@ -7,7 +7,7 @@ export interface InvoiceDto {
   code: string;
   issuedAt: string;
   dueDate: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'PAID' | 'VOID';
+  status: 'DRAFT' | 'PUBLISHED' | 'PAID' | 'VOID' | 'UNPAID';
   currency: string;
   billToName: string;
   billToAddress: string;
@@ -71,6 +71,19 @@ export async function getAllInvoicesForAdmin(params: GetAllInvoicesParams = {}):
 export async function getInvoiceById(invoiceId: string): Promise<InvoiceDto> {
   const response = await axios.get<InvoiceDto>(
     `${BASE_URL}/api/invoices/${invoiceId}`,
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
+export interface UpdateInvoiceStatusRequest {
+  status: 'DRAFT' | 'PUBLISHED' | 'PAID' | 'VOID' | 'UNPAID';
+}
+
+export async function updateInvoiceStatus(invoiceId: string, status: 'DRAFT' | 'PUBLISHED' | 'PAID' | 'VOID' | 'UNPAID'): Promise<InvoiceDto> {
+  const response = await axios.put<InvoiceDto>(
+    `${BASE_URL}/api/invoices/${invoiceId}/status`,
+    { status },
     { withCredentials: true }
   );
   return response.data;

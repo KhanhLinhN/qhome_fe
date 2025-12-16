@@ -29,9 +29,8 @@ const STATUS_BADGES: Record<string, string> = {
 export default function BillingCyclesPage() {
   const t = useTranslations('BillingCycles');
   const { show } = useNotifications();
-  const { hasRole } = useAuth();
+  const { hasRole, isLoading } = useAuth();
   const router = useRouter();
-  console.log(hasRole);
   
   // Check user roles - only ADMIN and ACCOUNTANT can view
   const isAdmin = hasRole('admin') || hasRole('ADMIN');
@@ -58,6 +57,11 @@ export default function BillingCyclesPage() {
   const [loadingBuildingInvoices, setLoadingBuildingInvoices] = useState(false);
 
   useEffect(() => {
+    // Wait for user to load before checking permissions
+    if (isLoading) {
+      return;
+    }
+    
     // Check if user has permission to view
     if (!canView) {
       show('Bạn không có quyền truy cập trang này', 'error');
@@ -66,7 +70,7 @@ export default function BillingCyclesPage() {
     }
     loadCycles();
     loadMissingCycles();
-  }, [year, canView, show, router]);
+  }, [year, canView, show, router, isLoading]);
 
   useEffect(() => {
     loadServices();

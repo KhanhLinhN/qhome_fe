@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { useNotificationAdd } from '@/src/hooks/useNotificationAdd';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import {
@@ -51,8 +52,12 @@ interface RentalContractWithUnit extends ContractSummary {
 export default function RentalContractReviewPage() {
   const { show } = useNotifications();
   const { addNotification } = useNotificationAdd();
+  const { hasRole } = useAuth();
   const t = useTranslations('RentalReview');
   const searchParams = useSearchParams();
+  
+  // Check if user is admin
+  const isAdmin = hasRole('ADMIN') || hasRole('admin') || hasRole('ROLE_ADMIN') || hasRole('ROLE_admin');
 
   const [contracts, setContracts] = useState<RentalContractWithUnit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1477,7 +1482,7 @@ export default function RentalContractReviewPage() {
                     )}
                   </div>
 
-                  {currentInspection.status === InspectionStatus.PENDING && (
+                  {currentInspection.status === InspectionStatus.PENDING && !isAdmin && (
                     <button
                       onClick={handleStartInspection}
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
