@@ -7,7 +7,7 @@ import {useAuth} from "@/src/contexts/AuthContext";
 import {useTranslations} from "next-intl";
 import DropdownArrow from "@/src/assets/DropdownArrow.svg";
 
-type SidebarVariant = "admin" | "tenant-owner" | "technician";
+type SidebarVariant = "admin" | "tenant-owner" | "technician" | "support" | "accountant";
 
 type NavItem = {
   href: string;
@@ -87,8 +87,6 @@ const adminSections: NavSection[] = [
       {href: "/base/readingCycles", labelKey: "readingCycles", icon: "📈"},
       // {href: "/base/readingSessions", labelKey: "readingSessions", icon: "🧮"},
       {href: "/base/readingAssign", labelKey: "assignReading", icon: "📝"},
-      // {href: "/base/showAssign", labelKey: "assignmentList", icon: "📋"},
-      // {href: "/base/waterShow", labelKey: "waterMonitoring", icon: "💧"},
       {href: "/base/billingCycles", labelKey: "billingCycles", icon: "💡"},
       {href: "/base/finance/invoices", labelKey: "incomeExpenseManagement", icon: "💰"},
       {href: "/base/finance/pricing-tiers", labelKey: "pricingTiersManagement", icon: "📊"},
@@ -100,7 +98,25 @@ const adminSections: NavSection[] = [
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
       {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
-      // {href: "/customer-interaction/requestTicket", labelKey: "tickets", icon: "🎫"},
+      {href: "/customer-interaction/feedback", labelKey: "feedback", icon: "💬"},
+    ],
+  },
+];
+
+const supportSections: NavSection[] = [
+  {
+    titleKey: "overview",
+    items: [
+      {href: "/dashboard", labelKey: "dashboard", icon: "📊"},
+    ],
+  },
+  {
+    titleKey: "residentInteraction",
+    items: [
+      {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
+      {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
+      // {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
+      {href: "/customer-interaction/feedback", labelKey: "feedback", icon: "💬"},
     ],
   },
 ];
@@ -157,6 +173,7 @@ const tenantOwnerSections: NavSection[] = [
 const menuConfig: Record<SidebarVariant, NavSection[]> = {
   admin: adminSections,
   technician: technicianSections,
+  support: supportSections,
   "tenant-owner": tenantOwnerSections,
 };
 

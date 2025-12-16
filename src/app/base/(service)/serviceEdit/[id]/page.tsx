@@ -178,25 +178,20 @@ export default function ServiceEditPage() {
     const errors: Record<string, string> = {};
     const availabilityValidationErrors: Record<number, AvailabilityFormErrors> = {};
 
-    if (!formData.name.trim()) {
+    const name = formData.name.trim();
+    const nameRegex = /^[a-zA-ZÀ-ỹĐđ0-9\s'-]+$/u;
+    if (!name) {
       errors.name = t('Service.validation.name');
+    } else if (name.length > 40) {
+      errors.name = t('Service.validation.nameMax40');
+    } else if (!nameRegex.test(name)) {
+      errors.name = t('Service.validation.nameNoSpecialChars');
     }
-    if (!formData.pricingType) {
-      errors.pricingType = t('Service.validation.pricingType');
-    }
-
-    const priceHour = parseNumber(formData.pricePerHour);
-    const priceSession = parseNumber(formData.pricePerSession);
-
-    if (formData.pricingType === ServicePricingType.HOURLY) {
-      if (formData.pricePerHour.trim() === '' || priceHour === undefined || priceHour < 0) {
-        errors.pricePerHour = t('Service.validation.pricePerHour');
-      }
-    }
-
     if (formData.pricingType === ServicePricingType.SESSION) {
-      if (formData.pricePerSession.trim() === '' || priceSession === undefined || priceSession < 0) {
+      if (!formData.pricePerSession.trim()) {
         errors.pricePerSession = t('Service.validation.pricePerSession');
+      } else if (parseNonNegativeNumber(formData.pricePerSession) === undefined) {
+        errors.pricePerSession = t('Service.validation.pricePerSessionNonNegative');
       }
     }
 
@@ -210,6 +205,8 @@ export default function ServiceEditPage() {
     const minDuration = parsePositiveInteger(formData.minDurationHours);
     if (formData.minDurationHours.trim() === '' || minDuration === undefined) {
       errors.minDurationHours = t('Service.validation.minDuration');
+    } else if (minDuration < 1 || minDuration >= 24) {
+      errors.minDurationHours = t('Service.validation.minDurationRange');
     }
 
     if (!formData.availabilities || formData.availabilities.length === 0) {
@@ -272,6 +269,13 @@ export default function ServiceEditPage() {
     if (!value.trim()) return undefined;
     const parsed = Number(value);
     return Number.isNaN(parsed) ? undefined : parsed;
+  };
+
+  const parseNonNegativeNumber = (value: string) => {
+    const parsed = parseNumber(value);
+    if (parsed === undefined) return undefined;
+    if (parsed < 0) return undefined;
+    return parsed;
   };
 
   const parsePositiveNumber = (value: string) => {
@@ -378,7 +382,7 @@ export default function ServiceEditPage() {
       return;
     }
 
-    const pricingTypeValue = formData.pricingType;
+    const pricingTypeValue = formData.pricingType || ServicePricingType.FREE;
     const maxCapacity = parsePositiveInteger(formData.maxCapacity);
     const minDuration = parsePositiveInteger(formData.minDurationHours);
     const availabilityPayload: Array<{
@@ -410,24 +414,33 @@ export default function ServiceEditPage() {
       }
     });
 
+    // Remove duplicates - if same dayOfWeek, startTime, endTime exists, keep only one
+    const uniqueAvailabilities = availabilityPayload.filter((item, index, self) =>
+      index === self.findIndex((t) => 
+        t.dayOfWeek === item.dayOfWeek &&
+        t.startTime === item.startTime &&
+        t.endTime === item.endTime
+      )
+    );
+
     const payload: UpdateServicePayload = {
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
       location: formData.location.trim() || undefined,
       mapUrl: formData.mapUrl.trim() || undefined,
-      pricingType: pricingTypeValue || undefined,
+      pricingType: pricingTypeValue || ServicePricingType.FREE,
       pricePerHour:
         pricingTypeValue === ServicePricingType.HOURLY
-          ? parsePositiveNumber(formData.pricePerHour)
+          ? parseNonNegativeNumber(formData.pricePerHour)
           : undefined,
       pricePerSession:
         pricingTypeValue === ServicePricingType.SESSION
-          ? parsePositiveNumber(formData.pricePerSession)
+          ? parseNonNegativeNumber(formData.pricePerSession)
           : undefined,
       maxCapacity: formData.maxCapacity.trim() !== '' ? maxCapacity : undefined,
       minDurationHours: minDuration,
       rules: formData.rules.trim() || undefined,
-      isActive: formData.isActive,
+      isActive: formData.isActive ?? true,
       // Remove availabilities from payload as we'll handle them separately
     };
 
@@ -437,24 +450,103 @@ export default function ServiceEditPage() {
       
       // Handle availabilities separately
       if (serviceId) {
+        const failedAvailabilities: Array<{ availability: typeof uniqueAvailabilities[0]; error: any }> = [];
+        
         try {
           // Get existing availabilities and delete them all
           const existingAvailabilities = await getServiceAvailabilities(serviceId);
-          for (const availability of existingAvailabilities) {
+          for (let i = 0; i < existingAvailabilities.length; i++) {
+            const availability = existingAvailabilities[i];
             if (availability.id) {
               await deleteServiceAvailability(serviceId, availability.id);
+              // Add small delay between delete requests
+              if (i < existingAvailabilities.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 150));
+              }
             }
           }
           
-          // Add new availabilities
-          if (availabilityPayload.length > 0) {
-            for (const availability of availabilityPayload) {
-              await addServiceAvailability(serviceId, {
-                dayOfWeek: availability.dayOfWeek,
-                startTime: availability.startTime,
-                endTime: availability.endTime,
-                isAvailable: availability.isAvailable ?? true,
-              });
+          // Wait a bit after all deletions are complete before adding new ones
+          if (existingAvailabilities.length > 0) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+          
+          // Add new availabilities with delay to avoid rate limiting
+          if (uniqueAvailabilities.length > 0) {
+            for (let i = 0; i < uniqueAvailabilities.length; i++) {
+              const availability = uniqueAvailabilities[i];
+              let retryCount = 0;
+              const maxRetries = 2;
+              let success = false;
+              
+              while (retryCount <= maxRetries && !success) {
+                try {
+                  // Add small delay between requests to avoid rate limiting
+                  if (i > 0 || retryCount > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 200 + (retryCount * 200)));
+                  }
+                  
+                  await addServiceAvailability(serviceId, {
+                    dayOfWeek: availability.dayOfWeek,
+                    startTime: availability.startTime,
+                    endTime: availability.endTime,
+                    isAvailable: availability.isAvailable ?? true,
+                  });
+                  success = true;
+                } catch (availabilityError: any) {
+                  retryCount++;
+                  
+                  // If it's a 403 error, it might be a conflict - retry with longer delay
+                  if (availabilityError?.response?.status === 403 && retryCount <= maxRetries) {
+                    console.warn(`403 Forbidden for availability ${i + 1}, retrying (${retryCount}/${maxRetries})...`, {
+                      dayOfWeek: availability.dayOfWeek,
+                      startTime: availability.startTime,
+                      endTime: availability.endTime,
+                    });
+                    // Wait longer before retry
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    continue;
+                  }
+                  
+                  // If retries exhausted or not a 403, log and add to failed list
+                  console.error(`Failed to add availability ${i + 1} after ${retryCount} attempts:`, availabilityError);
+                  failedAvailabilities.push({ availability, error: availabilityError });
+                  
+                  if (availabilityError?.response?.status === 403) {
+                    console.error('403 Forbidden - Possible conflict:', {
+                      dayOfWeek: availability.dayOfWeek,
+                      startTime: availability.startTime,
+                      endTime: availability.endTime,
+                      error: availabilityError.response?.data,
+                      response: availabilityError.response,
+                    });
+                  }
+                  break;
+                }
+              }
+            }
+          }
+          
+          // If some availabilities failed, show warning
+          if (failedAvailabilities.length > 0) {
+            const errorCount = failedAvailabilities.length;
+            const totalCount = uniqueAvailabilities.length;
+            if (errorCount === totalCount) {
+              // All failed - show error
+              show(
+                t('Service.messages.availabilityError', {
+                  defaultMessage: `Failed to update ${errorCount} availability entries. Please try again.`,
+                }),
+                'error',
+              );
+            } else {
+              // Some failed - show info message
+              show(
+                t('Service.messages.availabilityPartialError', {
+                  defaultMessage: `Service updated successfully, but ${errorCount} out of ${totalCount} availability entries could not be updated. Please try editing them manually.`,
+                }),
+                'info',
+              );
             }
           }
         } catch (availabilityError) {
@@ -474,13 +566,93 @@ export default function ServiceEditPage() {
     }
   };
 
+  // Validate individual field
+  const validateField = (fieldName: string, value: string) => {
+    const newErrors = { ...formErrors };
+    
+    switch (fieldName) {
+      case 'name':
+        const name = value.trim();
+        const nameRegex = /^[a-zA-ZÀ-ỹĐđ0-9\s'-]+$/u;
+        if (!name) {
+          newErrors.name = t('Service.validation.name');
+        } else if (name.length > 40) {
+          newErrors.name = t('Service.validation.nameMax40');
+        } else if (!nameRegex.test(name)) {
+          newErrors.name = t('Service.validation.nameNoSpecialChars');
+        } else {
+          delete newErrors.name;
+        }
+        break;
+      case 'pricePerHour':
+        if (!value.trim()) {
+          newErrors.pricePerHour = t('Service.validation.pricePerHour');
+        } else if (parseNonNegativeNumber(value) === undefined) {
+          newErrors.pricePerHour = t('Service.validation.pricePerHourNonNegative');
+        } else {
+          delete newErrors.pricePerHour;
+        }
+        break;
+      case 'pricePerSession':
+        if (!value.trim()) {
+          newErrors.pricePerSession = t('Service.validation.pricePerSession');
+        } else if (parseNonNegativeNumber(value) === undefined) {
+          newErrors.pricePerSession = t('Service.validation.pricePerSessionNonNegative');
+        } else {
+          delete newErrors.pricePerSession;
+        }
+        break;
+      case 'maxCapacity':
+        if (value.trim() !== '') {
+          const num = parsePositiveInteger(value);
+          if (num === undefined) {
+            newErrors.maxCapacity = t('Service.validation.maxCapacityPositive');
+          } else if (num >= 1000) {
+            newErrors.maxCapacity = t('Service.validation.maxCapacityMax');
+          } else {
+            delete newErrors.maxCapacity;
+          }
+        } else {
+          delete newErrors.maxCapacity;
+        }
+        break;
+      case 'minDurationHours':
+        if (!value.trim()) {
+          newErrors.minDurationHours = t('Service.validation.minDurationHours');
+        } else {
+          const num = parsePositiveNumber(value);
+          if (num === undefined) {
+            newErrors.minDurationHours = t('Service.validation.minDurationHoursPositive');
+          } else if (num >= 24) {
+            newErrors.minDurationHours = t('Service.validation.minDurationHoursMax');
+          } else {
+            delete newErrors.minDurationHours;
+          }
+        }
+        break;
+      default:
+        // Clear error for other fields
+        if (fieldName in newErrors) {
+          delete newErrors[fieldName];
+        }
+        break;
+    }
+    
+    setFormErrors(newErrors);
+  };
+
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-    if (name) {
+    // Validate field on change
+    if (name === 'name' || name === 'pricePerSession' || 
+        name === 'maxCapacity' || name === 'minDurationHours') {
+      validateField(name, value);
+    } else if (name) {
+      // Clear error for other fields
       setFormErrors((prev) => {
         if (!(name in prev)) return prev;
         const { [name]: _removed, ...rest } = prev;
@@ -488,17 +660,6 @@ export default function ServiceEditPage() {
       });
     }
   };
-
-  const pricingOptions = [
-    { name: t('Service.pricing.hourly'), value: ServicePricingType.HOURLY },
-    { name: t('Service.pricing.session'), value: ServicePricingType.SESSION },
-    { name: t('Service.pricing.free'), value: ServicePricingType.FREE },
-  ];
-
-  const statusOptions = [
-    { name: t('Service.active'), value: 'true' },
-    { name: t('Service.inactive'), value: 'false' },
-  ];
 
   const dayOfWeekOptions = useMemo(
     () =>
@@ -509,7 +670,6 @@ export default function ServiceEditPage() {
     [t],
   );
 
-  const shouldShowPricePerHour = formData.pricingType === ServicePricingType.HOURLY;
   const shouldShowPricePerSession = formData.pricingType === ServicePricingType.SESSION;
 
   if (loading) {
@@ -598,76 +758,6 @@ export default function ServiceEditPage() {
             readonly={false}
             error={formErrors.name}
           />
-          <div className="flex flex-col gap-2 min-w-[180px]">
-            <label className="text-md font-bold text-[#02542D] mb-1">
-              {t('Service.status')}
-            </label>
-            <Select
-              options={statusOptions}
-              value={String(formData.isActive)}
-              onSelect={(item) => setFormData((prev) => ({ ...prev, isActive: item.value === 'true' }))}
-              renderItem={(item) => item.name}
-              getValue={(item) => item.value}
-              placeholder={t('Service.status')}
-            />
-          </div>
-
-          <div className="flex flex-col mb-4">
-            <label className="text-md font-bold text-[#02542D] mb-1">
-              {t('Service.pricingType')}
-            </label>
-            <Select
-              options={pricingOptions}
-              value={formData.pricingType}
-              onSelect={(item) => {
-                setFormData((prev) => ({
-                  ...prev,
-                  pricingType: item.value as ServicePricingType | '',
-                  pricePerHour:
-                    item.value === ServicePricingType.HOURLY
-                      ? prev.pricePerHour
-                      : item.value === ServicePricingType.FREE
-                      ? ''
-                      : '',
-                  pricePerSession:
-                    item.value === ServicePricingType.SESSION
-                      ? prev.pricePerSession
-                      : item.value === ServicePricingType.FREE
-                      ? ''
-                      : '',
-                }));
-                setFormErrors((prev) => {
-                  const updated = { ...prev };
-                  delete updated.pricingType;
-                  if (item.value !== ServicePricingType.HOURLY) {
-                    delete updated.pricePerHour;
-                  }
-                  if (item.value !== ServicePricingType.SESSION) {
-                    delete updated.pricePerSession;
-                  }
-                  return updated;
-                });
-              }}
-              renderItem={(item) => item.name}
-              getValue={(item) => item.value}
-              placeholder={t('Service.pricingType')}
-            />
-            {formErrors.pricingType && (
-              <span className="text-red-500 text-xs mt-1">{formErrors.pricingType}</span>
-            )}
-          </div>
-          {shouldShowPricePerHour && (
-            <DetailField
-              label={t('Service.pricePerHour')}
-              name="pricePerHour"
-              value={formData.pricePerHour}
-              onChange={handleInputChange}
-              readonly={false}
-              error={formErrors.pricePerHour}
-              placeholder={t('Service.pricePerHour')}
-              inputType="number"
-            />
-          )}
           {shouldShowPricePerSession && (
             <DetailField
               label={t('Service.pricePerSession')}
@@ -782,14 +872,27 @@ export default function ServiceEditPage() {
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
                             {dayOfWeekOptions.map((option) => {
                               const isSelected = availability.dayOfWeek.includes(option.value);
+                              // Get days selected in other availability slots (excluding current one)
+                              const selectedDaysInOtherSlots = new Set<string>();
+                              formData.availabilities.forEach((avail, idx) => {
+                                if (idx !== index && avail.dayOfWeek) {
+                                  avail.dayOfWeek.forEach((day) => selectedDaysInOtherSlots.add(day));
+                                }
+                              });
+                              const isDisabled = !isSelected && selectedDaysInOtherSlots.has(option.value);
                               return (
                                 <label
                                   key={option.value}
-                                  className="flex items-center gap-2 p-2 rounded-md border border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors"
+                                  className={`flex items-center gap-2 p-2 rounded-md border border-gray-300 transition-colors ${
+                                    isDisabled 
+                                      ? 'cursor-not-allowed bg-gray-100 opacity-60' 
+                                      : 'cursor-pointer hover:bg-gray-50'
+                                  }`}
                                 >
                                   <input
                                     type="checkbox"
                                     checked={isSelected}
+                                    disabled={isDisabled}
                                     onChange={(e) => {
                                       const currentDays = availability.dayOfWeek || [];
                                       const newDays = e.target.checked
@@ -797,9 +900,9 @@ export default function ServiceEditPage() {
                                         : currentDays.filter((d) => d !== option.value);
                                       handleAvailabilityChange(index, 'dayOfWeek', newDays);
                                     }}
-                                    className="h-4 w-4 rounded border-gray-300 text-[#02542D] focus:ring-[#02542D]"
+                                    className="h-4 w-4 rounded border-gray-300 text-[#02542D] focus:ring-[#02542D] disabled:cursor-not-allowed"
                                   />
-                                  <span className="text-sm text-[#02542D]">{option.label}</span>
+                                  <span className={`text-sm ${isDisabled ? 'text-gray-400' : 'text-[#02542D]'}`}>{option.label}</span>
                                 </label>
                               );
                             })}

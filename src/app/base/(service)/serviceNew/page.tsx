@@ -64,7 +64,7 @@ const initialState: FormState = {
   name: '',
   description: '',
   location: '',
-  pricingType: ServicePricingType.HOURLY,
+  pricingType: ServicePricingType.FREE,
   pricePerHour: '',
   pricePerSession: '',
   maxCapacity: '',
@@ -110,22 +110,6 @@ export default function ServiceCreatePage() {
     [categories],
   );
 
-  const pricingOptions = useMemo(
-    () => [
-      { name: t('Service.pricing.hourly'), value: ServicePricingType.HOURLY },
-      { name: t('Service.pricing.session'), value: ServicePricingType.SESSION },
-      { name: t('Service.pricing.free'), value: ServicePricingType.FREE },
-    ],
-    [t],
-  );
-
-  const statusOptions = useMemo(
-    () => [
-      { name: t('Service.active'), value: 'true' },
-      { name: t('Service.inactive'), value: 'false' },
-    ],
-    [t],
-  );
 
   const dayOfWeekOptions = useMemo(
     () =>
@@ -330,18 +314,6 @@ export default function ServiceCreatePage() {
     } else if (!nameRegex.test(name)) {
       errors.name = t('Service.validation.nameNoSpecialChars');
     }
-    if (!formData.pricingType) {
-      errors.pricingType = t('Service.validation.pricingType');
-    }
-
-    if (formData.pricingType === ServicePricingType.HOURLY) {
-      if (!formData.pricePerHour.trim()) {
-        errors.pricePerHour = t('Service.validation.pricePerHour');
-      } else if (parseNonNegativeNumber(formData.pricePerHour) === undefined) {
-        errors.pricePerHour = t('Service.validation.pricePerHourNonNegative');
-      }
-    }
-
     if (formData.pricingType === ServicePricingType.SESSION) {
       if (!formData.pricePerSession.trim()) {
         errors.pricePerSession = t('Service.validation.pricePerSession');
@@ -422,7 +394,7 @@ export default function ServiceCreatePage() {
   };
 
   const buildPayload = (): CreateServicePayload => {
-    const pricingTypeValue = formData.pricingType || ServicePricingType.HOURLY;
+    const pricingTypeValue = formData.pricingType || ServicePricingType.FREE;
     const availabilityPayload: Array<{
       dayOfWeek: number;
       startTime: string;
@@ -452,6 +424,15 @@ export default function ServiceCreatePage() {
       }
     });
 
+    // Remove duplicates - if same dayOfWeek, startTime, endTime exists, keep only one
+    const uniqueAvailabilities = availabilityPayload.filter((item, index, self) =>
+      index === self.findIndex((t) => 
+        t.dayOfWeek === item.dayOfWeek &&
+        t.startTime === item.startTime &&
+        t.endTime === item.endTime
+      )
+    );
+
     return {
       categoryId: formData.categoryId,
       code: formData.code.trim(),
@@ -471,7 +452,7 @@ export default function ServiceCreatePage() {
       minDurationHours: parsePositiveInteger(formData.minDurationHours),
       rules: formData.rules.trim() || undefined,
       isActive: formData.isActive,
-      availabilities: availabilityPayload.length > 0 ? availabilityPayload : undefined,
+      availabilities: uniqueAvailabilities.length > 0 ? uniqueAvailabilities : undefined,
     };
   };
 
@@ -507,25 +488,59 @@ export default function ServiceCreatePage() {
       
       // Add availabilities after service is created
       if (created?.id && availabilitiesToAdd.length > 0) {
-        try {
-          for (const availability of availabilitiesToAdd) {
+        const failedAvailabilities: Array<{ availability: typeof availabilitiesToAdd[0]; error: any }> = [];
+        
+        for (let i = 0; i < availabilitiesToAdd.length; i++) {
+          const availability = availabilitiesToAdd[i];
+          try {
+            // Add small delay between requests to avoid rate limiting
+            if (i > 0) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
             await addServiceAvailability(created.id, {
               dayOfWeek: availability.dayOfWeek,
               startTime: availability.startTime,
               endTime: availability.endTime,
               isAvailable: availability.isAvailable ?? true,
             });
+          } catch (availabilityError: any) {
+            console.error(`Failed to add availability ${i + 1}:`, availabilityError);
+            failedAvailabilities.push({ availability, error: availabilityError });
+            
+            // If it's a 403 error, it might be a conflict - log details
+            if (availabilityError?.response?.status === 403) {
+              console.error('403 Forbidden - Possible conflict:', {
+                dayOfWeek: availability.dayOfWeek,
+                startTime: availability.startTime,
+                endTime: availability.endTime,
+                error: availabilityError.response?.data,
+              });
+            }
           }
-        } catch (availabilityError) {
-          console.error('Failed to add some availabilities', availabilityError);
-          // Still show success but warn about availability issue
-          show(t('Service.messages.createSuccess'), 'success');
-          if (created?.id) {
-            router.push(`/base/serviceDetail/${created.id}`);
+        }
+        
+        // If some availabilities failed, show warning
+        if (failedAvailabilities.length > 0) {
+          const errorCount = failedAvailabilities.length;
+          const totalCount = availabilitiesToAdd.length;
+          if (errorCount === totalCount) {
+            // All failed - show error
+            show(
+              t('Service.messages.availabilityError', {
+                defaultMessage: `Failed to add ${errorCount} availability entries. Please try editing the service manually.`,
+              }),
+              'error',
+            );
           } else {
-            router.push('/base/serviceList');
+            // Some failed - show info message
+            show(
+              t('Service.messages.availabilityPartialError', {
+                defaultMessage: `Service created successfully, but ${errorCount} out of ${totalCount} availability entries could not be added. Please edit the service to add them manually.`,
+              }),
+              'info',
+            );
           }
-          return;
         }
       }
       
@@ -548,7 +563,7 @@ export default function ServiceCreatePage() {
     switch (fieldName) {
       case 'name':
         const name = value.trim();
-        const nameRegex = /^[a-zA-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐđ0-9\s'-]+$/;
+        const nameRegex = /^[a-zA-ZÀ-ỹĐđ0-9\s'-]+$/u;
         if (!name) {
           newErrors.name = t('Service.validation.name');
         } else if (name.length > 40) {
@@ -557,15 +572,6 @@ export default function ServiceCreatePage() {
           newErrors.name = t('Service.validation.nameNoSpecialChars');
         } else {
           delete newErrors.name;
-        }
-        break;
-      case 'pricePerHour':
-        if (!value.trim()) {
-          newErrors.pricePerHour = t('Service.validation.pricePerHour');
-        } else if (parseNonNegativeNumber(value) === undefined) {
-          newErrors.pricePerHour = t('Service.validation.pricePerHourNonNegative');
-        } else {
-          delete newErrors.pricePerHour;
         }
         break;
       case 'pricePerSession':
@@ -625,7 +631,7 @@ export default function ServiceCreatePage() {
       [name]: value,
     }));
     // Validate field on change
-    if (name === 'name' || name === 'pricePerHour' || name === 'pricePerSession' || 
+    if (name === 'name' || name === 'pricePerSession' || 
         name === 'maxCapacity' || name === 'minDurationHours') {
       validateField(name, value);
     } else if (name) {
@@ -638,7 +644,6 @@ export default function ServiceCreatePage() {
     }
   };
 
-  const shouldShowPricePerHour = formData.pricingType === ServicePricingType.HOURLY;
   const shouldShowPricePerSession =
     formData.pricingType === ServicePricingType.SESSION;
 
@@ -719,80 +724,6 @@ export default function ServiceCreatePage() {
             )}
           </div>
 
-          <div className="flex flex-col mb-4">
-            <label className="text-md font-bold text-[#02542D] mb-1">
-              {t('Service.status')}
-            </label>
-            <Select
-              options={statusOptions}
-              value={String(formData.isActive)}
-              onSelect={(item) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  isActive: item.value === 'true',
-                }))
-              }
-              renderItem={(item) => item.name}
-              getValue={(item) => item.value}
-              placeholder={t('Service.status')}
-            />
-          </div>
-
-          <div className="flex flex-col mb-4">
-            <label className="text-md font-bold text-[#02542D] mb-1">
-              {t('Service.pricingType')}
-            </label>
-            <Select
-              options={pricingOptions}
-              value={formData.pricingType}
-              onSelect={(item) => {
-                setFormData((prev) => ({
-                  ...prev,
-                  pricingType: item.value as ServicePricingType,
-                  pricePerHour:
-                    item.value === ServicePricingType.HOURLY
-                      ? prev.pricePerHour
-                      : '',
-                  pricePerSession:
-                    item.value === ServicePricingType.SESSION
-                      ? prev.pricePerSession
-                      : '',
-                }));
-                setFormErrors((prev) => {
-                  const updated = { ...prev };
-                  delete updated.pricingType;
-                  if (item.value !== ServicePricingType.HOURLY) {
-                    delete updated.pricePerHour;
-                  }
-                  if (item.value !== ServicePricingType.SESSION) {
-                    delete updated.pricePerSession;
-                  }
-                  return updated;
-                });
-              }}
-              renderItem={(item) => item.name}
-              getValue={(item) => item.value}
-              placeholder={t('Service.pricingType')}
-            />
-            {formErrors.pricingType && (
-              <span className="text-red-500 text-xs mt-1">
-                {formErrors.pricingType}
-              </span>
-            )}
-          </div>
-
-          {shouldShowPricePerHour && (
-            <DetailField
-              label={t('Service.pricePerHour')}
-              name="pricePerHour"
-              value={formData.pricePerHour}
-              onChange={handleInputChange}
-              readonly={false}
-              error={formErrors.pricePerHour}
-              placeholder={t('Service.pricePerHour')}
-              inputType="number"
-            />
-          )}
 
           {shouldShowPricePerSession && (
             <DetailField
@@ -911,14 +842,27 @@ export default function ServiceCreatePage() {
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
                             {dayOfWeekOptions.map((option) => {
                               const isSelected = availability.dayOfWeek.includes(option.value);
+                              // Get days selected in other availability slots (excluding current one)
+                              const selectedDaysInOtherSlots = new Set<string>();
+                              formData.availabilities.forEach((avail, idx) => {
+                                if (idx !== index && avail.dayOfWeek) {
+                                  avail.dayOfWeek.forEach((day) => selectedDaysInOtherSlots.add(day));
+                                }
+                              });
+                              const isDisabled = !isSelected && selectedDaysInOtherSlots.has(option.value);
                               return (
                                 <label
                                   key={option.value}
-                                  className="flex items-center gap-2 p-2 rounded-md border border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors"
+                                  className={`flex items-center gap-2 p-2 rounded-md border border-gray-300 transition-colors ${
+                                    isDisabled 
+                                      ? 'cursor-not-allowed bg-gray-100 opacity-60' 
+                                      : 'cursor-pointer hover:bg-gray-50'
+                                  }`}
                                 >
                                   <input
                                     type="checkbox"
                                     checked={isSelected}
+                                    disabled={isDisabled}
                                     onChange={(e) => {
                                       const currentDays = availability.dayOfWeek || [];
                                       const newDays = e.target.checked
@@ -926,9 +870,9 @@ export default function ServiceCreatePage() {
                                         : currentDays.filter((d) => d !== option.value);
                                       handleAvailabilityChange(index, 'dayOfWeek', newDays);
                                     }}
-                                    className="h-4 w-4 rounded border-gray-300 text-[#02542D] focus:ring-[#02542D]"
+                                    className="h-4 w-4 rounded border-gray-300 text-[#02542D] focus:ring-[#02542D] disabled:cursor-not-allowed"
                                   />
-                                  <span className="text-sm text-[#02542D]">{option.label}</span>
+                                  <span className={`text-sm ${isDisabled ? 'text-gray-400' : 'text-[#02542D]'}`}>{option.label}</span>
                                 </label>
                               );
                             })}
