@@ -425,18 +425,18 @@ export default function ContractManagementPage() {
             endDate.setHours(0, 0, 0, 0);
             
             // First check: endDate must be after startDate
-            if (endDate <= startDate) {
-              newErrors.endDate = t('validation.endDateAfterStartDate');
-            } else {
-              // Second check: endDate must be at least 3 month after startDate
-              const oneMonthLater = new Date(startDate);
-              oneMonthLater.setMonth(oneMonthLater.getMonth() + 3);
-              if (endDate <= oneMonthLater) {
-                newErrors.endDate = t('validation.endDateMinDiff');
-              } else {
-                delete newErrors.endDate;
-              }
-            }
+            // if (endDate <= startDate) {
+            //   newErrors.endDate = t('validation.endDateAfterStartDate');
+            // } else {
+            //   // Second check: endDate must be at least 1 month after startDate
+            //   const oneMonthLater = new Date(startDate);
+            //   oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+            //   if (endDate <= oneMonthLater) {
+            //     newErrors.endDate = t('validation.endDateMinDiff');
+            //   } else {
+            //     delete newErrors.endDate;
+            //   }
+            // }
           } else {
             delete newErrors.endDate;
           }
