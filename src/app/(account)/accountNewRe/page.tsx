@@ -304,7 +304,7 @@ export default function AccountNewResidentPage() {
 
   // Validate national ID (CCCD)
   const validateNationalId = (nationalId: string): string | null => {
-    if (!nationalId.trim()) {
+    if (!nationalId || !nationalId.trim()) {
       return t('validation.nationalId.required');
     }
     const cleaned = nationalId.replace(/\s+/g, '');
@@ -314,9 +314,9 @@ export default function AccountNewResidentPage() {
       return t('validation.nationalId.specialChars');
     }
     
-    // Check length (13 digits for CCCD)
-    if (cleaned.length !== 12) {
-      return t('validation.nationalId.mustBe13Digits');
+    // Check length: must be greater than 12 digits (at least 12 digits)
+    if (cleaned.length < 12) {
+      return t('validation.nationalId.mustBe13Digits') || 'Số căn cước công dân phải có ít nhất 12 số';
     }
     
     return null;
@@ -347,21 +347,28 @@ export default function AccountNewResidentPage() {
 
   // Validate date of birth
   const validateDateOfBirth = (dob: string): string | null => {
-    if (!dob) {
+    if (!dob || !dob.trim()) {
       return t('validation.dob.required');
     }
     
     const birthDate = new Date(dob);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    birthDate.setHours(0, 0, 0, 0);
     
     if (isNaN(birthDate.getTime())) {
       return t('validation.dob.invalid');
     }
     
-    const age = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    // Calculate age more accurately
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
     
-    if (age <= 18) {
+    // Must be greater than 18 years old (at least 19 years old)
+    if (age < 18) {
       return t('validation.dob.ageMin');
     }
     if (age >= 200) {
@@ -646,16 +653,20 @@ export default function AccountNewResidentPage() {
     if (nationalIdError) {
       errors.nationalId = nationalIdError;
       isValid = false;
-    } else if (manualForm.nationalId.trim()) {
-      // Check if national ID already exists in system
+    } else if (manualForm.nationalId && manualForm.nationalId.trim()) {
+      // Check if national ID already exists in system (must be unique)
       try {
-        const exists = await checkNationalIdExists(manualForm.nationalId.trim());
+        const cleanedId = manualForm.nationalId.trim().replace(/\s+/g, '');
+        const exists = await checkNationalIdExists(cleanedId);
         if (exists) {
-          errors.nationalId = t('validation.nationalId.exists');
+          errors.nationalId = t('validation.nationalId.exists') || 'Số căn cước công dân đã tồn tại trong hệ thống';
           isValid = false;
         }
       } catch (err) {
         console.error('Error checking national ID:', err as Error);
+        // If check fails, still set error to be safe
+        errors.nationalId = t('validation.nationalId.checkError') || 'Không thể kiểm tra số căn cước công dân. Vui lòng thử lại.';
+        isValid = false;
       }
     }
 

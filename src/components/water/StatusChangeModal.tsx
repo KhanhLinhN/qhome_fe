@@ -11,12 +11,13 @@ interface StatusChangeModalProps {
 }
 
 export default function StatusChangeModal({ isOpen, onClose, currentStatus, cycleId, onStatusChange }: StatusChangeModalProps) {
-  const [selectedStatus, setSelectedStatus] = useState<ReadingCycleStatus>(currentStatus);
+  const [selectedStatus, setSelectedStatus] = useState<ReadingCycleStatus>('IN_PROGRESS');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setSelectedStatus(currentStatus);
-  }, [currentStatus, isOpen]);
+    // Luôn set thành IN_PROGRESS khi modal mở
+    setSelectedStatus('IN_PROGRESS');
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -66,10 +67,7 @@ export default function StatusChangeModal({ isOpen, onClose, currentStatus, cycl
               onChange={(e) => setSelectedStatus(e.target.value as ReadingCycleStatus)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559]"
             >
-              <option value="OPEN">Open</option>
               <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CLOSED">Closed</option>
             </select>
           </div>
 
@@ -83,8 +81,8 @@ export default function StatusChangeModal({ isOpen, onClose, currentStatus, cycl
             </button>
             <button
               type="submit"
-              disabled={loading || selectedStatus === currentStatus}
-              className="px-4 py-2 bg-[#739559] text-white rounded-md hover:bg-[#5a7347] disabled:opacity-50"
+              disabled={loading || currentStatus === 'IN_PROGRESS'}
+              className="px-4 py-2 bg-[#739559] text-white rounded-md hover:bg-[#5a7347] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Updating...' : 'Update Status'}
             </button>

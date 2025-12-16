@@ -58,8 +58,8 @@ const Select = <T,>({ options, value, onSelect, renderItem, getValue, placeholde
     <div className="relative w-full" ref={divRef}>
       <div
         className={`h-10 w-full rounded-md border-[1px] px-3 py-2.5 cursor-pointer flex flex-row items-center justify-between gap-x-3 ${
-          error ? "border-red-300" : "border-[#2ad47a]"
-        } ${disable ? "bg-gray-100" : "bg-white"}`}
+          error ? "border-red-300" : "border-[#739559]"
+        } ${disable ? "bg-gray-300" : "bg-white"}`}
         onClick={isOpen ? onClose : onOpen}
       >
         <div
