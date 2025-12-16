@@ -13,14 +13,16 @@ import axios from '@/src/lib/axios';
 export default function InvoicesManagementPage() {
   const t = useTranslations('Invoices');
   const { show } = useNotifications();
-  const { hasRole } = useAuth();
+  const { hasRole, user, isLoading } = useAuth();
   const router = useRouter();
   
   // Check user roles - only ADMIN and ACCOUNTANT can view
-  const isAdmin =  hasRole('ADMIN') || hasRole('admin');
-  const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant');
+  // Check multiple possible role formats
+  const isAdmin = hasRole('ADMIN') || hasRole('admin') || hasRole('ROLE_ADMIN') || hasRole('ROLE_admin');
+  const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') || hasRole('ROLE_ACCOUNTANT') || hasRole('ROLE_accountant');
   const canView = isAdmin || isAccountant;
   const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
+  const canExport = isAdmin || isAccountant; // Both ADMIN and ACCOUNTANT can export Excel
   
   const SERVICE_CODE_OPTIONS = [
     { value: '', label: t('filters.allServices') },
@@ -37,6 +39,7 @@ export default function InvoicesManagementPage() {
     { value: 'PUBLISHED', label: t('statuses.published') },
     { value: 'PAID', label: t('statuses.paid') },
     { value: 'VOID', label: t('statuses.void') },
+    { value: 'UNPAID', label: t('statuses.unpaid') },
   ];
 
   const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
@@ -44,6 +47,7 @@ export default function InvoicesManagementPage() {
     PUBLISHED: { label: t('statuses.published'), className: 'bg-yellow-100 text-yellow-700' },
     PAID: { label: t('statuses.paid'), className: 'bg-green-100 text-green-700' },
     VOID: { label: t('statuses.void'), className: 'bg-red-100 text-red-700' },
+    UNPAID: { label: t('statuses.unpaid'), className: 'bg-orange-100 text-orange-700' },
   };
 
   const SERVICE_CODE_LABELS: Record<string, string> = {
@@ -77,6 +81,17 @@ export default function InvoicesManagementPage() {
   }, []);
 
   useEffect(() => {
+    // Wait for user to load before checking permissions
+    if (isLoading) {
+      return;
+    }
+    
+    // Debug: log user roles to help diagnose permission issues
+    if (user) {
+      console.log('User roles:', user.roles);
+      console.log('isAdmin:', isAdmin, 'isAccountant:', isAccountant, 'canView:', canView);
+    }
+    
     // Check if user has permission to view
     if (!canView) {
       show('Bạn không có quyền truy cập trang này', 'error');
@@ -84,7 +99,7 @@ export default function InvoicesManagementPage() {
       return;
     }
     loadInvoices();
-  }, [serviceCodeFilter, statusFilter, monthFilter, canView, show, router]);
+  }, [serviceCodeFilter, statusFilter, monthFilter, canView, show, router, isLoading, user, isAdmin, isAccountant]);
 
   const loadInvoices = async () => {
     setLoading(true);
@@ -136,6 +151,7 @@ export default function InvoicesManagementPage() {
         PUBLISHED: { count: 0, amount: 0 },
         PAID: { count: 0, amount: 0 },
         VOID: { count: 0, amount: 0 },
+        UNPAID: { count: 0, amount: 0 },
       },
       byService: {} as Record<string, { count: number; amount: number }>,
     };
@@ -243,9 +259,9 @@ export default function InvoicesManagementPage() {
         </div>
         <button
           onClick={handleExportExcel}
-          disabled={!canEdit}
+          disabled={!canExport}
           className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
-          title={!canEdit ? 'Chỉ Accountant mới có quyền export Excel' : ''}
+          title={!canExport ? 'Chỉ Admin và Accountant mới có quyền export Excel' : ''}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -378,11 +394,17 @@ export default function InvoicesManagementPage() {
                       <div className="text-xs text-gray-400">{invoice.billToAddress || ''}</div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {invoice.lines?.map((line, idx) => (
-                        <div key={idx} className="text-xs">
-                          {SERVICE_CODE_LABELS[line.serviceCode] || line.serviceCode}
-                        </div>
-                      ))}
+                      {(() => {
+                        // Get unique service codes from invoice lines
+                        const uniqueServiceCodes = Array.from(
+                          new Set(invoice.lines?.map(line => line.serviceCode).filter(Boolean) || [])
+                        );
+                        return uniqueServiceCodes.map((serviceCode, idx) => (
+                          <div key={idx} className="text-xs">
+                            {SERVICE_CODE_LABELS[serviceCode] || serviceCode}
+                          </div>
+                        ));
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {formatCurrency(invoice.totalAmount || 0)}

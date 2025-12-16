@@ -58,6 +58,9 @@ export default function IndexReadingPage() {
   const [initialUnitReadings, setInitialUnitReadings] = useState<Record<string, UnitReadingData>>({});
   // Store existing readings from API for each unit
   const [existingReadingsByUnit, setExistingReadingsByUnit] = useState<Record<string, MeterReadingDto[]>>({});
+  // Store validation errors for each meter/unit
+  const [readingErrors, setReadingErrors] = useState<Record<string, string>>({});
+  const [unitReadingErrors, setUnitReadingErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (assignmentId) {
@@ -201,6 +204,11 @@ export default function IndexReadingPage() {
   };
 
   const updateReading = (meterId: string, field: 'currIndex' | 'note', value: number | string) => {
+    const meter = meters.find(m => m.id === meterId);
+    const reading = readings[meterId];
+    const prevIndex = reading?.prevIndex ?? meter?.lastReading ?? 0;
+    
+    // Update the value first
     setReadings((prev) => ({
       ...prev,
       [meterId]: {
@@ -208,11 +216,240 @@ export default function IndexReadingPage() {
         [field]: value,
       },
     }));
+    
+    // Validate if it's currIndex
+    if (field === 'currIndex') {
+      const numValue = typeof value === 'number' ? value : (value === '' ? null : parseFloat(value as string));
+      
+      if (numValue !== null && !isNaN(numValue)) {
+        // Check for negative number
+        if (numValue < 0) {
+          setReadingErrors(prev => ({
+            ...prev,
+            [meterId]: 'Chỉ số không được là số âm'
+          }));
+          return;
+        }
+        
+        // Check if current index is greater than prev index
+        if (prevIndex !== undefined && prevIndex !== null && numValue <= prevIndex) {
+          setReadingErrors(prev => ({
+            ...prev,
+            [meterId]: `Chỉ số hiện tại phải lớn hơn chỉ số trước (${prevIndex})`
+          }));
+          return;
+        }
+      }
+      
+      // Clear error if validation passes
+      if (readingErrors[meterId]) {
+        setReadingErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[meterId];
+          return newErrors;
+        });
+      }
+    }
+  };
+  
+  const updateUnitReading = (unitId: string, value: number | string) => {
+    const numValue = typeof value === 'number' ? value : (value === '' ? '' : parseFloat(value as string));
+    
+    // Update the value first
+    setUnitReadings(prev => ({
+      ...prev,
+      [unitId]: { ...prev[unitId], currIndex: value === '' ? '' : numValue }
+    }));
+    
+    // Validate
+    if (numValue !== '' && numValue !== null && !isNaN(numValue as number)) {
+      const existingReadings = existingReadingsByUnit[unitId] || [];
+      const existingReading = existingReadings.length > 0 ? existingReadings[0] : null;
+      const prevIndex = existingReading?.prevIndex ?? null;
+      
+      // Check for negative number
+      if (numValue < 0) {
+        setUnitReadingErrors(prev => ({
+          ...prev,
+          [unitId]: 'Chỉ số không được là số âm'
+        }));
+        return;
+      }
+      
+      // Check if current index is greater than prev index (if prevIndex exists)
+      if (prevIndex !== null && prevIndex !== undefined && numValue <= prevIndex) {
+        setUnitReadingErrors(prev => ({
+          ...prev,
+          [unitId]: `Chỉ số hiện tại phải lớn hơn chỉ số trước (${prevIndex})`
+        }));
+        return;
+      }
+    }
+    
+    // Clear error if validation passes
+    if (unitReadingErrors[unitId]) {
+      setUnitReadingErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[unitId];
+        return newErrors;
+      });
+    }
   };
 
   const handleSubmit = async () => {
     if (!assignment) {
       show('Assignment not found', 'error');
+      return;
+    }
+
+    // Validate only readings that will be submitted (changed or new values)
+    // Group errors by building and type
+    const negativeMetersByBuilding: Record<string, string[]> = {};
+    const invalidPrevMetersByBuilding: Record<string, string[]> = {};
+    const negativeUnitsByBuilding: Record<string, string[]> = {};
+    const invalidPrevUnitsByBuilding: Record<string, string[]> = {};
+    
+    // Helper function to get building code from meter
+    const getBuildingCode = (meter: MeterDto | undefined, meterCode?: string): string => {
+      if (meter?.buildingCode) return meter.buildingCode;
+      if (meterCode) {
+        // Extract building code from meter code (e.g., "B1---01-ELECTRIC" -> "B")
+        const match = meterCode.match(/^([A-Z]+)/);
+        if (match) return match[1];
+      }
+      return 'Unknown';
+    };
+    
+    // Helper function to get building code from unit
+    const getBuildingCodeFromUnit = (unitId: string): string => {
+      const unit = unitsData[unitId];
+      if (unit) {
+        // Extract building code from unit code (e.g., "B1-01" -> "B")
+        const match = unit.code?.match(/^([A-Z]+)/);
+        if (match) return match[1];
+      }
+      return 'Unknown';
+    };
+    
+    // Validate meter readings - only check readings that have changed or have values
+    for (const meterId in readings) {
+      const reading = readings[meterId];
+      const initialReading = initialReadings[meterId];
+      const meter = meters.find(m => m.id === meterId);
+      
+      // Only validate if value has changed from initial value or is a new reading
+      const hasChanged = initialReading 
+        ? Number(reading.currIndex) !== Number(initialReading.currIndex)
+        : reading.currIndex !== null && reading.currIndex !== undefined;
+      
+      // Only validate readings that will be submitted
+      if (hasChanged && reading.currIndex !== null && reading.currIndex !== undefined) {
+        const currIndex = Number(reading.currIndex);
+        const prevIndex = reading?.prevIndex ?? meter?.lastReading ?? 0;
+        const buildingCode = getBuildingCode(meter, meter?.meterCode);
+        const meterCode = meter?.meterCode || meterId;
+        
+        if (currIndex < 0) {
+          if (!negativeMetersByBuilding[buildingCode]) {
+            negativeMetersByBuilding[buildingCode] = [];
+          }
+          negativeMetersByBuilding[buildingCode].push(meterCode);
+          setReadingErrors(prev => ({
+            ...prev,
+            [meterId]: 'Chỉ số không được là số âm'
+          }));
+        } else if (prevIndex !== undefined && prevIndex !== null && currIndex <= prevIndex) {
+          if (!invalidPrevMetersByBuilding[buildingCode]) {
+            invalidPrevMetersByBuilding[buildingCode] = [];
+          }
+          invalidPrevMetersByBuilding[buildingCode].push(meterCode);
+          setReadingErrors(prev => ({
+            ...prev,
+            [meterId]: `Chỉ số hiện tại phải lớn hơn chỉ số trước (${prevIndex})`
+          }));
+        }
+      }
+    }
+    
+    // Validate unit readings - only check readings that have changed or have values
+    for (const unitId in unitReadings) {
+      const unitReading = unitReadings[unitId];
+      const initialUnitReading = initialUnitReadings[unitId];
+      const existingReadings = existingReadingsByUnit[unitId] || [];
+      const existingReading = existingReadings.length > 0 ? existingReadings[0] : null;
+      
+      // Only validate if value has changed from initial value (initial is empty string)
+      const hasChanged = initialUnitReading
+        ? unitReading.currIndex !== initialUnitReading.currIndex && 
+          unitReading.currIndex !== '' && 
+          unitReading.currIndex !== null && 
+          unitReading.currIndex !== undefined
+        : unitReading.currIndex !== '' && 
+          unitReading.currIndex !== null && 
+          unitReading.currIndex !== undefined;
+      
+      // Only validate readings that will be submitted
+      if (hasChanged) {
+        const currIndex = Number(unitReading.currIndex);
+        const prevIndex = existingReading?.prevIndex ?? null;
+        const unitCode = unitsData[unitId]?.code || unitId;
+        const buildingCode = getBuildingCodeFromUnit(unitId);
+        
+        if (currIndex < 0) {
+          if (!negativeUnitsByBuilding[buildingCode]) {
+            negativeUnitsByBuilding[buildingCode] = [];
+          }
+          negativeUnitsByBuilding[buildingCode].push(unitCode);
+          setUnitReadingErrors(prev => ({
+            ...prev,
+            [unitId]: 'Chỉ số không được là số âm'
+          }));
+        } else if (prevIndex !== null && prevIndex !== undefined && currIndex <= prevIndex) {
+          if (!invalidPrevUnitsByBuilding[buildingCode]) {
+            invalidPrevUnitsByBuilding[buildingCode] = [];
+          }
+          invalidPrevUnitsByBuilding[buildingCode].push(unitCode);
+          setUnitReadingErrors(prev => ({
+            ...prev,
+            [unitId]: `Chỉ số hiện tại phải lớn hơn chỉ số trước (${prevIndex})`
+          }));
+        }
+      }
+    }
+    
+    // Build grouped error messages by building
+    const errorMessages: string[] = [];
+    
+    // Group negative meters by building
+    for (const buildingCode in negativeMetersByBuilding) {
+      const meters = negativeMetersByBuilding[buildingCode];
+      const list = meters.join(', ');
+      errorMessages.push(`Tòa ${buildingCode}: ${meters.length} công tơ có chỉ số âm (${list})`);
+    }
+    
+    // Group negative units by building
+    for (const buildingCode in negativeUnitsByBuilding) {
+      const units = negativeUnitsByBuilding[buildingCode];
+      const list = units.join(', ');
+      errorMessages.push(`Tòa ${buildingCode}: ${units.length} căn hộ có chỉ số âm (${list})`);
+    }
+    
+    // Group invalid prev meters by building
+    for (const buildingCode in invalidPrevMetersByBuilding) {
+      const meters = invalidPrevMetersByBuilding[buildingCode];
+      const list = meters.join(', ');
+      errorMessages.push(`Tòa ${buildingCode}: ${meters.length} công tơ có chỉ số không lớn hơn chỉ số trước (${list})`);
+    }
+    
+    // Group invalid prev units by building
+    for (const buildingCode in invalidPrevUnitsByBuilding) {
+      const units = invalidPrevUnitsByBuilding[buildingCode];
+      const list = units.join(', ');
+      errorMessages.push(`Tòa ${buildingCode}: ${units.length} căn hộ có chỉ số không lớn hơn chỉ số trước (${list})`);
+    }
+    
+    if (errorMessages.length > 0) {
+      show(`Vui lòng sửa các lỗi sau:\n${errorMessages.join('\n')}`, 'error');
       return;
     }
 
@@ -291,12 +528,22 @@ export default function IndexReadingPage() {
         
         // Only submit if value has changed and is a valid number
         if (hasChanged && reading.currIndex !== null && reading.currIndex !== undefined) {
-          // Backend will check if reading exists with meterId + assignmentId and update if exists
-          // Only send currIndex, not prevIndex
+          const meter = meters.find(m => m.id === meterId);
+          const existingReadings = existingReadingsByUnit[meter?.unitId || ''];
+          const existingReading = existingReadings?.find(r => r.meterId === meterId);
+          
+          // Get prevIndex from existing reading, reading state, or meter's lastReading
+          const prevIndex = existingReading?.prevIndex !== undefined && existingReading.prevIndex !== null
+            ? existingReading.prevIndex
+            : (reading.prevIndex !== undefined && reading.prevIndex !== null
+                ? reading.prevIndex
+                : (meter?.lastReading !== undefined && meter.lastReading !== null ? meter.lastReading : 0));
+          
           const req: MeterReadingCreateReq = {
             assignmentId: assignmentId,
             meterId: meterId,
             readingDate: today,
+            prevIndex: prevIndex,
             currIndex: Number(reading.currIndex),
             cycleId: assignment?.cycleId,
             note: reading.note,
@@ -328,13 +575,19 @@ export default function IndexReadingPage() {
           const meter = await findOrCreateMeter(unitId);
           
           if (meter && meter.id) {
-            // Backend will check if reading exists with meterId + assignmentId and update if exists
-            // If not exists, create new reading with these fields
-            // Only send currIndex, not prevIndex
+            // Get prevIndex from existing reading or meter's lastReading
+            const existingReadings = existingReadingsByUnit[unitId] || [];
+            const existingReading = existingReadings.length > 0 ? existingReadings[0] : null;
+            
+            const prevIndex = existingReading?.prevIndex !== undefined && existingReading.prevIndex !== null
+              ? existingReading.prevIndex
+              : (meter.lastReading !== undefined && meter.lastReading !== null ? meter.lastReading : 0);
+            
             const req: MeterReadingCreateReq = {
               assignmentId: assignmentId,
               meterId: meter.id,
               readingDate: today,
+              prevIndex: prevIndex,
               currIndex: Number(unitReading.currIndex),
               cycleId: assignment?.cycleId,
               note: undefined,
@@ -518,6 +771,8 @@ export default function IndexReadingPage() {
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Unit</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Meter Code</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Prev Index</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Current Index</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -536,6 +791,10 @@ export default function IndexReadingPage() {
                 
                 // If unit has no meters, show input for reading
                 if (unitMeters.length === 0) {
+                  const prevIndexDisplay = existingReading?.prevIndex !== undefined && existingReading.prevIndex !== null
+                    ? existingReading.prevIndex
+                    : 0;
+                  
                   return (
                     <tr key={unitId} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-800">
@@ -544,29 +803,51 @@ export default function IndexReadingPage() {
                           <div className="text-xs text-gray-500">Floor {unit.floor}</div>
                         )}
                       </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        -
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {prevIndexDisplay}
+                      </td>
                       <td className="px-4 py-3">
-                        <input
-                          type="number"
-                          min="0"
-                          value={displayValue}
-                          onChange={(e) => setUnitReadings(prev => ({
-                            ...prev,
-                            [unitId]: { ...prev[unitId], currIndex: e.target.value === '' ? '' : parseFloat(e.target.value) }
-                          }))}
-                          disabled={isViewOnly}
-                          placeholder="Enter reading"
-                          className={`w-full max-w-[200px] border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559] text-sm ${
-                            isViewOnly ? 'bg-gray-100 cursor-not-allowed' : ''
-                          }`}
-                        />
+                        <div>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={displayValue}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? '' : parseFloat(e.target.value);
+                              updateUnitReading(unitId, value);
+                            }}
+                            disabled={isViewOnly}
+                            placeholder="Enter reading"
+                            className={`w-full max-w-[200px] border ${
+                              unitReadingErrors[unitId] ? 'border-red-500' : 'border-gray-300'
+                            } rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559] text-sm ${
+                              isViewOnly ? 'bg-gray-100 cursor-not-allowed' : ''
+                            }`}
+                          />
+                          {unitReadingErrors[unitId] && (
+                            <span className="text-red-500 text-xs mt-1 block">{unitReadingErrors[unitId]}</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
                 }
 
                 return unitMeters.map((meter, index) => {
-                  const reading = readings[meter.id] || { meterId: meter.id, currIndex: meter.lastReading};
+                  const reading = readings[meter.id] || { meterId: meter.id, currIndex: meter.lastReading, prevIndex: meter.lastReading };
                   const isFirstMeter = index === 0;
+                  
+                  // Find existing reading for this meter
+                  const meterReading = existingReadings.find(r => r.meterId === meter.id);
+                  const prevIndexDisplay = meterReading?.prevIndex !== undefined && meterReading.prevIndex !== null
+                    ? meterReading.prevIndex
+                    : (reading.prevIndex !== undefined && reading.prevIndex !== null
+                        ? reading.prevIndex
+                        : (meter.lastReading !== undefined && meter.lastReading !== null ? meter.lastReading : 0));
                   
                   return (
                     <tr key={meter.id} className="hover:bg-gray-50">
@@ -581,8 +862,14 @@ export default function IndexReadingPage() {
                           )}
                         </td>
                       )}
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {meter.meterCode || meter.id}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {prevIndexDisplay}
+                      </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <div>
                           <input
                             type="number"
                             step="0.01"
@@ -591,10 +878,15 @@ export default function IndexReadingPage() {
                             onChange={(e) => updateReading(meter.id, 'currIndex', e.target.value === '' ? '' : parseFloat(e.target.value))}
                             disabled={isViewOnly}
                             placeholder="Enter reading"
-                            className={`flex-1 max-w-[200px] border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559] text-sm ${
+                            className={`w-full max-w-[200px] border ${
+                              readingErrors[meter.id] ? 'border-red-500' : 'border-gray-300'
+                            } rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#739559] text-sm ${
                               isViewOnly ? 'bg-gray-100 cursor-not-allowed' : ''
                             }`}
                           />
+                          {readingErrors[meter.id] && (
+                            <span className="text-red-500 text-xs mt-1 block">{readingErrors[meter.id]}</span>
+                          )}
                         </div>
                       </td>
                     </tr>

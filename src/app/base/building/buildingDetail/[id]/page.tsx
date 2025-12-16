@@ -19,10 +19,7 @@ import {
   ServiceDto,
   createMeter,
   getAllServices,
-  downloadMeterImportTemplate,
-  importMeters,
   exportMeters,
-  type MeterImportResponse,
 } from '@/src/services/base/waterService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useDeleteBuilding } from '@/src/hooks/useBuildingDelete';
@@ -59,10 +56,6 @@ export default function BuildingDetail () {
     });
     const [meterStatus, setMeterStatus] = useState<string | null>(null);
     const [creatingMeter, setCreatingMeter] = useState(false);
-    const [meterImporting, setMeterImporting] = useState(false);
-    const [meterImportResult, setMeterImportResult] = useState<MeterImportResponse | null>(null);
-    const [meterImportError, setMeterImportError] = useState<string | null>(null);
-    const meterFileInputRef = useRef<HTMLInputElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const meterDateInputRef = useRef<HTMLInputElement | null>(null);
     
@@ -321,43 +314,6 @@ export default function BuildingDetail () {
         }
     };
 
-    const onDownloadMeterTemplate = async () => {
-        try {
-            const blob = await downloadMeterImportTemplate();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `meter_import_template.xlsx`;
-            a.click();
-            URL.revokeObjectURL(url);
-        } catch (e: any) {
-            setMeterImportError(e?.response?.data?.message || t('messages.failedToDownloadMeterTemplate'));
-        }
-    };
-
-    const onPickMeterFile = () => {
-        setMeterImportError(null);
-        setMeterImportResult(null);
-        meterFileInputRef.current?.click();
-    };
-
-    const onMeterFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setMeterImporting(true);
-        setMeterImportError(null);
-        setMeterImportResult(null);
-        try {
-            const result = await importMeters(file);
-            setMeterImportResult(result);
-        } catch (err: any) {
-            setMeterImportError(err?.response?.data?.message || t('messages.meterImportFailed'));
-        } finally {
-            setMeterImporting(false);
-            if (meterFileInputRef.current) meterFileInputRef.current.value = '';
-        }
-    };
-
     const openMeterDatePicker = () => {
         const input = meterDateInputRef.current;
         if (!input) return;
@@ -376,7 +332,7 @@ export default function BuildingDetail () {
             a.click();
             URL.revokeObjectURL(url);
         } catch (err: any) {
-            setMeterImportError(err?.response?.data?.message || t('messages.failedToExportMeterExcel'));
+            setImportError(err?.response?.data?.message || t('messages.failedToExportMeterExcel'));
         }
     };
 
@@ -638,57 +594,12 @@ export default function BuildingDetail () {
                                 <div className="flex flex-wrap gap-3 mb-3">
                                     <button
                                         type="button"
-                                        onClick={onDownloadMeterTemplate}
-                                        className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200 transition text-sm"
-                                    >
-                                        {t('downloadMeterTemplate')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={onPickMeterFile}
-                                        disabled={meterImporting}
-                                        className="px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition text-sm disabled:opacity-50"
-                                    >
-                                        {meterImporting ? t('importing') : t('selectMeterExcelFile')}
-                                    </button>
-                                    <button
-                                        type="button"
                                         onClick={onExportMeters}
                                         className="px-3 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition text-sm"
                                     >
                                         {t('exportMeterExcel')}
                                     </button>
-                                    <input
-                                        ref={meterFileInputRef}
-                                        type="file"
-                                        accept=".xlsx"
-                                        className="hidden"
-                                        onChange={onMeterFileChange}
-                                    />
                                 </div>
-                                {meterImportResult && (
-                                    <div className="bg-green-50 border border-green-100 text-sm text-green-800 rounded-lg p-3 mb-3">
-                                        <div>
-                                            {t('processedRows', { totalRows: meterImportResult.totalRows })} 
-                                            <strong className="ml-1">{meterImportResult.successCount} {t('success')}</strong>, 
-                                            <strong className="ml-1">{meterImportResult.errorCount} {t('errors')}</strong>
-                                        </div>
-                                        {meterImportResult.rows.length > 0 && (
-                                            <div className="mt-2 text-xs text-gray-700">
-                                                {meterImportResult.rows
-                                                    .filter(r => !r.success)
-                                                    .map(r => (
-                                                        <div key={r.rowNumber}>
-                                                            {t('rowNumber', { rowNumber: r.rowNumber })}: {r.message}
-                                                        </div>
-                                                    ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                {meterImportError && (
-                                    <div className="text-sm text-red-600 mb-3">{meterImportError}</div>
-                                )}
                             {meterStatus && (
                                 <div className="text-sm text-green-600 mb-3">{meterStatus}</div>
                             )}

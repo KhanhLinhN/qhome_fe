@@ -40,7 +40,6 @@ export default function StaffProfilePage() {
     phoneNumber: '',
   });
   const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
@@ -150,13 +149,35 @@ export default function StaffProfilePage() {
   const handleChangePassword = async () => {
     if (!user?.userId) return;
 
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      show(t('messages.passwordMismatch'), 'error');
+    // Validation: Check if new password is provided
+    if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
+      show(t('messages.passwordRequired') || 'Vui lòng nhập mật khẩu mới và xác nhận mật khẩu', 'error');
       return;
     }
 
-    if (passwordForm.newPassword.length < 6) {
-      show(t('messages.passwordMinLength'), 'error');
+    // Validation: Check password match
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      show(t('messages.passwordMismatch') || 'Mật khẩu xác nhận không khớp', 'error');
+      return;
+    }
+
+    // Validation: Check minimum length (backend requires 8 characters)
+    if (passwordForm.newPassword.length < 8) {
+      show('Mật khẩu phải có ít nhất 8 ký tự', 'error');
+      return;
+    }
+
+    // Validation: Check maximum length (backend allows up to 100 characters)
+    if (passwordForm.newPassword.length > 100) {
+      show('Mật khẩu không được vượt quá 100 ký tự', 'error');
+      return;
+    }
+
+    // Validation: Backend requires at least one special character (@$!%*?&)
+    // Pattern: ^(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$
+    const hasSpecialChar = /[@$!%*?&]/.test(passwordForm.newPassword);
+    if (!hasSpecialChar) {
+      show('Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@$!%*?&)', 'error');
       return;
     }
 
@@ -167,15 +188,24 @@ export default function StaffProfilePage() {
       };
 
       await updateUserPassword(user.userId, payload);
-      show(t('messages.changePasswordSuccess'), 'success');
+      show(t('messages.changePasswordSuccess') || 'Đổi mật khẩu thành công', 'success');
       setPasswordForm({
-        currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
     } catch (err: any) {
       console.error('Failed to change password', err);
-      const message = err?.response?.data?.message || t('errors.changePasswordFailed');
+      let message = t('errors.changePasswordFailed') || 'Không thể đổi mật khẩu';
+      
+      // Handle specific error cases
+      if (err?.response?.status === 403) {
+        message = 'Bạn không có quyền đổi mật khẩu. Vui lòng liên hệ quản trị viên.';
+      } else if (err?.response?.status === 400) {
+        message = err?.response?.data?.message || 'Mật khẩu không hợp lệ. Vui lòng kiểm tra lại.';
+      } else if (err?.response?.data?.message) {
+        message = err.response.data.message;
+      }
+      
       show(message, 'error');
     } finally {
       setSaving(false);
@@ -413,8 +443,13 @@ export default function StaffProfilePage() {
                   setPasswordForm({ ...passwordForm, newPassword: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={t('placeholders.newPassword')}
+                placeholder={t('placeholders.newPassword') || 'Nhập mật khẩu mới (tối thiểu 8 ký tự, có ký tự đặc biệt)'}
+                minLength={8}
+                maxLength={100}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Mật khẩu phải có ít nhất 8 ký tự và chứa ít nhất một ký tự đặc biệt (@$!%*?&)
+              </p>
             </div>
 
             <div>
@@ -428,16 +463,31 @@ export default function StaffProfilePage() {
                   setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={t('placeholders.confirmPassword')}
+                placeholder={t('placeholders.confirmPassword') || 'Xác nhận mật khẩu mới'}
+                minLength={8}
+                maxLength={100}
               />
+              {passwordForm.newPassword && passwordForm.confirmPassword && 
+               passwordForm.newPassword !== passwordForm.confirmPassword && (
+                <p className="text-xs text-red-500 mt-1">
+                  Mật khẩu xác nhận không khớp
+                </p>
+              )}
             </div>
 
             <button
               onClick={handleChangePassword}
-              disabled={saving || !passwordForm.newPassword || !passwordForm.confirmPassword}
+              disabled={
+                saving || 
+                !passwordForm.newPassword || 
+                !passwordForm.confirmPassword ||
+                passwordForm.newPassword !== passwordForm.confirmPassword ||
+                passwordForm.newPassword.length < 8 ||
+                !/[@$!%*?&]/.test(passwordForm.newPassword)
+              }
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {saving ? t('buttons.processing') : t('buttons.changePasswordButton')}
+              {saving ? t('buttons.processing') || 'Đang xử lý...' : t('buttons.changePasswordButton') || 'Đổi mật khẩu'}
             </button>
           </div>
         </div>

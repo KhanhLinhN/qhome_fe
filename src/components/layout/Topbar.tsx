@@ -421,7 +421,7 @@ export default function Topbar(){
       {/* Overlay to close menus */}
       {(showMenu || showNotiMenu) && (
         <div 
-          className="fixed inset-0 z-40" 
+          className="fixed inset-0 z-40 md:ml-60" 
           onClick={() => {
             setShowMenu(false);
             setShowNotiMenu(false);

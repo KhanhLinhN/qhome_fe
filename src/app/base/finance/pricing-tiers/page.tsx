@@ -55,12 +55,12 @@ const EMPTY_FORM: TierFormState = {
 export default function PricingTiersManagementPage() {
   const t = useTranslations('PricingTiers');
   const { show } = useNotifications();
-  const { hasRole } = useAuth();
+  const { hasRole, user, isLoading } = useAuth();
   const router = useRouter();
   
   // Check user roles - only ADMIN and ACCOUNTANT can view
-  const isAdmin = hasRole('ADMIN') || hasRole('admin') ;
-  const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') ;
+  const isAdmin = hasRole('ADMIN') || hasRole('admin');
+  const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant');
   const canView = isAdmin || isAccountant;
   const canEdit = isAdmin || isAccountant; // ADMIN and ACCOUNTANT can edit/create/delete
   
@@ -79,8 +79,14 @@ export default function PricingTiersManagementPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showNoLastTierConfirm, setShowNoLastTierConfirm] = useState(false);
   const [pendingDeleteTier, setPendingDeleteTier] = useState<PricingTierDto | null>(null);
+  const [lastTierUnitPrice, setLastTierUnitPrice] = useState<number | null>(null); // Store last tier's unitPrice for validation
 
   useEffect(() => {
+    // Wait for user to load before checking permissions
+    if (isLoading) {
+      return;
+    }
+    
     // Check if user has permission to view
     if (!canView) {
       show('Bạn không có quyền truy cập trang này', 'error');
@@ -268,15 +274,69 @@ export default function PricingTiersManagementPage() {
   const hasFinalTier = checkHasFinalTier();
 
   const startCreate = () => {
-
     if (!canEdit) {
       show('Bạn không có quyền thêm bậc giá', 'error');
       return;
     }
+    
     const maxOrder = sortedTiers.length > 0 ? Math.max(...sortedTiers.map((t) => t.tierOrder ?? 0)) : 0;
+    
+    // Find the last tier's maxQuantity to calculate minQuantity for new tier
+    // Get active tiers and find the one with highest maxQuantity or unlimited tier
+    const activeTiers = sortedTiers.filter(tier => isTierCurrentlyActive(tier));
+    let calculatedMinQuantity: number | null = null;
+    let lastTierUnitPrice: number | null = null;
+    
+    if (activeTiers.length > 0) {
+      // First, check if there's a tier with unlimited maxQuantity (maxQuantity = null)
+      // This is the final tier and should be considered the "last" tier
+      const unlimitedTiers = activeTiers.filter(t => t.maxQuantity === null || t.maxQuantity === undefined);
+      
+      if (unlimitedTiers.length > 0) {
+        // If there's an unlimited tier, that's the last tier
+        // Sort by tierOrder to get the highest one (in case there are multiple)
+        const sortedUnlimited = [...unlimitedTiers].sort((a, b) => (b.tierOrder ?? 0) - (a.tierOrder ?? 0));
+        const lastTier = sortedUnlimited[0];
+        lastTierUnitPrice = lastTier.unitPrice ?? null;
+        // Cannot add tier after unlimited tier
+        calculatedMinQuantity = null;
+      } else {
+        // No unlimited tier, find tier with highest maxQuantity
+        const tiersWithMax = activeTiers.filter(t => t.maxQuantity !== null && t.maxQuantity !== undefined);
+        
+        if (tiersWithMax.length > 0) {
+          // Find the tier with highest maxQuantity
+          const lastTier = tiersWithMax.reduce((prev, current) => {
+            const prevMax = prev.maxQuantity ?? 0;
+            const currentMax = current.maxQuantity ?? 0;
+            return currentMax > prevMax ? current : prev;
+          });
+          
+          // New tier should start from maxQuantity + 1
+          calculatedMinQuantity = (lastTier.maxQuantity ?? 0) + 1;
+          // Get unitPrice of last tier for validation
+          lastTierUnitPrice = lastTier.unitPrice ?? null;
+        } else {
+          // No tiers with maxQuantity (shouldn't happen, but handle it)
+          calculatedMinQuantity = null;
+          lastTierUnitPrice = null;
+        }
+      }
+    } else {
+      // No active tiers, start from 0
+      calculatedMinQuantity = 0;
+      lastTierUnitPrice = null;
+    }
+    
+    // Store last tier's unitPrice for validation
+    setLastTierUnitPrice(lastTierUnitPrice);
+    
     setEditingTier({
       ...EMPTY_FORM,
       tierOrder: maxOrder + 1,
+      minQuantity: calculatedMinQuantity,
+      // Pre-fill unitPrice with min value (lastTierUnitPrice + 1) if available
+      unitPrice: lastTierUnitPrice !== null ? lastTierUnitPrice + 1 : null,
     });
     setIsCreateMode(true);
     setShowForm(true);
@@ -355,6 +415,16 @@ export default function PricingTiersManagementPage() {
 
     if (editingTier.unitPrice === null || editingTier.unitPrice <= 0) {
       errors.unitPrice = t('validation.unitPricePositive');
+    }
+    
+    // Validate that new tier's unitPrice must be greater than last tier's unitPrice
+    if (isCreateMode && lastTierUnitPrice !== null && editingTier.unitPrice !== null) {
+      if (editingTier.unitPrice <= lastTierUnitPrice) {
+        errors.unitPrice = t('validation.unitPriceMustBeGreater', { 
+          minPrice: lastTierUnitPrice.toLocaleString('vi-VN'),
+          defaultValue: `Đơn giá phải lớn hơn ${lastTierUnitPrice.toLocaleString('vi-VN')} VNĐ (đơn giá của bậc giá cuối cùng)`
+        });
+      }
     }
 
     if (!editingTier.effectiveFrom) {
@@ -778,18 +848,30 @@ export default function PricingTiersManagementPage() {
                       min="0"
                       step="0.01"
                       value={editingTier.minQuantity ?? ''}
-                    onChange={(e) => {
-                      setEditingTier({
-                        ...editingTier,
-                        minQuantity: e.target.value ? parseFloat(e.target.value) : null,
-                      });
-                      if (formErrors.overlap || formErrors.general) {
-                        setFormErrors({ ...formErrors, overlap: undefined, general: undefined });
-                      }
-                    }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => {
+                        if (!isCreateMode) {
+                          // Only allow editing in edit mode
+                          setEditingTier({
+                            ...editingTier,
+                            minQuantity: e.target.value ? parseFloat(e.target.value) : null,
+                          });
+                          if (formErrors.overlap || formErrors.general) {
+                            setFormErrors({ ...formErrors, overlap: undefined, general: undefined });
+                          }
+                        }
+                      }}
+                      readOnly={isCreateMode}
+                      disabled={isCreateMode}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        isCreateMode ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : ''
+                      }`}
                       placeholder="0"
                     />
+                    {isCreateMode && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {t('form.minQuantityAutoGenerated', { defaultValue: 'Tự động tính từ bậc giá cuối cùng' })}
+                      </p>
+                    )}
                     {formErrors.minQuantity && (
                       <p className="text-red-500 text-xs mt-1">{formErrors.minQuantity}</p>
                     )}
@@ -831,17 +913,29 @@ export default function PricingTiersManagementPage() {
                   </label>
                   <input
                     type="number"
-                    min="0"
+                    min={isCreateMode && lastTierUnitPrice !== null ? lastTierUnitPrice + 1 : 0}
                     step="100"
                     value={editingTier.unitPrice ?? ''}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setEditingTier({
                         ...editingTier,
                         unitPrice: e.target.value ? parseFloat(e.target.value) : null,
-                      })
-                    }
+                      });
+                      if (formErrors.unitPrice) {
+                        setFormErrors({ ...formErrors, unitPrice: undefined });
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  {isCreateMode && lastTierUnitPrice !== null && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {t('form.unitPriceMinHint', { 
+                        minPrice: (lastTierUnitPrice + 1).toLocaleString('vi-VN'),
+                        lastPrice: lastTierUnitPrice.toLocaleString('vi-VN'),
+                        defaultValue: `Đơn giá tối thiểu: ${(lastTierUnitPrice + 1).toLocaleString('vi-VN')} VNĐ (phải lớn hơn đơn giá của bậc giá cuối cùng: ${lastTierUnitPrice.toLocaleString('vi-VN')} VNĐ)`
+                      })}
+                    </p>
+                  )}
                   {formErrors.unitPrice && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.unitPrice}</p>
                   )}

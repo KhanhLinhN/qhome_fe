@@ -51,7 +51,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const hasRole = (role: string): boolean => {
-    return user?.roles?.includes(role) ?? false;
+    if (!user?.roles || user.roles.length === 0) {
+      return false;
+    }
+    
+    // Check exact match first
+    if (user.roles.includes(role)) {
+      return true;
+    }
+    
+    // Check case-insensitive match
+    const roleLower = role.toLowerCase();
+    const rolesLower = user.roles.map(r => r.toLowerCase());
+    if (rolesLower.includes(roleLower)) {
+      return true;
+    }
+    
+    // Check if role exists with ROLE_ prefix
+    if (rolesLower.includes(`role_${roleLower}`) || rolesLower.includes(`role_${role}`)) {
+      return true;
+    }
+    
+    // Check if role exists without ROLE_ prefix
+    const roleWithoutPrefix = role.replace(/^role_/i, '');
+    if (rolesLower.includes(roleWithoutPrefix.toLowerCase())) {
+      return true;
+    }
+    
+    return false;
   };
 
   const hasAnyRole = (roles: string[]): boolean => {

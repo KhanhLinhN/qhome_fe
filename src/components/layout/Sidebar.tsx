@@ -67,8 +67,6 @@ const adminSections: NavSection[] = [
     items: [
       {href: "/base/asset-management", labelKey: "assetManagement", icon: "🔧"},
       {href: "/base/meter-management", labelKey: "meterManagement", icon: "⚙️"},
-      {href: "/base/asset-inspection-management", labelKey: "assetInspectionManagement", icon: "🔍"},
-      {href: "/base/asset-inspection-assignments", labelKey: "assetInspectionAssignments", icon: "📋"},
     ],
   },
   {
@@ -98,7 +96,6 @@ const adminSections: NavSection[] = [
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
       {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
-      {href: "/customer-interaction/feedback", labelKey: "feedback", icon: "💬"},
     ],
   },
 ];
@@ -116,7 +113,6 @@ const supportSections: NavSection[] = [
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
       // {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
-      {href: "/customer-interaction/feedback", labelKey: "feedback", icon: "💬"},
     ],
   },
 ];
@@ -132,12 +128,6 @@ const technicianSections: NavSection[] = [
     titleKey: "accounts",
     items: [
       {href: "/staffProfile", labelKey: "personalInfo", icon: "👤"},
-    ],
-  },
-  {
-    titleKey: "assetManagement",
-    items: [
-      {href: "/base/asset-inspection-assignments", labelKey: "assetInspectionAssignments", icon: "📋"},
     ],
   },
   {
@@ -271,7 +261,7 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
   };
 
   return (
-    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen max-h-screen overflow-hidden">
+    <aside className="w-60 hidden md:flex flex-col border-r border-slate-200 bg-white fixed h-screen max-h-screen overflow-hidden z-50">
       <nav className="p-3 space-y-6 overflow-y-auto overflow-x-hidden flex-1 min-h-0 max-h-full">
         {sections.map((section) => {
           const isCollapsed = collapsedSections.has(section.titleKey);

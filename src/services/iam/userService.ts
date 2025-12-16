@@ -282,17 +282,18 @@ export async function checkUsernameExists(username: string): Promise<boolean> {
  */
 export async function checkEmailExists(email: string): Promise<boolean> {
   try {
-    await axios.get(
+    const response = await axios.get(
       `${IAM_URL}/api/users/by-email/${encodeURIComponent(email)}`,
-      { withCredentials: true }
+      { 
+        withCredentials: true,
+        validateStatus: (status) => status === 200 || status === 404 // Không throw error cho 404
+      }
     );
-    return true; // Email tồn tại (status 200)
+    return response.status === 200; // Email tồn tại nếu status 200
   } catch (err: any) {
-    if (err?.response?.status === 404) {
-      return false; // Email chưa tồn tại
-    }
-    // Nếu có lỗi khác (network, 500, etc.), throw lại để xử lý ở nơi gọi
-    throw err;
+    // Chỉ catch các lỗi không phải 404 (network, 500, etc.)
+    console.warn('Error checking email (non-404):', err?.response?.status || err?.message);
+    return false; // Trả về false để không block submit, backend sẽ validate khi submit
   }
 }
 
