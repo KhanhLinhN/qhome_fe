@@ -50,13 +50,13 @@ export function useResidentUnits(residentId?: string) {
       setAssignments([]);
       return;
     }
-
+    
     setLoading(true);
     setError(null);
-
+    
     try {
       const members = await fetchHouseholdMembersByResident(residentId);
-
+      console.log('members', members);
       if (!members.length) {
         setAssignments([]);
         setLoading(false);

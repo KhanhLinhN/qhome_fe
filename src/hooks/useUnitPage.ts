@@ -9,10 +9,14 @@ export interface BuildingWithUnits extends Building {
   isExpanded?: boolean;
 }
 
+const initialPageSize = 10;
+
 export const useUnitPage = () => {
   const [buildings, setBuildings] = useState<BuildingWithUnits[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(initialPageSize);
 
   // Load dữ liệu ban đầu
   useEffect(() => {
@@ -38,6 +42,7 @@ export const useUnitPage = () => {
         }
 
         setBuildings(buildingsWithData);
+        setPageNo(0);
       } catch (err) {
         console.error('Error loading unit data:', err);
         setError('Failed to load unit data');
@@ -82,6 +87,7 @@ export const useUnitPage = () => {
       }
 
       setBuildings(buildingsWithData);
+      setPageNo(0);
     } catch (err) {
       console.error('Error refreshing unit data:', err);
       setError('Failed to refresh unit data');
@@ -90,12 +96,19 @@ export const useUnitPage = () => {
     }
   }, []);
 
+  const handlePageChange = useCallback((newPage: number) => {
+    setPageNo(newPage);
+  }, []);
+
   return {
     buildings,
     loading,
     error,
     toggleBuilding,
-    refresh
+    refresh,
+    pageNo,
+    pageSize,
+    handlePageChange
   };
 };
 

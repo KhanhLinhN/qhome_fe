@@ -17,8 +17,8 @@ import {
 } from '@/src/services/base/contractService';
 import { getAssetsByUnit, createAsset } from '@/src/services/base/assetService';
 import { AssetType, type Asset, type CreateAssetRequest } from '@/src/types/asset';
+import { createMeter, getAllServices, getMeters, type ServiceDto, type MeterCreateReq, type MeterDto } from '@/src/services/base/waterService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
-import MonthYearPicker from '@/src/components/customer-interaction/MonthYearPicker';
 
 type AsyncState<T> = {
   data: T;
@@ -90,7 +90,7 @@ export default function ContractManagementPage() {
   const [detailUploadError, setDetailUploadError] = useState<string | null>(null);
   const [detailUploading, setDetailUploading] = useState(false);
   const [generatingContractNumber, setGeneratingContractNumber] = useState(false);
-  const [activeTab, setActiveTab] = useState<'active' | 'expired'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'unavailable'>('active');
   const [minStartDate, setMinStartDate] = useState<string>('');
   
   // Asset checking state
@@ -99,6 +99,13 @@ export default function ContractManagementPage() {
   const [missingAssetTypes, setMissingAssetTypes] = useState<AssetType[]>([]);
   const [creatingMissingAssets, setCreatingMissingAssets] = useState(false);
   const [showCreateAssetsConfirm, setShowCreateAssetsConfirm] = useState(false);
+  
+  // Meter checking state
+  const [unitMeters, setUnitMeters] = useState<MeterDto[]>([]);
+  const [checkingMeters, setCheckingMeters] = useState(false);
+  const [missingMeterServices, setMissingMeterServices] = useState<ServiceDto[]>([]);
+  const [creatingMissingMeters, setCreatingMissingMeters] = useState(false);
+  const [showCreateMetersConfirm, setShowCreateMetersConfirm] = useState(false);
 
   const formatDate = (value?: string | null) => {
     if (!value) return t('common.notSet');
@@ -120,6 +127,71 @@ export default function ContractManagementPage() {
     return isNaN(num) ? null : num;
   };
 
+  // Calculate rent breakdown (full months, remaining days)
+  const calculateRentBreakdown = (startDate: string | null, endDate: string | null) => {
+    if (!startDate || !endDate) {
+      return null;
+    }
+
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
+        return null;
+      }
+
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+
+      const startYear = start.getFullYear();
+      const startMonth = start.getMonth();
+      const startDay = start.getDate();
+      
+      const endYear = end.getFullYear();
+      const endMonth = end.getMonth();
+      const endDay = end.getDate();
+
+      // Calculate full months: from startDay of start month to startDay of next months
+      // Example: 17/01 → 17/02 (1 month), 17/02 → 17/03 (1 month)
+      let fullMonths = 0;
+      let remainingDays = 0;
+      
+      // Start from the same day in the next month
+      let currentDate = new Date(startYear, startMonth + 1, startDay);
+      currentDate.setHours(0, 0, 0, 0);
+      
+      // Count full months (from startDay to startDay of next month)
+      while (currentDate <= end) {
+        const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, startDay);
+        nextMonth.setHours(0, 0, 0, 0);
+        
+        if (nextMonth <= end) {
+          fullMonths++;
+          currentDate = nextMonth;
+        } else {
+          break;
+        }
+      }
+      
+      // Calculate remaining days from currentDate to end
+      // Example: if currentDate is 17/02 and end is 25/02, remainingDays = 8
+      if (currentDate <= end) {
+        remainingDays = Math.floor((end.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      } else {
+        // If no full months, calculate all days from start to end
+        remainingDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      }
+
+      return {
+        fullMonths,
+        remainingDays,
+      };
+    } catch (error) {
+      return null;
+    }
+  };
+
   const calculateTotalRent = (startDate: string | null, endDate: string | null, monthlyRent: number | null): number | null => {
     if (!startDate || !endDate || monthlyRent === null || monthlyRent <= 0) {
       return null;
@@ -133,29 +205,62 @@ export default function ContractManagementPage() {
         return null;
       }
 
+      // Normalize dates to start of day to avoid timezone issues
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+
       const startYear = start.getFullYear();
       const startMonth = start.getMonth();
+      const startDay = start.getDate();
+      
       const endYear = end.getFullYear();
       const endMonth = end.getMonth();
-      
-      const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
-      
-      if (totalMonths <= 0) {
-        return 0;
-      }
+      const endDay = end.getDate();
 
-      const startDay = start.getDate();
       let totalRent = 0;
 
-      if (startDay <= 15) {
-        totalRent = monthlyRent;
-      } else {
-        totalRent = monthlyRent / 2;
+      // Calculate full months between start and end
+      // Start from the first day of the month after start month
+      let currentYear = startYear;
+      let currentMonth = startMonth + 1; // Next month after start
+      
+      // Calculate full months: from startDay to startDay of next months
+      // Example: 17/01 → 17/02 (1 month), 17/02 → 17/03 (1 month)
+      let currentDate = new Date(startYear, startMonth + 1, startDay);
+      currentDate.setHours(0, 0, 0, 0);
+      
+      // Count full months
+      while (currentDate <= end) {
+        const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, startDay);
+        nextMonth.setHours(0, 0, 0, 0);
+        
+        if (nextMonth <= end) {
+          totalRent += monthlyRent; // Full month
+          currentDate = nextMonth;
+        } else {
+          break;
+        }
       }
-
-      if (totalMonths > 1) {
-        const middleMonths = totalMonths - 1;
-        totalRent += monthlyRent * middleMonths;
+      
+      // Calculate remaining days from currentDate to end
+      // Example: if currentDate is 17/02 and end is 25/02, remainingDays = 8
+      if (currentDate <= end) {
+        const remainingDays = Math.floor((end.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        if (remainingDays > 0) {
+          if (remainingDays < 15) {
+            totalRent += monthlyRent / 2; // Less than 15 days: half month
+          } else {
+            totalRent += monthlyRent; // 15+ days: full month
+          }
+        }
+      } else {
+        // If no full months, calculate all days from start to end
+        const totalDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        if (totalDays < 15) {
+          totalRent = monthlyRent / 2; // Less than 15 days: half month
+        } else {
+          totalRent = monthlyRent; // 15+ days: full month
+        }
       }
 
       return Math.round(totalRent);
@@ -209,6 +314,13 @@ export default function ContractManagementPage() {
     }
     return null;
   }, [formState.contractType, formState.startDate, formState.endDate, formState.monthlyRent]);
+
+  const rentBreakdown = useMemo(() => {
+    if (formState.contractType === 'RENTAL' && formState.startDate && formState.endDate) {
+      return calculateRentBreakdown(formState.startDate, formState.endDate);
+    }
+    return null;
+  }, [formState.contractType, formState.startDate, formState.endDate]);
 
   const clearFieldErrors = (...fields: (keyof CreateContractPayload)[]) => {
     setFormErrors((prev) => {
@@ -423,9 +535,9 @@ export default function ContractManagementPage() {
               
               let suggestedTerms = '';
               if (months <= 1) {
-                suggestedTerms = `Thanh toán một lần từ ${startStr} đến ${endStr}`;
+                suggestedTerms = t('paymentTerms.oneTimePayment', { start: startStr, end: endStr });
               } else {
-                suggestedTerms = `Thanh toán hàng tháng từ ${startStr} đến ${endStr} (${months} tháng)`;
+                suggestedTerms = t('paymentTerms.monthlyPayment', { start: startStr, end: endStr, months });
               }
               
               newState.paymentTerms = suggestedTerms;
@@ -556,6 +668,79 @@ export default function ContractManagementPage() {
       setCheckingAssets(false);
     }
   };
+
+  const checkUnitMeters = async (unitId: string) => {
+    if (!unitId) return;
+    
+    setCheckingMeters(true);
+    try {
+      // Get all meters for this unit
+      const meters = await getMeters({ unitId, active: true });
+      setUnitMeters(meters);
+      
+      // Get all services that require meters
+      const allServices = await getAllServices();
+      const servicesRequiringMeter = allServices.filter(s => s.requiresMeter);
+      
+      // Find which services are missing meters
+      const existingServiceIds = new Set(meters.map(m => m.serviceId));
+      const missing = servicesRequiringMeter.filter(service => !existingServiceIds.has(service.id));
+      
+      setMissingMeterServices(missing);
+    } catch (error: any) {
+      console.error('Failed to check unit meters:', error);
+      // Don't block contract creation if meter check fails
+      setUnitMeters([]);
+      setMissingMeterServices([]);
+    } finally {
+      setCheckingMeters(false);
+    }
+  };
+
+  // Create missing meters
+  const handleCreateMissingMeters = async () => {
+    if (!formState.unitId || missingMeterServices.length === 0) return;
+    
+    setCreatingMissingMeters(true);
+    const errors: string[] = [];
+    let successCount = 0;
+    
+    try {
+      for (const service of missingMeterServices) {
+        try {
+          const meterReq: MeterCreateReq = {
+            unitId: formState.unitId,
+            serviceId: service.id,
+            installedAt: new Date().toISOString().split('T')[0], // Today's date
+          };
+          
+          await createMeter(meterReq);
+          successCount++;
+        } catch (err: any) {
+          const errorMsg = err?.response?.data?.message || err?.message || 'Unknown error';
+          errors.push(`${service.name || service.code}: ${errorMsg}`);
+        }
+      }
+      
+      if (successCount > 0) {
+        // Reload meters to update the UI
+        await checkUnitMeters(formState.unitId);
+        setShowCreateMetersConfirm(false);
+        setCreateSuccess(`Đã tạo thành công ${successCount} đồng hồ đo${errors.length > 0 ? `. ${errors.length} lỗi.` : ''}`);
+      }
+      
+      if (errors.length > 0 && successCount === 0) {
+        setCreateError(`Không thể tạo đồng hồ đo: ${errors.join('; ')}`);
+      } else if (errors.length > 0) {
+        setCreateError(`Đã tạo ${successCount} đồng hồ đo thành công. Lỗi: ${errors.join('; ')}`);
+      }
+    } catch (error: any) {
+      console.error('Failed to create missing meters:', error);
+      setCreateError('Không thể tạo đồng hồ đo. Vui lòng thử lại.');
+    } finally {
+      setCreatingMissingMeters(false);
+    }
+  };
   
   // Create missing assets
   const handleCreateMissingAssets = async () => {
@@ -644,6 +829,8 @@ export default function ContractManagementPage() {
         setCreateSuccess(`Đã tạo thành công ${successCount} thiết bị${errors.length > 0 ? `. ${errors.length} lỗi.` : ''}`);
         // Refresh asset list
         await checkUnitAssets(formState.unitId);
+        // Refresh meter list
+        await checkUnitMeters(formState.unitId);
       }
       
       if (errors.length > 0 && successCount === 0) {
@@ -671,6 +858,7 @@ export default function ContractManagementPage() {
 
     await loadContracts(unitId);
     await checkUnitAssets(unitId);
+    await checkUnitMeters(unitId);
   };
 
   const handleOpenCreateModal = async () => {
@@ -680,6 +868,7 @@ export default function ContractManagementPage() {
     if (selectedUnitId) {
       setFieldValue('unitId', selectedUnitId);
       await checkUnitAssets(selectedUnitId);
+      await checkUnitMeters(selectedUnitId);
     }
     setCreateFiles(null);
     setFormErrors({});
@@ -973,6 +1162,23 @@ export default function ContractManagementPage() {
       errors.files = t('validation.filesRequired');
     }
 
+    // For RENTAL contracts, require meters for electricity and water
+    if (formState.contractType === 'RENTAL') {
+      // Wait for meter check to complete if still checking
+      if (checkingMeters) {
+        setCreateError(t('meterWarning.checking', { defaultValue: 'Đang kiểm tra đồng hồ đo...' }));
+        return;
+      }
+      
+      if (missingMeterServices.length > 0) {
+        const missingServicesList = missingMeterServices.map(s => s.name || s.code || 'Unknown').join(', ');
+        errors.meters = t('validation.metersRequiredForRental', {
+          services: missingServicesList,
+          defaultValue: `Hợp đồng cho thuê yêu cầu phải có đồng hồ đo cho: ${missingServicesList}. Vui lòng tạo đồng hồ đo trước khi tạo hợp đồng.`
+        });
+      }
+    }
+
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
@@ -1061,6 +1267,63 @@ export default function ContractManagementPage() {
         }
       }
 
+      // Automatically create meters for water and electricity after contract creation
+      try {
+        const services = await getAllServices();
+        const waterService = services.find(s => 
+          s.code?.toUpperCase() === 'WATER' || 
+          s.name?.toLowerCase().includes('nước') ||
+          s.name?.toLowerCase().includes('water')
+        );
+        const electricityService = services.find(s => 
+          s.code?.toUpperCase() === 'ELECTRICITY' || 
+          s.code?.toUpperCase() === 'ELECTRIC' || 
+          s.name?.toLowerCase().includes('điện') ||
+          s.name?.toLowerCase().includes('electricity')
+        );
+        
+        const meterCreationPromises: Promise<any>[] = [];
+        
+        if (waterService && waterService.requiresMeter) {
+          const waterMeterReq: MeterCreateReq = {
+            unitId: payload.unitId,
+            serviceId: waterService.id,
+            installedAt: new Date().toISOString().split('T')[0], // Today's date
+          };
+          meterCreationPromises.push(
+            createMeter(waterMeterReq).catch(err => {
+              console.warn('Failed to create water meter:', err);
+              return null; // Don't fail the whole operation if meter creation fails
+            })
+          );
+        }
+        
+        if (electricityService && electricityService.requiresMeter) {
+          const electricityMeterReq: MeterCreateReq = {
+            unitId: payload.unitId,
+            serviceId: electricityService.id,
+            installedAt: new Date().toISOString().split('T')[0], // Today's date
+          };
+          meterCreationPromises.push(
+            createMeter(electricityMeterReq).catch(err => {
+              console.warn('Failed to create electricity meter:', err);
+              return null; // Don't fail the whole operation if meter creation fails
+            })
+          );
+        }
+        
+        // Wait for all meter creations to complete (or fail gracefully)
+        const results = await Promise.allSettled(meterCreationPromises);
+        const successCount = results.filter(r => r.status === 'fulfilled' && r.value !== null).length;
+        
+        if (successCount > 0) {
+          console.log(`✅ Created ${successCount} meter(s) for unit ${payload.unitId}`);
+        }
+      } catch (meterError: any) {
+        // Log error but don't fail the contract creation
+        console.warn('Failed to create meters automatically:', meterError);
+      }
+
       setCreateSuccess(t('messages.createSuccess'));
       await loadContracts(payload.unitId);
       resetCreateForm();
@@ -1086,17 +1349,24 @@ export default function ContractManagementPage() {
         setDetailState({
           data: null,
           loading: false,
-          error: t('errors.contractNotFound'),
+          error: 'contractNotFound',
         });
         return;
       }
       setDetailState({ data: detail, loading: false, error: null });
     } catch (err: any) {
-      if (err?.response?.status === 404) {
+      const status = err?.response?.status;
+      const errorMessage = err?.response?.data?.message || err?.message || '';
+      const isNotFoundError = status === 404 || 
+                              status === 400 ||
+                              errorMessage.toLowerCase().includes('not found') ||
+                              errorMessage.toLowerCase().includes('không tìm thấy');
+      
+      if (isNotFoundError) {
         setDetailState({
           data: null,
           loading: false,
-          error: t('errors.contractNotFound'),
+          error: 'contractNotFound',
         });
         return;
       }
@@ -1263,37 +1533,72 @@ export default function ContractManagementPage() {
     return !hasActiveValidContract;
   }, [selectedUnitId, contractsState.data]);
 
-  // Get expired contracts, sorted by endDate (most recent first)
-  // CANCELLED contracts with endDate >= today are in active tab, not expired
-  const expiredContracts = useMemo(() => {
-    if (!contractsState.data || contractsState.data.length === 0) {
-      return [];
-    }
+  // Helper function to get display status for a contract
+  const getContractDisplayStatus = (contract: ContractSummary) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // If status is CANCELLED or CANCELED, show as is
+    if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
+      return { label: t('status.cancelled'), className: 'bg-red-100 text-red-700' };
+    }
+    
+    // If status is EXPIRED, show as expired
+    if (contract.status === 'EXPIRED') {
+      return { label: t('status.expired'), className: 'bg-orange-100 text-orange-700' };
+    }
+    
+    // If status is INACTIVE, show as inactive
+    if (contract.status === 'INACTIVE') {
+      return { label: t('status.inactive'), className: 'bg-gray-100 text-gray-700' };
+    }
+    
+    // For ACTIVE contracts, check if actually expired based on endDate
+    if (contract.status === 'ACTIVE') {
+      if (contract.endDate) {
+        const endDate = new Date(contract.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        if (endDate <= today) {
+          // Contract is expired even though status is ACTIVE
+          return { label: t('status.expired'), className: 'bg-orange-100 text-orange-700' };
+        }
+      }
+      // Contract is truly active
+      return { label: t('status.active'), className: 'bg-[#C7E8D2] text-[#02542D]' };
+    }
+    
+    // Default: show status as is
+    return { label: contract.status ?? t('status.unknown'), className: 'bg-gray-200 text-gray-700' };
+  };
+
+  // Get unavailable contracts (CANCELLED and EXPIRED), sorted by endDate (most recent first)
+  const unavailableContracts = useMemo(() => {
+    if (!contractsState.data || contractsState.data.length === 0) {
+      return [];
+    }
+    
     return contractsState.data
       .filter((contract) => {
-        // CANCELLED contracts: expired only if endDate < today
+        // Show all CANCELLED contracts (regardless of endDate)
         if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
-          if (!contract.endDate) {
-            return false; // No endDate means still active
-          }
-          const endDate = new Date(contract.endDate);
-          endDate.setHours(0, 0, 0, 0);
-          return endDate < today;
+          return true;
         }
-        // ACTIVE contracts: expired if endDate <= today
+        // Show all EXPIRED contracts
+        if (contract.status === 'EXPIRED') {
+          return true;
+        }
+        // Also show ACTIVE contracts that are actually expired (endDate <= today)
         if (contract.status === 'ACTIVE') {
           if (!contract.endDate) {
             return false; // No endDate means still active
           }
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
           const endDate = new Date(contract.endDate);
           endDate.setHours(0, 0, 0, 0);
           return endDate <= today;
         }
-        // Other statuses are considered expired
-        return true;
+        return false;
       })
       .sort((a, b) => {
         // Sort by endDate descending (most recent first)
@@ -1306,7 +1611,7 @@ export default function ContractManagementPage() {
       });
   }, [contractsState.data]);
 
-  // Get active contracts (not expired) - show only active contracts in active tab
+  // Get active contracts (not CANCELLED, not EXPIRED, and not expired ACTIVE)
   const activeContracts = useMemo(() => {
     if (!contractsState.data || contractsState.data.length === 0) {
       return [];
@@ -1316,14 +1621,13 @@ export default function ContractManagementPage() {
     
     return contractsState.data
       .filter((contract) => {
-        // CANCELLED contracts: active if endDate >= today or no endDate
+        // Exclude all CANCELLED contracts (they go to unavailable tab)
         if (contract.status === 'CANCELLED' || contract.status === 'CANCELED') {
-          if (!contract.endDate) {
-            return true; // No endDate means still active
-          }
-          const endDate = new Date(contract.endDate);
-          endDate.setHours(0, 0, 0, 0);
-          return endDate >= today;
+          return false;
+        }
+        // Exclude all EXPIRED contracts (they go to unavailable tab)
+        if (contract.status === 'EXPIRED') {
+          return false;
         }
         // ACTIVE contracts: active if endDate > today or no endDate
         if (contract.status === 'ACTIVE') {
@@ -1332,14 +1636,14 @@ export default function ContractManagementPage() {
           }
           const endDate = new Date(contract.endDate);
           endDate.setHours(0, 0, 0, 0);
-          return endDate > today;
-        }
-        // EXPIRED status is not active
-        if (contract.status === 'EXPIRED') {
-          return false;
+          return endDate > today; // Only show if truly active (not expired)
         }
         // INACTIVE contracts are considered active (they will become active when startDate arrives)
-        return true;
+        if (contract.status === 'INACTIVE') {
+          return true;
+        }
+        // Other statuses are not active
+        return false;
       })
       .sort((a, b) => {
         // Sort by endDate descending (most recent first), then by startDate
@@ -1359,14 +1663,14 @@ export default function ContractManagementPage() {
       });
   }, [contractsState.data]);
 
-  // Auto-switch to active tab if expired tab is selected but no expired contracts
+  // Auto-switch to active tab if unavailable tab is selected but no unavailable contracts
   useEffect(() => {
-    if (activeTab === 'expired' && expiredContracts.length === 0 && activeContracts.length > 0) {
+    if (activeTab === 'unavailable' && unavailableContracts.length === 0 && activeContracts.length > 0) {
       setActiveTab('active');
     }
-  }, [activeTab, expiredContracts.length, activeContracts.length]);
+  }, [activeTab, unavailableContracts.length, activeContracts.length]);
 
-  const filteredContracts = activeTab === 'active' ? activeContracts : expiredContracts;
+  const filteredContracts = activeTab === 'active' ? activeContracts : unavailableContracts;
 
   return (
     <div className="min-h-screen bg-[#F5F9F6] px-[41px] py-8">
@@ -1436,7 +1740,7 @@ export default function ContractManagementPage() {
           </div>
 
           <div className="mt-6">
-            {selectedUnitId && !contractsState.loading && !contractsState.error && (activeContracts.length > 0 || expiredContracts.length > 0) && (
+            {selectedUnitId && !contractsState.loading && !contractsState.error && (activeContracts.length > 0 || unavailableContracts.length > 0) && (
               <div className="mb-4 border-b border-gray-200">
                 <nav className="-mb-px flex space-x-8" aria-label="Tabs">
                   <button
@@ -1450,17 +1754,17 @@ export default function ContractManagementPage() {
                   >
                     {t('tabs.active')} ({activeContracts.length})
                   </button>
-                  {expiredContracts.length > 0 && (
+                  {unavailableContracts.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => setActiveTab('expired')}
+                      onClick={() => setActiveTab('unavailable')}
                       className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition ${
-                        activeTab === 'expired'
+                        activeTab === 'unavailable'
                           ? 'border-[#14AE5C] text-[#02542D]'
                           : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                       }`}
                     >
-                      {t('tabs.expired')} ({expiredContracts.length})
+                      {t('tabs.unavailable', { defaultValue: 'Unavailable Contracts' })} ({unavailableContracts.length})
                     </button>
                   )}
                 </nav>
@@ -1480,7 +1784,9 @@ export default function ContractManagementPage() {
             ) : filteredContracts.length === 0 ? (
               <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-600">
                 {selectedUnitId
-                  ? (activeTab === 'active' ? t('empty.noActiveContracts') : t('empty.noExpiredContracts'))
+                  ? (activeTab === 'active' 
+                      ? t('empty.noActiveContracts') 
+                      : t('empty.noUnavailableContracts', { defaultValue: 'This apartment currently has no unavailable contracts (cancelled or expired).' }))
                   : t('empty.selectToView')}
               </div>
             ) : (
@@ -1521,15 +1827,16 @@ export default function ContractManagementPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-600">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${
-                              contract.status === 'ACTIVE'
-                                ? 'bg-[#C7E8D2] text-[#02542D]'
-                                : 'bg-gray-200 text-gray-700'
-                            }`}
-                          >
-                            {contract.status ?? t('common.unknown')}
-                          </span>
+                          {(() => {
+                            const statusInfo = getContractDisplayStatus(contract);
+                            return (
+                              <span
+                                className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${statusInfo.className}`}
+                              >
+                                {statusInfo.label}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <button
@@ -1623,7 +1930,7 @@ export default function ContractManagementPage() {
                 {formState.unitId && (
                   <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-4">
                     {checkingAssets ? (
-                      <div className="text-sm text-yellow-800">Đang kiểm tra thiết bị...</div>
+                      <div className="text-sm text-yellow-800">{t('assetWarning.checking')}</div>
                     ) : missingAssetTypes.length > 0 ? (
                       <div>
                         <div className="flex items-start">
@@ -1632,19 +1939,14 @@ export default function ContractManagementPage() {
                           </svg>
                           <div className="flex-1">
                             <h3 className="text-sm font-medium text-yellow-800 mb-1">
-                              Căn hộ này thiếu {missingAssetTypes.length} loại thiết bị
+                              {t('assetWarning.missingTypes', { count: missingAssetTypes.length })}
                             </h3>
                             <p className="text-sm text-yellow-700 mb-3">
-                              Căn hộ đang thiếu: {missingAssetTypes.map((type: AssetType) => {
-                                const labels: Record<AssetType, string> = {
-                                  [AssetType.AIR_CONDITIONER]: 'Điều hòa',
-                                  [AssetType.KITCHEN]: 'Bếp',
-                                  [AssetType.WATER_HEATER]: 'Bình nước nóng',
-                                  [AssetType.FURNITURE]: 'Nội thất',
-                                  [AssetType.OTHER]: 'Khác',
-                                };
-                                return labels[type];
-                              }).join(', ')}
+                              {t('assetWarning.missingList', {
+                                list: missingAssetTypes.map((type: AssetType) => {
+                                  return t(`assetWarning.types.${type}`);
+                                }).join(', ')
+                              })}
                             </p>
                             <button
                               type="button"
@@ -1652,7 +1954,7 @@ export default function ContractManagementPage() {
                               disabled={creatingMissingAssets}
                               className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
-                              Tạo {missingAssetTypes.length} thiết bị còn thiếu
+                              {t('assetWarning.createMissing', { count: missingAssetTypes.length })}
                             </button>
                           </div>
                         </div>
@@ -1662,9 +1964,98 @@ export default function ContractManagementPage() {
                         <svg className="h-5 w-5 text-green-600 mr-2" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                        Căn hộ đã có đầy đủ các thiết bị cần thiết
+                        {t('assetWarning.allComplete')}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Meter check warning/error */}
+                {formState.unitId && (
+                  <div className={`rounded-lg border p-4 ${
+                    formState.contractType === 'RENTAL' && missingMeterServices.length > 0 && !checkingMeters
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-blue-300 bg-blue-50'
+                  }`}>
+                    {checkingMeters ? (
+                      <div className={`text-sm ${formState.contractType === 'RENTAL' ? 'text-red-800' : 'text-blue-800'}`}>
+                        {t('meterWarning.checking', { defaultValue: 'Đang kiểm tra đồng hồ đo...' })}
+                      </div>
+                    ) : missingMeterServices.length > 0 ? (
+                      <div>
+                        <div className="flex items-start">
+                          <svg className={`h-5 w-5 mt-0.5 mr-2 flex-shrink-0 ${
+                            formState.contractType === 'RENTAL' ? 'text-red-600' : 'text-blue-600'
+                          }`} viewBox="0 0 20 20" fill="currentColor">
+                            {formState.contractType === 'RENTAL' ? (
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            ) : (
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            )}
+                          </svg>
+                          <div className="flex-1">
+                            <h3 className={`text-sm font-medium mb-1 ${
+                              formState.contractType === 'RENTAL' ? 'text-red-800' : 'text-blue-800'
+                            }`}>
+                              {formState.contractType === 'RENTAL' 
+                                ? t('meterWarning.requiredForRental', {
+                                    count: missingMeterServices.length,
+                                    defaultValue: `BẮT BUỘC: Thiếu ${missingMeterServices.length} đồng hồ đo cho hợp đồng cho thuê`
+                                  })
+                                : t('meterWarning.missingTypes', { 
+                                    count: missingMeterServices.length,
+                                    defaultValue: `Thiếu ${missingMeterServices.length} đồng hồ đo`
+                                  })
+                              }
+                            </h3>
+                            <p className={`text-sm mb-3 ${
+                              formState.contractType === 'RENTAL' ? 'text-red-700' : 'text-blue-700'
+                            }`}>
+                              {t('meterWarning.missingList', {
+                                list: missingMeterServices.map(s => s.name || s.code || 'Unknown').join(', '),
+                                defaultValue: `Cần thêm đồng hồ đo: ${missingMeterServices.map(s => s.name || s.code || 'Unknown').join(', ')}`
+                              })}
+                            </p>
+                            {formState.contractType === 'RENTAL' && (
+                              <p className="text-sm font-medium text-red-700 mb-3">
+                                {t('meterWarning.rentalRequirement', {
+                                  defaultValue: '⚠️ Hợp đồng cho thuê yêu cầu phải có đầy đủ đồng hồ đo điện và nước. Vui lòng tạo đồng hồ đo trước khi tiếp tục.'
+                                })}
+                              </p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setShowCreateMetersConfirm(true)}
+                              disabled={creatingMissingMeters}
+                              className={`px-4 py-2 text-white text-sm rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed ${
+                                formState.contractType === 'RENTAL'
+                                  ? 'bg-red-600 hover:bg-red-700'
+                                  : 'bg-blue-600 hover:bg-blue-700'
+                              }`}
+                            >
+                              {t('meterWarning.createMissing', { 
+                                count: missingMeterServices.length,
+                                defaultValue: `Tạo ${missingMeterServices.length} đồng hồ đo`
+                              })}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-sm text-green-700">
+                        <svg className="h-5 w-5 text-green-600 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        {t('meterWarning.allComplete', { defaultValue: 'Đã có đầy đủ đồng hồ đo' })}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Show meter validation error if exists */}
+                {formErrors.meters && (
+                  <div className="rounded-lg border border-red-300 bg-red-50 p-3">
+                    <p className="text-sm text-red-800">{formErrors.meters}</p>
                   </div>
                 )}
 
@@ -1724,20 +2115,20 @@ export default function ContractManagementPage() {
                   {formState.contractType !== 'PURCHASE' && (
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-medium text-[#02542D]">{t('fields.endDate')}</label>
-                      <MonthYearPicker
+                      <DateBox
                         value={formState.endDate ?? ''}
                         onChange={(event) =>
                           setFieldValue('endDate', event.target.value ? event.target.value : null)
                         }
-                        placeholderText={t('placeholders.mmyyyy') || 'Chọn tháng/năm (tự động đặt cuối tháng)'}
-                        min={undefined}
+                        placeholderText={t('placeholders.ddmmyyyy') || 'Chọn ngày kết thúc'}
+                        min={formState.startDate || undefined}
                       />
                       {formErrors.endDate && (
                         <span className="mt-1 text-xs text-red-500">{formErrors.endDate}</span>
                       )}
                       {formState.endDate && (
                         <span className="text-xs text-gray-500">
-                          {t('labels.endDatePreview', { date: formatDate(formState.endDate) }) || `Ngày kết thúc: ${formatDate(formState.endDate)} (cuối tháng)`}
+                          {t('labels.endDatePreview', { date: formatDate(formState.endDate) }) || `Ngày kết thúc: ${formatDate(formState.endDate)}`}
                         </span>
                       )}
                     </div>
@@ -1795,18 +2186,46 @@ export default function ContractManagementPage() {
                               {calculatedTotalRent.toLocaleString('vi-VN')} đ
                             </span>
                           </p>
-                          {formState.startDate && (
-                            <p className="text-xs text-gray-600 italic">
-                              {(() => {
-                                const startDate = new Date(formState.startDate);
-                                const startDay = startDate.getDate();
-                                if (startDay <= 15) {
-                                  return t('rentCalculation.fullMonth', { day: startDay });
-                                } else {
-                                  return t('rentCalculation.halfMonth', { day: startDay });
-                                }
-                              })()}
-                            </p>
+                          {formState.startDate && formState.endDate && rentBreakdown && (
+                            <div className="mt-2 space-y-1 text-xs text-gray-600">
+                              <p className="font-medium">
+                                {t('rentCalculation.breakdown', { 
+                                  defaultValue: 'Chi tiết tính toán:' 
+                                }) || 'Chi tiết tính toán:'}
+                              </p>
+                              <ul className="list-disc list-inside space-y-0.5 ml-2">
+                                {rentBreakdown.fullMonths > 0 && (
+                                  <li>
+                                    {t('rentCalculation.fullMonths', { 
+                                      count: rentBreakdown.fullMonths,
+                                      defaultValue: `${rentBreakdown.fullMonths} tháng đầy đủ` 
+                                    }) || `${rentBreakdown.fullMonths} tháng đầy đủ`}
+                                  </li>
+                                )}
+                                {rentBreakdown.remainingDays > 0 && (
+                                  <li>
+                                    <span className="text-gray-600">
+                                      {rentBreakdown.remainingDays} {(t('rentCalculation.days') || 'ngày')} {(t('rentCalculation.remaining') || 'lẻ')}
+                                    </span>
+                                    {' = '}
+                                    {rentBreakdown.remainingDays < 15 ? (
+                                      <span className="text-orange-600 font-medium">
+                                        {t('rentCalculation.halfMonthLabel') || 'nửa tháng'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-green-600 font-medium">
+                                        {t('rentCalculation.fullMonthLabel') || 'full tháng'}
+                                      </span>
+                                    )}
+                                  </li>
+                                )}
+                              </ul>
+                              <p className="text-xs italic mt-2 pt-2 border-t border-gray-300">
+                                {t('rentCalculation.formula', { 
+                                  defaultValue: 'Công thức: Ngày lẻ < 15 ngày tính nửa tháng, >= 15 ngày tính full tháng' 
+                                })}
+                              </p>
+                            </div>
                           )}
                         </div>
                       )}
@@ -1870,7 +2289,7 @@ export default function ContractManagementPage() {
                                 const end = new Date(formState.endDate);
                                 const startStr = start.toLocaleDateString('vi-VN');
                                 const endStr = end.toLocaleDateString('vi-VN');
-                                return `VD: Thanh toán hàng tháng từ ${startStr} đến ${endStr}`;
+                                return t('paymentTerms.placeholderExample', { start: startStr, end: endStr });
                               }
                               return t('placeholders.paymentTerms');
                             })()}
@@ -1892,17 +2311,17 @@ export default function ContractManagementPage() {
                                 
                                 let suggestedTerms = '';
                                 if (months <= 1) {
-                                  suggestedTerms = `Thanh toán một lần từ ${startStr} đến ${endStr}`;
+                                  suggestedTerms = t('paymentTerms.oneTimePayment', { start: startStr, end: endStr });
                                 } else {
-                                  suggestedTerms = `Thanh toán hàng tháng từ ${startStr} đến ${endStr} (${months} tháng)`;
+                                  suggestedTerms = t('paymentTerms.monthlyPayment', { start: startStr, end: endStr, months });
                                 }
                                 
                                 setFieldValue('paymentTerms', suggestedTerms);
                               }}
                               className="whitespace-nowrap rounded-lg border border-[#14AE5C] bg-white px-3 py-2 text-sm font-medium text-[#02542D] shadow-sm transition hover:bg-[#E9F4EE]"
-                              title="Tự động tạo điều khoản thanh toán dựa trên thời gian thuê"
+                              title={t('paymentTerms.autoGenerateTooltip')}
                             >
-                              Tự động
+                              {t('paymentTerms.auto')}
                             </button>
                           )}
                         </div>
@@ -2010,8 +2429,25 @@ export default function ContractManagementPage() {
                   <p className="text-sm text-gray-500">{t('loading.detail')}</p>
                 )}
                 {detailState.error && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                    {detailState.error}
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                      {detailState.error === 'contractNotFound' 
+                        ? 'Không tìm thấy hợp đồng. Hợp đồng có thể đã bị xóa hoặc không tồn tại.'
+                        : detailState.error}
+                    </div>
+                    {detailState.error === 'contractNotFound' && (
+                      <div className="flex justify-center">
+                        <button
+                          onClick={() => {
+                            handleCloseContractDetail();
+                            handleOpenCreateModal();
+                          }}
+                          className="px-4 py-2 bg-[#02542D] text-white rounded-lg hover:bg-[#023a20] transition-colors"
+                        >
+                          Tạo hợp đồng mới
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
                 {!detailState.loading && !detailState.error && detailState.data && (
@@ -2333,6 +2769,77 @@ export default function ContractManagementPage() {
                   className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
                 >
                   {creatingMissingAssets ? 'Đang tạo...' : `Xác nhận tạo ${missingAssetTypes.length} thiết bị`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Missing Meters Confirmation Modal */}
+      {showCreateMetersConfirm && formState.unitId && missingMeterServices.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 relative z-[10000]">
+            <div className="p-6">
+              <div className="flex items-start mb-4">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {t('meterWarning.confirmTitle', { defaultValue: 'Xác nhận tạo đồng hồ đo tự động' })}
+                  </h3>
+                </div>
+              </div>
+
+              <div className="mb-6 space-y-3">
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <p className="text-sm font-medium text-blue-800 mb-2">
+                    {t('meterWarning.confirmWarning', { defaultValue: '⚠️ Cảnh báo: Bạn sắp tạo đồng hồ đo tự động cho căn hộ' })}
+                  </p>
+                  <div className="text-sm text-blue-700 space-y-2">
+                    <p><strong>{t('meterWarning.unit', { defaultValue: 'Căn hộ' })}:</strong> {unitsState.data.find(u => u.id === formState.unitId)?.code || '-'}</p>
+                    <p><strong>{t('meterWarning.count', { defaultValue: 'Số lượng đồng hồ' })}:</strong> {missingMeterServices.length} {t('meterWarning.meter', { defaultValue: 'đồng hồ' })}</p>
+                    <div className="mt-2">
+                      <p className="font-medium mb-1">{t('meterWarning.willCreate', { defaultValue: 'Các đồng hồ sẽ được tạo' })}:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-2">
+                        {missingMeterServices.map((service) => (
+                          <li key={service.id}>
+                            {service.name || service.code || 'Unknown'}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <p><strong>{t('meterWarning.installDate', { defaultValue: 'Ngày lắp đặt' })}:</strong> {new Date().toLocaleDateString('vi-VN')} ({t('meterWarning.today', { defaultValue: 'hôm nay' })})</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  {t('meterWarning.confirmMessage', { defaultValue: 'Hệ thống sẽ tự động tạo đồng hồ đo với mã và ngày lắp đặt theo mặc định cho căn hộ này.' })}
+                </p>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowCreateMetersConfirm(false)}
+                  disabled={creatingMissingMeters}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  {t('meterWarning.cancel', { defaultValue: 'Hủy' })}
+                </button>
+                <button
+                  onClick={handleCreateMissingMeters}
+                  disabled={creatingMissingMeters}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                >
+                  {creatingMissingMeters 
+                    ? t('meterWarning.creating', { defaultValue: 'Đang tạo...' })
+                    : t('meterWarning.confirmCreate', { 
+                        count: missingMeterServices.length,
+                        defaultValue: `Xác nhận tạo ${missingMeterServices.length} đồng hồ đo`
+                      })
+                  }
                 </button>
               </div>
             </div>

@@ -215,10 +215,50 @@ export default function AccountNewResidentPage() {
     await loadHouseholdForUnit(unitId);
   };
 
-  // Validate email format
-  const validateEmailFormat = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  // Validate email format - must end with .com and have exactly one @
+  const validateEmailFormat = (email: string): string => {
+    // Ensure email contains exactly one @
+    const atCount = (email.match(/@/g) || []).length;
+    if (atCount === 0) {
+      return t('validation.email.missingAt');
+    }
+    if (atCount > 1) {
+      return t('validation.email.multipleAt');
+    }
+    
+    // Split email into local part and domain
+    const parts = email.split('@');
+    if (parts.length !== 2) {
+      return t('validation.email.invalidFormat');
+    }
+    
+    const localPart = parts[0];
+    const domain = parts[1];
+    
+    // Check if email ends with .com
+    if (!domain.toLowerCase().endsWith('.com')) {
+      return t('validation.email.mustEndWithCom');
+    }
+    
+    // Validate local part: only allow a-zA-Z0-9._%+-
+    const localPartPattern = /^[a-zA-Z0-9._%+-]+$/;
+    if (!localPartPattern.test(localPart)) {
+      return t('validation.email.invalidLocalPart');
+    }
+    
+    // Validate domain part (before .com): only allow a-zA-Z0-9.-
+    const domainWithoutCom = domain.substring(0, domain.length - 4);
+    const domainPattern = /^[a-zA-Z0-9.-]+$/;
+    if (!domainPattern.test(domainWithoutCom)) {
+      return t('validation.email.invalidDomain');
+    }
+    
+    // Final pattern check
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/i;
+    if (!emailPattern.test(email)) {
+      return t('validation.email.invalidFormat');
+    }
+    return "";
   };
 
   // Validate phone number (Vietnam format)
@@ -244,20 +284,6 @@ export default function AccountNewResidentPage() {
       return t('validation.phone.mustBe10Digits');
     }
     
-    // Check Vietnamese mobile prefixes
-    const vietnamPrefixes = [
-      '032', '033', '034', '035', '036', '037', '038', '039', // Viettel
-      '070', '076', '077', '078', '079', // MobiFone
-      '081', '082', '083', '084', '085', // Vinaphone
-      '056', '058', // Vietnamobile
-      '059', // GMobile
-    ];
-    
-    const prefix = cleaned.substring(0, 3);
-    if (!vietnamPrefixes.includes(prefix)) {
-      return t('validation.phone.invalidPrefix');
-    }
-    
     return null;
   };
 
@@ -278,7 +304,7 @@ export default function AccountNewResidentPage() {
 
   // Validate national ID (CCCD)
   const validateNationalId = (nationalId: string): string | null => {
-    if (!nationalId.trim()) {
+    if (!nationalId || !nationalId.trim()) {
       return t('validation.nationalId.required');
     }
     const cleaned = nationalId.replace(/\s+/g, '');
@@ -288,9 +314,9 @@ export default function AccountNewResidentPage() {
       return t('validation.nationalId.specialChars');
     }
     
-    // Check length (13 digits for CCCD)
-    if (cleaned.length !== 12) {
-      return t('validation.nationalId.mustBe13Digits');
+    // Check length: must be greater than 12 digits (at least 12 digits)
+    if (cleaned.length < 12) {
+      return t('validation.nationalId.mustBe13Digits') || 'Số căn cước công dân phải có ít nhất 12 số';
     }
     
     return null;
@@ -321,21 +347,28 @@ export default function AccountNewResidentPage() {
 
   // Validate date of birth
   const validateDateOfBirth = (dob: string): string | null => {
-    if (!dob) {
+    if (!dob || !dob.trim()) {
       return t('validation.dob.required');
     }
     
     const birthDate = new Date(dob);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    birthDate.setHours(0, 0, 0, 0);
     
     if (isNaN(birthDate.getTime())) {
       return t('validation.dob.invalid');
     }
     
-    const age = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    // Calculate age more accurately
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
     
-    if (age <= 18) {
+    // Must be greater than 18 years old (at least 19 years old)
+    if (age < 18) {
       return t('validation.dob.ageMin');
     }
     if (age >= 200) {
@@ -350,12 +383,116 @@ export default function AccountNewResidentPage() {
     (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
       setManualForm((prev) => ({ ...prev, [field]: value }));
-      setManualFieldErrors((prev) => {
-        if (!prev[field]) return prev;
-        const next = { ...prev };
-        delete next[field];
-        return next;
-      });
+      
+      // Real-time validation for email
+      if (field === 'email') {
+        setManualFieldErrors((prev) => {
+          const next = { ...prev };
+          
+          // Clear error if field is empty
+          if (!value.trim()) {
+            delete next.email;
+            return next;
+          }
+          
+          // Validate whitespace
+          if (/\s/.test(value)) {
+            next.email = t('validation.email.noWhitespace');
+            return next;
+          }
+          
+          // Validate length
+          if (value.length > 40) {
+            next.email = t('validation.email.maxLength');
+            return next;
+          }
+          
+          // Validate format
+          const emailFormatError = validateEmailFormat(value);
+          if (emailFormatError) {
+            next.email = emailFormatError;
+            return next;
+          }
+          
+          // If all validations pass, clear error
+          delete next.email;
+          return next;
+        });
+      } else if (field === 'phone') {
+        // Real-time validation for phone
+        setManualFieldErrors((prev) => {
+          const next = { ...prev };
+          
+          // Clear error if field is empty
+          if (!value.trim()) {
+            delete next.phone;
+            return next;
+          }
+          
+          // Validate phone format
+          const phoneError = validatePhone(value);
+          if (phoneError) {
+            next.phone = phoneError;
+            return next;
+          }
+          
+          // If all validations pass, clear error
+          delete next.phone;
+          return next;
+        });
+      } else if (field === 'username') {
+        // Real-time validation for username
+        setManualFieldErrors((prev) => {
+          const next = { ...prev };
+          
+          // Clear error if field is empty (username is optional)
+          if (!value.trim()) {
+            delete next.username;
+            return next;
+          }
+          
+          // Validate username format
+          const usernameError = validateUsername(value);
+          if (usernameError) {
+            next.username = usernameError;
+            return next;
+          }
+          
+          // If all validations pass, clear error
+          delete next.username;
+          return next;
+        });
+      } else if (field === 'nationalId') {
+        // Real-time validation for national ID
+        setManualFieldErrors((prev) => {
+          const next = { ...prev };
+          
+          // Clear error if field is empty
+          if (!value.trim()) {
+            delete next.nationalId;
+            return next;
+          }
+          
+          // Validate national ID format
+          const nationalIdError = validateNationalId(value);
+          if (nationalIdError) {
+            next.nationalId = nationalIdError;
+            return next;
+          }
+          
+          // If all validations pass, clear error
+          delete next.nationalId;
+          return next;
+        });
+      } else {
+        // For other fields, just clear error on change
+        setManualFieldErrors((prev) => {
+          if (!prev[field]) return prev;
+          const next = { ...prev };
+          delete next[field];
+          return next;
+        });
+      }
     };
 
   const handleCCCDExtract = (info: CCCDInfo) => {
@@ -477,20 +614,23 @@ export default function AccountNewResidentPage() {
     } else if (manualForm.email.length > 40) {
       errors.email = t('validation.email.maxLength');
       isValid = false;
-    } else if (!validateEmailFormat(manualForm.email)) {
-      errors.email = t('validation.email.invalid');
-      isValid = false;
     } else {
-      // Check email exists in database
-      try {
-        const exists = await checkEmailExists(manualForm.email.trim());
-        if (exists) {
-          errors.email = t('validation.email.exists');
-          isValid = false;
+      const emailFormatError = validateEmailFormat(manualForm.email);
+      if (emailFormatError) {
+        errors.email = emailFormatError;
+        isValid = false;
+      } else {
+        // Check email exists in database
+        try {
+          const exists = await checkEmailExists(manualForm.email.trim());
+          if (exists) {
+            errors.email = t('validation.email.exists');
+            isValid = false;
+          }
+        } catch (err: any) {
+          // If there's an error checking (network, etc.), log but don't block submit
+          console.error('Error checking email:', err);
         }
-      } catch (err: any) {
-        // If there's an error checking (network, etc.), log but don't block submit
-        console.error('Error checking email:', err);
       }
     }
 
@@ -513,16 +653,20 @@ export default function AccountNewResidentPage() {
     if (nationalIdError) {
       errors.nationalId = nationalIdError;
       isValid = false;
-    } else if (manualForm.nationalId.trim()) {
-      // Check if national ID already exists in system
+    } else if (manualForm.nationalId && manualForm.nationalId.trim()) {
+      // Check if national ID already exists in system (must be unique)
       try {
-        const exists = await checkNationalIdExists(manualForm.nationalId.trim());
+        const cleanedId = manualForm.nationalId.trim().replace(/\s+/g, '');
+        const exists = await checkNationalIdExists(cleanedId);
         if (exists) {
-          errors.nationalId = t('validation.nationalId.exists');
+          errors.nationalId = t('validation.nationalId.exists') || 'Số căn cước công dân đã tồn tại trong hệ thống';
           isValid = false;
         }
       } catch (err) {
         console.error('Error checking national ID:', err as Error);
+        // If check fails, still set error to be safe
+        errors.nationalId = t('validation.nationalId.checkError') || 'Không thể kiểm tra số căn cước công dân. Vui lòng thử lại.';
+        isValid = false;
       }
     }
 

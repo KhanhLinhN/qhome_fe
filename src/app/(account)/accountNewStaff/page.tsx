@@ -59,7 +59,6 @@ export default function AccountNewStaffPage() {
   }, [user, isLoading, router]);
 
   const STAFF_ROLE_OPTIONS = [
-    { id: 'ADMIN', label: t('roles.admin') },
     { id: 'ACCOUNTANT', label: t('roles.accountant') },
     { id: 'TECHNICIAN', label: t('roles.technician') },
     { id: 'SUPPORTER', label: t('roles.supporter') },
@@ -127,18 +126,21 @@ export default function AccountNewStaffPage() {
           setEmailError(t('validation.email.noWhitespace'));
         } else if (value.length > 40) {
           setEmailError(t('validation.email.maxLength'));
-        } else if (!validateEmailFormat(value)) {
-          setEmailError(t('validation.email.invalid'));
         } else {
-          // Check email tồn tại trong database
-          try {
-            const exists = await checkEmailExists(value.trim());
-            if (exists) {
-              setEmailError(t('validation.email.exists'));
+          const emailFormatError = validateEmailFormat(value);
+          if (emailFormatError) {
+            setEmailError(emailFormatError);
+          } else {
+            // Check email tồn tại trong database
+            try {
+              const exists = await checkEmailExists(value.trim());
+              if (exists) {
+                setEmailError(t('validation.email.exists'));
+              }
+            } catch (err: any) {
+              // Nếu có lỗi khi check (network, etc.), không hiển thị lỗi
+              console.error('Error checking email:', err);
             }
-          } catch (err: any) {
-            // Nếu có lỗi khi check (network, etc.), không hiển thị lỗi
-            console.error('Error checking email:', err);
           }
         }
         break;
@@ -180,10 +182,50 @@ export default function AccountNewStaffPage() {
     setRoleError(null);
   };
 
-  // Validate email format
-  const validateEmailFormat = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  // Validate email format - must end with .com and have exactly one @
+  const validateEmailFormat = (email: string): string => {
+    // Ensure email contains exactly one @
+    const atCount = (email.match(/@/g) || []).length;
+    if (atCount === 0) {
+      return t('validation.email.missingAt');
+    }
+    if (atCount > 1) {
+      return t('validation.email.multipleAt');
+    }
+    
+    // Split email into local part and domain
+    const parts = email.split('@');
+    if (parts.length !== 2) {
+      return t('validation.email.invalidFormat');
+    }
+    
+    const localPart = parts[0];
+    const domain = parts[1];
+    
+    // Check if email ends with .com
+    if (!domain.toLowerCase().endsWith('.com')) {
+      return t('validation.email.mustEndWithCom');
+    }
+    
+    // Validate local part: only allow a-zA-Z0-9._%+-
+    const localPartPattern = /^[a-zA-Z0-9._%+-]+$/;
+    if (!localPartPattern.test(localPart)) {
+      return t('validation.email.invalidLocalPart');
+    }
+    
+    // Validate domain part (before .com): only allow a-zA-Z0-9.-
+    const domainWithoutCom = domain.substring(0, domain.length - 4);
+    const domainPattern = /^[a-zA-Z0-9.-]+$/;
+    if (!domainPattern.test(domainWithoutCom)) {
+      return t('validation.email.invalidDomain');
+    }
+    
+    // Final pattern check
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/i;
+    if (!emailPattern.test(email)) {
+      return t('validation.email.invalidFormat');
+    }
+    return "";
   };
 
   const validateForm = async () => {
@@ -231,20 +273,23 @@ export default function AccountNewStaffPage() {
     } else if (form.email.length > 40) {
       setEmailError(t('validation.email.maxLength'));
       isValid = false;
-    } else if (!validateEmailFormat(form.email)) {
-      setEmailError(t('validation.email.invalid'));
-      isValid = false;
     } else {
-      // Check email tồn tại trong database
-      try {
-        const exists = await checkEmailExists(form.email.trim());
-        if (exists) {
-          setEmailError(t('validation.email.exists'));
-          isValid = false;
+      const emailFormatError = validateEmailFormat(form.email);
+      if (emailFormatError) {
+        setEmailError(emailFormatError);
+        isValid = false;
+      } else {
+        // Check email tồn tại trong database
+        try {
+          const exists = await checkEmailExists(form.email.trim());
+          if (exists) {
+            setEmailError(t('validation.email.exists'));
+            isValid = false;
+          }
+        } catch (err: any) {
+          // Nếu có lỗi khi check (network, etc.), vẫn cho phép submit và để backend xử lý
+          console.error('Error checking email:', err);
         }
-      } catch (err: any) {
-        // Nếu có lỗi khi check (network, etc.), vẫn cho phép submit và để backend xử lý
-        console.error('Error checking email:', err);
       }
     }
 
@@ -252,6 +297,9 @@ export default function AccountNewStaffPage() {
     setRoleError(null);
     if (!form.role) {
       setRoleError(t('validation.role.required'));
+      isValid = false;
+    } else if (form.role === 'ADMIN') {
+      setRoleError(t('validation.role.adminNotAllowed'));
       isValid = false;
     }
 
@@ -376,7 +424,7 @@ export default function AccountNewStaffPage() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
       <div
-        className="mx-auto mb-6 flex max-w-3xl cursor-pointer items-center"
+        className="mx-auto mb-6 flex max-w-6xl cursor-pointer items-center"
         onClick={handleBack}
       >
         <Image src={Arrow} alt={t('back')} width={20} height={20} className="mr-2 h-5 w-5" />

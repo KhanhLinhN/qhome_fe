@@ -9,6 +9,7 @@ import {
 } from '@/src/services/base/householdMemberRequestService';
 import { fetchResidentByIdForAdmin } from '@/src/services/base/residentService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 export default function HouseholdMemberRequestsPage() {
   const t = useTranslations('HouseholdMemberRequests');
@@ -34,6 +35,8 @@ export default function HouseholdMemberRequestsPage() {
     }
     return date.toLocaleString('vi-VN');
   };
+
+  const initialPageSize = 10;
   const [requests, setRequests] = useState<HouseholdMemberRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +45,8 @@ export default function HouseholdMemberRequestsPage() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [requesterDetails, setRequesterDetails] = useState<Record<string, { email?: string | null; phone?: string | null }>>({});
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(initialPageSize);
   const [imagePopup, setImagePopup] = useState<{ isOpen: boolean; imageUrl: string | null }>({
     isOpen: false,
     imageUrl: null,
@@ -63,6 +68,7 @@ export default function HouseholdMemberRequestsPage() {
       const data = await fetchPendingHouseholdMemberRequests();
       console.log("CCC",data);
       setRequests(data);
+      setPageNo(0);
       
       // Lấy danh sách các requestedBy ID duy nhất
       const uniqueRequestedByIds = Array.from(
@@ -102,6 +108,21 @@ export default function HouseholdMemberRequestsPage() {
   useEffect(() => {
     void loadRequests();
   }, [loadRequests]);
+
+  // Apply pagination to requests
+  const requestsToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return requests.slice(startIndex, endIndex);
+  }, [requests, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(requests.length / pageSize) : 0;
+  }, [requests.length, pageSize]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPageNo(newPage);
+  }, []);
 
   const hasRequests = useMemo(() => requests.length > 0, [requests]);
 
@@ -250,7 +271,7 @@ export default function HouseholdMemberRequestsPage() {
         </div>
       ) : (
         <div className="space-y-5">
-          {requests.map((request) => {
+          {requestsToDisplay.map((request) => {
             const isProcessing = actionState[request.id];
             const showRejectForm = rejectingId === request.id;
             return (
@@ -371,6 +392,15 @@ export default function HouseholdMemberRequestsPage() {
               </div>
             );
           })}
+          {totalPages > 0 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={pageNo + 1}
+                totalPages={totalPages}
+                onPageChange={(page) => handlePageChange(page - 1)}
+              />
+            </div>
+          )}
         </div>
       )}
 

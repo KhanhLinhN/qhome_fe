@@ -115,6 +115,36 @@ export default function ProfileEditPage() {
       }));
     };
 
+  const validatePassword = (password: string): string | null => {
+    if (!password) {
+      return null;
+    }
+
+    if (password.length < 8) {
+      return t('validation.password.minLength');
+    }
+
+    // Chỉ cho phép chữ cái Latinh không dấu (a-z, A-Z), số (0-9), và ký tự đặc biệt (@ $ ! % * ? &)
+    const allowedCharsPattern = /^[A-Za-z\d@$!%*?&]+$/;
+    if (!allowedCharsPattern.test(password)) {
+      return t('validation.password.invalidCharacters');
+    }
+
+    if (!/[a-zA-Z]/.test(password)) {
+      return t('validation.password.missingLetter');
+    }
+
+    if (!/\d/.test(password)) {
+      return t('validation.password.missingDigit');
+    }
+
+    if (!/[@$!%*?&]/.test(password)) {
+      return t('validation.password.missingSpecialChar');
+    }
+
+    return null;
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -123,14 +153,17 @@ export default function ProfileEditPage() {
       return;
     }
 
-    if (form.newPassword && form.newPassword.length < 8) {
-      setError(t('validation.password.minLength'));
-      return;
-    }
+    if (form.newPassword) {
+      const passwordError = validatePassword(form.newPassword);
+      if (passwordError) {
+        setError(passwordError);
+        return;
+      }
 
-    if (form.newPassword && form.newPassword !== form.confirmPassword) {
-      setError(t('validation.password.mismatch'));
-      return;
+      if (form.newPassword !== form.confirmPassword) {
+        setError(t('validation.password.mismatch'));
+        return;
+      }
     }
 
     const trimmedUsername = form.username.trim();

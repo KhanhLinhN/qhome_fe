@@ -143,12 +143,15 @@ export interface MeterReadingDto {
 }
 
 export interface MeterReadingCreateReq {
-  assignmentId: string;
+  assignmentId?: string;
   meterId: string;
-  readingDate: string;
+  readingDate: string; // YYYY-MM-DD format (LocalDate)
+  prevIndex: number; // Required by backend
   currIndex: number;
   cycleId?: string;
   note?: string;
+  photoFileId?: string;
+  readerId?: string;
 }
 
 export interface MeterReadingUpdateReq {
@@ -542,7 +545,34 @@ export async function deleteMeter(meterId: string): Promise<void> {
 
 // Meter Reading API
 export async function createMeterReading(req: MeterReadingCreateReq): Promise<MeterReadingDto> {
-  console.log("Creating meter reading with req:", req);
+  console.log("Creating meter reading with req:", JSON.stringify(req, null, 2));
+  
+  // Validate request
+  if (!req || Object.keys(req).length === 0) {
+    throw new Error("MeterReadingCreateReq is empty or undefined");
+  }
+  
+  // assignmentId is optional - can use cycleId instead
+  // if (!req.assignmentId && !req.cycleId) {
+  //   throw new Error("Either assignmentId or cycleId is required");
+  // }
+  
+  if (!req.meterId) {
+    throw new Error("meterId is required");
+  }
+  
+  if (!req.readingDate) {
+    throw new Error("readingDate is required");
+  }
+  
+  if (req.prevIndex === undefined || req.prevIndex === null) {
+    throw new Error("prevIndex is required");
+  }
+  
+  if (req.currIndex === undefined || req.currIndex === null) {
+    throw new Error("currIndex is required");
+  }
+  
   try {
     const response = await axios.post(
       `${BASE_URL}/api/meter-readings`,
@@ -553,8 +583,10 @@ export async function createMeterReading(req: MeterReadingCreateReq): Promise<Me
     return response.data;
   } catch (error: any) {
     console.error("Failed to create meter reading:", error);
-    console.error("Request was:", req);
+    console.error("Request was:", JSON.stringify(req, null, 2));
     console.error("Error response:", error?.response?.data);
+    console.error("Error status:", error?.response?.status);
+    console.error("Error message:", error?.message);
     throw error;
   }
 }

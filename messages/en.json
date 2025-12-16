@@ -154,6 +154,8 @@
     "taskList": "Task List",
     "management": "Management",
     "assetManagement": "Asset Management",
+    "assetInspectionManagement": "Asset Inspection Management",
+    "assetInspectionAssignments": "Inspection Assignments",
     "meterManagement": "Meter Management",
     "buildings": "Buildings",
     "employees": "Employees",
@@ -252,10 +254,17 @@
         "noWhitespace": "Email cannot contain whitespace characters.",
         "maxLength": "Email cannot exceed 40 characters.",
         "invalid": "Email is invalid.",
-        "exists": "Email already exists in the system."
+        "exists": "Email already exists in the system.",
+        "missingAt": "Email must contain the @ symbol.",
+        "multipleAt": "Email must contain exactly 1 @ symbol.",
+        "mustEndWithCom": "Email must end with .com. Example: user@example.com",
+        "invalidLocalPart": "The part before @ can only contain letters (a-z, A-Z), numbers (0-9) and characters: . _ % + -",
+        "invalidDomain": "The domain part can only contain letters (a-z, A-Z), numbers (0-9) and characters: . -",
+        "invalidFormat": "Email format is invalid. Email must end with .com. Example: user@example.com"
       },
       "role": {
-        "required": "Please select a role for the staff."
+        "required": "Please select a role for the staff.",
+        "adminNotAllowed": "Cannot create account with Admin role."
       },
       "excelFileRequired": "Please select an Excel file (.xlsx).",
       "excelFileFormat": "File must be in .xlsx format."
@@ -271,7 +280,7 @@
     },
     "import": {
       "title": "Quick import with Excel",
-      "description": "Use Excel file with columns: username, email, role, active. Role can contain multiple values, separated by commas.",
+      "description": "Use Excel file with columns: username, email, role, active. Role must have only 1 value.",
       "fileLabel": "Excel file (.xlsx)",
       "fileSelected": "Selected:",
       "tableHeaders": {
@@ -324,7 +333,9 @@
     },
     "buttons": {
       "addAccount": "+ Add account",
-      "reload": "Reload"
+      "reload": "Reload",
+      "exportExcel": "Export Excel",
+      "exporting": "Exporting..."
     },
     "loading": "Loading data...",
     "errors": {
@@ -335,7 +346,9 @@
       "deleteError": "An error occurred while deleting the account",
       "activateSuccess": "Account activated successfully.",
       "deactivateSuccess": "Account deactivated successfully.",
-      "updateStatusError": "Unable to update account status. Please try again."
+      "updateStatusError": "Unable to update account status. Please try again.",
+      "exportSuccess": "Excel exported successfully",
+      "exportError": "An error occurred while exporting Excel"
     },
     "popups": {
       "statusChange": {
@@ -474,7 +487,11 @@
     "validation": {
       "password": {
         "minLength": "New password must be at least 8 characters.",
-        "mismatch": "Password confirmation does not match."
+        "mismatch": "Password confirmation does not match.",
+        "missingLetter": "Password must contain at least 1 letter (a-z, A-Z).",
+        "missingDigit": "Password must contain at least 1 digit (0-9).",
+        "missingSpecialChar": "Password must contain at least 1 special character (@ $ ! % * ? &).",
+        "invalidCharacters": "Password can only contain Latin letters without accents (a-z, A-Z), digits (0-9) and special characters (@ $ ! % * ? &)."
       },
       "userNotIdentified": "Unable to identify current user."
     },
@@ -915,7 +932,8 @@
       "failedToExportMeterExcel": "Failed to export meter Excel",
       "pleaseSelectUnitAndService": "Please select apartment and service",
       "meterAddedSuccess": "Meter added successfully",
-      "failedToCreateMeter": "Unable to create meter"
+      "failedToCreateMeter": "Unable to create meter",
+      "pleaseSelectUnitAndService":"Please select apartment and service"
     },
     "selectCity": "Select city",
     "selectDistrict": "Select district",
@@ -2145,13 +2163,21 @@
     "empty": {
       "noContracts": "This apartment currently has no contracts.",
       "noActiveContracts": "This apartment currently has no active contracts.",
-      "noExpiredContracts": "This apartment currently has no expired contracts.",
+      "noUnavailableContracts": "This apartment currently has no unavailable contracts (cancelled or expired).",
       "selectToView": "Select a building and a apartment to view contracts.",
       "noAttachments": "This contract has no attachments yet. You can upload files here."
     },
     "tabs": {
       "active": "Active Contracts",
-      "expired": "Expired Contracts"
+      "unavailable": "Unavailable Contracts"
+    },
+    "status": {
+      "active": "Active",
+      "activeDefault": "Active (default)",
+      "expired": "Expired",
+      "cancelled": "Cancelled",
+      "inactive": "Inactive",
+      "unknown": "Unknown"
     },
     "labels": {
       "endDatePreview": "End date: {date} (end of month)"
@@ -2203,7 +2229,8 @@
       "purchaseDateInvalid": "Purchase date must follow YYYY-MM-DD format.",
       "purchaseDateAfterStartDate": "Purchase date must be greater than or equal to start date.",
       "dateFormat": "Date must follow dd/mm/yyyy format.",
-      "filesRequired": "Please upload at least one attachment file."
+      "filesRequired": "Please upload at least one attachment file.",
+      "metersRequiredForRental": "Rental contracts require meters for: {services}. Please create meters before creating the contract."
     },
     "errors": {
       "loadBuildings": "Unable to load building list.",
@@ -2255,7 +2282,61 @@
     },
     "rentCalculation": {
       "fullMonth": "First month (day {day} ≤ 15): full month charge",
-      "halfMonth": "First month (day {day} > 15): half month charge"
+      "halfMonth": "First month (day {day} > 15): half month charge",
+      "formula": "Formula: Remaining days < 15 = half month, >= 15 = full month",
+      "breakdown": "Calculation breakdown:",
+      "fullMonths": "{count} full months",
+      "startMonthDays": "Start month: {days} days",
+      "endMonthDays": "End month: {days} days",
+      "fullMonthLabel": "full month",
+      "halfMonthLabel": "half month",
+      "startMonth": "Start month",
+      "endMonth": "End month",
+      "days": "days",
+      "remaining": "remaining"
+    },
+    "paymentTerms": {
+      "auto": "Auto",
+      "autoGenerateTooltip": "Auto-generate payment terms based on rental period",
+      "monthlyPayment": "Monthly payment from {start} to {end} ({months} months)",
+      "oneTimePayment": "One-time payment from {start} to {end}",
+      "placeholderExample": "E.g. Monthly payment from {start} to {end}",
+      "months": "months"
+    },
+    "assetWarning": {
+      "checking": "Checking equipment...",
+      "missingTypes": "This apartment is missing {count} types of equipment",
+      "missingList": "Apartment is missing: {list}",
+      "createMissing": "Create {count} missing equipment",
+      "allComplete": "Apartment has all required equipment",
+      "types": {
+        "AIR_CONDITIONER": "Air conditioner",
+        "KITCHEN": "Kitchen",
+        "WATER_HEATER": "Water heater",
+        "FURNITURE": "Interior furniture",
+        "OTHER": "Other"
+      }
+    },
+    "meterWarning": {
+      "checking": "Checking meters...",
+      "missingTypes": "This apartment is missing {count} meters",
+      "missingList": "Apartment is missing meters: {list}",
+      "createMissing": "Create {count} missing meters",
+      "allComplete": "Apartment has all required meters",
+      "confirmTitle": "Confirm automatic meter creation",
+      "confirmWarning": "⚠️ Warning: You are about to automatically create meters for this apartment",
+      "unit": "Apartment",
+      "count": "Number of meters",
+      "meter": "meter(s)",
+      "willCreate": "Meters to be created",
+      "installDate": "Installation date",
+      "today": "today",
+      "confirmMessage": "The system will automatically create meters with default code and installation date for this apartment.",
+      "cancel": "Cancel",
+      "creating": "Creating...",
+      "confirmCreate": "Confirm create {count} meters",
+      "requiredForRental": "REQUIRED: Missing {count} meters for rental contract",
+      "rentalRequirement": "⚠️ Rental contracts require electricity and water meters. Please create meters before continuing."
     },
     "unitLabel": {
       "floor": "Floor"
@@ -2298,7 +2379,8 @@
       "unknownService": "Unknown service"
     },
     "errors": {
-      "onlyCurrentMonth": "Only current month cycles can have their status changed"
+      "onlyCurrentMonth": "Only current month cycles can have their status changed",
+      "alreadyInProgress": "Cycle is already in progress"
     },
     "messages": {
       "loadError": "Failed to load reading cycles",
@@ -2322,11 +2404,56 @@
     "description": "Each service has separate cycles and assignments. Select a specific service to view tasks, progress and export invoices.",
     "serviceLabel": "Service",
     "open": "Open",
+    "assignmentManagement": "Assignment Management",
+    "filterByStatus": "Filter by status:",
+    "all": "All",
+    "selectOtherService": "← Select other service",
+    "restrictedCyclesMessage": "Only create assignments in {month}; other cycles are for reference only.",
+    "loading": "Loading...",
+    "noCyclesFound": "No reading cycles found",
+    "service": "Service",
+    "serviceUnknown": "Service unknown",
+    "serviceCode": "Service code:",
+    "cycles": "cycle(s)",
+    "cycleRestrictedMessage": "Cycle {month} can only be assigned in {month}.",
+    "cycleNotInProgress": "Cycle has not been set to IN_PROGRESS status, so assignments cannot be created.",
+    "unassigned": "Unassigned",
+    "unitsUnassigned": "{count} unit(s) not assigned.",
+    "close": "Close",
+    "noData": "No detailed data available.",
+    "buildingUnknown": "Building unknown",
+    "createAssignmentForBuilding": "Create assignment for this building",
+    "cycleNotOpen": "Cycle not open",
+    "noBuildingId": "No building ID",
+    "floor": "Floor",
+    "floorLabel": "Floor {floor}:",
+    "confirmDeleteAssignment": "Are you sure you want to delete this assignment? This action cannot be undone.",
+    "confirmCompleteAssignment": "Mark this assignment as completed?",
+    "confirmCompleteCycle": "Mark this reading cycle as completed?",
+    "assignmentDeleted": "Assignment deleted successfully",
+    "assignmentCompleted": "Assignment marked as completed.",
+    "cycleCompleted": "Reading cycle marked as completed.",
+    "cycleMarkedCompleted": "Cycle marked as completed. Proceeding with invoice export.",
+    "allAssignmentsMustComplete": "All assignments in this cycle must be completed before exporting invoices.",
+    "exportedInvoices": "Exported {invoicesCreated} invoices from {totalReadings} readings.",
+    "failedToLoadCycles": "Failed to load cycles",
+    "failedToLoadDetails": "Failed to load assignment details",
+    "failedToDelete": "Failed to delete assignment",
+    "failedToComplete": "Failed to complete. Please try again.",
+    "failedToUpdateStatus": "Failed to update cycle status.",
+    "failedToExport": "Failed to export invoices. Please try again.",
+    "unableToLocateCycle": "Unable to locate cycle in current view. Please refresh the page.",
+    "onlyCurrentMonthAllowed": "Only assignments for the current month are allowed",
+    "monthUnknown": "month unknown",
     "services": {
       "water": "Water",
       "waterDescription": "Manage water cycle assignments: check readings, assign technicians and export invoices.",
       "electric": "Electric",
       "electricDescription": "Track separate electric cycle assignments to ensure targets and meter reading plans."
+    },
+    "errors": {
+      "invalidService": "Invalid service",
+      "invalidServiceMessage": "The service you selected does not exist or is not supported."
     }
   },
   "AddAssignment": {
@@ -3087,7 +3214,13 @@
         "noWhitespace": "Email cannot contain whitespace characters.",
         "maxLength": "Email cannot exceed 40 characters.",
         "invalid": "Email is invalid.",
-        "exists": "Email already exists in the system."
+        "exists": "Email already exists in the system.",
+        "missingAt": "Email must contain the @ symbol.",
+        "multipleAt": "Email must contain exactly 1 @ symbol.",
+        "mustEndWithCom": "Email must end with .com. Example: user@example.com",
+        "invalidLocalPart": "The part before @ can only contain letters (a-z, A-Z), numbers (0-9) and characters: . _ % + -",
+        "invalidDomain": "The domain part can only contain letters (a-z, A-Z), numbers (0-9) and characters: . -",
+        "invalidFormat": "Email format is invalid. Email must end with .com. Example: user@example.com"
       },
       "building": {
         "required": "Please select a building."
@@ -3618,28 +3751,32 @@
     "forgotPassword": {
       "title": "Forgot Password",
       "heading": "Forgot Password",
-      "description": "Enter your email to receive a new password",
+      "description": "Enter your email to receive a new OTP code",
       "emailLabel": "Email",
       "emailPlaceholder": "you@example.com",
       "logoAlt": "Qhome Base Logo",
       "copyright": "© {year} Qhome Base. All rights reserved.",
       "buttons": {
-        "submit": "Send New Password",
+        "submit": "Send New OTP",
         "processing": "Processing..."
       },
+      "submit": "Send OTP Code",
+      "submitting": "Sending...",
       "backToLogin": "Back to login",
       "validation": {
         "emailRequired": "Email cannot be empty",
         "emailInvalid": "Email format is incorrect"
       },
       "messages": {
-        "otpSent": "If the email exists in the system, an OTP code has been sent to your email. Please check your inbox.",
-        "success": "If the email exists in the system, an OTP code has been sent to your email. Please check your inbox."
+        "otpSent": "Password reset email has been sent. Please check your inbox.",
+        "success": "Password reset email has been sent. Please check your inbox.",
+        "checkEmail": "We've sent an OTP code to {email}. Please check your inbox.",
+        "redirecting": "Redirecting..."
       },
       "errors": {
         "general": "An error occurred. Please try again.",
         "emailRequired": "Email cannot be empty",
-        "emailInvalid": "Email format is invalid",
+        "emailInvalid": "Email must end with @gmail.com. Example: user@gmail.com",
         "tooManyRequests": "You have requested too many times. Please wait a moment before trying again.",
         "invalidEmail": "Invalid email.",
         "networkError": "Unable to connect to server. Please check if the backend is running.",
@@ -3654,14 +3791,15 @@
       "newPasswordPlaceholder": "Enter new password",
       "confirmPasswordLabel": "Confirm Password",
       "confirmPasswordPlaceholder": "Re-enter new password",
-      "passwordHint": "Password must be at least 6 characters",
+      "passwordHint": "Password must be at least 8 characters and contain at least 1 special character (@$!%*?&)",
       "submit": "Reset Password",
       "submitting": "Processing...",
       "backToLogin": "Back to login",
       "errors": {
         "invalidInfo": "Invalid information. Please return to the forgot password page.",
         "passwordRequired": "Password cannot be empty",
-        "passwordMinLength": "Password must be at least 6 characters",
+        "passwordMinLength": "Password must be at least 8 characters",
+        "passwordSpecialChar": "Password must contain at least 1 special character (@$!%*?&)",
         "passwordMaxLength": "Password cannot exceed 100 characters",
         "passwordMismatch": "Password confirmation does not match",
         "invalidOtp": "Invalid or expired OTP code. Please try again from the beginning.",
@@ -4353,6 +4491,286 @@
     "messages": {
       "completeSuccess": "✅ Building \"{name}\" deletion completed!",
       "completeError": "❌ Completion failed: {message}"
+    }
+  },
+  "RentalReview": {
+    "title": "Rental Contract Review",
+    "subtitle": "Manage and review all rental contracts in the system",
+    "statistics": {
+      "totalContracts": "Total contracts",
+      "expiringContracts": "Expiring contracts",
+      "expiringDays": "≤ 30 days remaining",
+      "needingInspection": "Need asset inspection",
+      "needingInspectionDesc": "Expired/cancelled contracts not inspected"
+    },
+    "filters": {
+      "building": "Building",
+      "unit": "Apartment",
+      "status": "Status",
+      "search": "Search",
+      "allBuildings": "All buildings",
+      "allUnits": "All apartments",
+      "allStatus": "All",
+      "active": "Active",
+      "expiring": "Expiring (≤30 days)",
+      "expired": "Expired",
+      "cancelled": "Cancelled",
+      "notInspected": "Not inspected",
+      "searchPlaceholder": "Contract number, apartment code..."
+    },
+    "table": {
+      "contractNumber": "Contract number",
+      "building": "Building",
+      "unit": "Apartment",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "monthlyRent": "Monthly rent",
+      "status": "Status",
+      "actions": "Actions",
+      "contractList": "Contract list",
+      "refresh": "🔄 Refresh",
+      "viewDetail": "View details",
+      "inspectAssets": "Inspect assets",
+      "loading": "Loading...",
+      "noContracts": "No rental contracts yet",
+      "noResults": "No contracts found matching the filters"
+    },
+    "status": {
+      "cancelled": "Cancelled",
+      "inactive": "Inactive",
+      "expired": "Expired",
+      "invalid": "Invalid",
+      "active": "Active",
+      "expiring": "Expiring (in {days} days)"
+    },
+    "detailModal": {
+      "title": "Contract details",
+      "close": "Close",
+      "loading": "Loading...",
+      "contractNumber": "Contract number",
+      "contractType": "Contract type",
+      "rental": "Rental",
+      "purchase": "Purchase",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "monthlyRent": "Monthly rent",
+      "paymentMethod": "Payment method",
+      "status": "Status",
+      "paymentTerms": "Payment terms",
+      "notes": "Notes",
+      "attachments": "Attachments",
+      "file": "File",
+      "view": "View",
+      "notFound": "Contract not found. The contract may have been deleted or does not exist.",
+      "goToCreate": "Go to contract creation page"
+    },
+    "inspectionModal": {
+      "title": "Asset inspection when contract expires",
+      "close": "Close",
+      "loading": "Loading...",
+      "expiredContract": "Contract has expired",
+      "assignTechnician": "Need to assign a technician to inspect assets",
+      "selectTechnician": "Please select a technician from the list to assign the asset inspection task for this contract.",
+      "selectTechnicianLabel": "Select technician",
+      "required": "*",
+      "loadingTechnicians": "Loading technician list...",
+      "noTechnicians": "No technicians in the system",
+      "noTechniciansDesc": "Please create a technician account (role: TECHNICIAN) before assigning asset inspection.",
+      "selectPlaceholder": "-- Select technician (required) --",
+      "assigning": "Assigning...",
+      "assign": "Assign asset inspection",
+      "inspectionDate": "Inspection date",
+      "status": "Status",
+      "inspector": "Inspector",
+      "pending": "Pending",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "startInspection": "Start inspection",
+      "equipmentList": "Equipment to inspect",
+      "noEquipment": "No equipment in checklist",
+      "inspectionNotes": "Inspection notes",
+      "notesPlaceholder": "Enter notes about equipment condition...",
+      "completeInspection": "Complete inspection",
+      "results": "Inspection results",
+      "meterReadings": "Meter readings (electricity & water)",
+      "loadingMeters": "Loading meters...",
+      "readingDate": "Reading date",
+      "activeCycle": "Reading cycle",
+      "noAssignment": "⚠️ No assignment for this cycle. Meter readings will not be saved to the reading cycle.",
+      "currentIndex": "Current index",
+      "indexPlaceholder": "Enter meter reading",
+      "note": "Note",
+      "notePlaceholder": "Note (optional)",
+      "adminNote": "Note",
+      "adminNoteDesc": "You only need to assign a technician. The technician will perform equipment inspection and meter readings after being assigned.",
+      "lastReading": "Last reading",
+      "noMeters": "This apartment has no electricity/water meters.",
+      "condition": {
+        "good": "Good",
+        "damaged": "Damaged",
+        "missing": "Missing",
+        "repaired": "Repaired",
+        "replaced": "Replaced",
+        "notInspected": "Not inspected"
+      },
+      "item": {
+        "condition": "Condition",
+        "selectCondition": "Select condition",
+        "notes": "Notes",
+        "notesPlaceholder": "Notes about equipment condition...",
+        "save": "Save",
+        "inspected": "Inspected"
+      }
+    },
+    "errors": {
+      "loadData": "Failed to load data",
+      "loadBuildings": "Failed to load building list",
+      "loadUnits": "Failed to load apartment list",
+      "loadContracts": "Failed to load contract list",
+      "loadDetail": "Failed to load contract details",
+      "loadTechnicians": "Failed to load technician list",
+      "createInspection": "Failed to create asset inspection checklist",
+      "startInspection": "Failed to start inspection",
+      "updateItem": "Failed to update",
+      "completeInspection": "Failed to complete inspection",
+      "selectTechnician": "Please select a technician to assign asset inspection",
+      "technicianNotFound": "Selected technician information not found. Please select again.",
+      "notTechnician": "Selected person is not a technician. Please select another technician.",
+      "noTechnicians": "No technicians in the system. Please create a technician account first."
+    },
+    "success": {
+      "assignInspection": "Assigned asset inspection to technician {name}",
+      "startInspection": "Started asset inspection",
+      "completeInspection": "Completed asset inspection"
+    },
+    "notification": {
+      "title": "Asset inspection needed",
+      "message": "There are {count} apartments that need asset inspection after contract expiration or cancellation."
+    }
+  },
+  "TechnicianInspections": {
+    "title": "My Inspection Assignments",
+    "subtitle": "List of equipment inspection tasks assigned to you",
+    "loading": "Loading...",
+    "sections": {
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed"
+    },
+    "table": {
+      "unitCode": "Unit Code",
+      "inspectionDate": "Inspection Date",
+      "status": "Status",
+      "completedAt": "Completed At",
+      "actions": "Actions",
+      "view": "View",
+      "continue": "Continue"
+    },
+    "status": {
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "empty": {
+      "noInspections": "You have no inspection assignments."
+    },
+    "modal": {
+      "title": "Inspection Details",
+      "unitCode": "Unit Code",
+      "inspectionDate": "Inspection Date",
+      "status": "Status",
+      "startInspection": "Start Inspection",
+      "startInspectionDesc": "Click the button below to start the equipment inspection. After starting, you will be able to enter the condition and notes for each equipment item.",
+      "equipmentList": "Equipment List",
+      "noEquipment": "No equipment",
+      "noEquipmentDesc": "Equipment list will be created automatically when inspection starts. Please click \"Start Inspection\" or refresh the page.",
+      "loadingAssets": "Loading equipment list...",
+      "itemsNotReady": "Equipment list is being created...",
+      "itemsNotReadyDesc": "Please click the \"Refresh\" button above to reload the equipment list after the system has finished creating it.",
+      "tempFormDesc": "You can enter equipment condition now. Data will be saved when the equipment list is created.",
+      "tempForm": "Temporary Form",
+      "tempFormNote": "💡 Data will be automatically saved when the equipment list is created. Please click \"Refresh\" to check.",
+      "previewAssets": "Equipment list will be created automatically when inspection starts. Below is the list of equipment in the unit:",
+      "preview": "Preview",
+      "refresh": "Refresh",
+      "meterReadings": "Meter readings (electricity & water)",
+      "loadingMeters": "Loading meters...",
+      "readingDate": "Reading Date",
+      "activeCycle": "Reading Cycle",
+      "noAssignment": "⚠️ No assignment for this cycle. Meter readings will not be saved to the reading cycle.",
+      "currentIndex": "Current Index",
+      "indexPlaceholder": "Enter meter reading",
+      "note": "Note",
+      "notePlaceholder": "Note (optional)",
+      "lastReading": "Last Reading",
+      "meterUsage": "Usage: {usage} {unit}",
+      "noMeters": "This apartment has no electricity/water meters.",
+      "inspectionNotes": "Inspection Notes",
+      "notesPlaceholder": "Enter notes about equipment condition...",
+      "completeInspection": "Complete Inspection",
+      "results": "Inspection Results",
+      "close": "Close",
+      "condition": {
+        "good": "Good",
+        "damaged": "Damaged",
+        "missing": "Missing",
+        "repaired": "Repaired",
+        "replaced": "Replaced",
+        "notInspected": "Not Inspected"
+      },
+      "item": {
+        "condition": "Condition",
+        "selectCondition": "Select Condition",
+        "originalPrice": "Original Price",
+        "noPrice": "⚠️ No original price information available for this equipment",
+        "repairCost": "Repair/Replacement Cost (VND)",
+        "repairCostPlaceholder": "Enter cost or leave for auto-calculation",
+        "costExplanation": {
+          "damaged": "Auto-calculated: 30% of original price ({purchasePrice} VND × 30% = {repairCost} VND)",
+          "repaired": "Auto-calculated: 20% of original price ({purchasePrice} VND × 20% = {repairCost} VND)",
+          "replacement": "Auto-calculated: 100% of original price (Full replacement)",
+          "custom": "Price has been manually adjusted"
+        },
+        "notes": "Notes",
+        "notesPlaceholder": "Notes about equipment condition...",
+        "save": "Save",
+        "inspected": "Inspected",
+        "damageCost": "Damage Cost"
+      },
+      "totalDamageCost": "Total Damage Cost",
+      "invoiceId": "Invoice ID",
+      "damagedAssetsBreakdown": "Damaged Assets Breakdown",
+      "errors": {
+        "invalidIndex": "Meter reading must be greater than or equal to 0"
+      }
+    },
+    "success": {
+      "startInspection": "Started equipment inspection",
+      "updateItem": "Updated equipment successfully",
+      "itemsLoaded": "Loaded {count} equipment items",
+      "refreshItems": "Refreshed equipment list",
+      "completeInspection": "Completed equipment inspection",
+      "completeWithReadings": "Completed equipment inspection and {readingCount} meter readings",
+      "assignmentCreated": "Automatically created assignment for this cycle",
+      "invoiceGenerated": "Automatically generated invoice for equipment damage"
+    },
+    "warnings": {
+      "itemsNotReady": "Equipment list is being created. Please click \"Refresh\" in a few seconds.",
+      "invoiceGenerationFailed": "Completed inspection but failed to automatically generate invoice"
+    },
+    "errors": {
+      "loadFailed": "Failed to load assignments",
+      "startFailed": "Failed to start inspection",
+      "updateFailed": "Failed to update",
+      "refreshFailed": "Failed to refresh equipment list",
+      "completeFailed": "Failed to complete inspection",
+      "someReadingsFailed": "Completed inspection but {count} meter readings failed",
+      "itemsMissingStatus": "Please update status for all equipment before completing inspection!",
+      "itemsInvalidCost": "Please enter damage cost > 0 for {count} equipment with non-good status!",
+      "metersMissingReading": "Please enter meter reading for {count} meters: {meters}!",
+      "metersInvalidReading": "Meter reading must be > 0 for {count} meters: {meters}!"
     }
   }
 }

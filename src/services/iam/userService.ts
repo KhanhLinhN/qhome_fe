@@ -215,6 +215,14 @@ export async function downloadStaffImportTemplate(): Promise<Blob> {
   return response.data;
 }
 
+export async function exportAccounts(): Promise<Blob> {
+  const response = await axios.get(`${IAM_URL}/api/users/export`, {
+    withCredentials: true,
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
 export async function createResidentAccount(
   payload: CreateResidentAccountPayload,
 ): Promise<UserAccountInfo> {

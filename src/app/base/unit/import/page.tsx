@@ -41,7 +41,27 @@ export default function UnitImportPage() {
       const res = await importUnits(file);
       setResult(res);
     } catch (e: any) {
-      setError(e?.response?.data?.message || t('importFailed'));
+      console.error('Import units error:', e);
+      let errorMessage = t('importFailed');
+      
+      if (e?.response?.data) {
+        // Try to get error message from different possible locations
+        errorMessage = e.response.data.message 
+          || e.response.data.error 
+          || e.response.data 
+          || errorMessage;
+        
+        // If it's an object, try to stringify it
+        if (typeof errorMessage === 'object') {
+          errorMessage = JSON.stringify(errorMessage);
+        }
+      } else if (e?.message) {
+        errorMessage = e.message;
+      } else if (e?.response?.statusText) {
+        errorMessage = `${e.response.status} ${e.response.statusText}`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -57,33 +77,82 @@ export default function UnitImportPage() {
           {loading ? t('importing') : t('import')}
         </button>
       </div>
-      {error && <div className="text-red-600">{error}</div>}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center gap-2 text-red-700 mb-2">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span className="font-semibold">Lỗi import:</span>
+          </div>
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
       {result && (
-        <div className="space-y-2">
-          <div>{t('summary', { total: result.totalRows, success: result.successCount, errors: result.errorCount })}</div>
-          <div className="overflow-auto">
-            <table className="min-w-full border">
-              <thead className="bg-gray-100">
+        <div className="space-y-4">
+          <div className="p-4 rounded-lg border" style={{
+            backgroundColor: result.errorCount > 0 ? '#fef2f2' : '#f0fdf4',
+            borderColor: result.errorCount > 0 ? '#fecaca' : '#bbf7d0'
+          }}>
+            <div className="flex items-center gap-2">
+              {result.errorCount > 0 ? (
+                <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              )}
+              <span className={`font-semibold ${result.errorCount > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                {t('summary', { total: result.totalRows, success: result.successCount, errors: result.errorCount })}
+              </span>
+            </div>
+          </div>
+          <div className="overflow-auto border rounded-lg shadow-sm max-h-96">
+            <table className="min-w-full">
+              <thead className="bg-gray-50 sticky top-0">
                 <tr>
-                  <th className="border px-2 py-1">{t('tableHeaders.row')}</th>
-                  <th className="border px-2 py-1">{t('tableHeaders.success')}</th>
-                  <th className="border px-2 py-1">{t('tableHeaders.message')}</th>
-                  <th className="border px-2 py-1">{t('tableHeaders.unitId')}</th>
-                  <th className="border px-2 py-1">{t('tableHeaders.buildingId')}</th>
-                  <th className="border px-2 py-1">{t('tableHeaders.buildingCode')}</th>
-                  <th className="border px-2 py-1">{t('tableHeaders.code')}</th>
+                  <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('tableHeaders.row')}</th>
+                  <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('tableHeaders.success')}</th>
+                  <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('tableHeaders.message')}</th>
+                  <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('tableHeaders.unitId')}</th>
+                  <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('tableHeaders.buildingId')}</th>
+                  <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('tableHeaders.buildingCode')}</th>
+                  <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">{t('tableHeaders.code')}</th>
                 </tr>
               </thead>
               <tbody>
                 {result.rows.map((r, idx) => (
-                  <tr key={idx}>
-                    <td className="border px-2 py-1">{r.rowNumber}</td>
-                    <td className="border px-2 py-1">{r.success ? "✓" : "✗"}</td>
-                    <td className="border px-2 py-1">{r.message}</td>
-                    <td className="border px-2 py-1">{r.unitId}</td>
-                    <td className="border px-2 py-1">{r.buildingId}</td>
-                    <td className="border px-2 py-1">{r.buildingCode}</td>
-                    <td className="border px-2 py-1">{r.code}</td>
+                  <tr 
+                    key={idx}
+                    className={r.success ? 'bg-green-50 hover:bg-green-100' : 'bg-red-50 hover:bg-red-100'}
+                  >
+                    <td className="border px-3 py-2 text-sm font-medium">{r.rowNumber}</td>
+                    <td className="border px-3 py-2 text-sm">
+                      {r.success ? (
+                        <span className="inline-flex items-center gap-1 text-green-700 font-semibold">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          Thành công
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-red-700 font-semibold">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          Lỗi
+                        </span>
+                      )}
+                    </td>
+                    <td className={`border px-3 py-2 text-sm ${r.success ? 'text-green-800' : 'text-red-800 font-medium'}`}>
+                      {r.message}
+                    </td>
+                    <td className="border px-3 py-2 text-sm text-gray-600">{r.unitId || '—'}</td>
+                    <td className="border px-3 py-2 text-sm text-gray-600">{r.buildingId || '—'}</td>
+                    <td className="border px-3 py-2 text-sm text-gray-600">{r.buildingCode || '—'}</td>
+                    <td className="border px-3 py-2 text-sm text-gray-600">{r.code || '—'}</td>
                   </tr>
                 ))}
               </tbody>

@@ -23,6 +23,7 @@
     "react-hook-form": "^7.63.0",
     "tesseract.js": "^4.0.6",
     "tesseract.js-core": "^6.0.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.11"
   },
   "devDependencies": {

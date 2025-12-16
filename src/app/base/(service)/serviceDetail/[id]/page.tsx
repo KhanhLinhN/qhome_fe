@@ -146,11 +146,20 @@ export default function ServiceDetailPage() {
     if (day === undefined || day === null) {
       return '-';
     }
-    // Convert from 1-7 (Monday-Sunday in database) to 0-6 (Sunday-Saturday in frontend)
-    // 1-6 (Monday-Saturday) -> 1-6, 7 (Sunday) -> 0
-    const frontendDay = day === 7 ? 0 : day - 1;
-    return t(`Service.weekday.${frontendDay}`, {
-      defaultMessage: DEFAULT_DAY_NAMES[frontendDay] ?? '-',
+    // Database format: 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday, 7=Sunday
+    // Map to frontend translation index: 1-6 -> 1-6, 7 -> 0
+    const frontendIndexMap: Record<number, number> = {
+      1: 1, // Monday -> index 1
+      2: 2, // Tuesday -> index 2
+      3: 3, // Wednesday -> index 3
+      4: 4, // Thursday -> index 4
+      5: 5, // Friday -> index 5
+      6: 6, // Saturday -> index 6
+      7: 0, // Sunday -> index 0
+    };
+    const frontendIndex = frontendIndexMap[day] ?? day;
+    return t(`Service.weekday.${frontendIndex}`, {
+      defaultMessage: DEFAULT_DAY_NAMES[frontendIndex] ?? '-',
     });
   };
 
@@ -431,30 +440,6 @@ export default function ServiceDetailPage() {
             readonly={true}
           />
           <DetailField
-            label={t('Service.pricingType')}
-            value={t(mapPricingType(serviceData.pricingType))}
-            readonly={true}
-          />
-          <DetailField
-            label={t('Service.status')}
-            value={serviceData.isActive ? t('Service.active') : t('Service.inactive')}
-            readonly={true}
-          />
-          {serviceData.pricingType === ServicePricingType.HOURLY && (
-            <DetailField
-              label={t('Service.pricePerHour')}
-              value={formatCurrency(serviceData.pricePerHour)}
-              readonly={true}
-            />
-          )}
-          {serviceData.pricingType === ServicePricingType.SESSION && (
-            <DetailField
-              label={t('Service.pricePerSession')}
-              value={formatCurrency(serviceData.pricePerSession)}
-              readonly={true}
-            />
-          )}
-          <DetailField
             label={t('Service.maxCapacity')}
             value={serviceData.maxCapacity !== undefined && serviceData.maxCapacity !== null ? serviceData.maxCapacity.toString() : '-'}
             readonly={true}
@@ -471,11 +456,6 @@ export default function ServiceDetailPage() {
           <DetailField
             label={t('Service.location')}
             value={serviceData.location ?? '-'}
-            readonly={true}
-          />
-          <DetailField
-            label={t('Service.mapUrl')}
-            value={serviceData.mapUrl ?? '-'}
             readonly={true}
           />
           <DetailField
@@ -551,138 +531,6 @@ export default function ServiceDetailPage() {
             <div className="text-sm text-gray-500">
               {t('Service.availability.empty', { defaultMessage: 'No availability slots configured.' })}
             </div>
-          )}
-        </section>
-        <section className="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700"
-                onClick={() => setIsComboExpanded((prev) => !prev)}
-              >
-                <Image
-                  src={DropdownArrow}
-                  alt="Toggle"
-                  width={16}
-                  height={16}
-                  className={`transition-transform ${isComboExpanded ? "rotate-180" : ""}`}
-                />
-              </button>
-              <h2 className="text-xl font-semibold text-[#02542D]">{t('Service.combos')}</h2>
-            </div>
-            {isComboExpanded && (
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#02542D] px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-80 transition"
-                onClick={handleAddCombo}
-              >
-                {t('Service.addCombo')}
-              </button>
-            )}
-          </div>
-          {isComboExpanded && (
-            <>
-              {comboLoading ? (
-                <div className="text-gray-500">{t('Service.loading')}</div>
-              ) : combos.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-100 border-b border-gray-200">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium text-gray-600"></th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboName')}</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboCode')}</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.comboPrice')}</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-600">{t('Service.status')}</th>
-                        <th className="px-4 py-3 text-center font-medium text-gray-600">{t('Service.action')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {combos.map((combo, index) => {
-                        const comboId = combo.id ?? `combo-${index}`;
-                        return (
-                          <Fragment key={combo.id ?? comboId}>
-                            <tr className="hover:bg-gray-50">
-                              <td className="px-4 py-3 align-top">
-                                  <span className="text-gray-400">—</span>
-                              </td>
-                              <td className="px-4 py-3 font-medium text-gray-900">{combo.name ?? '-'}</td>
-                              <td className="px-4 py-3 text-gray-600">{combo.code ?? '-'}</td>
-                              <td className="px-4 py-3 text-gray-600">{formatCurrency(combo.price ?? null)}</td>
-                              <td className="px-4 py-3">
-                                <span
-                                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                    combo.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
-                                  }`}
-                                >
-                                  {combo.isActive ? t('Service.active') : t('Service.inactive')}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-center">
-                                <div className="flex space-x-2 justify-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenChangeStatus(combo.id!, 'combo', combo.isActive ?? false)}
-                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition"
-                                    title={t('Service.changeStatus')}
-                                  >
-                                    <svg 
-                                      xmlns="http://www.w3.org/2000/svg" 
-                                      viewBox="0 0 16 16" 
-                                      height="16" 
-                                      width="16"
-                                      fill="currentColor"
-                                      className="text-gray-700"
-                                    >
-                                      <g fill="none" fillRule="nonzero">
-                                        <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
-                                        <path fill="currentColor" d="M13.333333333333332 9.333333333333332a1 1 0 0 1 0.09599999999999999 1.9953333333333332L13.333333333333332 11.333333333333332H5.080666666666667l0.96 0.96a1 1 0 0 1 -1.3386666666666667 1.4826666666666668l-0.076 -0.06866666666666665 -2.5526666666666666 -2.5533333333333332c-0.6493333333333333 -0.6493333333333333 -0.22666666666666668 -1.7446666666666666 0.6606666666666666 -1.8166666666666667l0.09333333333333334 -0.004H13.333333333333332ZM9.959999999999999 2.293333333333333a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.5526666666666666 2.5533333333333332c0.6493333333333333 0.6493333333333333 0.22666666666666668 1.7446666666666666 -0.6606666666666666 1.8166666666666667l-0.09333333333333334 0.004H2.6666666666666665a1 1 0 0 1 -0.09599999999999999 -1.9953333333333332L2.6666666666666665 4.666666666666666h8.252666666666666l-0.96 -0.96a1 1 0 0 1 0 -1.4133333333333333Z" strokeWidth="0.6667"></path>
-                                      </g>
-                                    </svg>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenComboItems(combo)}
-                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-green-500 hover:bg-green-600 transition text-white"
-                                    title={t('Service.viewItems')}
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" height="16" width="16" fill="currentColor">
-                                      <g fill="none" fillRule="evenodd">
-                                        <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
-                                        <path fill="currentColor" d="M8 2.6666666666666665C6.1419999999999995 2.6666666666666665 4.491333333333333 3.504666666666666 3.316 4.542 2.7266666666666666 5.062666666666667 2.2399999999999998 5.6466666666666665 1.8973333333333333 6.229333333333333 1.5599999999999998 6.800666666666666 1.3333333333333333 7.42 1.3333333333333333 8c0 0.58 0.22666666666666668 1.1993333333333331 0.564 1.7706666666666666 0.3426666666666667 0.582 0.8286666666666667 1.1666666666666665 1.4186666666666667 1.6873333333333334C4.491333333333333 12.495333333333331 6.142666666666667 13.333333333333332 8 13.333333333333332c1.8579999999999999 0 3.5086666666666666 -0.8379999999999999 4.683999999999999 -1.8753333333333333 0.59 -0.5206666666666666 1.076 -1.1053333333333333 1.4186666666666667 -1.6873333333333334C14.44 9.199333333333332 14.666666666666666 8.579999999999998 14.666666666666666 8c0 -0.58 -0.22666666666666668 -1.1993333333333331 -0.564 -1.7706666666666666 -0.3426666666666667 -0.582 -0.8286666666666667 -1.1666666666666665 -1.4186666666666667 -1.6873333333333334C11.508666666666667 3.504666666666666 9.857333333333333 2.6666666666666665 8 2.6666666666666665Zm1.3333333333333333 5.333333333333333c0.24 0 0.4646666666666666 -0.06333333333333332 0.6593333333333333 -0.174A2 2 0 1 1 8.173333333333332 6.006666666666666 1.3333333333333333 1.3333333333333333 0 0 0 9.333333333333332 8Z" strokeWidth="0.6667"></path>
-                                      </g>
-                                    </svg>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleEditCombo(combo.id)}
-                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition"
-                                  >
-                                    <Image src={Edit} alt={t('Service.editCombo')} width={24} height={24} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteCombo(combo.id)}
-                                    className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
-                                  >
-                                    <Image src={Delete} alt={t('Service.deleteCombo')} width={24} height={24} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          </Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-gray-500">
-                  {t('Service.noCombos')}
-                </div>
-              )}
-            </>
           )}
         </section>
 

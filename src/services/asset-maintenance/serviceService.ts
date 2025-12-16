@@ -488,6 +488,19 @@ export async function addServiceAvailability(
   return response.data as ServiceAvailability[];
 }
 
+export async function updateServiceAvailability(
+  serviceId: string,
+  availabilityId: string,
+  data: ServiceAvailabilityRequest,
+): Promise<ServiceAvailability> {
+  const response = await axios.put(
+    `${BASE_URL}/api/asset-maintenance/services/${serviceId}/availabilities/${availabilityId}`,
+    data,
+    withCredentials,
+  );
+  return response.data as ServiceAvailability;
+}
+
 export async function deleteServiceAvailability(
   serviceId: string,
   availabilityId: string,

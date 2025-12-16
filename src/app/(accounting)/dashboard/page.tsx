@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getBuildings } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding } from '@/src/services/base/unitService';
+import { getAllResidents } from '@/src/services/base/residentService';
 import { getAllInvoicesForAdmin } from '@/src/services/finance/invoiceAdminService';
 import { fetchCurrentHouseholdByUnit, fetchHouseholdMembersByHousehold } from '@/src/services/base/householdService';
 import axios from '@/src/lib/axios';
@@ -38,7 +39,7 @@ export default function DashboardPage() {
           : 'admin';
 
   useEffect(() => {
-    const loadStats = async () => {
+    const fetchStats = async () => {
       if (resolvedVariant !== 'admin') {
         setLoading(false);
         return;
@@ -47,72 +48,68 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         
+        // Fetch buildings
         const buildingsData: any = await getBuildings();
         const buildingsList = Array.isArray(buildingsData) ? buildingsData : (buildingsData?.content || buildingsData?.data || []);
-        const buildingsCount = buildingsList.length;
+        const buildingCount = buildingsList.length;
 
-        let unitsCount = 0;
-        for (const building of buildingsList) {
+        // Fetch units for all buildings
+        let unitCount = 0;
+        const unitPromises = buildingsList.map(async (building: any) => {
           try {
             const units = await getUnitsByBuilding(building.id);
-            unitsCount += units.length;
+            return units.length;
+          } catch (error) {
+            console.error(`Failed to fetch units for building ${building.id}:`, error);
+            return 0;
+          }
+        });
+        const unitCounts = await Promise.all(unitPromises);
+        unitCount = unitCounts.reduce((sum, count) => sum + count, 0);
+
+        // Fetch residents count using getAllResidents endpoint
+        let residentCount = 0;
+        try {
+          const residents = await getAllResidents();
+          residentCount = residents.length;
+        } catch (error) {
+          console.error('Failed to fetch resident count:', error);
+        }
+
+        // Fetch invoice count
+        let invoiceCount = 0;
+        try {
+          const response = await axios.get(`${BASE_URL}/api/invoices/admin/all`, {
+            withCredentials: true,
+          });
+          // The endpoint returns a list, so count the items
+          if (Array.isArray(response.data)) {
+            invoiceCount = response.data.length;
+          }
+        } catch (error) {
+          // If admin endpoint doesn't work, try alternative method
+          try {
+            const invoices = await getAllInvoicesForAdmin();
+            invoiceCount = invoices.length;
           } catch (err) {
-            console.warn(`Failed to load units for building ${building.id}:`, err);
+            console.warn('Could not fetch invoice count:', err);
           }
-        }
-
-        let residentsCount = 0;
-        try {
-          const uniqueResidentIds = new Set<string>();
-          for (const building of buildingsList) {
-            try {
-              const units = await getUnitsByBuilding(building.id);
-              for (const unit of units) {
-                try {
-                  const household = await fetchCurrentHouseholdByUnit(unit.id);
-                  if (household?.id) {
-                    const members = await fetchHouseholdMembersByHousehold(household.id);
-                    members.forEach(member => {
-                      if (member.residentId) {
-                        uniqueResidentIds.add(member.residentId);
-                      }
-                    });
-                  }
-                } catch (err) {
-                  console.warn(`Failed to load household for unit ${unit.id}:`, err);
-                }
-              }
-            } catch (err) {
-              console.warn(`Failed to load units for building ${building.id}:`, err);
-            }
-          }
-          residentsCount = uniqueResidentIds.size;
-        } catch (err) {
-          console.warn('Failed to load residents:', err);
-        }
-
-        let invoicesCount = 0;
-        try {
-          const invoices = await getAllInvoicesForAdmin();
-          invoicesCount = invoices.length;
-        } catch (err) {
-          console.warn('Failed to load invoices:', err);
         }
 
         setStats({
-          buildings: buildingsCount,
-          units: unitsCount,
-          residents: residentsCount,
-          invoices: invoicesCount,
+          buildings: buildingCount,
+          units: unitCount,
+          residents: residentCount,
+          invoices: invoiceCount,
         });
       } catch (error) {
-        console.error('Failed to load dashboard stats:', error);
+        console.error('Failed to fetch dashboard statistics:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadStats();
+    void fetchStats();
   }, [resolvedVariant]);
 
   // Admin sections

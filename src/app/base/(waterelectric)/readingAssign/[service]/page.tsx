@@ -1,5 +1,6 @@
 'use client';
 
+import { use } from 'react';
 import { useTranslations } from 'next-intl';
 import ReadingAssignDashboard from '@/src/components/base-service/ReadingAssignDashboard';
 
@@ -9,14 +10,15 @@ const SERVICE_CONFIG: Record<string, { code: string; labelKey: string }> = {
 };
 
 interface ReadingAssignServicePageProps {
-  params: {
+  params: Promise<{
     service: string;
-  };
+  }>;
 }
 
 export default function ReadingAssignServicePage({ params }: ReadingAssignServicePageProps) {
   const t = useTranslations('ReadingAssign');
-  const slug = params.service?.toLowerCase() ?? '';
+  const resolvedParams = use(params);
+  const slug = resolvedParams.service?.toLowerCase() ?? '';
   const config = SERVICE_CONFIG[slug];
 
   if (!config) {

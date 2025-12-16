@@ -41,7 +41,7 @@ export default function BillingCycleManagePage() {
   const isAdmin = hasRole('ADMIN') || hasRole('admin');
   const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant');
   const canView = isAdmin || isAccountant;
-  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
+  const canEdit = isAdmin || isAccountant; // ADMIN and ACCOUNTANT can edit/create/delete
   
   const [year, setYear] = useState(new Date().getFullYear());
   const [cycles, setCycles] = useState<BillingCycleDto[]>([]);
@@ -417,7 +417,7 @@ export default function BillingCycleManagePage() {
           onClick={handleExportExcel}
           disabled={!selectedCycle || exporting || !canEdit}
           className="px-4 py-2 bg-[#02542D] text-white rounded-md hover:bg-[#014a26] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm flex items-center gap-2"
-          title={!canEdit ? 'Chỉ Accountant mới có quyền export Excel' : ''}
+          title={!canEdit ? 'Chỉ Admin và Accountant mới có quyền export Excel' : ''}
         >
           {exporting ? (
             <>

@@ -141,16 +141,16 @@ export default function ReadingCyclesPage() {
     }
   };
 
-  const handleCreate = async (req: ReadingCycleCreateReq | ReadingCycleUpdateReq) => {
-    try {
-      await createReadingCycle(req as ReadingCycleCreateReq);
-      show(t('messages.createSuccess'), 'success');
-      setIsCreateOpen(false);
-      loadCycles();
-    } catch (error: any) {
-      show(error?.message || t('messages.createError'), 'error');
-    }
-  };
+  // const handleCreate = async (req: ReadingCycleCreateReq | ReadingCycleUpdateReq) => {
+  //   try {
+  //     await createReadingCycle(req as ReadingCycleCreateReq);
+  //     show(t('messages.createSuccess'), 'success');
+  //     setIsCreateOpen(false);
+  //     loadCycles();
+  //   } catch (error: any) {
+  //     show(error?.message || t('messages.createError'), 'error');
+  //   }
+  // };
 
   const handleUpdate = async (cycleId: string, req: ReadingCycleCreateReq | ReadingCycleUpdateReq) => {
     try {
@@ -180,6 +180,11 @@ export default function ReadingCyclesPage() {
     // Chỉ cho phép đổi trạng thái nếu là tháng hiện tại
     if (!isCurrentMonth(cycle)) {
       show(t('errors.onlyCurrentMonth'), 'error');
+      return;
+    }
+    // Không cho phép chuyển status nếu đã là IN_PROGRESS
+    if (cycle.status === 'IN_PROGRESS') {
+      show(t('errors.alreadyInProgress') || 'Already in progress', 'error');
       return;
     }
     setCycleForStatusChange(cycle);
@@ -215,12 +220,12 @@ export default function ReadingCyclesPage() {
     <div className="px-[41px] py-12">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-[#02542D]">{t('title')}</h1>
-        <button
+        {/* <button
           onClick={() => setIsCreateOpen(true)}
           className="px-4 py-2 bg-[#14AE5C] text-white rounded-md hover:bg-[#0c793f] transition-colors"
         >
           {t('createCycle')}
-        </button>
+        </button> */}
       </div>
 
       {/* Filters */}
@@ -338,7 +343,7 @@ export default function ReadingCyclesPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex gap-2 justify-center">
-                        {isCurrentMonth(cycle) ? (
+                        {isCurrentMonth(cycle) && cycle.status !== 'IN_PROGRESS' ? (
                           <button
                             onClick={() => handleOpenStatusChange(cycle)}
                             className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm border border-gray-300"
@@ -355,7 +360,7 @@ export default function ReadingCyclesPage() {
                           <button
                             disabled
                             className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md cursor-not-allowed text-sm border border-gray-200"
-                            title={t('errors.onlyCurrentMonth')}
+                            title={cycle.status === 'IN_PROGRESS' ? t('errors.alreadyInProgress') || 'Already in progress' : t('errors.onlyCurrentMonth')}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Transfer-3-Fill--Streamline-Mingcute-Fill" height="16" width="16">
                               <g fill="none" fillRule="nonzero">
@@ -377,7 +382,7 @@ export default function ReadingCyclesPage() {
                             className="w-6 h-6"
                           />
                         </button>
-                        <button
+                        {/* <button
                           onClick={() => handleDeleteClick(cycle.id)}
                           className="p-2 rounded-lg bg-red-500 hover:bg-[#991b1b] transition duration-150"
                         >
@@ -388,7 +393,7 @@ export default function ReadingCyclesPage() {
                             height={24}
                             className="w-6 h-6"
                           />
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>
@@ -413,7 +418,7 @@ export default function ReadingCyclesPage() {
       )}
 
       {/* Create Modal */}
-      {isCreateOpen && (
+      {/* {isCreateOpen && (
         <CycleModal
           isOpen={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
@@ -421,7 +426,7 @@ export default function ReadingCyclesPage() {
           mode="create"
           existingCycles={cycles}
         />
-      )}
+      )} */}
 
       {/* Edit Modal */}
       {isEditOpen && selectedCycle && (
@@ -453,7 +458,7 @@ export default function ReadingCyclesPage() {
       )}
 
       {/* Delete Confirm Popup */}
-      <PopupConfirm
+      {/* <PopupConfirm
         isOpen={isDeleteConfirmOpen}
         onClose={() => {
           setIsDeleteConfirmOpen(false);
@@ -463,7 +468,7 @@ export default function ReadingCyclesPage() {
         popupTitle={t('deleteConfirm.title')}
         popupContext={t('deleteConfirm.message')}
         isDanger={true}
-      />
+      /> */}
     </div>
   );
 }

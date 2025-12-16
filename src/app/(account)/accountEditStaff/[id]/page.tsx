@@ -340,17 +340,6 @@ export default function AccountEditStaffPage() {
             readonly={true}
             onChange={handleChange('email')}
           />
-          <div className="flex flex-col">
-            <span className="text-md font-bold text-[#02542D] mb-1">{t('fields.status')}</span>
-            <Select
-              options={STATUS_OPTIONS}
-              value={form.active ? 'ACTIVE' : 'INACTIVE'}
-              onSelect={(option) => handleStatusSelect(option.id)}
-              renderItem={(option) => option.label}
-              getValue={(option) => option.id}
-              placeholder={t('placeholders.selectStatus')}
-            />
-          </div>
 
           <div className="flex flex-col gap-3">
             <h2 className="text-md font-semibold text-[#02542D]">{t('fields.role')}</h2>
@@ -362,6 +351,7 @@ export default function AccountEditStaffPage() {
                 renderItem={(option) => option.label}
                 getValue={(option) => option.id}
                 placeholder={t('placeholders.selectRole')}
+                disable={true}
               />
             </div>
             {formError === t('validation.role.required') && (

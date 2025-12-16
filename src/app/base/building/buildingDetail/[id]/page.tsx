@@ -7,7 +7,7 @@ import Edit from '@/src/assets/Edit.svg';
 import EditTable from '@/src/assets/EditTable.svg';
 import DetailField from '@/src/components/base-service/DetailField';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useBuildingDetailPage } from '@/src/hooks/useBuildingDetailPage';
 import { useAuth } from '@/src/contexts/AuthContext';
@@ -36,6 +36,7 @@ export default function BuildingDetail () {
     const tUnits = useTranslations('Unit');
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
     const buildingId = params.id;
     const { buildingData, loading, error, isSubmitting } = useBuildingDetailPage(buildingId);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -139,6 +140,46 @@ export default function BuildingDetail () {
         loadServices();
     }, [buildingId]);
 
+    // Auto-open meter form and pre-fill when unitId and serviceId are in query params
+    useEffect(() => {
+        const unitIdParam = searchParams.get('unitId');
+        const serviceIdParam = searchParams.get('serviceId');
+        
+        if (unitIdParam && serviceIdParam && units.length > 0 && services.length > 0) {
+            // Check if unit exists in the building
+            const unitExists = units.some(unit => unit.id === unitIdParam);
+            // Check if service exists
+            const serviceExists = services.some(service => service.id === serviceIdParam);
+            
+            if (unitExists && serviceExists) {
+                // Pre-fill form and open it
+                setMeterForm({
+                    unitId: unitIdParam,
+                    serviceId: serviceIdParam,
+                    installedAt: '',
+                });
+                setMeterFormVisible(true);
+                
+                // Scroll to meter form after a short delay to ensure it's rendered
+                setTimeout(() => {
+                    const meterFormElement = document.querySelector('[data-meter-form]');
+                    if (meterFormElement) {
+                        meterFormElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 300);
+                
+                // Clean up URL params after opening form
+                const newParams = new URLSearchParams(searchParams.toString());
+                newParams.delete('unitId');
+                newParams.delete('serviceId');
+                const newUrl = newParams.toString() 
+                    ? `${window.location.pathname}?${newParams.toString()}`
+                    : window.location.pathname;
+                router.replace(newUrl, { scroll: false });
+            }
+        }
+    }, [searchParams, units, services, router]);
+
     const floorOptions = useMemo(() => {
         const uniqueFloors = Array.from(new Set(units.map(unit => unit.floor?.toString()).filter(Boolean)));
         return uniqueFloors.sort((a, b) => {
@@ -150,6 +191,22 @@ export default function BuildingDetail () {
             return na - nb;
         });
     }, [units]);
+
+    const maxFloorFromUnits = useMemo(() => {
+        const floors = units.map(unit => unit.floor).filter(floor => floor != null && !Number.isNaN(floor)) as number[];
+        return floors.length > 0 ? Math.max(...floors) : null;
+    }, [units]);
+
+    const displayFloorsMax = useMemo(() => {
+        // Use buildingData.floorsMax if available, otherwise calculate from units
+        if (buildingData?.floorsMax != null && buildingData.floorsMax !== undefined) {
+            return buildingData.floorsMax.toString();
+        }
+        if (maxFloorFromUnits != null) {
+            return maxFloorFromUnits.toString();
+        }
+        return "";
+    }, [buildingData?.floorsMax, maxFloorFromUnits]);
 
     const filteredUnits = selectedFloor
         ? units.filter(unit => unit.floor?.toString() === selectedFloor)
@@ -237,7 +294,27 @@ export default function BuildingDetail () {
             const res = await importUnits(f);
             setImportResult(res);
         } catch (e: any) {
-            setImportError(e?.response?.data?.message || t('messages.importFailed'));
+            console.error('Import units error:', e);
+            let errorMessage = t('messages.importFailed');
+            
+            if (e?.response?.data) {
+                // Try to get error message from different possible locations
+                errorMessage = e.response.data.message 
+                    || e.response.data.error 
+                    || e.response.data 
+                    || errorMessage;
+                
+                // If it's an object, try to stringify it
+                if (typeof errorMessage === 'object') {
+                    errorMessage = JSON.stringify(errorMessage);
+                }
+            } else if (e?.message) {
+                errorMessage = e.message;
+            } else if (e?.response?.statusText) {
+                errorMessage = `${e.response.status} ${e.response.statusText}`;
+            }
+            
+            setImportError(errorMessage);
         } finally {
             setImporting(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -390,7 +467,7 @@ export default function BuildingDetail () {
                     />
                     <DetailField 
                         label="Số tầng"
-                        value={buildingData?.floorsMax?.toString() ?? ""} 
+                        value={displayFloorsMax} 
                         readonly={true}
                     />
 
@@ -466,7 +543,7 @@ export default function BuildingDetail () {
                 </div>
 
                 {meterFormVisible && (
-                    <div className="border-b pb-4 mb-6">
+                    <div className="border-b pb-4 mb-6 relative z-10" data-meter-form>
                         <form
                             onSubmit={async (e) => {
                                 e.preventDefault();
@@ -502,15 +579,24 @@ export default function BuildingDetail () {
                                     <select
                                         value={meterForm.unitId}
                                         onChange={(e) => setMeterForm(prev => ({ ...prev, unitId: e.target.value }))}
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                        disabled={loadingUnits || units.length === 0}
+                                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#739559] focus:border-[#739559] relative z-20"
                                     >
-                                        <option value="">{t('selectUnit')}</option>
+                                        <option value="">
+                                            {loadingUnits ? t('loading') : units.length === 0 ? tUnits('noUnit') : t('selectUnit')}
+                                        </option>
                                         {units.map(unit => (
                                             <option key={unit.id} value={unit.id}>
-                                                {unit.code}
+                                                {unit.code}{unit.floor != null ? ` (Tầng ${unit.floor})` : ''}
                                             </option>
                                         ))}
                                     </select>
+                                    {loadingUnits && (
+                                        <div className="text-xs text-gray-500 mt-1">Đang tải danh sách căn hộ...</div>
+                                    )}
+                                    {!loadingUnits && units.length === 0 && (
+                                        <div className="text-xs text-orange-600 mt-1">Không có căn hộ nào trong tòa nhà này</div>
+                                    )}
                                 </label>
                                 <label className="text-sm text-gray-600">
                                     {t('service')}
@@ -649,31 +735,78 @@ export default function BuildingDetail () {
                     </div>
                 )}
 
-                {importError && <div className="text-red-600 mb-3">{importError}</div>}
+                {importError && (
+                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center gap-2 text-red-700">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
+                            <span className="font-semibold">Lỗi import:</span>
+                        </div>
+                        <p className="mt-1 text-red-600 text-sm">{importError}</p>
+                    </div>
+                )}
                 {importResult && (
                     <div className="mb-4">
-                        <div className="mb-2">
-                            {t('totalRows', { totalRows: importResult.totalRows, successCount: importResult.successCount, errorCount: importResult.errorCount })}
+                        <div className="mb-3 p-3 rounded-lg border" style={{
+                            backgroundColor: importResult.errorCount > 0 ? '#fef2f2' : '#f0fdf4',
+                            borderColor: importResult.errorCount > 0 ? '#fecaca' : '#bbf7d0'
+                        }}>
+                            <div className="flex items-center gap-2 mb-1">
+                                {importResult.errorCount > 0 ? (
+                                    <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                )}
+                                <span className={`font-semibold ${importResult.errorCount > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                                    {t('totalRows', { totalRows: importResult.totalRows, successCount: importResult.successCount, errorCount: importResult.errorCount })}
+                                </span>
+                            </div>
                         </div>
-                        <div className="max-h-64 overflow-auto border rounded">
+                        <div className="max-h-96 overflow-auto border rounded-lg shadow-sm">
                             <table className="min-w-full">
-                                <thead className="bg-gray-50">
+                                <thead className="bg-gray-50 sticky top-0">
                                     <tr>
-                                        <th className="border px-2 py-1 text-left">Row</th>
-                                        <th className="border px-2 py-1 text-left">Success</th>
-                                        <th className="border px-2 py-1 text-left">Message</th>
-                                        <th className="border px-2 py-1 text-left">UnitId</th>
-                                        <th className="border px-2 py-1 text-left">Code</th>
+                                        <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">Dòng</th>
+                                        <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">Trạng thái</th>
+                                        <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">Thông báo</th>
+                                        <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">Unit ID</th>
+                                        <th className="border px-3 py-2 text-left text-sm font-semibold text-gray-700">Mã căn hộ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {importResult.rows.map((r, i) => (
-                                        <tr key={i}>
-                                            <td className="border px-2 py-1">{r.rowNumber}</td>
-                                            <td className="border px-2 py-1">{r.success ? '✓' : '✗'}</td>
-                                            <td className="border px-2 py-1">{r.message}</td>
-                                            <td className="border px-2 py-1">{r.unitId}</td>
-                                            <td className="border px-2 py-1">{r.code}</td>
+                                        <tr 
+                                            key={i}
+                                            className={r.success ? 'bg-green-50 hover:bg-green-100' : 'bg-red-50 hover:bg-red-100'}
+                                        >
+                                            <td className="border px-3 py-2 text-sm font-medium">{r.rowNumber}</td>
+                                            <td className="border px-3 py-2 text-sm">
+                                                {r.success ? (
+                                                    <span className="inline-flex items-center gap-1 text-green-700 font-semibold">
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                        </svg>
+                                                        Thành công
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-red-700 font-semibold">
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                                        </svg>
+                                                        Lỗi
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className={`border px-3 py-2 text-sm ${r.success ? 'text-green-800' : 'text-red-800 font-medium'}`}>
+                                                {r.message}
+                                            </td>
+                                            <td className="border px-3 py-2 text-sm text-gray-600">{r.unitId || '—'}</td>
+                                            <td className="border px-3 py-2 text-sm text-gray-600">{r.code || '—'}</td>
                                         </tr>
                                     ))}
                                 </tbody>

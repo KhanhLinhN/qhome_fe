@@ -11,6 +11,8 @@ import { useUnitPage } from '@/src/hooks/useUnitPage';
 import { Unit } from '@/src/types/unit';
 import { updateUnitStatus } from '@/src/services/base/unitService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
+import { getAllInspections, AssetInspection, InspectionStatus } from '@/src/services/base/assetInspectionService';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 type UnitWithContext = Unit & {
   buildingId: string;
@@ -24,7 +26,7 @@ const normalizeText = (value?: string | null) => value?.toLowerCase().trim() ?? 
 export default function UnitListPage() {
   const t = useTranslations('Unit');
   const router = useRouter();
-  const { buildings, loading, error, refresh } = useUnitPage();
+  const { buildings, loading, error, refresh, pageNo, pageSize, handlePageChange } = useUnitPage();
 
   const [selectedBuildingId, setSelectedBuildingId] = useState<'all' | string>('all');
   const [buildingSearch, setBuildingSearch] = useState('');
@@ -36,6 +38,10 @@ export default function UnitListPage() {
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [selectedUnitStatus, setSelectedUnitStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
+  // Asset inspection data
+  const [inspections, setInspections] = useState<AssetInspection[]>([]);
+  const [loadingInspections, setLoadingInspections] = useState(false);
 
   const unitsWithContext = useMemo<UnitWithContext[]>(() => {
     const result: UnitWithContext[] = [];
@@ -54,6 +60,37 @@ export default function UnitListPage() {
 
     return result;
   }, [buildings]);
+
+  // Create map of unitId -> latest inspection
+  const unitInspectionMap = useMemo(() => {
+    const map = new Map<string, AssetInspection>();
+    inspections.forEach((inspection) => {
+      if (inspection.unitId) {
+        const existing = map.get(inspection.unitId);
+        // Keep the most recent inspection (by inspectionDate)
+        if (!existing || new Date(inspection.inspectionDate) > new Date(existing.inspectionDate)) {
+          map.set(inspection.unitId, inspection);
+        }
+      }
+    });
+    return map;
+  }, [inspections]);
+
+  // Load inspections on mount
+  useEffect(() => {
+    const loadInspections = async () => {
+      try {
+        setLoadingInspections(true);
+        const data = await getAllInspections();
+        setInspections(data);
+      } catch (err) {
+        console.error('Failed to load inspections:', err);
+      } finally {
+        setLoadingInspections(false);
+      }
+    };
+    loadInspections();
+  }, []);
 
   useEffect(() => {
     if (selectedBuildingId === 'all') {
@@ -80,7 +117,7 @@ export default function UnitListPage() {
     });
   }, [buildingSearch, buildings]);
 
-  const unitsToDisplay = useMemo(() => {
+  const filteredUnits = useMemo(() => {
     const unitQuery = normalizeText(unitSearch);
 
     let scopedUnits = unitsWithContext;
@@ -115,12 +152,25 @@ export default function UnitListPage() {
     unitsWithContext,
   ]);
 
+  // Apply pagination to filtered units
+  const unitsToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredUnits.slice(startIndex, endIndex);
+  }, [filteredUnits, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(filteredUnits.length / pageSize) : 0;
+  }, [filteredUnits.length, pageSize]);
+
   const handleSelectAll = () => {
     setSelectedBuildingId('all');
+    handlePageChange(0);
   };
 
   const handleSelectBuilding = (buildingId: string) => {
     setSelectedBuildingId(buildingId);
+    handlePageChange(0);
   };
 
   const onUnitStatusChange = (unitId: string) => {
@@ -303,15 +353,18 @@ export default function UnitListPage() {
               <h2 className="text-lg font-semibold text-slate-800">{t('unitList')}</h2>
               <p className="text-sm text-slate-500">
                 {selectedBuildingId === 'all'
-                  ? t('summary.total', { count: unitsToDisplay.length })
-                  : t('summary.selectedBuilding', { count: unitsToDisplay.length })}
+                  ? t('summary.total', { count: filteredUnits.length })
+                  : t('summary.selectedBuilding', { count: filteredUnits.length })}
               </p>
             </div>
             <div className="w-full max-w-xs">
               <input
                 type="text"
                 value={unitSearch}
-                onChange={(event) => setUnitSearch(event.target.value)}
+                onChange={(event) => {
+                  setUnitSearch(event.target.value);
+                  handlePageChange(0);
+                }}
                 placeholder={t('unitSearch.placeholder')}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               />
@@ -341,6 +394,9 @@ export default function UnitListPage() {
                     {t('ownerName')}
                   </th>
                   <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                    Trạng thái kiểm tra thiết bị
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
                     {t('action')}
                   </th>
                 </tr>
@@ -349,7 +405,7 @@ export default function UnitListPage() {
                 {unitsToDisplay.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-4 py-6 text-center text-sm text-slate-500"
                     >
                       {t('noUnit')}
@@ -400,6 +456,55 @@ export default function UnitListPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
+                          {(() => {
+                            const inspection = unitInspectionMap.get(unit.id);
+                            if (loadingInspections) {
+                              return <span className="text-xs text-slate-400">Đang tải...</span>;
+                            }
+                            if (!inspection) {
+                              return (
+                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
+                                  Chưa kiểm tra
+                                </span>
+                              );
+                            }
+                            const statusLabels: Record<InspectionStatus, { label: string; className: string }> = {
+                              [InspectionStatus.PENDING]: {
+                                label: 'Chờ kiểm tra',
+                                className: 'bg-blue-100 text-blue-800',
+                              },
+                              [InspectionStatus.IN_PROGRESS]: {
+                                label: 'Đang kiểm tra',
+                                className: 'bg-orange-100 text-orange-800',
+                              },
+                              [InspectionStatus.COMPLETED]: {
+                                label: 'Đã hoàn thành',
+                                className: 'bg-green-100 text-green-800',
+                              },
+                              [InspectionStatus.CANCELLED]: {
+                                label: 'Đã hủy',
+                                className: 'bg-red-100 text-red-800',
+                              },
+                            };
+                            const statusInfo = statusLabels[inspection.status] || {
+                              label: inspection.status,
+                              className: 'bg-gray-100 text-gray-800',
+                            };
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded ${statusInfo.className}`}>
+                                  {statusInfo.label}
+                                </span>
+                                {inspection.inspectionDate && (
+                                  <span className="text-xs text-slate-500">
+                                    {new Date(inspection.inspectionDate).toLocaleDateString('vi-VN')}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             {unit.status === 'INACTIVE' || unit.status === 'Inactive' ? (
                               <span className="inline-flex items-center cursor-not-allowed opacity-50">
@@ -443,6 +548,13 @@ export default function UnitListPage() {
               </tbody>
             </table>
           </div>
+          {totalPages > 0 && (
+            <Pagination
+              currentPage={pageNo + 1}
+              totalPages={totalPages}
+              onPageChange={(page) => handlePageChange(page - 1)}
+            />
+          )}
         </section>
       </div>
       <PopupConfirm

@@ -14,6 +14,7 @@ import {
   type ServiceDto,
   type UnitWithoutMeterDto,
 } from '@/src/services/base/waterService';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 const formatDate = (value?: string) => {
   if (!value) return '-';
@@ -40,6 +41,11 @@ export default function MeterManagementPage() {
   const [creationError, setCreationError] = useState<string | null>(null);
   const [floorFilter, setFloorFilter] = useState('');
   const [templateDownloading, setTemplateDownloading] = useState(false);
+  
+  // Pagination
+  const initialPageSize = 10;
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(initialPageSize);
 
   useEffect(() => {
     let active = true;
@@ -67,13 +73,14 @@ export default function MeterManagementPage() {
       const meterRes = await getMeters();
       setMeters(meterRes);
       setError(null);
+      setPageNo(0);
     } catch (err: any) {
       console.error('Failed to load meters:', err);
       setError(err?.message || t('errors.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadMeters();
@@ -154,6 +161,26 @@ export default function MeterManagementPage() {
     });
   }, [meters, buildingFilter, serviceFilter, floorFilter]);
 
+  // Apply pagination to filtered meters
+  const metersToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredMeters.slice(startIndex, endIndex);
+  }, [filteredMeters, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(filteredMeters.length / pageSize) : 0;
+  }, [filteredMeters.length, pageSize]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPageNo(newPage);
+  }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPageNo(0);
+  }, [buildingFilter, serviceFilter, floorFilter]);
+
   const selectedBuilding = buildingFilter ? buildingMap.get(buildingFilter) : null;
   const selectedService = serviceFilter ? services.find((service) => service.id === serviceFilter) : null;
   const summary = useMemo(() => {
@@ -214,7 +241,10 @@ export default function MeterManagementPage() {
             <span className="text-xs uppercase tracking-wide text-gray-500">{t('filters.building')}</span>
             <select
               value={buildingFilter}
-              onChange={(e) => setBuildingFilter(e.target.value)}
+              onChange={(e) => {
+                setBuildingFilter(e.target.value);
+                setPageNo(0);
+              }}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
             >
               <option value="">{t('filters.allBuildings')}</option>
@@ -229,7 +259,10 @@ export default function MeterManagementPage() {
             <span className="text-xs uppercase tracking-wide text-gray-500">{t('filters.service')}</span>
             <select
               value={serviceFilter}
-              onChange={(e) => setServiceFilter(e.target.value)}
+              onChange={(e) => {
+                setServiceFilter(e.target.value);
+                setPageNo(0);
+              }}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
             >
               <option value="">{t('filters.allServices')}</option>
@@ -244,7 +277,10 @@ export default function MeterManagementPage() {
             <span className="text-xs uppercase tracking-wide text-gray-500">{t('filters.floor')}</span>
             <select
               value={floorFilter}
-              onChange={(e) => setFloorFilter(e.target.value)}
+              onChange={(e) => {
+                setFloorFilter(e.target.value);
+                setPageNo(0);
+              }}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
             >
               <option value="">{t('filters.allFloors')}</option>
@@ -356,7 +392,7 @@ export default function MeterManagementPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredMeters.map((meter) => {
+                  metersToDisplay.map((meter) => {
                     const building = buildingMap.get(meter.buildingId || '');
                     return (
                       <tr key={meter.id} className="hover:bg-gray-50">
@@ -404,6 +440,15 @@ export default function MeterManagementPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+        {totalPages > 0 && (
+          <div className="px-6 py-4 border-t border-gray-200">
+            <Pagination
+              currentPage={pageNo + 1}
+              totalPages={totalPages}
+              onPageChange={(page) => handlePageChange(page - 1)}
+            />
           </div>
         )}
       </section>
