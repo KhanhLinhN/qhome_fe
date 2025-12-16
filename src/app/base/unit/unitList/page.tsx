@@ -390,9 +390,9 @@ export default function UnitListPage() {
                   <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
                     {t('status')}
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
+                  {/* <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
                     {t('ownerName')}
-                  </th>
+                  </th> */}
                   <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
                     Trạng thái kiểm tra thiết bị
                   </th>
@@ -447,14 +447,14 @@ export default function UnitListPage() {
                             {unit.status === 'ACTIVE' || unit.status === 'Active' ? t('active') : t('inactive')}
                           </span>
                         </td>
-                        <td className={`px-4 py-3 ${isDisabled ? 'text-slate-500' : 'text-slate-600'}`}>
+                        {/* <td className={`px-4 py-3 ${isDisabled ? 'text-slate-500' : 'text-slate-600'}`}>
                           <div className="flex flex-col">
                             <span>{unit.ownerName ?? '-'}</span>
                             {unit.ownerContact && (
                               <span className="text-xs text-slate-500">{unit.ownerContact}</span>
                             )}
                           </div>
-                        </td>
+                        </td> */}
                         <td className="px-4 py-3">
                           {(() => {
                             const inspection = unitInspectionMap.get(unit.id);
