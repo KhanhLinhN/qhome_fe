@@ -4401,7 +4401,8 @@
       "draft": "Nháp",
       "published": "Đã phát hành",
       "paid": "Đã thanh toán",
-      "void": "Đã hủy"
+      "void": "Đã hủy",
+      "unpaid": "Chưa thanh toán"
     },
     "loading": "Đang tải...",
     "errors": {
@@ -4819,6 +4820,10 @@
       },
       "totalDamageCost": "Tổng chi phí thiệt hại",
       "invoiceId": "Mã hóa đơn",
+      "waterElectricTotal": "Tổng tiền điện nước",
+      "grandTotal": "Tổng cộng",
+      "estimatedCost": "Dự tính: {cost} VNĐ",
+      "noPricingTiers": "Chưa có bảng giá để tính toán",
       "damagedAssetsBreakdown": "Chi tiết thiết bị bị hư hỏng",
       "errors": {
         "invalidIndex": "Chỉ số đồng hồ phải lớn hơn hoặc bằng 0"
@@ -4832,7 +4837,8 @@
       "completeInspection": "Đã hoàn thành kiểm tra thiết bị",
       "completeWithReadings": "Đã hoàn thành kiểm tra thiết bị và {readingCount} chỉ số đồng hồ đo",
       "assignmentCreated": "Đã tự động tạo assignment cho chu kỳ này",
-      "invoiceGenerated": "Đã tự động tạo hóa đơn cho thiệt hại thiết bị"
+      "invoiceGenerated": "Đã tự động tạo hóa đơn cho thiệt hại thiết bị",
+      "invoicesGenerated": "Đã tự động tạo {count} hóa đơn điện nước"
     },
     "warnings": {
       "itemsNotReady": "Danh sách thiết bị đang được tạo. Vui lòng nhấn \"Làm mới\" sau vài giây.",

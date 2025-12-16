@@ -4329,7 +4329,8 @@
       "draft": "Draft",
       "published": "Published",
       "paid": "Paid",
-      "void": "Void"
+      "void": "Void",
+      "unpaid": "Unpaid"
     },
     "loading": "Loading...",
     "errors": {
@@ -4741,6 +4742,10 @@
       },
       "totalDamageCost": "Total Damage Cost",
       "invoiceId": "Invoice ID",
+      "waterElectricTotal": "Water/Electric Total",
+      "grandTotal": "Grand Total",
+      "estimatedCost": "Estimated: {cost} VNĐ",
+      "noPricingTiers": "No pricing tiers available for calculation",
       "damagedAssetsBreakdown": "Damaged Assets Breakdown",
       "errors": {
         "invalidIndex": "Meter reading must be greater than or equal to 0"
@@ -4754,7 +4759,8 @@
       "completeInspection": "Completed equipment inspection",
       "completeWithReadings": "Completed equipment inspection and {readingCount} meter readings",
       "assignmentCreated": "Automatically created assignment for this cycle",
-      "invoiceGenerated": "Automatically generated invoice for equipment damage"
+      "invoiceGenerated": "Automatically generated invoice for equipment damage",
+      "invoicesGenerated": "Automatically generated {count} water/electric invoices"
     },
     "warnings": {
       "itemsNotReady": "Equipment list is being created. Please click \"Refresh\" in a few seconds.",

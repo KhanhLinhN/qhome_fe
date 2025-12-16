@@ -16,12 +16,15 @@ import {
   generateInvoice,
   type UpdateAssetInspectionItemRequest,
 } from '@/src/services/base/assetInspectionService';
+import { updateInvoiceStatus, getAllInvoicesForAdmin, type InvoiceDto } from '@/src/services/finance/invoiceAdminService';
+import { getActivePricingTiersByService, type PricingTierDto } from '@/src/services/finance/pricingTierService';
 import {
   getMetersByUnit,
   createMeterReading,
   getReadingCyclesByStatus,
   getAssignmentsByStaff,
   createMeterReadingAssignment,
+  exportReadingsByCycle,
   type MeterDto,
   type MeterReadingCreateReq,
   type ReadingCycleDto,
@@ -61,12 +64,28 @@ export default function TechnicianInspectionAssignmentsPage() {
   
   // Temporary inspection data (before items are created)
   const [tempInspectionData, setTempInspectionData] = useState<Record<string, { conditionStatus: string; notes: string; repairCost?: number }>>({});
+  
+  // Water/Electric invoices state
+  const [waterElectricInvoices, setWaterElectricInvoices] = useState<InvoiceDto[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  
+  // Pricing tiers and calculated prices
+  const [pricingTiers, setPricingTiers] = useState<Record<string, PricingTierDto[]>>({});
+  const [calculatedPrices, setCalculatedPrices] = useState<Record<string, number>>({}); // meterId -> calculated price
 
   useEffect(() => {
     if (user?.userId) {
       loadMyInspections();
     }
   }, [user?.userId]);
+
+  // Load water/electric invoices when inspection is opened
+  useEffect(() => {
+    if (selectedInspection?.unitId) {
+      // Load invoices for the unit, filter by cycle if available
+      loadWaterElectricInvoices(selectedInspection.unitId, activeCycle?.id);
+    }
+  }, [selectedInspection?.unitId, activeCycle?.id]);
 
   const loadMyInspections = async () => {
     if (!user?.userId) return;
@@ -226,6 +245,164 @@ export default function TechnicianInspectionAssignmentsPage() {
     }
   };
 
+  // Calculate price based on usage and pricing tiers
+  const calculatePriceFromUsage = (usage: number, serviceCode: string): number => {
+    const tiers = pricingTiers[serviceCode] || [];
+    if (tiers.length === 0) {
+      console.warn(`No pricing tiers found for serviceCode: ${serviceCode}, available:`, Object.keys(pricingTiers));
+      return 0;
+    }
+    
+    // Sort tiers by tierOrder
+    const sortedTiers = [...tiers].sort((a, b) => a.tierOrder - b.tierOrder);
+    
+    let totalPrice = 0;
+    let remainingUsage = usage;
+    
+    for (const tier of sortedTiers) {
+      if (remainingUsage <= 0) break;
+      
+      const minQty = tier.minQuantity || 0;
+      const maxQty = tier.maxQuantity;
+      const unitPrice = tier.unitPrice || 0;
+      
+      if (maxQty !== null && maxQty !== undefined) {
+        // Tier has max quantity
+        const tierUsage = Math.min(remainingUsage, maxQty - minQty);
+        if (tierUsage > 0) {
+          totalPrice += tierUsage * unitPrice;
+          remainingUsage -= tierUsage;
+        }
+      } else {
+        // Last tier (no max)
+        totalPrice += remainingUsage * unitPrice;
+        remainingUsage = 0;
+      }
+    }
+    
+    console.log(`Calculated price for ${serviceCode}: usage=${usage}, price=${totalPrice}, tiers used:`, sortedTiers.length);
+    return totalPrice;
+  };
+
+  // Load pricing tiers for water and electric services
+  const loadPricingTiers = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const [waterTiers, electricTiers] = await Promise.all([
+        getActivePricingTiersByService('WATER', today).catch((err) => {
+          console.warn('Failed to load WATER pricing tiers:', err);
+          return [];
+        }),
+        getActivePricingTiersByService('ELECTRIC', today).catch((err) => {
+          console.warn('Failed to load ELECTRIC pricing tiers:', err);
+          return [];
+        })
+      ]);
+      
+      console.log('Loaded pricing tiers:', {
+        WATER: waterTiers.length,
+        ELECTRIC: electricTiers.length,
+        waterTiers: waterTiers,
+        electricTiers: electricTiers
+      });
+      
+      setPricingTiers({
+        WATER: waterTiers,
+        ELECTRIC: electricTiers
+      });
+    } catch (error) {
+      console.warn('Failed to load pricing tiers:', error);
+    }
+  };
+
+  // Calculate prices when meter readings change
+  useEffect(() => {
+    if (Object.keys(pricingTiers).length === 0) return;
+    
+    const newCalculatedPrices: Record<string, number> = {};
+    
+    unitMeters.forEach(meter => {
+      const reading = meterReadings[meter.id];
+      if (!reading?.index) return;
+      
+      const currentIndex = parseFloat(reading.index);
+      if (isNaN(currentIndex)) return;
+      
+      const prevIndex = meter.lastReading !== null && meter.lastReading !== undefined ? meter.lastReading : 0;
+      
+      // Ensure usage is valid and not negative
+      if (currentIndex < prevIndex) return;
+      
+      const usage = currentIndex - prevIndex;
+      
+      if (usage > 0) {
+        // Normalize serviceCode - handle both uppercase and lowercase, and variations
+        let serviceCode = (meter.serviceCode || '').toUpperCase();
+        
+        // Map variations to standard codes
+        if (serviceCode.includes('ELECTRIC') || serviceCode.includes('ĐIỆN') || meter.serviceName?.toLowerCase().includes('điện')) {
+          serviceCode = 'ELECTRIC';
+        } else if (serviceCode.includes('WATER') || serviceCode.includes('NƯỚC') || meter.serviceName?.toLowerCase().includes('nước')) {
+          serviceCode = 'WATER';
+        }
+        
+        if (serviceCode === 'ELECTRIC' || serviceCode === 'WATER') {
+          const price = calculatePriceFromUsage(usage, serviceCode);
+          if (price > 0) {
+            newCalculatedPrices[meter.id] = price;
+          }
+        }
+      }
+    });
+    
+    setCalculatedPrices(newCalculatedPrices);
+  }, [meterReadings, unitMeters, pricingTiers]);
+
+  const loadWaterElectricInvoices = async (unitId: string, cycleId?: string) => {
+    if (!unitId) return;
+    
+    setLoadingInvoices(true);
+    try {
+      // Load invoices for WATER and ELECTRIC services
+      const [waterInvoices, electricInvoices] = await Promise.all([
+        getAllInvoicesForAdmin({ unitId, serviceCode: 'WATER' }).catch(() => []),
+        getAllInvoicesForAdmin({ unitId, serviceCode: 'ELECTRIC' }).catch(() => [])
+      ]);
+      
+      // Filter by cycleId if provided, otherwise show all invoices for this unit
+      let allInvoices = [...waterInvoices, ...electricInvoices];
+      if (cycleId) {
+        allInvoices = allInvoices.filter(inv => inv.cycleId === cycleId);
+      }
+      
+      // Also try to load invoices without serviceCode filter to catch any missed ones
+      if (allInvoices.length === 0) {
+        try {
+          const allUnitInvoices = await getAllInvoicesForAdmin({ unitId });
+          const waterElectricOnly = allUnitInvoices.filter(inv => {
+            const serviceCodes = inv.lines?.map(line => line.serviceCode) || [];
+            return serviceCodes.includes('WATER') || serviceCodes.includes('ELECTRIC');
+          });
+          
+          if (cycleId) {
+            allInvoices = waterElectricOnly.filter(inv => inv.cycleId === cycleId);
+          } else {
+            allInvoices = waterElectricOnly;
+          }
+        } catch (err) {
+          // Ignore error, use what we have
+        }
+      }
+      
+      setWaterElectricInvoices(allInvoices);
+    } catch (error: any) {
+      console.warn('Failed to load water/electric invoices:', error);
+      setWaterElectricInvoices([]);
+    } finally {
+      setLoadingInvoices(false);
+    }
+  };
+
   const handleOpenInspection = async (inspection: AssetInspection) => {
     setInspectionModalOpen(true);
     setInspectorNotes(inspection.inspectorNotes || '');
@@ -236,11 +413,15 @@ export default function TechnicianInspectionAssignmentsPage() {
     // Clear assets map when opening new inspection
     setAssetsMap({});
     setUnitAssets([]);
+    setWaterElectricInvoices([]);
 
     // Load assets FIRST before loading inspection details
     if (inspection.unitId) {
       await loadUnitAssets(inspection.unitId);
       const meters = await loadUnitMeters(inspection.unitId);
+      
+      // Load pricing tiers for price calculation
+      await loadPricingTiers();
       
       if (user?.userId) {
         // Pass unitId and meters to auto-create assignment if needed
@@ -596,6 +777,8 @@ export default function TechnicianInspectionAssignmentsPage() {
             if (errorCount > 0) {
               show(t('errors.someReadingsFailed', { count: errorCount }), 'error');
             }
+            
+            // Don't generate invoices here - will be generated when completing inspection
           } catch (err) {
             show(t('errors.someReadingsFailed', { count: errorCount }), 'error');
           }
@@ -604,13 +787,15 @@ export default function TechnicianInspectionAssignmentsPage() {
       
       // Reload inspection to get latest totalDamageCost before completing
       const latestInspection = await getInspectionByContractId(selectedInspection.contractId);
-      if (latestInspection) {
-        const itemsWithCost = latestInspection.items?.filter(item => {
+      const inspectionToUseForCheck = latestInspection || selectedInspection;
+      
+      if (inspectionToUseForCheck) {
+        const itemsWithCost = inspectionToUseForCheck.items?.filter(item => {
           const cost = item.repairCost || item.damageCost || 0;
           return cost > 0;
         }) || [];
         
-        const itemsWithoutStatus = latestInspection.items?.filter(item => 
+        const itemsWithoutStatus = inspectionToUseForCheck.items?.filter(item => 
           !item.conditionStatus || item.conditionStatus.trim() === ''
         ) || [];
         
@@ -629,14 +814,23 @@ export default function TechnicianInspectionAssignmentsPage() {
       
       // Before completing, mark all items as checked
       // This ensures backend knows all items are done
-      if (selectedInspection.items && selectedInspection.items.length > 0) {
-        const checkPromises = selectedInspection.items.map(item => 
-          updateInspectionItem(item.id, {
+      // IMPORTANT: Include damageCost to preserve manual cost changes
+      // Use latestInspection if available to get the most up-to-date costs
+      if (inspectionToUseForCheck.items && inspectionToUseForCheck.items.length > 0) {
+        const checkPromises = inspectionToUseForCheck.items.map(item => {
+          // Get current cost - prioritize repairCost, fallback to damageCost
+          const currentCost = item.repairCost !== undefined && item.repairCost !== null
+            ? item.repairCost
+            : (item.damageCost !== undefined && item.damageCost !== null ? item.damageCost : undefined);
+          
+          return updateInspectionItem(item.id, {
             checked: true,
             conditionStatus: item.conditionStatus, // Keep existing status
-            notes: item.notes
-          }).catch(() => {})
-        );
+            notes: item.notes,
+            // Include damageCost to preserve manual cost changes
+            damageCost: currentCost !== undefined && currentCost !== null ? currentCost : undefined
+          }).catch(() => {});
+        });
         await Promise.all(checkPromises);
       }
       
@@ -656,6 +850,14 @@ export default function TechnicianInspectionAssignmentsPage() {
           const finalReload = await getInspectionByContractId(selectedInspection.contractId);
           if (finalReload && finalReload.invoiceId) {
             finalInspection = finalReload;
+            
+            // Update invoice status to PAID for invoices generated from asset inspection
+            try {
+              await updateInvoiceStatus(finalReload.invoiceId, 'PAID');
+            } catch (statusError: any) {
+              // Log but don't fail - invoice was created successfully
+              console.warn('Failed to update invoice status to PAID:', statusError);
+            }
           }
           
           show(t('success.invoiceGenerated', { defaultValue: 'Đã tự động tạo hóa đơn cho thiệt hại thiết bị' }), 'success');
@@ -665,8 +867,37 @@ export default function TechnicianInspectionAssignmentsPage() {
         }
       }
       
+      // Generate invoices for water/electric after completing inspection
+      if (activeCycle?.id && unitMeters.length > 0 && finalInspection.unitId) {
+        // Check if we have meter readings
+        const hasReadings = Object.values(meterReadings).some(r => r.index && r.index.trim() !== '');
+        
+        if (hasReadings) {
+          try {
+            const importResponse = await exportReadingsByCycle(activeCycle.id);
+            if (importResponse.invoicesCreated > 0) {
+              show(
+                t('success.invoicesGenerated', { 
+                  count: importResponse.invoicesCreated,
+                  defaultValue: `Đã tự động tạo ${importResponse.invoicesCreated} hóa đơn điện nước` 
+                }), 
+                'success'
+              );
+            }
+          } catch (invoiceError: any) {
+            // Log but don't fail - inspection was completed successfully
+            console.warn('Failed to generate invoices from meter readings:', invoiceError);
+          }
+        }
+      }
+      
       setSelectedInspection(finalInspection);
       await loadMyInspections();
+      
+      // Reload water/electric invoices after completing inspection
+      if (finalInspection.unitId) {
+        await loadWaterElectricInvoices(finalInspection.unitId, activeCycle?.id);
+      }
       
       if (unitMeters.length > 0 && activeAssignment) {
         const readingsCount = Object.values(meterReadings).filter(r => r.index && r.index.trim() !== '').length;
@@ -1309,7 +1540,10 @@ export default function TechnicianInspectionAssignmentsPage() {
                                 const reading = meterReadings[meter.id];
                                 const currentIndex = reading?.index ? parseFloat(reading.index) : null;
                                 const prevIndex = meter.lastReading !== null && meter.lastReading !== undefined ? meter.lastReading : 0;
-                                const usage = currentIndex !== null && !isNaN(currentIndex) ? currentIndex - prevIndex : null;
+                                // Ensure usage is valid and not negative
+                                const usage = currentIndex !== null && !isNaN(currentIndex) && currentIndex >= prevIndex 
+                                  ? currentIndex - prevIndex 
+                                  : null;
                                 const unit = meter.serviceCode === 'ELECTRIC' || meter.serviceName?.toLowerCase().includes('điện') ? 'kWh' : 'm³';
                                 
                                 return (
@@ -1321,13 +1555,27 @@ export default function TechnicianInspectionAssignmentsPage() {
                                         {meter.serviceName || meter.serviceCode || 'Unknown Service'}
                                       </p>
                                       {usage !== null && usage > 0 && (
-                                        <p className="text-xs text-blue-600 mt-1 font-medium">
-                                          {t('modal.meterUsage', { 
-                                            usage: usage.toLocaleString('vi-VN'),
-                                            unit: unit,
-                                            defaultValue: `Sử dụng: ${usage.toLocaleString('vi-VN')} ${unit}`
-                                          })}
-                                        </p>
+                                        <>
+                                          <p className="text-xs text-blue-600 mt-1 font-medium">
+                                            {t('modal.meterUsage', { 
+                                              usage: usage.toLocaleString('vi-VN'),
+                                              unit: unit,
+                                              defaultValue: `Sử dụng: ${usage.toLocaleString('vi-VN')} ${unit}`
+                                            })}
+                                          </p>
+                                          {calculatedPrices[meter.id] !== undefined && calculatedPrices[meter.id] > 0 ? (
+                                            <p className="text-xs text-green-600 mt-1 font-semibold">
+                                              {t('modal.estimatedCost', { 
+                                                cost: calculatedPrices[meter.id].toLocaleString('vi-VN'),
+                                                defaultValue: `Dự tính: ${calculatedPrices[meter.id].toLocaleString('vi-VN')} VNĐ`
+                                              })}
+                                            </p>
+                                          ) : (
+                                            <p className="text-xs text-gray-400 mt-1 italic">
+                                              {t('modal.noPricingTiers', { defaultValue: 'Chưa có bảng giá để tính toán' })}
+                                            </p>
+                                          )}
+                                        </>
                                       )}
                                     </div>
                                   </div>
@@ -1454,6 +1702,13 @@ export default function TechnicianInspectionAssignmentsPage() {
                         ? calculatedTotal
                         : (selectedInspection.totalDamageCost || 0);
                       
+                      // Calculate total water/electric invoice amount
+                      // Use calculated prices if invoices not yet generated, otherwise use invoice amounts
+                      const calculatedWaterElectricTotal = Object.values(calculatedPrices).reduce((sum, price) => sum + price, 0);
+                      const invoiceWaterElectricTotal = waterElectricInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+                      const waterElectricTotal = invoiceWaterElectricTotal > 0 ? invoiceWaterElectricTotal : calculatedWaterElectricTotal;
+                      const grandTotal = displayTotal + waterElectricTotal;
+                      
                       return (
                       <div className="border-t border-gray-200 pt-4">
                         <div className="p-4 bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 rounded-lg shadow-md">
@@ -1474,6 +1729,59 @@ export default function TechnicianInspectionAssignmentsPage() {
                               <p className="text-sm text-gray-600">
                                 {t('modal.invoiceId', { defaultValue: 'Mã hóa đơn' })}: <span className="font-mono font-medium">{selectedInspection.invoiceId}</span>
                               </p>
+                            )}
+                            
+                            {/* Water/Electric Invoice Total - Always show if there are meters */}
+                            {(unitMeters.length > 0 || waterElectricInvoices.length > 0 || calculatedWaterElectricTotal > 0) && (
+                              <div className="mt-3 pt-3 border-t border-red-200">
+                                <div className="flex justify-between items-center mb-2">
+                                  <span className="text-sm font-medium text-gray-700">
+                                    {t('modal.waterElectricTotal', { defaultValue: 'Tổng tiền điện nước' })}:
+                                  </span>
+                                  {loadingInvoices ? (
+                                    <span className="text-sm text-gray-500">Đang tải...</span>
+                                  ) : (
+                                    <span className={`text-xl font-semibold ${
+                                      waterElectricTotal > 0 ? 'text-blue-600' : 'text-gray-400'
+                                    }`}>
+                                      {waterElectricTotal > 0 
+                                        ? `${waterElectricTotal.toLocaleString('vi-VN')} VNĐ`
+                                        : calculatedWaterElectricTotal > 0
+                                        ? `${calculatedWaterElectricTotal.toLocaleString('vi-VN')} VNĐ (dự tính)`
+                                        : 'Chưa có hóa đơn'}
+                                    </span>
+                                  )}
+                                </div>
+                                {waterElectricInvoices.length > 0 && (
+                                  <div className="text-xs text-gray-500 space-y-1">
+                                    {waterElectricInvoices.map(inv => (
+                                      <div key={inv.id} className="flex justify-between">
+                                        <span>{inv.lines?.[0]?.serviceCode === 'WATER' ? 'Nước' : 'Điện'}</span>
+                                        <span>{inv.totalAmount.toLocaleString('vi-VN')} VNĐ</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {waterElectricInvoices.length === 0 && !loadingInvoices && unitMeters.length > 0 && (
+                                  <p className="text-xs text-gray-400 italic">
+                                    Hóa đơn sẽ được tạo sau khi hoàn thành kiểm tra và đo chỉ số đồng hồ
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            
+                            {/* Grand Total */}
+                            {waterElectricTotal > 0 && displayTotal > 0 && (
+                              <div className="mt-3 pt-3 border-t-2 border-red-400">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-lg font-bold text-gray-900">
+                                    {t('modal.grandTotal', { defaultValue: 'Tổng cộng' })}:
+                                  </span>
+                                  <span className="text-3xl font-bold text-red-700">
+                                    {grandTotal.toLocaleString('vi-VN')} VNĐ
+                                  </span>
+                                </div>
+                              </div>
                             )}
                           </div>
                           
@@ -1646,6 +1954,8 @@ function InspectionItemRow({
   const [notes, setNotes] = useState(item.notes || '');
   // Backend returns damageCost, but we use repairCost in UI
   const [repairCost, setRepairCost] = useState<number | undefined>(item.repairCost || item.damageCost);
+  // Track if user has manually changed the cost
+  const [isManualCost, setIsManualCost] = useState(false);
 
   // Calculate default cost based on condition status
   const calculateDefaultCost = (status: string, purchasePrice?: number): number | undefined => {
@@ -1669,25 +1979,34 @@ function InspectionItemRow({
 
   const handleConditionChange = (newStatus: string) => {
     setConditionStatus(newStatus);
-    // Auto-calculate cost when status changes
+    
     const price = asset?.purchasePrice || item.purchasePrice;
+    let costToSave: number | undefined = undefined;
+    
+    // When status changes, always auto-calculate (reset manual cost flag)
+    // User can then manually adjust if needed
     if (newStatus && price) {
       const calculatedCost = calculateDefaultCost(newStatus, price);
       if (calculatedCost !== undefined) {
         setRepairCost(calculatedCost);
+        costToSave = calculatedCost;
+        // Reset manual cost flag when status changes - allows auto-calculation
+        setIsManualCost(false);
       }
     } else if (newStatus === 'GOOD') {
       setRepairCost(0);
+      costToSave = 0;
+      setIsManualCost(false);
     } else {
       // Clear cost if no status or no price
       setRepairCost(undefined);
+      costToSave = undefined;
+      setIsManualCost(false);
     }
     
     // Auto-save when conditionStatus changes (if not empty)
     if (newStatus && newStatus.trim() !== '') {
-      const price = asset?.purchasePrice || item.purchasePrice;
-      const costToSave = newStatus && price ? calculateDefaultCost(newStatus, price) : undefined;
-      // Call onUpdate immediately when status is selected
+      // Use calculated cost
       onUpdate(newStatus, notes, costToSave);
     }
   };
@@ -1730,17 +2049,20 @@ function InspectionItemRow({
       setNotes(itemNotes);
     }
     
-    // Sync repairCost - only if it's different
+    // Sync repairCost - only if it's different and user hasn't manually changed it
     if (itemRepairCost !== undefined && itemRepairCost !== null) {
       const currentRepairCost = repairCost !== undefined ? repairCost : null;
       // Only sync if values are actually different (with small tolerance for floating point)
-      if (Math.abs((itemRepairCost || 0) - (currentRepairCost || 0)) > 0.01) {
+      // AND user hasn't manually changed the cost
+      if (Math.abs((itemRepairCost || 0) - (currentRepairCost || 0)) > 0.01 && !isManualCost) {
         setRepairCost(itemRepairCost);
+        setIsManualCost(false);
       }
     } else if (repairCost !== undefined && repairCost !== null && repairCost > 0) {
       // If item has no cost but local state does, and status is GOOD, clear it
-      if (itemConditionStatus === 'GOOD') {
+      if (itemConditionStatus === 'GOOD' && !isManualCost) {
         setRepairCost(0);
+        setIsManualCost(false);
       }
     }
   }, [item.id, item.repairCost, item.damageCost, item.conditionStatus, item.notes]);
@@ -1850,11 +2172,20 @@ function InspectionItemRow({
                   const value = e.target.value;
                   if (value === '' || value === null || value === undefined) {
                     setRepairCost(undefined);
+                    setIsManualCost(false);
                   } else {
                     const numValue = parseFloat(value);
                     if (!isNaN(numValue) && numValue >= 0) {
                       setRepairCost(numValue);
+                      // Mark as manual cost when user types
+                      setIsManualCost(true);
                     }
+                  }
+                }}
+                onBlur={() => {
+                  // Auto-save when user finishes editing repairCost (if conditionStatus is set)
+                  if (conditionStatus && conditionStatus.trim() !== '') {
+                    handleSave();
                   }
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

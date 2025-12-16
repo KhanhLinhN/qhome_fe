@@ -72,8 +72,12 @@ export default function DashboardPage() {
         try {
           const residents = await getAllResidents();
           residentCount = residents.length;
-        } catch (error) {
-          console.error('Failed to fetch resident count:', error);
+        } catch (error: any) {
+          // Silently handle error - API might not be available or user might not have permission
+          // Set default to 0 and continue
+          if (error?.response?.status !== 500) {
+            console.warn('Failed to fetch resident count:', error?.message || 'Unknown error');
+          }
         }
 
         // Fetch invoice count
@@ -86,13 +90,17 @@ export default function DashboardPage() {
           if (Array.isArray(response.data)) {
             invoiceCount = response.data.length;
           }
-        } catch (error) {
+        } catch (error: any) {
           // If admin endpoint doesn't work, try alternative method
           try {
             const invoices = await getAllInvoicesForAdmin();
             invoiceCount = invoices.length;
-          } catch (err) {
-            console.warn('Could not fetch invoice count:', err);
+          } catch (err: any) {
+            // Silently handle error - API might not be available or user might not have permission
+            // Set default to 0 and continue
+            if (err?.response?.status !== 500) {
+              console.warn('Could not fetch invoice count:', err?.message || 'Unknown error');
+            }
           }
         }
 

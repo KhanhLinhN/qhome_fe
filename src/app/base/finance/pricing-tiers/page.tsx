@@ -55,12 +55,12 @@ const EMPTY_FORM: TierFormState = {
 export default function PricingTiersManagementPage() {
   const t = useTranslations('PricingTiers');
   const { show } = useNotifications();
-  const { hasRole } = useAuth();
+  const { hasRole, user, isLoading } = useAuth();
   const router = useRouter();
   
   // Check user roles - only ADMIN and ACCOUNTANT can view
-  const isAdmin = hasRole('ADMIN') || hasRole('admin') ;
-  const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') ;
+  const isAdmin = hasRole('ADMIN') || hasRole('admin');
+  const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant');
   const canView = isAdmin || isAccountant;
   const canEdit = isAdmin || isAccountant; // ADMIN and ACCOUNTANT can edit/create/delete
   
@@ -81,6 +81,11 @@ export default function PricingTiersManagementPage() {
   const [pendingDeleteTier, setPendingDeleteTier] = useState<PricingTierDto | null>(null);
 
   useEffect(() => {
+    // Wait for user to load before checking permissions
+    if (isLoading) {
+      return;
+    }
+    
     // Check if user has permission to view
     if (!canView) {
       show('Bạn không có quyền truy cập trang này', 'error');
