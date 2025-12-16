@@ -1049,10 +1049,9 @@ export default function RentalContractReviewPage() {
             <select
               value={statusFilter}
               onChange={(e) => {
-                setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled');
+                setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'notInspected');
                 setPageNo(0);
               }}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'notInspected')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">{t('filters.allStatus')}</option>
@@ -1075,8 +1074,6 @@ export default function RentalContractReviewPage() {
                 setSearchTerm(e.target.value);
                 setPageNo(0);
               }}
-              placeholder="Số hợp đồng, mã căn hộ..."
-              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('filters.searchPlaceholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
