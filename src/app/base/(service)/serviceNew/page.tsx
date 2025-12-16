@@ -48,15 +48,16 @@ type AvailabilityFormState = {
 
 type AvailabilityFormErrors = Partial<Record<keyof AvailabilityFormState, string>>;
 
-const DEFAULT_DAY_NAMES = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-];
+// Database format: 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday, 7=Sunday
+const DAY_NAME_MAP: Record<number, string> = {
+  1: 'Monday',
+  2: 'Tuesday',
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+  6: 'Saturday',
+  7: 'Sunday',
+};
 
 const initialState: FormState = {
   categoryId: '',
@@ -112,11 +113,27 @@ export default function ServiceCreatePage() {
 
 
   const dayOfWeekOptions = useMemo(
-    () =>
-      DEFAULT_DAY_NAMES.map((fallbackName, index) => ({
-        label: t(`Service.weekday.${index}`, { defaultMessage: fallbackName }),
-        value: String(index),
-      })),
+    () => {
+      // Database format: 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday, 7=Sunday
+      // For display, we show Monday first, then Sunday last
+      const dayOrder = [1, 2, 3, 4, 5, 6, 7]; // Monday to Sunday
+      const frontendIndexMap: Record<number, number> = {
+        1: 1, // Monday -> index 1 for translation
+        2: 2, // Tuesday -> index 2
+        3: 3, // Wednesday -> index 3
+        4: 4, // Thursday -> index 4
+        5: 5, // Friday -> index 5
+        6: 6, // Saturday -> index 6
+        7: 0, // Sunday -> index 0 for translation
+      };
+      
+      return dayOrder.map((dayOfWeek) => ({
+        label: t(`Service.weekday.${frontendIndexMap[dayOfWeek]}`, { 
+          defaultMessage: DAY_NAME_MAP[dayOfWeek] || `Day ${dayOfWeek}` 
+        }),
+        value: String(dayOfWeek), // Use 1-7 format matching database
+      }));
+    },
     [t],
   );
 
@@ -353,7 +370,7 @@ export default function ServiceCreatePage() {
           const invalidDays = availability.dayOfWeek.filter(
             (day) => {
               const parsedDay = Number(day);
-              return Number.isNaN(parsedDay) || parsedDay < 0 || parsedDay > 6;
+              return Number.isNaN(parsedDay) || parsedDay < 1 || parsedDay > 7;
             }
           );
           if (invalidDays.length > 0) {
@@ -409,16 +426,14 @@ export default function ServiceCreatePage() {
         availability.endTime
       ) {
         // Create one entry for each selected day
+        // Form already uses database format (1-7: Monday-Sunday), send directly
         availability.dayOfWeek.forEach((dayStr) => {
           const dayOfWeek = Number(dayStr);
-          // Convert from 0-6 (Sunday-Saturday) to 1-7 (Monday-Sunday)
-          // 0 (Sunday) -> 7, 1-6 (Monday-Saturday) -> 1-6
-          const dbDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
           availabilityPayload.push({
-            dayOfWeek: dbDayOfWeek,
+            dayOfWeek: dayOfWeek, // Already in 1-7 format (1=Monday, 7=Sunday) matching database
             startTime: availability.startTime,
             endTime: availability.endTime,
-            isAvailable: availability.isAvailable,
+            isAvailable: availability.isAvailable ?? true,
           });
         });
       }
@@ -502,7 +517,7 @@ export default function ServiceCreatePage() {
               dayOfWeek: availability.dayOfWeek,
               startTime: availability.startTime,
               endTime: availability.endTime,
-              isAvailable: availability.isAvailable ?? true,
+              isAvailable: true,
             });
           } catch (availabilityError: any) {
             console.error(`Failed to add availability ${i + 1}:`, availabilityError);

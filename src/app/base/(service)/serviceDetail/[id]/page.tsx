@@ -146,11 +146,20 @@ export default function ServiceDetailPage() {
     if (day === undefined || day === null) {
       return '-';
     }
-    // Convert from 1-7 (Monday-Sunday in database) to 0-6 (Sunday-Saturday in frontend)
-    // 1-6 (Monday-Saturday) -> 1-6, 7 (Sunday) -> 0
-    const frontendDay = day === 7 ? 0 : day - 1;
-    return t(`Service.weekday.${frontendDay}`, {
-      defaultMessage: DEFAULT_DAY_NAMES[frontendDay] ?? '-',
+    // Database format: 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday, 7=Sunday
+    // Map to frontend translation index: 1-6 -> 1-6, 7 -> 0
+    const frontendIndexMap: Record<number, number> = {
+      1: 1, // Monday -> index 1
+      2: 2, // Tuesday -> index 2
+      3: 3, // Wednesday -> index 3
+      4: 4, // Thursday -> index 4
+      5: 5, // Friday -> index 5
+      6: 6, // Saturday -> index 6
+      7: 0, // Sunday -> index 0
+    };
+    const frontendIndex = frontendIndexMap[day] ?? day;
+    return t(`Service.weekday.${frontendIndex}`, {
+      defaultMessage: DEFAULT_DAY_NAMES[frontendIndex] ?? '-',
     });
   };
 

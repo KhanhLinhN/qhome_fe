@@ -9,12 +9,13 @@ import DetailField from '@/src/components/base-service/DetailField';
 import Select from '@/src/components/customer-interaction/Select';
 import TimeBox from '@/src/components/customer-interaction/TimeBox';
 import { useServiceDetailPage } from '@/src/hooks/useServiceDetailPage';
-import { ServicePricingType, UpdateServicePayload } from '@/src/types/service';
+import { ServicePricingType, UpdateServicePayload, ServiceAvailability } from '@/src/types/service';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import {
   getServiceAvailabilities,
   deleteServiceAvailability,
   addServiceAvailability,
+  updateServiceAvailability,
 } from '@/src/services/asset-maintenance/serviceService';
 
 type FormState = {
@@ -41,15 +42,16 @@ type AvailabilityFormState = {
 
 type AvailabilityFormErrors = Partial<Record<keyof AvailabilityFormState, string>>;
 
-const DEFAULT_DAY_NAMES = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-];
+// Database format: 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday, 7=Sunday
+const DAY_NAME_MAP: Record<number, string> = {
+  1: 'Monday',
+  2: 'Tuesday',
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+  6: 'Saturday',
+  7: 'Sunday',
+};
 
 const initialState: FormState = {
   name: '',
@@ -128,9 +130,8 @@ export default function ServiceEditPage() {
                 const key = `${startTime}-${endTime}-${availability.isAvailable ?? true}`;
                 
                 if (availability.dayOfWeek !== undefined && availability.dayOfWeek !== null) {
-                  // Convert from 1-7 (Monday-Sunday) to 0-6 (Sunday-Saturday)
-                  // 7 (Sunday) -> 0, 1-6 (Monday-Saturday) -> 1-6
-                  const dayOfWeek = availability.dayOfWeek === 7 ? 0 : availability.dayOfWeek;
+                  // Use database format directly (1-7: Monday-Sunday)
+                  const dayOfWeek = availability.dayOfWeek;
                   
                   if (grouped.has(key)) {
                     const existing = grouped.get(key)!;
@@ -221,11 +222,11 @@ export default function ServiceEditPage() {
             defaultMessage: 'Please select at least one day of the week.',
           });
         } else {
-          // Validate each selected day
+          // Validate each selected day (should be 1-7: Monday-Sunday)
           const invalidDays = availability.dayOfWeek.filter(
             (day) => {
               const parsedDay = Number(day);
-              return Number.isNaN(parsedDay) || parsedDay < 0 || parsedDay > 6;
+              return Number.isNaN(parsedDay) || parsedDay < 1 || parsedDay > 7;
             }
           );
           if (invalidDays.length > 0) {
@@ -399,16 +400,14 @@ export default function ServiceEditPage() {
         availability.endTime
       ) {
         // Create one entry for each selected day
+        // Form already uses database format (1-7: Monday-Sunday), send directly
         availability.dayOfWeek.forEach((dayStr) => {
           const dayOfWeek = Number(dayStr);
-          // Convert from 0-6 (Sunday-Saturday) to 1-7 (Monday-Sunday)
-          // 0 (Sunday) -> 7, 1-6 (Monday-Saturday) -> 1-6
-          const dbDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
           availabilityPayload.push({
-            dayOfWeek: dbDayOfWeek,
+            dayOfWeek: dayOfWeek, // Already in 1-7 format (1=Monday, 7=Sunday) matching database
             startTime: availability.startTime,
             endTime: availability.endTime,
-            isAvailable: availability.isAvailable,
+            isAvailable: availability.isAvailable ?? true,
           });
         });
       }
@@ -453,76 +452,91 @@ export default function ServiceEditPage() {
         const failedAvailabilities: Array<{ availability: typeof uniqueAvailabilities[0]; error: any }> = [];
         
         try {
-          // Get existing availabilities and delete them all
+          // Get existing availabilities
           const existingAvailabilities = await getServiceAvailabilities(serviceId);
-          for (let i = 0; i < existingAvailabilities.length; i++) {
-            const availability = existingAvailabilities[i];
-            if (availability.id) {
-              await deleteServiceAvailability(serviceId, availability.id);
-              // Add small delay between delete requests
-              if (i < existingAvailabilities.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 150));
+          
+          // Create a map of existing availabilities by key (dayOfWeek-startTime-endTime)
+          const existingMap = new Map<string, ServiceAvailability>();
+          existingAvailabilities.forEach((av) => {
+            if (av.id && av.dayOfWeek != null && av.startTime && av.endTime) {
+              // Database format is already 1-7, use directly
+              const key = `${av.dayOfWeek}-${av.startTime.slice(0, 5)}-${av.endTime.slice(0, 5)}`;
+              existingMap.set(key, av);
+            }
+          });
+          
+          // Create a map of new availabilities by key
+          // uniqueAvailabilities already has dayOfWeek in 1-7 format
+          const newMap = new Map<string, typeof uniqueAvailabilities[0]>();
+          uniqueAvailabilities.forEach((av) => {
+            const key = `${av.dayOfWeek}-${av.startTime.slice(0, 5)}-${av.endTime.slice(0, 5)}`;
+            newMap.set(key, av);
+          });
+          
+          // Update existing availabilities that match new ones
+          for (const [key, newAvailability] of newMap.entries()) {
+            const existing = existingMap.get(key);
+            if (existing && existing.id) {
+              try {
+                // Check if needs update (isAvailable might have changed)
+                // newAvailability.dayOfWeek is already in 1-7 format
+                if (existing.isAvailable !== (newAvailability.isAvailable ?? true)) {
+                  await updateServiceAvailability(serviceId, existing.id, {
+                    dayOfWeek: newAvailability.dayOfWeek, // Already in 1-7 format (1=Monday, 7=Sunday)
+                    startTime: newAvailability.startTime,
+                    endTime: newAvailability.endTime,
+                    isAvailable: newAvailability.isAvailable ?? true,
+                  });
+                }
+                // Remove from existing map so we don't delete it later
+                existingMap.delete(key);
+              } catch (error: any) {
+                console.error('Failed to update availability', error);
+                failedAvailabilities.push({ availability: newAvailability, error });
               }
             }
           }
           
-          // Wait a bit after all deletions are complete before adding new ones
-          if (existingAvailabilities.length > 0) {
-            await new Promise(resolve => setTimeout(resolve, 300));
+          // Delete availabilities that no longer exist
+          for (const existing of existingMap.values()) {
+            if (existing.id) {
+              try {
+                await deleteServiceAvailability(serviceId, existing.id);
+              } catch (error: any) {
+                console.error('Failed to delete availability', error);
+                failedAvailabilities.push({ 
+                  availability: {
+                    dayOfWeek: existing.dayOfWeek ?? 1,
+                    startTime: existing.startTime || '',
+                    endTime: existing.endTime || '',
+                    isAvailable: existing.isAvailable ?? true,
+                  }, 
+                  error 
+                });
+              }
+            }
           }
           
-          // Add new availabilities with delay to avoid rate limiting
-          if (uniqueAvailabilities.length > 0) {
-            for (let i = 0; i < uniqueAvailabilities.length; i++) {
-              const availability = uniqueAvailabilities[i];
-              let retryCount = 0;
-              const maxRetries = 2;
-              let success = false;
-              
-              while (retryCount <= maxRetries && !success) {
-                try {
-                  // Add small delay between requests to avoid rate limiting
-                  if (i > 0 || retryCount > 0) {
-                    await new Promise(resolve => setTimeout(resolve, 200 + (retryCount * 200)));
-                  }
-                  
-                  await addServiceAvailability(serviceId, {
-                    dayOfWeek: availability.dayOfWeek,
-                    startTime: availability.startTime,
-                    endTime: availability.endTime,
-                    isAvailable: availability.isAvailable ?? true,
-                  });
-                  success = true;
-                } catch (availabilityError: any) {
-                  retryCount++;
-                  
-                  // If it's a 403 error, it might be a conflict - retry with longer delay
-                  if (availabilityError?.response?.status === 403 && retryCount <= maxRetries) {
-                    console.warn(`403 Forbidden for availability ${i + 1}, retrying (${retryCount}/${maxRetries})...`, {
-                      dayOfWeek: availability.dayOfWeek,
-                      startTime: availability.startTime,
-                      endTime: availability.endTime,
-                    });
-                    // Wait longer before retry
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    continue;
-                  }
-                  
-                  // If retries exhausted or not a 403, log and add to failed list
-                  console.error(`Failed to add availability ${i + 1} after ${retryCount} attempts:`, availabilityError);
-                  failedAvailabilities.push({ availability, error: availabilityError });
-                  
-                  if (availabilityError?.response?.status === 403) {
-                    console.error('403 Forbidden - Possible conflict:', {
-                      dayOfWeek: availability.dayOfWeek,
-                      startTime: availability.startTime,
-                      endTime: availability.endTime,
-                      error: availabilityError.response?.data,
-                      response: availabilityError.response,
-                    });
-                  }
-                  break;
-                }
+          // Add new availabilities that don't exist yet
+          for (const [key, newAvailability] of newMap.entries()) {
+            if (!existingAvailabilities.some(ex => {
+              if (ex.id && ex.dayOfWeek != null && ex.startTime && ex.endTime) {
+                const exKey = `${ex.dayOfWeek}-${ex.startTime.slice(0, 5)}-${ex.endTime.slice(0, 5)}`;
+                return exKey === key;
+              }
+              return false;
+            })) {
+              try {
+                // newAvailability.dayOfWeek is already in 1-7 format
+                await addServiceAvailability(serviceId, {
+                  dayOfWeek: newAvailability.dayOfWeek, // Already in 1-7 format (1=Monday, 7=Sunday)
+                  startTime: newAvailability.startTime,
+                  endTime: newAvailability.endTime,
+                  isAvailable: newAvailability.isAvailable ?? true,
+                });
+              } catch (error: any) {
+                console.error('Failed to add availability', error);
+                failedAvailabilities.push({ availability: newAvailability, error });
               }
             }
           }
@@ -582,15 +596,6 @@ export default function ServiceEditPage() {
           newErrors.name = t('Service.validation.nameNoSpecialChars');
         } else {
           delete newErrors.name;
-        }
-        break;
-      case 'pricePerHour':
-        if (!value.trim()) {
-          newErrors.pricePerHour = t('Service.validation.pricePerHour');
-        } else if (parseNonNegativeNumber(value) === undefined) {
-          newErrors.pricePerHour = t('Service.validation.pricePerHourNonNegative');
-        } else {
-          delete newErrors.pricePerHour;
         }
         break;
       case 'pricePerSession':
@@ -662,11 +667,27 @@ export default function ServiceEditPage() {
   };
 
   const dayOfWeekOptions = useMemo(
-    () =>
-      DEFAULT_DAY_NAMES.map((fallbackName, index) => ({
-        label: t(`Service.weekday.${index}`, { defaultMessage: fallbackName }),
-        value: String(index),
-      })),
+    () => {
+      // Database format: 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday, 7=Sunday
+      // For display, we show Monday first, then Sunday last
+      const dayOrder = [1, 2, 3, 4, 5, 6, 7]; // Monday to Sunday
+      const frontendIndexMap: Record<number, number> = {
+        1: 1, // Monday -> index 1 for translation
+        2: 2, // Tuesday -> index 2
+        3: 3, // Wednesday -> index 3
+        4: 4, // Thursday -> index 4
+        5: 5, // Friday -> index 5
+        6: 6, // Saturday -> index 6
+        7: 0, // Sunday -> index 0 for translation
+      };
+      
+      return dayOrder.map((dayOfWeek) => ({
+        label: t(`Service.weekday.${frontendIndexMap[dayOfWeek]}`, { 
+          defaultMessage: DAY_NAME_MAP[dayOfWeek] || `Day ${dayOfWeek}` 
+        }),
+        value: String(dayOfWeek), // Use 1-7 format matching database
+      }));
+    },
     [t],
   );
 
@@ -944,23 +965,6 @@ export default function ServiceEditPage() {
                               <span className="mt-1 text-xs text-red-500">{errors.endTime}</span>
                             )}
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2 mt-4">
-                          <input
-                            id={`availability-active-${index}`}
-                            type="checkbox"
-                            checked={availability.isAvailable}
-                            onChange={(event) =>
-                              handleAvailabilityChange(index, 'isAvailable', event.target.checked)
-                            }
-                            className="h-4 w-4 rounded border-gray-300 text-[#02542D] focus:ring-[#02542D]"
-                          />
-                          <label
-                            htmlFor={`availability-active-${index}`}
-                            className="text-sm font-medium text-[#02542D]"
-                          >
-                            {t('Service.availability.isAvailable', { defaultMessage: 'Active' })}
-                          </label>
                         </div>
                       </div>
                     </div>
