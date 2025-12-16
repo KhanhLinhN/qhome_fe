@@ -190,6 +190,7 @@ export default function ServiceTypeCreatePage() {
 
   const typeParam = (searchParams.get('type') ?? '').toLowerCase() as FormType;
   const serviceId = searchParams.get('serviceId') ?? '';
+  const editId = searchParams.get('editId') ?? undefined;
 
   const handleBack = () => {
     if (serviceId) {
@@ -208,10 +209,10 @@ export default function ServiceTypeCreatePage() {
   };
 
   const titleMap: Record<FormType, string> = {
-    combo: t('Service.createComboTitle'),
-    option: t('Service.createOptionTitle'),
-    'option-group': t('Service.createOptionGroupTitle'),
-    ticket: t('Service.createTicketTitle'),
+    combo: editId ? t('Service.editComboTitle') : t('Service.createComboTitle'),
+    option: editId ? t('Service.editOptionTitle') : t('Service.createOptionTitle'),
+    'option-group': editId ? t('Service.editOptionGroupTitle') : t('Service.createOptionGroupTitle'),
+    ticket: editId ? t('Service.editTicketTitle') : t('Service.createTicketTitle'),
   };
 
   const isValid = serviceId && VALID_TYPES.includes(typeParam);
@@ -264,6 +265,7 @@ export default function ServiceTypeCreatePage() {
           {typeParam === 'option' && (
             <OptionForm
               serviceId={serviceId}
+              editId={editId}
               onSuccess={handleSuccess}
               onCancel={handleBack}
               t={t}
@@ -282,6 +284,7 @@ export default function ServiceTypeCreatePage() {
           {typeParam === 'ticket' && (
             <TicketForm
               serviceId={serviceId}
+              editId={editId}
               onSuccess={handleSuccess}
               onCancel={handleBack}
               t={t}

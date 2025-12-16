@@ -7,6 +7,7 @@ export type BooleanOption = {
 
 export type BaseFormProps = {
   serviceId: string;
+  editId?: string;
   onSuccess: () => void;
   onCancel: () => void;
   t: (key: string) => string;

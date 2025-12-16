@@ -15,6 +15,8 @@ import {
   ServiceAvailability,
   UpdateServiceCategoryPayload,
   UpdateServicePayload,
+  UpdateServiceOptionPayload,
+  UpdateServiceTicketPayload,
 } from '@/src/types/service';
 
 const BASE_URL = process.env.NEXT_PUBLIC_ASSET_MAINTENANCE_URL || 'http://localhost:8084';
@@ -333,6 +335,14 @@ export async function getServiceOptions(
   return response.data as ServiceOption[];
 }
 
+export async function getServiceOption(optionId: string): Promise<ServiceOption> {
+  const response = await axios.get(
+    `${BASE_URL}/api/asset-maintenance/service-options/${optionId}`,
+    withCredentials,
+  );
+  return response.data as ServiceOption;
+}
+
 export async function getServiceTickets(
   serviceId: string,
   isActive?: boolean,
@@ -347,6 +357,14 @@ export async function getServiceTickets(
     },
   );
   return response.data as ServiceTicket[];
+}
+
+export async function getServiceTicket(ticketId: string): Promise<ServiceTicket> {
+  const response = await axios.get(
+    `${BASE_URL}/api/asset-maintenance/service-tickets/${ticketId}`,
+    withCredentials,
+  );
+  return response.data as ServiceTicket;
 }
 
 export async function getServiceOptionGroups(serviceId: string): Promise<ServiceOptionGroup[]> {
@@ -423,13 +441,25 @@ export async function deleteServiceCombo(comboId: string): Promise<void> {
   );
 }
 
+export async function updateServiceOption(
+  optionId: string,
+  data: UpdateServiceOptionPayload,
+): Promise<ServiceOption> {
+  const response = await axios.put(
+    `${BASE_URL}/api/asset-maintenance/service-options/${optionId}`,
+    data,
+    withCredentials,
+  );
+  return response.data as ServiceOption;
+}
+
 export async function updateServiceOptionStatus(
   optionId: string,
   isActive: boolean,
 ): Promise<ServiceOption> {
-  const response = await axios.patch(
-    `${BASE_URL}/api/asset-maintenance/service-options/${optionId}/status`,
-    { isActive },
+  const response = await axios.put(
+    `${BASE_URL}/api/asset-maintenance/service-options/${optionId}/status?active=${isActive}`,
+    null,
     withCredentials,
   );
   return response.data as ServiceOption;
@@ -442,13 +472,25 @@ export async function deleteServiceOption(optionId: string): Promise<void> {
   );
 }
 
+export async function updateServiceTicket(
+  ticketId: string,
+  data: UpdateServiceTicketPayload,
+): Promise<ServiceTicket> {
+  const response = await axios.put(
+    `${BASE_URL}/api/asset-maintenance/service-tickets/${ticketId}`,
+    data,
+    withCredentials,
+  );
+  return response.data as ServiceTicket;
+}
+
 export async function updateServiceTicketStatus(
   ticketId: string,
   isActive: boolean,
 ): Promise<ServiceTicket> {
   const response = await axios.patch(
-    `${BASE_URL}/api/asset-maintenance/service-tickets/${ticketId}/status`,
-    { isActive },
+    `${BASE_URL}/api/asset-maintenance/service-tickets/${ticketId}/status?active=${isActive}`,
+    null,
     withCredentials,
   );
   return response.data as ServiceTicket;
@@ -511,4 +553,5 @@ export async function deleteServiceAvailability(
   );
   return response.data as ServiceAvailability[];
 }
+
 

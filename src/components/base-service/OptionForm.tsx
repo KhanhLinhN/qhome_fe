@@ -6,10 +6,10 @@ import {
   FormActions,
   RequiredSelect,
 } from '@/src/components/base-service/ServiceFormControls';
-import { createServiceOption, checkOptionCodeExistsGlobally, getService } from '@/src/services/asset-maintenance/serviceService';
-import { CreateServiceOptionPayload } from '@/src/types/service';
+import { createServiceOption, updateServiceOption, checkOptionCodeExistsGlobally, getService, getServiceOption } from '@/src/services/asset-maintenance/serviceService';
+import { CreateServiceOptionPayload, UpdateServiceOptionPayload } from '@/src/types/service';
 
-function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) {
+function OptionForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFormProps) {
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -59,9 +59,9 @@ function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
     return `OP-${serviceAbbr}-${optionAbbr}-${day}${month}${year}`;
   };
 
-  // Fetch service name on mount
+  // Fetch service name and option data on mount
   useEffect(() => {
-    const fetchService = async () => {
+    const fetchData = async () => {
       if (serviceId) {
         try {
           const service = await getService(serviceId);
@@ -70,12 +70,33 @@ function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
           console.error('Failed to fetch service:', error);
         }
       }
+      
+      // Load option data if editing
+      if (editId) {
+        try {
+          const option = await getServiceOption(editId);
+          setFormData({
+            code: option.code || '',
+            name: option.name || '',
+            description: option.description || '',
+            price: option.price?.toString() || '',
+            unit: option.unit || '',
+            isRequired: option.isRequired ?? false,
+            isActive: option.isActive ?? true,
+          });
+        } catch (error) {
+          console.error('Failed to fetch option:', error);
+          show(t('Service.error'), 'error');
+        }
+      }
     };
-    fetchService();
-  }, [serviceId]);
+    fetchData();
+  }, [serviceId, editId, t, show]);
 
-  // Generate and set option code when service name or option name changes
+  // Generate and set option code when service name or option name changes (only for create mode)
   useEffect(() => {
+    if (editId) return; // Don't auto-generate code when editing
+    
     const generateCode = async () => {
       if (!serviceId || !serviceName || !formData.name.trim()) {
         return;
@@ -129,7 +150,7 @@ function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
         clearTimeout(codeGenerationTimeoutRef.current);
       }
     };
-  }, [serviceId, serviceName, formData.name]);
+  }, [serviceId, serviceName, formData.name, editId]);
 
   // Validate option name: not null, max 40 chars, no special chars but allow spaces and Vietnamese accents
   const validateOptionName = (name: string): string | null => {
@@ -246,11 +267,11 @@ function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
   const validate = async () => {
     const nextErrors: Record<string, string> = {};
     
-    // Validate code
+    // Validate code (only check uniqueness when creating, not editing)
     if (!formData.code.trim()) {
       nextErrors.code = t('Service.validation.optionCode');
-    } else {
-      // Check code exists globally in database
+    } else if (!editId) {
+      // Check code exists globally in database (only for create mode)
       try {
         const exists = await checkOptionCodeExistsGlobally(formData.code.trim());
         if (exists) {
@@ -290,54 +311,69 @@ function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
     if (!(await validate())) return;
     setSubmitting(true);
     try {
-      const payload: CreateServiceOptionPayload = {
-        code: formData.code.trim(),
-        name: formData.name.trim(),
-        description: formData.description.trim() || undefined,
-        price: Number(formData.price),
-        unit: formData.unit.trim() || undefined,
-        isRequired: formData.isRequired,
-        isActive: true, // Always active
-      };
-      
-      // Retry logic for unique code generation
-      let attempts = 0;
-      let success = false;
-      while (attempts < 3 && !success) {
-        try {
-          await createServiceOption(serviceId, payload);
-          success = true;
-        } catch (error: any) {
-          if (error?.response?.status === 409 || error?.message?.includes('duplicate') || error?.message?.includes('unique')) {
-            // Code conflict, regenerate with suffix and retry
-            attempts++;
-            if (attempts < 10) {
-              const serviceAbbr = createAbbreviation(serviceName);
-              const optionAbbr = createAbbreviation(formData.name);
-              const baseCode = generateAutoOptionCode(serviceAbbr, optionAbbr);
-              // Try with increasing suffix
-              let suffix = attempts;
-              let newCode = baseCode + suffix.toString();
-              // Check if this code also exists, if so try next suffix
-              while (suffix < 100 && await checkOptionCodeExistsGlobally(newCode)) {
-                suffix++;
-                newCode = baseCode + suffix.toString();
+      if (editId) {
+        // Update mode
+        const payload: UpdateServiceOptionPayload = {
+          name: formData.name.trim(),
+          description: formData.description.trim() || undefined,
+          price: Number(formData.price),
+          unit: formData.unit.trim() || undefined,
+          isRequired: formData.isRequired,
+          isActive: formData.isActive,
+        };
+        await updateServiceOption(editId, payload);
+        show(t('Service.messages.updateOptionSuccess'), 'success');
+      } else {
+        // Create mode
+        const payload: CreateServiceOptionPayload = {
+          code: formData.code.trim(),
+          name: formData.name.trim(),
+          description: formData.description.trim() || undefined,
+          price: Number(formData.price),
+          unit: formData.unit.trim() || undefined,
+          isRequired: formData.isRequired,
+          isActive: true, // Always active
+        };
+        
+        // Retry logic for unique code generation
+        let attempts = 0;
+        let success = false;
+        while (attempts < 3 && !success) {
+          try {
+            await createServiceOption(serviceId, payload);
+            success = true;
+          } catch (error: any) {
+            if (error?.response?.status === 409 || error?.message?.includes('duplicate') || error?.message?.includes('unique')) {
+              // Code conflict, regenerate with suffix and retry
+              attempts++;
+              if (attempts < 10) {
+                const serviceAbbr = createAbbreviation(serviceName);
+                const optionAbbr = createAbbreviation(formData.name);
+                const baseCode = generateAutoOptionCode(serviceAbbr, optionAbbr);
+                // Try with increasing suffix
+                let suffix = attempts;
+                let newCode = baseCode + suffix.toString();
+                // Check if this code also exists, if so try next suffix
+                while (suffix < 100 && await checkOptionCodeExistsGlobally(newCode)) {
+                  suffix++;
+                  newCode = baseCode + suffix.toString();
+                }
+                payload.code = newCode;
+                setFormData((prev) => ({ ...prev, code: newCode }));
+              } else {
+                throw error;
               }
-              payload.code = newCode;
-              setFormData((prev) => ({ ...prev, code: newCode }));
             } else {
               throw error;
             }
-          } else {
-            throw error;
           }
         }
+        show(t('Service.messages.createOptionSuccess'), 'success');
       }
-      show(t('Service.messages.createOptionSuccess'), 'success');
       onSuccess();
     } catch (error) {
-      console.error('Failed to create option', error);
-      show(t('Service.messages.createOptionError'), 'error');
+      console.error(`Failed to ${editId ? 'update' : 'create'} option`, error);
+      show(t(`Service.messages.${editId ? 'updateOptionError' : 'createOptionError'}`), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -349,14 +385,16 @@ function OptionForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
       onSubmit={handleSubmit}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-        <DetailField
-          label={t('Service.optionCode')}
-          name="code"
-          value={formData.code}
-          onChange={(event) => handleChange('code', event.target.value)}
-          readonly={true}
-          error={errors.code}
-        />
+        {!editId && (
+          <DetailField
+            label={t('Service.optionCode')}
+            name="code"
+            value={formData.code}
+            onChange={(event) => handleChange('code', event.target.value)}
+            readonly={true}
+            error={errors.code}
+          />
+        )}
         <DetailField
           label={`${t('Service.optionName')} *`}
           name="name"

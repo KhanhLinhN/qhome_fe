@@ -22,6 +22,8 @@ import {
   updateServiceComboStatus,
   updateServiceOptionStatus,
   updateServiceTicketStatus,
+  updateServiceOption,
+  updateServiceTicket,
 } from '@/src/services/asset-maintenance/serviceService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import {
@@ -350,8 +352,8 @@ export default function ServiceDetailPage() {
   };
 
   const handleEditOption = (optionId?: string) => {
-    if (!optionId) return;
-    show(t('Service.notifications.optionEdit'), 'info');
+    if (!optionId || !serviceIdValue) return;
+    router.push(`/base/serviceType?serviceId=${serviceIdValue}&type=option&editId=${optionId}`);
   };
 
   const handleDeleteOption = async (optionId?: string) => {
@@ -367,10 +369,8 @@ export default function ServiceDetailPage() {
   };
 
   const handleEditTicket = (ticketId?: string) => {
-    if (!ticketId) {
-      return;
-    }
-    show(t('Service.notifications.ticketEdit'), 'info');
+    if (!ticketId || !serviceIdValue) return;
+    router.push(`/base/serviceType?serviceId=${serviceIdValue}&type=ticket&editId=${ticketId}`);
   };
 
   const handleDeleteTicket = async (ticketId?: string) => {

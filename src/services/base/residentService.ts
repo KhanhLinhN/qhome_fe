@@ -58,20 +58,65 @@ export async function checkNationalIdExists(nationalId: string): Promise<boolean
 
   try {
     const cleanedId = nationalId.trim().replace(/\s+/g, '');
-    const response = await axios.get<ResidentDto>(
-      `${BASE_URL}/api/residents/by-national-id/${encodeURIComponent(cleanedId)}`,
-      { 
-        withCredentials: true,
-        validateStatus: (status) => status === 200 || status === 404 // Không throw error cho 404
-      }
-    );
-    return response.status === 200; // Số CCCD tồn tại nếu status 200
+    const residents = await getAllResidents();
+    
+    // Check if nationalId exists in the list
+    const exists = residents.some((resident) => {
+      if (!resident.nationalId) return false;
+      const residentNationalId = resident.nationalId.trim().replace(/\s+/g, '');
+      return residentNationalId.toLowerCase() === cleanedId.toLowerCase();
+    });
+    
+    return exists;
   } catch (err: any) {
-    // Chỉ catch các lỗi không phải 404 (network, 500, etc.)
-    // Return false để không block submit, backend sẽ validate khi submit form
-    // Backend có unique constraint trên national_id nên sẽ báo lỗi nếu trùng
-    console.warn('Error checking national ID (non-404):', err?.response?.status || err?.message);
+    console.warn('Error checking national ID:', err?.response?.status || err?.message);
+    return false; // Return false để không block submit, backend sẽ validate khi submit form
+  }
+}
+
+export async function checkPhoneExists(phone: string): Promise<boolean> {
+  if (!phone || !phone.trim()) {
     return false;
+  }
+
+  try {
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    const residents = await getAllResidents();
+    
+    // Check if phone exists in the list
+    const exists = residents.some((resident) => {
+      if (!resident.phone) return false;
+      const residentPhone = resident.phone.trim().replace(/\s+/g, '');
+      return residentPhone === cleanedPhone;
+    });
+    
+    return exists;
+  } catch (err: any) {
+    console.warn('Error checking phone:', err?.response?.status || err?.message);
+    return false; // Return false để không block submit, backend sẽ validate khi submit form
+  }
+}
+
+export async function checkResidentEmailExists(email: string): Promise<boolean> {
+  if (!email || !email.trim()) {
+    return false;
+  }
+
+  try {
+    const cleanedEmail = email.trim().toLowerCase();
+    const residents = await getAllResidents();
+    
+    // Check if email exists in the list
+    const exists = residents.some((resident) => {
+      if (!resident.email) return false;
+      const residentEmail = resident.email.trim().toLowerCase();
+      return residentEmail === cleanedEmail;
+    });
+    
+    return exists;
+  } catch (err: any) {
+    console.warn('Error checking resident email:', err?.response?.status || err?.message);
+    return false; // Return false để không block submit, backend sẽ validate khi submit form
   }
 }
 

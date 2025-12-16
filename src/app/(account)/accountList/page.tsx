@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   fetchResidentAccounts,
@@ -10,6 +10,7 @@ import {
   deleteAccount,
   updateStaffAccount,
   updateResidentAccount,
+  updateUserProfile,
   fetchStaffAccountDetail,
   fetchResidentAccountDetail,
   exportAccounts,
@@ -56,6 +57,7 @@ const toAccountRow = (
 
 export default function AccountListPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('AccountList');
   const [staffAccounts, setStaffAccounts] = useState<AccountRow[]>([]);
   const [residentAccounts, setResidentAccounts] = useState<AccountRow[]>([]);
@@ -77,6 +79,7 @@ export default function AccountListPage() {
   const [selectedAccountStatus, setSelectedAccountStatus] = useState<boolean | null>(null);
   const [deletePopupOpen, setDeletePopupOpen] = useState(false);
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+  const hasShownCreateSuccess = useRef(false);
 
   const TABLE_HEADERS = [
     t('tableHeaders.username'),
@@ -124,6 +127,17 @@ export default function AccountListPage() {
       active = false;
     };
   }, []);
+
+  // Check for success message from create/update operations
+  useEffect(() => {
+    const created = searchParams.get('created');
+    if (created === 'true' && !hasShownCreateSuccess.current) {
+      hasShownCreateSuccess.current = true;
+      show(t('messages.createSuccess'), 'success');
+      // Clean up URL by removing query param
+      router.replace(window.location.pathname, { scroll: false });
+    }
+  }, [searchParams, show, t, router]);
 
   const uniqueRoles = useMemo(() => {
     const roles = new Set<string>();
@@ -401,21 +415,19 @@ export default function AccountListPage() {
       const newStatus = !selectedAccountStatus;
       let accountDetail: UserAccountInfo;
       
-      // Lấy thông tin account hiện tại
+      // Lấy thông tin account hiện tại và update status - dùng chung API cho cả staff và resident
       if (selectedAccountType === 'staff') {
         accountDetail = await fetchStaffAccountDetail(selectedAccountId);
-        await updateStaffAccount(selectedAccountId, {
-          username: accountDetail.username,
-          email: accountDetail.email,
-          active: newStatus,
-          roles: accountDetail.roles,
-        });
       } else {
         accountDetail = await fetchResidentAccountDetail(selectedAccountId);
-        await updateResidentAccount(selectedAccountId, {
-          active: newStatus,
-        });
       }
+      
+      // Dùng chung API updateUserProfile cho cả staff và resident khi chỉ update status
+      await updateUserProfile(selectedAccountId, {
+        username: accountDetail.username,
+        email: accountDetail.email,
+        active: newStatus,
+      });
 
       // Close popup first
       setPopupOpen(false);
