@@ -127,7 +127,7 @@ export default function ContractManagementPage() {
     return isNaN(num) ? null : num;
   };
 
-  // Calculate rent breakdown (full months, remaining days)
+  // Calculate rent breakdown (first month days, full months, last month days)
   const calculateRentBreakdown = (startDate: string | null, endDate: string | null) => {
     if (!startDate || !endDate) {
       return null;
@@ -146,46 +146,68 @@ export default function ContractManagementPage() {
 
       const startYear = start.getFullYear();
       const startMonth = start.getMonth();
-      const startDay = start.getDate();
       
       const endYear = end.getFullYear();
       const endMonth = end.getMonth();
-      const endDay = end.getDate();
 
-      // Calculate full months: from startDay of start month to startDay of next months
-      // Example: 17/01 → 17/02 (1 month), 17/02 → 17/03 (1 month)
+      // Helper function to get days in a month
+      const getDaysInMonth = (year: number, month: number): number => {
+        return new Date(year, month + 1, 0).getDate();
+      };
+
+      // Helper function to calculate days between two dates (inclusive)
+      const daysBetween = (date1: Date, date2: Date): number => {
+        return Math.floor((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      };
+
+      let firstMonthDays = 0;
+      let firstMonthTotalDays = 0;
       let fullMonths = 0;
-      let remainingDays = 0;
-      
-      // Start from the same day in the next month
-      let currentDate = new Date(startYear, startMonth + 1, startDay);
-      currentDate.setHours(0, 0, 0, 0);
-      
-      // Count full months (from startDay to startDay of next month)
-      while (currentDate <= end) {
-        const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, startDay);
-        nextMonth.setHours(0, 0, 0, 0);
-        
-        if (nextMonth <= end) {
-          fullMonths++;
-          currentDate = nextMonth;
-        } else {
-          break;
-        }
-      }
-      
-      // Calculate remaining days from currentDate to end
-      // Example: if currentDate is 17/02 and end is 25/02, remainingDays = 8
-      if (currentDate <= end) {
-        remainingDays = Math.floor((end.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      let lastMonthDays = 0;
+      let lastMonthTotalDays = 0;
+
+      // Check if start and end are in the same month
+      if (startYear === endYear && startMonth === endMonth) {
+        // Same month: only first month period
+        firstMonthTotalDays = getDaysInMonth(startYear, startMonth);
+        firstMonthDays = daysBetween(start, end);
       } else {
-        // If no full months, calculate all days from start to end
-        remainingDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        // Different months: calculate first month, middle months, and last month
+        
+        // 1. First month
+        firstMonthTotalDays = getDaysInMonth(startYear, startMonth);
+        const endOfFirstMonth = new Date(startYear, startMonth, firstMonthTotalDays);
+        endOfFirstMonth.setHours(0, 0, 0, 0);
+        firstMonthDays = daysBetween(start, endOfFirstMonth);
+        
+        // 2. Middle months (full months)
+        const firstDayOfSecondMonth = new Date(startYear, startMonth + 1, 1);
+        firstDayOfSecondMonth.setHours(0, 0, 0, 0);
+        const firstDayOfLastMonth = new Date(endYear, endMonth, 1);
+        firstDayOfLastMonth.setHours(0, 0, 0, 0);
+        
+        if (firstDayOfSecondMonth < firstDayOfLastMonth) {
+          let currentMonth = new Date(firstDayOfSecondMonth);
+          
+          while (currentMonth < firstDayOfLastMonth) {
+            fullMonths++;
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+          }
+        }
+        
+        // 3. Last month
+        lastMonthTotalDays = getDaysInMonth(endYear, endMonth);
+        const firstDayOfLastMonthActual = new Date(endYear, endMonth, 1);
+        firstDayOfLastMonthActual.setHours(0, 0, 0, 0);
+        lastMonthDays = daysBetween(firstDayOfLastMonthActual, end);
       }
 
       return {
+        firstMonthDays,
+        firstMonthTotalDays,
         fullMonths,
-        remainingDays,
+        lastMonthDays,
+        lastMonthTotalDays,
       };
     } catch (error) {
       return null;
@@ -219,48 +241,61 @@ export default function ContractManagementPage() {
 
       let totalRent = 0;
 
-      // Calculate full months between start and end
-      // Start from the first day of the month after start month
-      let currentYear = startYear;
-      let currentMonth = startMonth + 1; // Next month after start
-      
-      // Calculate full months: from startDay to startDay of next months
-      // Example: 17/01 → 17/02 (1 month), 17/02 → 17/03 (1 month)
-      let currentDate = new Date(startYear, startMonth + 1, startDay);
-      currentDate.setHours(0, 0, 0, 0);
-      
-      // Count full months
-      while (currentDate <= end) {
-        const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, startDay);
-        nextMonth.setHours(0, 0, 0, 0);
-        
-        if (nextMonth <= end) {
-          totalRent += monthlyRent; // Full month
-          currentDate = nextMonth;
-        } else {
-          break;
-        }
-      }
-      
-      // Calculate remaining days from currentDate to end
-      // Example: if currentDate is 17/02 and end is 25/02, remainingDays = 8
-      if (currentDate <= end) {
-        const remainingDays = Math.floor((end.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        if (remainingDays > 0) {
-          if (remainingDays < 15) {
-            totalRent += monthlyRent / 2; // Less than 15 days: half month
-          } else {
-            totalRent += monthlyRent; // 15+ days: full month
-          }
-        }
+      // Helper function to get days in a month
+      const getDaysInMonth = (year: number, month: number): number => {
+        return new Date(year, month + 1, 0).getDate();
+      };
+
+      // Helper function to calculate days between two dates (inclusive)
+      const daysBetween = (date1: Date, date2: Date): number => {
+        return Math.floor((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      };
+
+      // Check if start and end are in the same month
+      if (startYear === endYear && startMonth === endMonth) {
+        // Same month: calculate pro-rated for the period
+        const daysInMonth = getDaysInMonth(startYear, startMonth);
+        const actualDays = daysBetween(start, end);
+        const dailyRate = monthlyRent / daysInMonth;
+        totalRent = dailyRate * actualDays;
       } else {
-        // If no full months, calculate all days from start to end
-        const totalDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        if (totalDays < 15) {
-          totalRent = monthlyRent / 2; // Less than 15 days: half month
-        } else {
-          totalRent = monthlyRent; // 15+ days: full month
+        // Different months: calculate first month, middle months, and last month
+        
+        // 1. Calculate first month (from startDate to end of first month)
+        const daysInFirstMonth = getDaysInMonth(startYear, startMonth);
+        const endOfFirstMonth = new Date(startYear, startMonth, daysInFirstMonth);
+        endOfFirstMonth.setHours(0, 0, 0, 0);
+        const daysInFirstPeriod = daysBetween(start, endOfFirstMonth);
+        const dailyRateFirstMonth = monthlyRent / daysInFirstMonth;
+        const firstMonthRent = dailyRateFirstMonth * daysInFirstPeriod;
+        totalRent += firstMonthRent;
+        
+        // 2. Calculate middle months (full months between first and last month)
+        const firstDayOfSecondMonth = new Date(startYear, startMonth + 1, 1);
+        firstDayOfSecondMonth.setHours(0, 0, 0, 0);
+        const firstDayOfLastMonth = new Date(endYear, endMonth, 1);
+        firstDayOfLastMonth.setHours(0, 0, 0, 0);
+        
+        if (firstDayOfSecondMonth < firstDayOfLastMonth) {
+          let currentMonth = new Date(firstDayOfSecondMonth);
+          let monthCount = 0;
+          
+          while (currentMonth < firstDayOfLastMonth) {
+            monthCount++;
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+          }
+          
+          totalRent += monthlyRent * monthCount;
         }
+        
+        // 3. Calculate last month (from first day of last month to endDate)
+        const daysInLastMonth = getDaysInMonth(endYear, endMonth);
+        const firstDayOfLastMonthActual = new Date(endYear, endMonth, 1);
+        firstDayOfLastMonthActual.setHours(0, 0, 0, 0);
+        const daysInLastPeriod = daysBetween(firstDayOfLastMonthActual, end);
+        const dailyRateLastMonth = monthlyRent / daysInLastMonth;
+        const lastMonthRent = dailyRateLastMonth * daysInLastPeriod;
+        totalRent += lastMonthRent;
       }
 
       return Math.round(totalRent);
@@ -2194,29 +2229,38 @@ export default function ContractManagementPage() {
                                 }) || 'Chi tiết tính toán:'}
                               </p>
                               <ul className="list-disc list-inside space-y-0.5 ml-2">
+                                {rentBreakdown.firstMonthDays > 0 && (
+                                  <li>
+                                    <span className="text-gray-600">
+                                      Tháng đầu: {rentBreakdown.firstMonthDays} ngày trong {rentBreakdown.firstMonthTotalDays} ngày
+                                    </span>
+                                    {' = '}
+                                    <span className="text-blue-600 font-medium">
+                                      {((formState.monthlyRent ?? 0) / rentBreakdown.firstMonthTotalDays * rentBreakdown.firstMonthDays).toLocaleString('vi-VN')} đ
+                                    </span>
+                                  </li>
+                                )}
                                 {rentBreakdown.fullMonths > 0 && (
                                   <li>
                                     {t('rentCalculation.fullMonths', { 
                                       count: rentBreakdown.fullMonths,
                                       defaultValue: `${rentBreakdown.fullMonths} tháng đầy đủ` 
                                     }) || `${rentBreakdown.fullMonths} tháng đầy đủ`}
+                                    {' = '}
+                                    <span className="text-green-600 font-medium">
+                                      {((formState.monthlyRent ?? 0) * rentBreakdown.fullMonths).toLocaleString('vi-VN')} đ
+                                    </span>
                                   </li>
                                 )}
-                                {rentBreakdown.remainingDays > 0 && (
+                                {rentBreakdown.lastMonthDays > 0 && (
                                   <li>
                                     <span className="text-gray-600">
-                                      {rentBreakdown.remainingDays} {(t('rentCalculation.days') || 'ngày')} {(t('rentCalculation.remaining') || 'lẻ')}
+                                      Tháng cuối: {rentBreakdown.lastMonthDays} ngày trong {rentBreakdown.lastMonthTotalDays} ngày
                                     </span>
                                     {' = '}
-                                    {rentBreakdown.remainingDays < 15 ? (
-                                      <span className="text-orange-600 font-medium">
-                                        {t('rentCalculation.halfMonthLabel') || 'nửa tháng'}
-                                      </span>
-                                    ) : (
-                                      <span className="text-green-600 font-medium">
-                                        {t('rentCalculation.fullMonthLabel') || 'full tháng'}
-                                      </span>
-                                    )}
+                                    <span className="text-purple-600 font-medium">
+                                      {((formState.monthlyRent ?? 0) / rentBreakdown.lastMonthTotalDays * rentBreakdown.lastMonthDays).toLocaleString('vi-VN')} đ
+                                    </span>
                                   </li>
                                 )}
                               </ul>

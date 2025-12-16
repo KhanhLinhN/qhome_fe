@@ -249,7 +249,7 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                                         </svg> */}
                                                         <Image 
                                                             src={Delete} 
-                                                            // alt={t('actions.viewDetail')} 
+                                                            alt={t('actions.viewDetail')} 
                                                             width={24} 
                                                             height={24}
                                                         />

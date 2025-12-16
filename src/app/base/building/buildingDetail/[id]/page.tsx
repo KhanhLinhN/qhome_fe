@@ -623,28 +623,6 @@ export default function BuildingDetail () {
                     </div>
                 )}
 
-                {buildingData?.code && (
-                    <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 rounded-lg p-4 text-sm space-y-1">
-                        <div className="font-semibold text-base text-yellow-900">{t('meterImportGuide')}</div>
-                        <div>
-                            {t.rich('meterImportGuideDesc1', { 
-                                buildingCode: buildingData?.code,
-                                bold: (chunks) => <b>{chunks}</b>,
-                                mono: (chunks) => <span className="font-mono">{chunks}</span>
-                            })}
-                        </div>
-                        <div>
-                            {t.rich('meterImportGuideDesc2', {
-                                bold: (chunks) => <b>{chunks}</b>
-                            })}
-                        </div>
-                        <div>
-                            {t.rich('meterImportGuideDesc3', {
-                                bold: (chunks) => <b>{chunks}</b>
-                            })}
-                        </div>
-                    </div>
-                )}
 
                 {importError && (
                     <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
