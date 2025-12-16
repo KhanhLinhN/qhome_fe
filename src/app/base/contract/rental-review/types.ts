@@ -8,3 +8,4 @@ export interface RentalContractWithUnit extends ContractSummary {
   monthlyRent?: number | null;
 }
 
+

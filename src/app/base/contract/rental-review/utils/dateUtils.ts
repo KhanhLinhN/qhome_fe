@@ -75,3 +75,4 @@ export const calculateRemainingDays = (endDateStr: string): number => {
   return Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 };
 
+

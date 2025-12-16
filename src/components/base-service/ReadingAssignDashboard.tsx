@@ -28,6 +28,7 @@ import { useNotifications } from '@/src/hooks/useNotifications';
 import CycleCard from '@/src/components/base-service/CycleCard';
 import AssignmentDetailsModal from '@/src/components/base-service/AssignmentDetailsModal';
 import CycleDetailsModal from '@/src/components/base-service/CycleDetailsModal';
+import DateBox from '@/src/components/customer-interaction/DateBox';
 
 const getCycleReferenceDate = (cycle: ReadingCycleDto): Date | null => {
   const source = cycle.periodFrom || cycle.fromDate || cycle.periodTo || cycle.toDate;
@@ -99,6 +100,11 @@ export default function ReadingAssignDashboard({
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [startDateError, setStartDateError] = useState<string>('');
+  const [endDateError, setEndDateError] = useState<string>('');
+  const [note, setNote] = useState<string>('');
 
   const normalizedServiceCode = serviceCode?.toUpperCase();
   const currentDate = useMemo(() => new Date(), []);
@@ -228,6 +234,17 @@ export default function ReadingAssignDashboard({
       return;
     }
 
+    // Auto-fill dates from cycle
+    if (activeUnassignedModal.cycle) {
+      const cycle = activeUnassignedModal.cycle;
+      if (cycle.periodFrom) {
+        setStartDate(cycle.periodFrom.split('T')[0]);
+      }
+      if (cycle.periodTo) {
+        setEndDate(cycle.periodTo.split('T')[0]);
+      }
+    }
+
     setLoadingStaff(true);
     try {
       const staffData = await getEmployeesByRoleNew('technician');
@@ -248,6 +265,48 @@ export default function ReadingAssignDashboard({
     if (!activeUnassignedModal || selectedBuildings.size === 0 || !selectedStaffId) {
       show('Vui lòng chọn kỹ thuật viên', 'error');
       return;
+    }
+
+    // Validate dates against cycle period
+    setStartDateError('');
+    setEndDateError('');
+
+    const parseDateOnly = (value: string) => {
+      const [datePart] = value.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
+    const cycle = activeUnassignedModal.cycle;
+    if (cycle) {
+      const cycleStartDate = parseDateOnly(cycle.periodFrom);
+      const cycleEndDate = parseDateOnly(cycle.periodTo);
+
+      if (startDate) {
+        const startDateValue = parseDateOnly(startDate);
+        if (startDateValue < cycleStartDate) {
+          setStartDateError('Ngày bắt đầu không được trước chu kỳ');
+          return;
+        }
+      }
+
+      if (endDate) {
+        const endDateValue = parseDateOnly(endDate);
+        if (endDateValue > cycleEndDate) {
+          setEndDateError('Ngày kết thúc không được sau chu kỳ');
+          return;
+        }
+      }
+
+      // Validate endDate >= startDate if both are provided
+      if (startDate && endDate) {
+        const startDateValue = parseDateOnly(startDate);
+        const endDateValue = parseDateOnly(endDate);
+        if (endDateValue < startDateValue) {
+          setEndDateError('Ngày kết thúc phải sau ngày bắt đầu');
+          return;
+        }
+      }
     }
 
     setCreatingAssignments(true);
@@ -277,6 +336,9 @@ export default function ReadingAssignDashboard({
             buildingId: buildingId,
             assignedTo: selectedStaffId,
             unitIds: unitIds,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+            note: note || undefined,
           };
 
           await createMeterReadingAssignment(assignmentReq);
@@ -296,6 +358,11 @@ export default function ReadingAssignDashboard({
         );
         setShowStaffSelectionModal(false);
         setSelectedStaffId('');
+        setStartDate('');
+        setEndDate('');
+        setStartDateError('');
+        setEndDateError('');
+        setNote('');
         setSelectedBuildings(new Set());
         setActiveUnassignedModal(null);
         // Trigger reload by updating reloadTrigger
@@ -886,6 +953,11 @@ export default function ReadingAssignDashboard({
                 onClick={() => {
                   setShowStaffSelectionModal(false);
                   setSelectedStaffId('');
+                  setStartDate('');
+                  setEndDate('');
+                  setStartDateError('');
+                  setEndDateError('');
+                  setNote('');
                 }}
                 className="text-gray-500 hover:text-gray-900 text-sm"
               >
@@ -922,6 +994,60 @@ export default function ReadingAssignDashboard({
                       ))}
                     </select>
                   </div>
+                  
+                  {/* Date Range */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ngày bắt đầu <span className="text-gray-500 text-xs">(Tùy chọn)</span>
+                      </label>
+                      <DateBox
+                        value={startDate}
+                        onChange={(e) => {
+                          setStartDate(e.target.value);
+                          if (startDateError) {
+                            setStartDateError('');
+                          }
+                        }}
+                        placeholderText="Chọn ngày bắt đầu"
+                      />
+                      {startDateError && (
+                        <span className="text-red-500 text-xs mt-1 block">{startDateError}</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ngày kết thúc <span className="text-gray-500 text-xs">(Tùy chọn)</span>
+                      </label>
+                      <DateBox
+                        value={endDate}
+                        onChange={(e) => {
+                          setEndDate(e.target.value);
+                          if (endDateError) {
+                            setEndDateError('');
+                          }
+                        }}
+                        placeholderText="Chọn ngày kết thúc"
+                      />
+                      {endDateError && (
+                        <span className="text-red-500 text-xs mt-1 block">{endDateError}</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Note */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ghi chú <span className="text-gray-500 text-xs">(Tùy chọn)</span>
+                    </label>
+                    <textarea
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="Ghi chú bổ sung (tùy chọn)"
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#02542D]"
+                    />
+                  </div>
                   <div className="flex gap-3 pt-2">
                     <button
                       type="button"
@@ -936,6 +1062,11 @@ export default function ReadingAssignDashboard({
                       onClick={() => {
                         setShowStaffSelectionModal(false);
                         setSelectedStaffId('');
+                        setStartDate('');
+                        setEndDate('');
+                        setStartDateError('');
+                        setEndDateError('');
+                        setNote('');
                       }}
                       disabled={creatingAssignments}
                       className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50"
