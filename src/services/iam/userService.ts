@@ -249,7 +249,7 @@ export async function createResidentAccount(
 }
 
 export async function deleteAccount(userId: string): Promise<void> {
-  const response = await axios.delete(`${IAM_URL}/api/users/staff/${userId}`, 
+  const response = await axios.delete(`${IAM_URL}/api/users/${userId}`, 
     { withCredentials: true });
   return response.data;
 }

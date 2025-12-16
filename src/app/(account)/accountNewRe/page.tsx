@@ -26,8 +26,7 @@ import {
 } from '@/src/services/base/contractService';
 import { getUnit, getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
 import { getBuildings, type Building } from '@/src/services/base/buildingService';
-import { checkEmailExists } from '@/src/services/iam/userService';
-import { checkNationalIdExists } from '@/src/services/base/residentService';
+import { checkNationalIdExists, checkPhoneExists, checkResidentEmailExists } from '@/src/services/base/residentService';
 import Select from '@/src/components/customer-interaction/Select';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 import CCCDUpload from '@/src/components/account/CCCDUpload';
@@ -414,12 +413,38 @@ export default function AccountNewResidentPage() {
             return next;
           }
           
-          // If all validations pass, clear error
-          delete next.email;
+          // Check if email exists (async, but don't block UI)
+          checkResidentEmailExists(value.trim()).then((exists) => {
+            if (exists) {
+              setManualFieldErrors((prev) => ({
+                ...prev,
+                email: t('validation.email.exists'),
+              }));
+            } else {
+              setManualFieldErrors((prev) => {
+                const next = { ...prev };
+                // Only clear if format is still valid
+                const formatError = validateEmailFormat(value);
+                if (!formatError && !/\s/.test(value) && value.length <= 40) {
+                  delete next.email;
+                }
+                return next;
+              });
+            }
+          }).catch((err) => {
+            console.error('Error checking email:', err);
+          });
+          
+          // If format validation passes, clear error temporarily (will be updated by async check)
+          if (!emailFormatError) {
+            delete next.email;
+          }
           return next;
         });
       } else if (field === 'phone') {
         // Real-time validation for phone
+        const currentPhoneValue = value.trim().replace(/\s+/g, '');
+        
         setManualFieldErrors((prev) => {
           const next = { ...prev };
           
@@ -429,15 +454,62 @@ export default function AccountNewResidentPage() {
             return next;
           }
           
-          // Validate phone format
+          // Validate phone format first
           const phoneError = validatePhone(value);
           if (phoneError) {
             next.phone = phoneError;
             return next;
           }
           
-          // If all validations pass, clear error
-          delete next.phone;
+          // Format is valid, clear format errors but keep "exists" error until async check completes
+          // Only clear if current error is not "exists" error
+          const currentError = prev.phone;
+          const isExistsError = currentError === (t('validation.phone.exists') || 'Số điện thoại đã tồn tại trong hệ thống');
+          if (!isExistsError) {
+            delete next.phone;
+          }
+          
+          // Check if phone exists (async)
+          checkPhoneExists(currentPhoneValue).then((exists) => {
+            // Use functional update to get latest form state
+            setManualFieldErrors((prevErrors) => {
+              const latestPhoneValue = manualForm.phone.trim().replace(/\s+/g, '');
+              // Only update if the phone value hasn't changed since we started checking
+              if (latestPhoneValue === currentPhoneValue) {
+                const updated = { ...prevErrors };
+                if (exists) {
+                  updated.phone = t('validation.phone.exists') || 'Số điện thoại đã tồn tại trong hệ thống';
+                } else {
+                  // Double-check format is still valid before clearing
+                  const formatCheck = validatePhone(manualForm.phone);
+                  if (!formatCheck) {
+                    delete updated.phone;
+                  } else {
+                    updated.phone = formatCheck;
+                  }
+                }
+                return updated;
+              }
+              // Value changed, don't update
+              return prevErrors;
+            });
+          }).catch((err) => {
+            console.error('Error checking phone:', err);
+            // On error, only set error if value hasn't changed and format is still valid
+            setManualFieldErrors((prevErrors) => {
+              const latestPhoneValue = manualForm.phone.trim().replace(/\s+/g, '');
+              if (latestPhoneValue === currentPhoneValue) {
+                const updated = { ...prevErrors };
+                const formatError = validatePhone(manualForm.phone);
+                if (!formatError) {
+                  updated.phone = t('validation.phone.checkError') || 'Không thể kiểm tra số điện thoại. Vui lòng thử lại.';
+                }
+                return updated;
+              }
+              return prevErrors;
+            });
+          });
+          
           return next;
         });
       } else if (field === 'username') {
@@ -480,8 +552,33 @@ export default function AccountNewResidentPage() {
             return next;
           }
           
-          // If all validations pass, clear error
-          delete next.nationalId;
+          // Check if national ID exists (async, but don't block UI)
+          const cleanedId = value.trim().replace(/\s+/g, '');
+          checkNationalIdExists(cleanedId).then((exists) => {
+            if (exists) {
+              setManualFieldErrors((prev) => ({
+                ...prev,
+                nationalId: t('validation.nationalId.exists') || 'Số căn cước công dân đã tồn tại trong hệ thống',
+              }));
+            } else {
+              setManualFieldErrors((prev) => {
+                const next = { ...prev };
+                // Only clear if format is still valid
+                const formatError = validateNationalId(value);
+                if (!formatError) {
+                  delete next.nationalId;
+                }
+                return next;
+              });
+            }
+          }).catch((err) => {
+            console.error('Error checking national ID:', err);
+          });
+          
+          // If format validation passes, clear error temporarily (will be updated by async check)
+          if (!nationalIdError) {
+            delete next.nationalId;
+          }
           return next;
         });
       } else {
@@ -622,7 +719,7 @@ export default function AccountNewResidentPage() {
       } else {
         // Check email exists in database
         try {
-          const exists = await checkEmailExists(manualForm.email.trim());
+          const exists = await checkResidentEmailExists(manualForm.email.trim());
           if (exists) {
             errors.email = t('validation.email.exists');
             isValid = false;
@@ -639,6 +736,21 @@ export default function AccountNewResidentPage() {
     if (phoneError) {
       errors.phone = phoneError;
       isValid = false;
+    } else if (manualForm.phone && manualForm.phone.trim()) {
+      // Check if phone already exists in system (must be unique)
+      try {
+        const cleanedPhone = manualForm.phone.trim().replace(/\s+/g, '');
+        const exists = await checkPhoneExists(cleanedPhone);
+        if (exists) {
+          errors.phone = t('validation.phone.exists') || 'Số điện thoại đã tồn tại trong hệ thống';
+          isValid = false;
+        }
+      } catch (err) {
+        console.error('Error checking phone:', err as Error);
+        // If check fails, still set error to be safe
+        errors.phone = t('validation.phone.checkError') || 'Không thể kiểm tra số điện thoại. Vui lòng thử lại.';
+        isValid = false;
+      }
     }
 
     // Validate date of birth
@@ -831,7 +943,8 @@ export default function AccountNewResidentPage() {
         dob: manualForm.dob || undefined,
       },
       account: {
-        username: manualForm.username.trim() || undefined,
+        // Only include username if user provided one and we're not auto-generating
+        // When autoGenerate is true, backend will generate username automatically
         autoGenerate: true,
       },
       relation: manualForm.relation.trim() || undefined,

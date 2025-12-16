@@ -249,7 +249,7 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                                         </svg> */}
                                                         <Image 
                                                             src={Delete} 
-                                                            // alt={t('actions.viewDetail')} 
+                                                            alt={t('actions.viewDetail')} 
                                                             width={24} 
                                                             height={24}
                                                         />
@@ -419,10 +419,12 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                     .split(',')
                                     .map(token => token.trim())
                                     .filter(Boolean);
+                                const roleTokensUpper = roleTokens.map(r => r.toUpperCase());
+                                const isAdmin = roleTokensUpper.includes('ADMIN');
                                 const accountType = item.accountType ?? 'staff';
                                 const detailHref = accountType === 'resident'
                                     ? `/accountDetailRe/${item.accountId ?? item.userId ?? ''}`
-                                    : item.roles === 'admin' ? `/accountDetailStaff/${item.accountId ?? item.userId ?? ''}` : `/accountEditStaff/${item.accountId ?? item.userId ?? ''}`;
+                                    : isAdmin ? `/accountDetailStaff/${item.accountId ?? item.userId ?? ''}` : `/accountEditStaff/${item.accountId ?? item.userId ?? ''}`;
                                 return (
                                     <tr
                                         key={item.userId ?? `account-${index}`}
@@ -481,6 +483,10 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                                     <button
                                                         type="button"
                                                         onClick={() => {
+                                                            if (isAdmin) {
+                                                                show(t('errors.cannotChangeAdminStatus'));
+                                                                return;
+                                                            }
                                                             const targetId = item.accountId ?? item.userId;
                                                             if (!targetId) {
                                                                 show(t('errors.cannotIdentifyAccountForStatusChange'));
@@ -488,8 +494,13 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                                             }
                                                             onStatusChange(targetId, accountType);
                                                         }}
-                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-100 transition"
-                                                        title={t('actions.changeStatus')}
+                                                        disabled={isAdmin}
+                                                        className={`w-[47px] h-[34px] flex items-center justify-center rounded-md border transition ${
+                                                            isAdmin
+                                                                ? 'bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
+                                                                : 'bg-white border-gray-300 hover:bg-gray-100'
+                                                        }`}
+                                                        title={isAdmin ? t('errors.cannotChangeAdminStatus') : t('actions.changeStatus')}
                                                     >
                                                         <svg 
                                                             xmlns="http://www.w3.org/2000/svg" 
@@ -505,15 +516,71 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                                         </svg>
                                                     </button>
                                                 )}
-                                                {item.roles === 'admin' ? (
-                                                    <button 
-                                                        onClick={() => {show(t('errors.noPermissionToEditAdmin'));}}
-                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-gray-500 hover:bg-gray-600 transition"
+                                                {isAdmin ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (isActive) {
+                                                                show(t('errors.cannotDeleteActiveAdmin'));
+                                                                return;
+                                                            }
+                                                            const targetId = item.accountId ?? item.userId;
+                                                            if (!targetId) {
+                                                                show(t('errors.cannotIdentifyAccountForDelete'));
+                                                                return;
+                                                            }
+                                                            if (onDelete) {
+                                                                onDelete(targetId);
+                                                            } else {
+                                                                show(t('errors.deleteNotConfigured'));
+                                                            }
+                                                        }}
+                                                        disabled={isActive}
+                                                        className={`w-[47px] h-[34px] flex items-center justify-center rounded-md transition ${
+                                                            !isActive
+                                                                ? 'bg-red-500 hover:bg-red-600 cursor-pointer'
+                                                                : 'bg-gray-300 cursor-not-allowed opacity-50'
+                                                        }`}
+                                                        title={!isActive ? t('actions.deleteAccount') : t('errors.cannotDeleteActiveAdmin')}
                                                     >
-                                                        <Image 
-                                                            src={Delete} 
-                                                            alt={t('actions.delete')} 
-                                                            width={24} 
+                                                        <Image
+                                                            src={Delete}
+                                                            alt={t('actions.delete')}
+                                                            width={24}
+                                                            height={24}
+                                                        />
+                                                    </button>
+                                                ) : accountType === 'resident' ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (isActive) {
+                                                                show(t('errors.cannotDeleteActiveResident'));
+                                                                return;
+                                                            }
+                                                            const targetId = item.accountId ?? item.userId;
+                                                            if (!targetId) {
+                                                                show(t('errors.cannotIdentifyAccountForDelete'));
+                                                                return;
+                                                            }
+                                                            if (onDelete) {
+                                                                onDelete(targetId);
+                                                            } else {
+                                                                show(t('errors.deleteNotConfigured'));
+                                                            }
+                                                        }}
+                                                        disabled={isActive}
+                                                        className={`w-[47px] h-[34px] flex items-center justify-center rounded-md transition ${
+                                                            !isActive
+                                                                ? 'bg-red-500 hover:bg-red-600 cursor-pointer'
+                                                                : 'bg-gray-300 cursor-not-allowed opacity-50'
+                                                        }`}
+                                                        title={!isActive ? t('actions.deleteAccount') : t('errors.cannotDeleteActiveResident')}
+                                                    >
+                                                        <Image
+                                                            src={Delete}
+                                                            alt={t('actions.delete')}
+                                                            width={24}
                                                             height={24}
                                                         />
                                                     </button>
@@ -532,13 +599,8 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                                                 show(t('errors.deleteNotConfigured'));
                                                             }
                                                         }}
-                                                        disabled={!isActive}
-                                                        className={`w-[47px] h-[34px] flex items-center justify-center rounded-md transition ${
-                                                            isActive
-                                                                ? 'bg-red-500 hover:bg-red-600 cursor-pointer'
-                                                                : 'bg-gray-300 cursor-not-allowed opacity-50'
-                                                        }`}
-                                                        title={isActive ? t('actions.deleteAccount') : t('errors.cannotDeleteInactiveAccount')}
+                                                        className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition cursor-pointer"
+                                                        title={t('actions.deleteAccount')}
                                                     >
                                                         <Image
                                                             src={Delete}

@@ -343,6 +343,7 @@
       "loadFailed": "Unable to load account list."
     },
     "messages": {
+      "createSuccess": "Staff account created successfully.",
       "deleteSuccess": "Account deleted successfully",
       "deleteError": "An error occurred while deleting the account",
       "activateSuccess": "Account activated successfully.",
@@ -1130,7 +1131,7 @@
     "optionDescription": "Option description",
     "optionIsRequired": "Required option",
     "optionPrice": "Price",
-    "optionUnit": "Apartment",
+    "optionUnit": "Unit",
     "noOptions": "No additional options",
     "noDescription": "No description",
     "optionGroups": "Option groups",
@@ -2015,6 +2016,9 @@
       "cannotIdentifyAccountForDelete": "Unable to identify account to delete.",
       "deleteNotConfigured": "Delete function is not configured.",
       "cannotDeleteInactiveAccount": "Cannot delete inactive account.",
+      "cannotDeleteActiveAdmin": "Cannot delete admin account that is currently active. Please deactivate it first.",
+      "cannotDeleteActiveResident": "Cannot delete resident account that is currently active. Please deactivate it first.",
+      "cannotChangeAdminStatus": "Cannot change status of admin account.",
       "noPermissionToEditAdmin": "You do not have permission to delete admin account."
     }
   },
@@ -3205,7 +3209,9 @@
         "specialChars": "Phone number cannot contain special characters.",
         "mustStartWithZero": "Phone number must start with 0.",
         "mustBe10Digits": "Phone number must be exactly 10 digits.",
-        "invalidPrefix": "Phone number is invalid. Please check the prefix."
+        "invalidPrefix": "Phone number is invalid. Please check the prefix.",
+        "exists": "Phone number already exists in the system.",
+        "checkError": "Unable to check phone number. Please try again."
       },
       "fullName": {
         "required": "Resident full name cannot be empty.",
@@ -3216,7 +3222,8 @@
         "required": "ID card/Citizen ID cannot be empty.",
         "specialChars": "ID card/Citizen ID cannot contain special characters.",
         "mustBe13Digits": "ID card/Citizen ID must be exactly 12 digits.",
-        "exists": "Citizen ID number already exists in the system."
+        "exists": "Citizen ID number already exists in the system.",
+        "checkError": "Unable to check citizen ID number. Please try again."
       },
       "username": {
         "noWhitespace": "Username cannot contain whitespace.",

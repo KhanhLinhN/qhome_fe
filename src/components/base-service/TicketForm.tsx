@@ -5,10 +5,10 @@ import {
   FormActions,
 } from '@/src/components/base-service/ServiceFormControls';
 import Select from '@/src/components/customer-interaction/Select';
-import { createServiceTicket, checkTicketCodeExistsGlobally, getService } from '@/src/services/asset-maintenance/serviceService';
-import { CreateServiceTicketPayload, ServiceTicketType } from '@/src/types/service';
+import { createServiceTicket, updateServiceTicket, checkTicketCodeExistsGlobally, getService, getServiceTicket } from '@/src/services/asset-maintenance/serviceService';
+import { CreateServiceTicketPayload, UpdateServiceTicketPayload, ServiceTicketType } from '@/src/types/service';
 
-function TicketForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) {
+function TicketForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFormProps) {
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -61,9 +61,9 @@ function TicketForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
     return `TK-${serviceAbbr}-${ticketAbbr}-${day}${month}${year}`;
   };
 
-  // Fetch service name on mount
+  // Fetch service name and ticket data on mount
   useEffect(() => {
-    const fetchService = async () => {
+    const fetchData = async () => {
       if (serviceId) {
         try {
           const service = await getService(serviceId);
@@ -72,12 +72,34 @@ function TicketForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
           console.error('Failed to fetch service:', error);
         }
       }
+      
+      // Load ticket data if editing
+      if (editId) {
+        try {
+          const ticket = await getServiceTicket(editId);
+          setFormData({
+            code: ticket.code || '',
+            name: ticket.name || '',
+            ticketType: (ticket.ticketType as ServiceTicketType) || ServiceTicketType.DAY,
+            durationHours: ticket.durationHours?.toString() || '',
+            price: ticket.price?.toString() || '',
+            maxPeople: ticket.maxPeople?.toString() || '',
+            description: ticket.description || '',
+            isActive: ticket.isActive ?? true,
+          });
+        } catch (error) {
+          console.error('Failed to fetch ticket:', error);
+          show(t('Service.error'), 'error');
+        }
+      }
     };
-    fetchService();
-  }, [serviceId]);
+    fetchData();
+  }, [serviceId, editId, t, show]);
 
-  // Generate and set ticket code when service name or ticket name changes
+  // Generate and set ticket code when service name or ticket name changes (only for create mode)
   useEffect(() => {
+    if (editId) return; // Don't auto-generate code when editing
+    
     const generateCode = async () => {
       if (!serviceId || !serviceName || !formData.name.trim()) {
         return;
@@ -131,7 +153,7 @@ function TicketForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
         clearTimeout(codeGenerationTimeoutRef.current);
       }
     };
-  }, [serviceId, serviceName, formData.name]);
+  }, [serviceId, serviceName, formData.name, editId]);
 
   // Validate ticket name: not null, no special chars but allow spaces and Vietnamese accents
   const validateTicketName = (name: string): string | null => {
@@ -269,11 +291,11 @@ function TicketForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
   const validate = async () => {
     const nextErrors: Record<string, string> = {};
     
-    // Validate code
+    // Validate code (only check uniqueness when creating, not editing)
     if (!formData.code.trim()) {
       nextErrors.code = t('Service.validation.ticketCode');
-    } else {
-      // Check code exists globally in database
+    } else if (!editId) {
+      // Check code exists globally in database (only for create mode)
       try {
         const exists = await checkTicketCodeExistsGlobally(formData.code.trim());
         if (exists) {
@@ -332,57 +354,75 @@ function TicketForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
     if (!(await validate())) return;
     setSubmitting(true);
     try {
-      const payload: CreateServiceTicketPayload = {
-        code: formData.code.trim(),
-        name: formData.name.trim(),
-        ticketType: formData.ticketType,
-        durationHours: formData.durationHours.trim()
-          ? Number(formData.durationHours)
-          : null,
-        price: Number(formData.price),
-        maxPeople: formData.maxPeople.trim() ? Number(formData.maxPeople) : null,
-        description: formData.description.trim() || undefined,
-        isActive: true, // Always active
-      };
-      
-      // Retry logic for unique code generation
-      let attempts = 0;
-      let success = false;
-      while (attempts < 3 && !success) {
-        try {
-          await createServiceTicket(serviceId, payload);
-          success = true;
-        } catch (error: any) {
-          if (error?.response?.status === 409 || error?.message?.includes('duplicate') || error?.message?.includes('unique')) {
-            // Code conflict, regenerate with suffix and retry
-            attempts++;
-            if (attempts < 10) {
-              const serviceAbbr = createAbbreviation(serviceName);
-              const ticketAbbr = createAbbreviation(formData.name);
-              const baseCode = generateAutoTicketCode(serviceAbbr, ticketAbbr);
-              // Try with increasing suffix
-              let suffix = attempts;
-              let newCode = baseCode + suffix.toString();
-              // Check if this code also exists, if so try next suffix
-              while (suffix < 100 && await checkTicketCodeExistsGlobally(newCode)) {
-                suffix++;
-                newCode = baseCode + suffix.toString();
+      if (editId) {
+        // Update mode
+        const payload: UpdateServiceTicketPayload = {
+          name: formData.name.trim(),
+          ticketType: formData.ticketType,
+          durationHours: formData.durationHours.trim()
+            ? Number(formData.durationHours)
+            : null,
+          price: Number(formData.price),
+          maxPeople: formData.maxPeople.trim() ? Number(formData.maxPeople) : null,
+          description: formData.description.trim() || undefined,
+          isActive: formData.isActive,
+        };
+        await updateServiceTicket(editId, payload);
+        show(t('Service.messages.updateTicketSuccess'), 'success');
+      } else {
+        // Create mode
+        const payload: CreateServiceTicketPayload = {
+          code: formData.code.trim(),
+          name: formData.name.trim(),
+          ticketType: formData.ticketType,
+          durationHours: formData.durationHours.trim()
+            ? Number(formData.durationHours)
+            : null,
+          price: Number(formData.price),
+          maxPeople: formData.maxPeople.trim() ? Number(formData.maxPeople) : null,
+          description: formData.description.trim() || undefined,
+          isActive: true, // Always active
+        };
+        
+        // Retry logic for unique code generation
+        let attempts = 0;
+        let success = false;
+        while (attempts < 3 && !success) {
+          try {
+            await createServiceTicket(serviceId, payload);
+            success = true;
+          } catch (error: any) {
+            if (error?.response?.status === 409 || error?.message?.includes('duplicate') || error?.message?.includes('unique')) {
+              // Code conflict, regenerate with suffix and retry
+              attempts++;
+              if (attempts < 10) {
+                const serviceAbbr = createAbbreviation(serviceName);
+                const ticketAbbr = createAbbreviation(formData.name);
+                const baseCode = generateAutoTicketCode(serviceAbbr, ticketAbbr);
+                // Try with increasing suffix
+                let suffix = attempts;
+                let newCode = baseCode + suffix.toString();
+                // Check if this code also exists, if so try next suffix
+                while (suffix < 100 && await checkTicketCodeExistsGlobally(newCode)) {
+                  suffix++;
+                  newCode = baseCode + suffix.toString();
+                }
+                payload.code = newCode;
+                setFormData((prev) => ({ ...prev, code: newCode }));
+              } else {
+                throw error;
               }
-              payload.code = newCode;
-              setFormData((prev) => ({ ...prev, code: newCode }));
             } else {
               throw error;
             }
-          } else {
-            throw error;
           }
         }
+        show(t('Service.messages.createTicketSuccess'), 'success');
       }
-      show(t('Service.messages.createTicketSuccess'), 'success');
       onSuccess();
     } catch (error) {
-      console.error('Failed to create ticket', error);
-      show(t('Service.messages.createTicketError'), 'error');
+      console.error(`Failed to ${editId ? 'update' : 'create'} ticket`, error);
+      show(t(`Service.messages.${editId ? 'updateTicketError' : 'createTicketError'}`), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -394,14 +434,16 @@ function TicketForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) 
       onSubmit={handleSubmit}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-        <DetailField
-          label={t('Service.ticketCode')}
-          name="code"
-          value={formData.code}
-          onChange={(event) => handleChange('code', event.target.value)}
-          readonly={true}
-          error={errors.code}
-        />
+        {!editId && (
+          <DetailField
+            label={t('Service.ticketCode')}
+            name="code"
+            value={formData.code}
+            onChange={(event) => handleChange('code', event.target.value)}
+            readonly={true}
+            error={errors.code}
+          />
+        )}
         <DetailField
           label={`${t('Service.ticketName')} *`}
           name="name"

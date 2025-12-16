@@ -193,6 +193,16 @@ export interface CreateServiceOptionPayload {
   sortOrder?: number | null;
 }
 
+export interface UpdateServiceOptionPayload {
+  name: string;
+  description?: string;
+  price: number;
+  unit?: string;
+  isRequired?: boolean;
+  isActive?: boolean;
+  sortOrder?: number | null;
+}
+
 export interface CreateServiceOptionGroupPayload {
   code: string;
   name: string;

@@ -328,7 +328,7 @@ export default function AccountNewStaffPage() {
       setSubmitting(true);
       await createStaffAccount(payload);
       setSuccess(t('messages.createSuccess'));
-      router.push('/accountList');
+      router.push('/accountList?created=true');
       setForm({
         username: '',
         email: '',

@@ -348,6 +348,7 @@
       "loadFailed": "Không thể tải danh sách tài khoản."
     },
     "messages": {
+      "createSuccess": "Tạo tài khoản nhân viên thành công.",
       "deleteSuccess": "Xóa tài khoản thành công",
       "deleteError": "Có lỗi xảy ra khi xóa tài khoản",
       "activateSuccess": "Đã kích hoạt tài khoản thành công.",
@@ -2063,6 +2064,9 @@
       "cannotIdentifyAccountForDelete": "Không thể xác định tài khoản để xoá.",
       "deleteNotConfigured": "Chức năng xoá chưa được cấu hình.",
       "cannotDeleteInactiveAccount": "Không thể xóa tài khoản đang ngưng hoạt động.",
+      "cannotDeleteActiveAdmin": "Không thể xóa tài khoản Admin đang hoạt động. Vui lòng ngưng hoạt động trước.",
+      "cannotDeleteActiveResident": "Không thể xóa tài khoản cư dân đang hoạt động. Vui lòng ngưng hoạt động trước.",
+      "cannotChangeAdminStatus": "Không thể thay đổi trạng thái tài khoản Admin.",
       "noPermissionToEditAdmin": "Bạn không có quyền xóa tài khoản admin."
     }
   },
@@ -3267,7 +3271,9 @@
         "specialChars": "Số điện thoại không được chứa ký tự đặc biệt.",
         "mustStartWithZero": "Số điện thoại phải bắt đầu bằng số 0.",
         "mustBe10Digits": "Số điện thoại phải có đúng 10 số.",
-        "invalidPrefix": "Số điện thoại không hợp lệ. Đầu số phải là một trong các nhà mạng: Viettel (032-039, 096-098), MobiFone (070, 076-079, 089, 090, 093), Vinaphone (081-085, 088, 091, 094), Vietnamobile (056, 058, 092), GMobile (059, 099) hoặc các đầu số khác (052-057)."
+        "invalidPrefix": "Số điện thoại không hợp lệ. Đầu số phải là một trong các nhà mạng: Viettel (032-039, 096-098), MobiFone (070, 076-079, 089, 090, 093), Vinaphone (081-085, 088, 091, 094), Vietnamobile (056, 058, 092), GMobile (059, 099) hoặc các đầu số khác (052-057).",
+        "exists": "Số điện thoại đã tồn tại trong hệ thống.",
+        "checkError": "Không thể kiểm tra số điện thoại. Vui lòng thử lại."
       },
       "fullName": {
         "required": "Họ và tên cư dân không được để trống.",
@@ -3278,7 +3284,8 @@
         "required": "CMND/CCCD không được để trống.",
         "specialChars": "CMND/CCCD không được chứa ký tự đặc biệt.",
         "mustBe13Digits": "CMND/CCCD phải có đúng 12 số.",
-        "exists": "Số căn cước công dân đã tồn tại trong hệ thống."
+        "exists": "Số căn cước công dân đã tồn tại trong hệ thống.",
+        "checkError": "Không thể kiểm tra số căn cước công dân. Vui lòng thử lại."
       },
       "username": {
         "noWhitespace": "Tên đăng nhập không được chứa khoảng trắng.",
