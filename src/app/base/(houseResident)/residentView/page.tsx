@@ -14,6 +14,7 @@ import {
 } from '@/src/services/base/householdService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
 import { useTranslations } from 'next-intl';
+import Pagination from '@/src/components/customer-interaction/Pagination';
 
 type UnitWithResidents = Unit & {
   residents: HouseholdMemberDto[];
@@ -50,6 +51,10 @@ export default function ResidentDirectoryPage() {
   const [selectedBuildingId, setSelectedBuildingId] = useState<'all' | string>('all');
   const [selectedUnitId, setSelectedUnitId] = useState<'all' | string>('all');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  // Pagination state
+  const [pageNo, setPageNo] = useState<number>(0);
+  const [pageSize] = useState<number>(10);
 
   useEffect(() => {
     const loadData = async () => {
@@ -220,7 +225,7 @@ export default function ResidentDirectoryPage() {
     return result;
   }, [buildings]);
 
-  const residentsToDisplay = useMemo(() => {
+  const filteredResidents = useMemo(() => {
     let scoped = residentsWithContext;
 
     if (selectedUnitId !== 'all') {
@@ -252,20 +257,43 @@ export default function ResidentDirectoryPage() {
     });
   }, [residentSearch, residentsWithContext, selectedBuildingId, selectedUnitId]);
 
+  // Paginated residents
+  const residentsToDisplay = useMemo(() => {
+    const startIndex = pageNo * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredResidents.slice(startIndex, endIndex);
+  }, [filteredResidents, pageNo, pageSize]);
+
+  const totalPages = useMemo(() => {
+    return pageSize > 0 ? Math.ceil(filteredResidents.length / pageSize) : 0;
+  }, [filteredResidents.length, pageSize]);
+
   const handleSelectAll = () => {
     setSelectedBuildingId('all');
     setSelectedUnitId('all');
+    setPageNo(0);
   };
 
   const handleSelectBuilding = (buildingId: string) => {
     setSelectedBuildingId(buildingId);
     setSelectedUnitId('all');
+    setPageNo(0);
   };
 
   const handleSelectUnit = (buildingId: string, unitId: string) => {
     setSelectedBuildingId(buildingId);
     setSelectedUnitId(unitId);
+    setPageNo(0);
   };
+
+  const handlePageChange = (newPage: number) => {
+    setPageNo(newPage - 1); // Convert from 1-indexed to 0-indexed
+  };
+
+  // Reset page when search changes
+  useEffect(() => {
+    setPageNo(0);
+  }, [residentSearch, selectedBuildingId, selectedUnitId]);
 
   if (loading) {
     return (
@@ -441,10 +469,10 @@ export default function ResidentDirectoryPage() {
               <h2 className="text-lg font-semibold text-slate-800">{t('residentsPanelTitle')}</h2>
               <p className="text-sm text-slate-500">
                 {selectedUnitId === 'all' && selectedBuildingId === 'all'
-                  ? t('residentsPanelAll', { count: residentsToDisplay.length })
+                  ? t('residentsPanelAll', { count: filteredResidents.length })
                   : selectedUnitId === 'all'
-                  ? t('residentsPanelBuilding', { count: residentsToDisplay.length })
-                  : t('residentsPanelUnit', { count: residentsToDisplay.length })}
+                  ? t('residentsPanelBuilding', { count: filteredResidents.length })
+                  : t('residentsPanelUnit', { count: filteredResidents.length })}
               </p>
             </div>
             <div className="w-full max-w-xs">
@@ -480,9 +508,6 @@ export default function ResidentDirectoryPage() {
                   <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
                     {t('tablePrimary')}
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                    {t('tableAction')}
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
@@ -511,7 +536,6 @@ export default function ResidentDirectoryPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-600">
                         <div className="flex flex-col">
-                          <span>{resident.unitName ?? '—'}</span>
                           <span className="text-xs text-slate-500">{resident.unitCode ?? '—'}</span>
                         </div>
                       </td>
@@ -524,20 +548,22 @@ export default function ResidentDirectoryPage() {
                           {resident.isPrimary ? t('primaryYes') : t('primaryNo')}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/base/residents/${resident.residentId ?? resident.id}`}
-                          className="rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700"
-                        >
-                          {t('detailButton')}
-                        </Link>
-                      </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
+          
+          {totalPages > 0 && (
+            <div className="border-t border-slate-200 px-6 py-4">
+              <Pagination
+                currentPage={pageNo + 1}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
         </section>
       </div>
     </div>
