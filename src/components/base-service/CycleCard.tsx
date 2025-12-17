@@ -135,11 +135,11 @@ const CycleCard = ({
     >();
     
     // Backend already filters by onlyWithOwner=true, so all units in missingMeterUnits have primary resident
+    // Group by building only (not by building + floor)
     unassignedInfo.missingMeterUnits.forEach((unit) => {
       const buildingLabel =
         unit.buildingCode || unit.buildingName || 'Tòa nhà chưa rõ';
-      const floorLabel = unit.floor != null ? ` - Tầng ${unit.floor}` : '';
-      const key = buildingLabel + floorLabel;
+      const key = buildingLabel; // Group by building only
       const existing = map.get(key);
       const unitLabel = unit.unitCode || unit.unitId;
       if (existing) {
@@ -151,7 +151,7 @@ const CycleCard = ({
         }
       } else {
         map.set(key, {
-          title: `${buildingLabel}${floorLabel}`,
+          title: buildingLabel, // Only building name, no floor
           units: [unitLabel],
           unitIds: [unit.unitId],
           buildingId: unit.buildingId,
@@ -410,7 +410,7 @@ const CycleCard = ({
                   <div className="space-y-1 text-xs">
                     {missingMeterGroups.map((group) => (
                       <div key={group.title}>
-                        <span className="font-semibold">{group.title}:</span> {group.units.join(', ')} (chưa có công tơ)
+                        <span className="font-semibold">{group.title}:</span> {group.units.length} căn hộ chưa có công tơ
                       </div>
                     ))}
                   </div>
@@ -444,7 +444,7 @@ const CycleCard = ({
                 return (
                   <div key={group.title} className="flex items-start justify-between gap-3">
                     <div>
-                      <span className="font-semibold">{group.title}:</span> {group.units.join(', ')}
+                      <span className="font-semibold">{group.title}:</span> {group.units.length} căn hộ chưa có công tơ
                     </div>
                     {group.buildingId && cycle.serviceId && (
                       <button

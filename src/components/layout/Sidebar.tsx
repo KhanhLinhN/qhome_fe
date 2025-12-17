@@ -67,6 +67,7 @@ const adminSections: NavSection[] = [
     items: [
       {href: "/base/asset-management", labelKey: "assetManagement", icon: "🔧"},
       {href: "/base/meter-management", labelKey: "meterManagement", icon: "⚙️"},
+      {href: "/base/asset-inspection-management", labelKey: "assetInspectionManagement", icon: "📋"},
     ],
   },
   {
@@ -95,7 +96,6 @@ const adminSections: NavSection[] = [
     items: [
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
-      {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
     ],
   },
 ];
@@ -146,7 +146,6 @@ const technicianSections: NavSection[] = [
   {
     titleKey: "residentInteraction",
     items: [
-      {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
     ],
   },
 ];

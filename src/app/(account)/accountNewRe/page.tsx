@@ -153,7 +153,11 @@ export default function AccountNewResidentPage() {
       setBuildingsError(null);
       try {
         const data = await getBuildings();
-        setBuildings(data);
+        // Sort buildings by code alphabetically
+        const sortedData = [...data].sort((a, b) => 
+          (a.code || '').localeCompare(b.code || '', 'vi', { sensitivity: 'base' })
+        );
+        setBuildings(sortedData);
       } catch (err: any) {
         const message =
           err?.response?.data?.message || err?.message || t('errors.loadBuildingsFailed');
@@ -291,12 +295,22 @@ export default function AccountNewResidentPage() {
     if (!fullName.trim()) {
       return t('validation.fullName.required');
     }
-    if (fullName.length > 40) {
+    const trimmed = fullName.trim();
+    // Minimum length: at least 2 characters
+    if (trimmed.length < 2) {
+      return t('validation.fullName.minLength') || 'Họ và tên phải có ít nhất 2 ký tự';
+    }
+    // Maximum length: 40 characters
+    if (trimmed.length > 40) {
       return t('validation.fullName.maxLength');
     }
     // Check for special characters (allow Vietnamese characters, spaces, and apostrophes)
-    if (!/^[a-zA-ZÀÁẢÃẠẦẤẨẪẬÈÉẺẼẸỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌỒỐỔỖỘỜỚỞỠỢÙÚỦŨỤỪỨỬỮỰỲÝỶỸỴĐàáảãạầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵđ\s'-]+$/.test(fullName)) {
+    if (!/^[a-zA-ZÀÁẢÃẠẦẤẨẪẬÈÉẺẼẸỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌỒỐỔỖỘỜỚỞỠỢÙÚỦŨỤỪỨỬỮỰỲÝỶỸỴĐàáảãạầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵđ\s'-]+$/.test(trimmed)) {
       return t('validation.fullName.specialChars');
+    }
+    // Check for consecutive spaces
+    if (/\s{2,}/.test(trimmed)) {
+      return t('validation.fullName.consecutiveSpaces') || 'Họ và tên không được có nhiều khoảng trắng liên tiếp';
     }
     return null;
   };
@@ -313,9 +327,9 @@ export default function AccountNewResidentPage() {
       return t('validation.nationalId.specialChars');
     }
     
-    // Check length: must be greater than 12 digits (at least 12 digits)
-    if (cleaned.length < 12) {
-      return t('validation.nationalId.mustBe13Digits') || 'Số căn cước công dân phải có ít nhất 12 số';
+    // Check length: CCCD must be exactly 12 digits
+    if (cleaned.length !== 12) {
+      return t('validation.nationalId.mustBe12Digits') || 'Số căn cước công dân phải có đúng 12 số';
     }
     
     return null;
@@ -359,6 +373,11 @@ export default function AccountNewResidentPage() {
       return t('validation.dob.invalid');
     }
     
+    // Check if date is in the future
+    if (birthDate > today) {
+      return t('validation.dob.futureDate') || 'Ngày sinh không thể là ngày trong tương lai';
+    }
+    
     // Calculate age more accurately
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -366,14 +385,85 @@ export default function AccountNewResidentPage() {
       age--;
     }
     
-    // Must be greater than 18 years old (at least 19 years old)
+    // Must be at least 18 years old
     if (age < 18) {
       return t('validation.dob.ageMin');
     }
-    if (age >= 200) {
-      return t('validation.dob.ageMax');
+    // Must be less than 120 years old (reasonable maximum)
+    if (age >= 120) {
+      return t('validation.dob.ageMax') || 'Tuổi không hợp lệ. Vui lòng kiểm tra lại ngày sinh.';
     }
     
+    return null;
+  };
+
+  // Helper function to validate email (format + exists check)
+  const validateEmailWithExists = async (email: string): Promise<string | null> => {
+    if (!email.trim()) {
+      return t('validation.email.required');
+    }
+    if (/\s/.test(email)) {
+      return t('validation.email.noWhitespace');
+    }
+    if (email.length > 40) {
+      return t('validation.email.maxLength');
+    }
+    const formatError = validateEmailFormat(email);
+    if (formatError) {
+      return formatError;
+    }
+    // Check exists
+    try {
+      const exists = await checkResidentEmailExists(email.trim());
+      if (exists) {
+        return t('validation.email.exists');
+      }
+    } catch (err: any) {
+      console.error('Error checking email:', err);
+      // Don't block on network errors, but log them
+    }
+    return null;
+  };
+
+  // Helper function to validate phone (format + exists check)
+  const validatePhoneWithExists = async (phone: string): Promise<string | null> => {
+    const formatError = validatePhone(phone);
+    if (formatError) {
+      return formatError;
+    }
+    if (phone && phone.trim()) {
+      try {
+        const cleanedPhone = phone.trim().replace(/\s+/g, '');
+        const exists = await checkPhoneExists(cleanedPhone);
+        if (exists) {
+          return t('validation.phone.exists') || 'Số điện thoại đã tồn tại trong hệ thống';
+        }
+      } catch (err) {
+        console.error('Error checking phone:', err);
+        return t('validation.phone.checkError') || 'Không thể kiểm tra số điện thoại. Vui lòng thử lại.';
+      }
+    }
+    return null;
+  };
+
+  // Helper function to validate national ID (format + exists check)
+  const validateNationalIdWithExists = async (nationalId: string): Promise<string | null> => {
+    const formatError = validateNationalId(nationalId);
+    if (formatError) {
+      return formatError;
+    }
+    if (nationalId && nationalId.trim()) {
+      try {
+        const cleanedId = nationalId.trim().replace(/\s+/g, '');
+        const exists = await checkNationalIdExists(cleanedId);
+        if (exists) {
+          return t('validation.nationalId.exists') || 'Số căn cước công dân đã tồn tại trong hệ thống';
+        }
+      } catch (err) {
+        console.error('Error checking national ID:', err);
+        return t('validation.nationalId.checkError') || 'Không thể kiểm tra số căn cước công dân. Vui lòng thử lại.';
+      }
+    }
     return null;
   };
 
@@ -394,51 +484,50 @@ export default function AccountNewResidentPage() {
             return next;
           }
           
-          // Validate whitespace
+          // Quick format validation (synchronous)
           if (/\s/.test(value)) {
             next.email = t('validation.email.noWhitespace');
             return next;
           }
-          
-          // Validate length
           if (value.length > 40) {
             next.email = t('validation.email.maxLength');
             return next;
           }
-          
-          // Validate format
           const emailFormatError = validateEmailFormat(value);
           if (emailFormatError) {
             next.email = emailFormatError;
             return next;
           }
           
-          // Check if email exists (async, but don't block UI)
-          checkResidentEmailExists(value.trim()).then((exists) => {
-            if (exists) {
+          // Clear format error temporarily, will be updated by async check
+          delete next.email;
+          
+          // Async check for exists (don't block UI)
+          validateEmailWithExists(value).then((error) => {
+            if (error) {
               setManualFieldErrors((prev) => ({
                 ...prev,
-                email: t('validation.email.exists'),
+                email: error,
               }));
             } else {
+              // Only clear if value hasn't changed and format is still valid
               setManualFieldErrors((prev) => {
-                const next = { ...prev };
-                // Only clear if format is still valid
-                const formatError = validateEmailFormat(value);
-                if (!formatError && !/\s/.test(value) && value.length <= 40) {
-                  delete next.email;
+                const currentValue = manualForm.email;
+                if (currentValue === value) {
+                  const formatCheck = validateEmailFormat(value);
+                  if (!formatCheck && !/\s/.test(value) && value.length <= 40) {
+                    const updated = { ...prev };
+                    delete updated.email;
+                    return updated;
+                  }
                 }
-                return next;
+                return prev;
               });
             }
           }).catch((err) => {
-            console.error('Error checking email:', err);
+            console.error('Error validating email:', err);
           });
           
-          // If format validation passes, clear error temporarily (will be updated by async check)
-          if (!emailFormatError) {
-            delete next.email;
-          }
           return next;
         });
       } else if (field === 'phone') {
@@ -454,60 +543,44 @@ export default function AccountNewResidentPage() {
             return next;
           }
           
-          // Validate phone format first
-          const phoneError = validatePhone(value);
-          if (phoneError) {
-            next.phone = phoneError;
+          // Quick format validation (synchronous)
+          const phoneFormatError = validatePhone(value);
+          if (phoneFormatError) {
+            next.phone = phoneFormatError;
             return next;
           }
           
-          // Format is valid, clear format errors but keep "exists" error until async check completes
-          // Only clear if current error is not "exists" error
-          const currentError = prev.phone;
-          const isExistsError = currentError === (t('validation.phone.exists') || 'Số điện thoại đã tồn tại trong hệ thống');
-          if (!isExistsError) {
-            delete next.phone;
-          }
+          // Format is valid, clear format errors temporarily
+          delete next.phone;
           
-          // Check if phone exists (async)
-          checkPhoneExists(currentPhoneValue).then((exists) => {
-            // Use functional update to get latest form state
-            setManualFieldErrors((prevErrors) => {
-              const latestPhoneValue = manualForm.phone.trim().replace(/\s+/g, '');
-              // Only update if the phone value hasn't changed since we started checking
-              if (latestPhoneValue === currentPhoneValue) {
-                const updated = { ...prevErrors };
-                if (exists) {
-                  updated.phone = t('validation.phone.exists') || 'Số điện thoại đã tồn tại trong hệ thống';
-                } else {
-                  // Double-check format is still valid before clearing
+          // Async check for exists (don't block UI)
+          validatePhoneWithExists(value).then((error) => {
+            if (error) {
+              setManualFieldErrors((prevErrors) => {
+                const latestPhoneValue = manualForm.phone.trim().replace(/\s+/g, '');
+                // Only update if value hasn't changed
+                if (latestPhoneValue === currentPhoneValue) {
+                  return { ...prevErrors, phone: error };
+                }
+                return prevErrors;
+              });
+            } else {
+              // Only clear if value hasn't changed and format is still valid
+              setManualFieldErrors((prevErrors) => {
+                const latestPhoneValue = manualForm.phone.trim().replace(/\s+/g, '');
+                if (latestPhoneValue === currentPhoneValue) {
                   const formatCheck = validatePhone(manualForm.phone);
                   if (!formatCheck) {
+                    const updated = { ...prevErrors };
                     delete updated.phone;
-                  } else {
-                    updated.phone = formatCheck;
+                    return updated;
                   }
                 }
-                return updated;
-              }
-              // Value changed, don't update
-              return prevErrors;
-            });
+                return prevErrors;
+              });
+            }
           }).catch((err) => {
-            console.error('Error checking phone:', err);
-            // On error, only set error if value hasn't changed and format is still valid
-            setManualFieldErrors((prevErrors) => {
-              const latestPhoneValue = manualForm.phone.trim().replace(/\s+/g, '');
-              if (latestPhoneValue === currentPhoneValue) {
-                const updated = { ...prevErrors };
-                const formatError = validatePhone(manualForm.phone);
-                if (!formatError) {
-                  updated.phone = t('validation.phone.checkError') || 'Không thể kiểm tra số điện thoại. Vui lòng thử lại.';
-                }
-                return updated;
-              }
-              return prevErrors;
-            });
+            console.error('Error validating phone:', err);
           });
           
           return next;
@@ -536,6 +609,8 @@ export default function AccountNewResidentPage() {
         });
       } else if (field === 'nationalId') {
         // Real-time validation for national ID
+        const currentNationalIdValue = value.trim().replace(/\s+/g, '');
+        
         setManualFieldErrors((prev) => {
           const next = { ...prev };
           
@@ -545,40 +620,90 @@ export default function AccountNewResidentPage() {
             return next;
           }
           
-          // Validate national ID format
-          const nationalIdError = validateNationalId(value);
-          if (nationalIdError) {
-            next.nationalId = nationalIdError;
+          // Quick format validation (synchronous)
+          const nationalIdFormatError = validateNationalId(value);
+          if (nationalIdFormatError) {
+            next.nationalId = nationalIdFormatError;
             return next;
           }
           
-          // Check if national ID exists (async, but don't block UI)
-          const cleanedId = value.trim().replace(/\s+/g, '');
-          checkNationalIdExists(cleanedId).then((exists) => {
-            if (exists) {
-              setManualFieldErrors((prev) => ({
-                ...prev,
-                nationalId: t('validation.nationalId.exists') || 'Số căn cước công dân đã tồn tại trong hệ thống',
-              }));
-            } else {
-              setManualFieldErrors((prev) => {
-                const next = { ...prev };
-                // Only clear if format is still valid
-                const formatError = validateNationalId(value);
-                if (!formatError) {
-                  delete next.nationalId;
+          // Format is valid, clear format errors temporarily
+          delete next.nationalId;
+          
+          // Async check for exists (don't block UI)
+          validateNationalIdWithExists(value).then((error) => {
+            if (error) {
+              setManualFieldErrors((prevErrors) => {
+                const latestNationalIdValue = manualForm.nationalId.trim().replace(/\s+/g, '');
+                // Only update if value hasn't changed
+                if (latestNationalIdValue === currentNationalIdValue) {
+                  return { ...prevErrors, nationalId: error };
                 }
-                return next;
+                return prevErrors;
+              });
+            } else {
+              // Only clear if value hasn't changed and format is still valid
+              setManualFieldErrors((prevErrors) => {
+                const latestNationalIdValue = manualForm.nationalId.trim().replace(/\s+/g, '');
+                if (latestNationalIdValue === currentNationalIdValue) {
+                  const formatCheck = validateNationalId(manualForm.nationalId);
+                  if (!formatCheck) {
+                    const updated = { ...prevErrors };
+                    delete updated.nationalId;
+                    return updated;
+                  }
+                }
+                return prevErrors;
               });
             }
           }).catch((err) => {
-            console.error('Error checking national ID:', err);
+            console.error('Error validating national ID:', err);
           });
           
-          // If format validation passes, clear error temporarily (will be updated by async check)
-          if (!nationalIdError) {
-            delete next.nationalId;
+          return next;
+        });
+      } else if (field === 'fullName') {
+        // Real-time validation for full name
+        setManualFieldErrors((prev) => {
+          const next = { ...prev };
+          
+          // Clear error if field is empty
+          if (!value.trim()) {
+            delete next.fullName;
+            return next;
           }
+          
+          // Validate full name format
+          const fullNameError = validateFullName(value);
+          if (fullNameError) {
+            next.fullName = fullNameError;
+            return next;
+          }
+          
+          // If all validations pass, clear error
+          delete next.fullName;
+          return next;
+        });
+      } else if (field === 'dob') {
+        // Real-time validation for date of birth
+        setManualFieldErrors((prev) => {
+          const next = { ...prev };
+          
+          // Clear error if field is empty
+          if (!value.trim()) {
+            delete next.dob;
+            return next;
+          }
+          
+          // Validate date of birth format
+          const dobError = validateDateOfBirth(value);
+          if (dobError) {
+            next.dob = dobError;
+            return next;
+          }
+          
+          // If all validations pass, clear error
+          delete next.dob;
           return next;
         });
       } else {
@@ -701,56 +826,18 @@ export default function AccountNewResidentPage() {
       isValid = false;
     }
 
-    // Validate email
-    if (!manualForm.email.trim()) {
-      errors.email = t('validation.email.required');
+    // Validate email - reuse helper function
+    const emailError = await validateEmailWithExists(manualForm.email);
+    if (emailError) {
+      errors.email = emailError;
       isValid = false;
-    } else if (/\s/.test(manualForm.email)) {
-      errors.email = t('validation.email.noWhitespace');
-      isValid = false;
-    } else if (manualForm.email.length > 40) {
-      errors.email = t('validation.email.maxLength');
-      isValid = false;
-    } else {
-      const emailFormatError = validateEmailFormat(manualForm.email);
-      if (emailFormatError) {
-        errors.email = emailFormatError;
-        isValid = false;
-      } else {
-        // Check email exists in database
-        try {
-          const exists = await checkResidentEmailExists(manualForm.email.trim());
-          if (exists) {
-            errors.email = t('validation.email.exists');
-            isValid = false;
-          }
-        } catch (err: any) {
-          // If there's an error checking (network, etc.), log but don't block submit
-          console.error('Error checking email:', err);
-        }
-      }
     }
 
-    // Validate phone
-    const phoneError = validatePhone(manualForm.phone);
+    // Validate phone - reuse helper function
+    const phoneError = await validatePhoneWithExists(manualForm.phone);
     if (phoneError) {
       errors.phone = phoneError;
       isValid = false;
-    } else if (manualForm.phone && manualForm.phone.trim()) {
-      // Check if phone already exists in system (must be unique)
-      try {
-        const cleanedPhone = manualForm.phone.trim().replace(/\s+/g, '');
-        const exists = await checkPhoneExists(cleanedPhone);
-        if (exists) {
-          errors.phone = t('validation.phone.exists') || 'Số điện thoại đã tồn tại trong hệ thống';
-          isValid = false;
-        }
-      } catch (err) {
-        console.error('Error checking phone:', err as Error);
-        // If check fails, still set error to be safe
-        errors.phone = t('validation.phone.checkError') || 'Không thể kiểm tra số điện thoại. Vui lòng thử lại.';
-        isValid = false;
-      }
     }
 
     // Validate date of birth
@@ -760,26 +847,11 @@ export default function AccountNewResidentPage() {
       isValid = false;
     }
 
-    // Validate national ID
-    const nationalIdError = validateNationalId(manualForm.nationalId);
+    // Validate national ID - reuse helper function
+    const nationalIdError = await validateNationalIdWithExists(manualForm.nationalId);
     if (nationalIdError) {
       errors.nationalId = nationalIdError;
       isValid = false;
-    } else if (manualForm.nationalId && manualForm.nationalId.trim()) {
-      // Check if national ID already exists in system (must be unique)
-      try {
-        const cleanedId = manualForm.nationalId.trim().replace(/\s+/g, '');
-        const exists = await checkNationalIdExists(cleanedId);
-        if (exists) {
-          errors.nationalId = t('validation.nationalId.exists') || 'Số căn cước công dân đã tồn tại trong hệ thống';
-          isValid = false;
-        }
-      } catch (err) {
-        console.error('Error checking national ID:', err as Error);
-        // If check fails, still set error to be safe
-        errors.nationalId = t('validation.nationalId.checkError') || 'Không thể kiểm tra số căn cước công dân. Vui lòng thử lại.';
-        isValid = false;
-      }
     }
 
     // Validate username (optional field)
@@ -1460,6 +1532,8 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     onChange={handleManualChange('phone')}
                     placeholder={t('manualForm.placeholders.phone')}
                     maxLength={10}
+                    inputMode="tel"
+                    pattern="[0-9]*"
                     className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                       manualFieldErrors.phone
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
@@ -1492,6 +1566,8 @@ const selectPrimaryContract = (contracts: ContractSummary[]): ContractSummary | 
                     onChange={handleManualChange('nationalId')}
                     placeholder={t('manualForm.placeholders.nationalId')}
                     maxLength={12}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     className={`rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 ${
                       manualFieldErrors.nationalId
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-100'

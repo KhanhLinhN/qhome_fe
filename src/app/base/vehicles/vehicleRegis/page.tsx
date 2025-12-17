@@ -388,7 +388,7 @@ export default function VehicleRegistrationPage() {
                         {formatDateTime(registration.createdAt)}
                       </td>
                       <td className="px-4 py-3">
-                        {registration.approvedBy ?? '--'}
+                        {registration.approvedByName ?? registration.approvedBy ?? '--'}
                       </td>
                       <td className="px-4 py-3">
                         {formatDateTime(registration.approvedAt)}

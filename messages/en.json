@@ -156,6 +156,7 @@
     "assetManagement": "Asset Management",
     "assetInspectionManagement": "Asset Inspection Management",
     "assetInspectionAssignments": "Inspection Assignments",
+    "technicianAssignmentManagement": "Technician Assignment Management",
     "meterManagement": "Meter Management",
     "buildings": "Buildings",
     "employees": "Employees",
@@ -3215,8 +3216,10 @@
       },
       "fullName": {
         "required": "Resident full name cannot be empty.",
+        "minLength": "Full name must be at least 2 characters.",
         "maxLength": "Full name cannot exceed 40 characters.",
-        "specialChars": "Full name cannot contain special characters."
+        "specialChars": "Full name cannot contain special characters.",
+        "consecutiveSpaces": "Full name cannot have multiple consecutive spaces."
       },
       "nationalId": {
         "required": "ID card/Citizen ID cannot be empty.",
@@ -4556,6 +4559,7 @@
       "startDate": "Start date",
       "endDate": "End date",
       "monthlyRent": "Monthly rent",
+      "inspectionDate": "Inspection date",
       "status": "Status",
       "actions": "Actions",
       "contractList": "Contract list",

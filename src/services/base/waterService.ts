@@ -548,8 +548,6 @@ export async function deleteMeter(meterId: string): Promise<void> {
 
 // Meter Reading API
 export async function createMeterReading(req: MeterReadingCreateReq): Promise<MeterReadingDto> {
-  console.log("Creating meter reading with req:", JSON.stringify(req, null, 2));
-  
   // Validate request
   if (!req || Object.keys(req).length === 0) {
     throw new Error("MeterReadingCreateReq is empty or undefined");
@@ -582,14 +580,8 @@ export async function createMeterReading(req: MeterReadingCreateReq): Promise<Me
       req,
       { withCredentials: true }
     );
-    console.log("Meter reading created successfully:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error("Failed to create meter reading:", error);
-    console.error("Request was:", JSON.stringify(req, null, 2));
-    console.error("Error response:", error?.response?.data);
-    console.error("Error status:", error?.response?.status);
-    console.error("Error message:", error?.message);
     throw error;
   }
 }
@@ -599,7 +591,6 @@ export async function getReadingsByAssignment(assignmentId: string): Promise<Met
     `${BASE_URL}/api/meter-readings/assignment/${assignmentId}`,
     { withCredentials: true }
   );
-  console.log("Readings by assignment:", response.data);
   return response.data;
 }
 
@@ -739,7 +730,6 @@ export async function getMetersByStaffAndCycle(staffId: string, cycleId: string)
     `${BASE_URL}/api/meter-reading-assignments/staff/${staffId}/cycle/${cycleId}/meters`,
     { withCredentials: true }
   );
-  console.log("Meters by staff and cycle:", response.data);
   return response.data;
 }
 
@@ -764,7 +754,6 @@ export async function getWaterServiceId(): Promise<string | null> {
   try {
     return null;
   } catch (error) {
-    console.error('Failed to get water service ID:', error);
     return null;
   }
 }
@@ -795,6 +784,9 @@ export interface MeterReadingSessionCreateReq {
 export interface MeterReadingImportResponse {
   totalReadings: number;
   invoicesCreated: number;
+  invoicesSkipped?: number;
+  invoiceIds?: string[];
+  errors?: string[];
   message: string;
 }
 
@@ -883,7 +875,6 @@ export async function getAllServices(): Promise<ServiceDto[]> {
     `${BASE_URL}/api/services`,
     { withCredentials: true }
   );
-  console.log(response.data);
   return response.data;
 }
 

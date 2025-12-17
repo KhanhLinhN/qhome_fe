@@ -84,9 +84,16 @@ export default function ResidentDirectoryPage() {
                 }),
               );
 
+              // Sort units by code (ABC order)
+              const sortedUnits = unitsWithResidents.sort((a, b) => {
+                const codeA = (a.code || '').toUpperCase();
+                const codeB = (b.code || '').toUpperCase();
+                return codeA.localeCompare(codeB);
+              });
+
               return {
                 ...building,
-                units: unitsWithResidents,
+                units: sortedUnits,
                 isExpanded: false,
               };
             } catch (err) {
@@ -100,7 +107,14 @@ export default function ResidentDirectoryPage() {
           }),
         );
 
-        setBuildings(buildingsWithUnits);
+        // Sort buildings by code (ABC order)
+        const sortedBuildings = buildingsWithUnits.sort((a, b) => {
+          const codeA = (a.code || '').toUpperCase();
+          const codeB = (b.code || '').toUpperCase();
+          return codeA.localeCompare(codeB);
+        });
+
+        setBuildings(sortedBuildings);
       } catch (err: any) {
         const message =
           err?.response?.data?.message || err?.message || t('error');

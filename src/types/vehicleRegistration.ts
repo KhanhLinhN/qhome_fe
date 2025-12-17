@@ -26,6 +26,7 @@ export interface VehicleRegistrationRequest {
   vnpayTransactionRef?: string | null;
   adminNote?: string | null;
   approvedBy?: string | null;
+  approvedByName?: string | null;
   approvedAt?: string | null;
   rejectionReason?: string | null;
   images: VehicleRegistrationImage[];

@@ -161,6 +161,7 @@
     "assetManagement": "Quản lý tài sản",
     "assetInspectionManagement": "Quản lý kiểm tra thiết bị",
     "assetInspectionAssignments": "Phân công kiểm tra",
+    "technicianAssignmentManagement": "Phân công kỹ thuật viên",
     "meterManagement": "Quản lý meter",
     "buildings": "Tòa nhà",
     "employees": "Nhân viên",
@@ -3277,8 +3278,10 @@
       },
       "fullName": {
         "required": "Họ và tên cư dân không được để trống.",
+        "minLength": "Họ và tên phải có ít nhất 2 ký tự.",
         "maxLength": "Họ và tên không được vượt quá 40 ký tự.",
-        "specialChars": "Họ và tên không được chứa ký tự đặc biệt."
+        "specialChars": "Họ và tên không được chứa ký tự đặc biệt.",
+        "consecutiveSpaces": "Họ và tên không được có nhiều khoảng trắng liên tiếp."
       },
       "nationalId": {
         "required": "CMND/CCCD không được để trống.",
@@ -4615,6 +4618,7 @@
       "startDate": "Ngày bắt đầu",
       "endDate": "Ngày kết thúc",
       "monthlyRent": "Tiền thuê/tháng",
+      "inspectionDate": "Ngày kiểm tra",
       "status": "Trạng thái",
       "actions": "Thao tác",
       "contractList": "Danh sách hợp đồng",
@@ -4844,7 +4848,10 @@
       "noPricingTiers": "Chưa có bảng giá để tính toán",
       "damagedAssetsBreakdown": "Chi tiết thiết bị bị hư hỏng",
       "errors": {
-        "invalidIndex": "Chỉ số đồng hồ phải lớn hơn hoặc bằng 0"
+        "invalidIndex": "Chỉ số đồng hồ phải lớn hơn hoặc bằng 0",
+        "invalidNumber": "Vui lòng nhập số hợp lệ",
+        "indexMustBeGreater": "Chỉ số hiện tại phải lớn hơn chỉ số trước ({prevIndex})",
+        "indexMustBeGreaterThan": "Chỉ số hiện tại phải lớn hơn chỉ số trước ({prevIndex}). Chỉ số không thể bằng chỉ số trước."
       }
     },
     "success": {
@@ -4872,7 +4879,9 @@
       "itemsMissingStatus": "Vui lòng cập nhật tình trạng cho tất cả thiết bị trước khi hoàn thành kiểm tra!",
       "itemsInvalidCost": "Vui lòng nhập chi phí thiệt hại > 0 cho {count} thiết bị có tình trạng không tốt!",
       "metersMissingReading": "Vui lòng nhập chỉ số đồng hồ cho {count} đồng hồ: {meters}!",
-      "metersInvalidReading": "Chỉ số đồng hồ phải > 0 cho {count} đồng hồ: {meters}!"
+      "metersInvalidReading": "Chỉ số đồng hồ phải > 0 cho {count} đồng hồ: {meters}!",
+      "meterReadingErrors": "Vui lòng sửa các lỗi trong chỉ số đồng hồ trước khi hoàn thành kiểm tra!",
+      "meterReadingValidationFailed": "Lỗi chỉ số đồng hồ: {errors}"
     }
   }
 }

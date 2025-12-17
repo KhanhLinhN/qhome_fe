@@ -74,6 +74,8 @@ export default function RentalContractReviewPage() {
   
   // Map to track which contracts have inspections
   const [contractsWithInspection, setContractsWithInspection] = useState<Set<string>>(new Set());
+  // Map to store inspection data by contractId (for displaying inspectionDate)
+  const [inspectionsByContractId, setInspectionsByContractId] = useState<Map<string, AssetInspection>>(new Map());
 
   // Detail modal
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -265,10 +267,13 @@ export default function RentalContractReviewPage() {
       try {
         const allInspections = await getAllInspections();
         const contractsWithInspectionSet = new Set<string>();
+        const inspectionsMap = new Map<string, AssetInspection>();
         allInspections.forEach(inspection => {
           contractsWithInspectionSet.add(inspection.contractId);
+          inspectionsMap.set(inspection.contractId, inspection);
         });
         setContractsWithInspection(contractsWithInspectionSet);
+        setInspectionsByContractId(inspectionsMap);
       } catch (error: any) {
         console.warn('Failed to load inspections:', error);
       }
@@ -480,6 +485,12 @@ export default function RentalContractReviewPage() {
       setSelectedTechnicianId('');
       // Update contractsWithInspection map
       setContractsWithInspection(prev => new Set(prev).add(contract.id));
+      // Update inspectionsByContractId map to show inspectionDate immediately
+      setInspectionsByContractId(prev => {
+        const newMap = new Map(prev);
+        newMap.set(contract.id, inspection);
+        return newMap;
+      });
       show(t('success.assignInspection', { name: selectedTechnician.username }), 'success');
     } catch (error: any) {
       console.error('Failed to create inspection:', error);
@@ -1156,6 +1167,9 @@ export default function RentalContractReviewPage() {
                       {t('table.monthlyRent')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('table.inspectionDate')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {t('table.status')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1201,6 +1215,14 @@ export default function RentalContractReviewPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatCurrency(contract.monthlyRent)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {(() => {
+                            const inspection = inspectionsByContractId.get(contract.id);
+                            return inspection?.inspectionDate 
+                              ? formatDate(inspection.inspectionDate)
+                              : '-';
+                          })()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 text-xs font-medium rounded ${statusInfo.className}`}>

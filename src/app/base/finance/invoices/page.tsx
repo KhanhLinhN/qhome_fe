@@ -52,10 +52,12 @@ export default function InvoicesManagementPage() {
 
   const SERVICE_CODE_LABELS: Record<string, string> = {
     ELECTRICITY: t('services.electricity'),
+    ELECTRIC: t('services.electricity'), // Alternative service code
     WATER: t('services.water'),
     VEHICLE_CARD: t('services.vehicleCard'),
     ELEVATOR_CARD: t('services.elevatorCard'),
     RESIDENT_CARD: t('services.residentCard'),
+    ASSET_DAMAGE: 'Thiệt hại thiết bị',
   };
   const [invoices, setInvoices] = useState<InvoiceDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -128,7 +130,14 @@ export default function InvoicesManagementPage() {
   };
 
   const filteredInvoices = useMemo(() => {
-    let filtered = invoices;
+    // First, deduplicate invoices by ID to avoid showing the same invoice multiple times
+    const uniqueInvoicesMap = new Map<string, InvoiceDto>();
+    invoices.forEach(invoice => {
+      if (!uniqueInvoicesMap.has(invoice.id)) {
+        uniqueInvoicesMap.set(invoice.id, invoice);
+      }
+    });
+    let filtered = Array.from(uniqueInvoicesMap.values());
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -144,7 +153,7 @@ export default function InvoicesManagementPage() {
 
   const statistics = useMemo(() => {
     const stats = {
-      total: filteredInvoices.length,
+      total: 0, // Will be calculated after filtering
       totalAmount: 0,
       byStatus: {
         DRAFT: { count: 0, amount: 0 },
@@ -156,7 +165,33 @@ export default function InvoicesManagementPage() {
       byService: {} as Record<string, { count: number; amount: number }>,
     };
 
+    // Find invoices that have ASSET_DAMAGE and include water/electric lines
+    // These are main invoices from asset inspection that already include water/electric costs
+    const mainInspectionInvoices = new Set<string>();
     filteredInvoices.forEach(invoice => {
+      const hasAssetDamage = invoice.lines?.some(line => line.serviceCode === 'ASSET_DAMAGE') || false;
+      const hasWaterElectric = invoice.lines?.some(line => 
+        line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC'
+      ) || false;
+      
+      if (hasAssetDamage && hasWaterElectric) {
+        // This is a main invoice that includes water/electric
+        // Find the water/electric invoice IDs that are referenced in this invoice
+        invoice.lines?.forEach(line => {
+          if (line.externalRefType === 'WATER_ELECTRIC_INVOICE' && line.externalRefId) {
+            mainInspectionInvoices.add(line.externalRefId);
+          }
+        });
+      }
+    });
+
+    filteredInvoices.forEach(invoice => {
+      // Skip water/electric invoices that are already included in main inspection invoice
+      if (mainInspectionInvoices.has(invoice.id)) {
+        return; // Don't count this invoice as it's already included in main invoice
+      }
+
+      stats.total++; // Count unique invoices
       const amount = invoice.totalAmount || 0;
       stats.totalAmount += amount;
       
@@ -190,6 +225,27 @@ export default function InvoicesManagementPage() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('vi-VN');
+  };
+
+  const normalizeBillToName = (billToName: string | null | undefined): string => {
+    if (!billToName) return '-';
+    
+    // Normalize different formats to "Căn hộ {unitCode}"
+    // Handle formats like:
+    // - "Căn hộ B---04" (already correct)
+    // - "Cư dân - B---04" (needs normalization)
+    // - "B---04" (needs normalization)
+    // - Any other format with unit code
+    
+    // Extract unit code from various formats
+    const unitCodeMatch = billToName.match(/([A-Z]+-{2,3}\d+)/);
+    if (unitCodeMatch) {
+      const unitCode = unitCodeMatch[1];
+      return `Căn hộ ${unitCode}`;
+    }
+    
+    // If no unit code found, return as is
+    return billToName;
   };
 
   const handleExportExcel = async () => {
@@ -390,7 +446,7 @@ export default function InvoicesManagementPage() {
                       {formatDate(invoice.issuedAt)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      <div>{invoice.billToName || '-'}</div>
+                      <div>{normalizeBillToName(invoice.billToName) || '-'}</div>
                       <div className="text-xs text-gray-400">{invoice.billToAddress || ''}</div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
@@ -399,11 +455,21 @@ export default function InvoicesManagementPage() {
                         const uniqueServiceCodes = Array.from(
                           new Set(invoice.lines?.map(line => line.serviceCode).filter(Boolean) || [])
                         );
-                        return uniqueServiceCodes.map((serviceCode, idx) => (
-                          <div key={idx} className="text-xs">
-                            {SERVICE_CODE_LABELS[serviceCode] || serviceCode}
-                          </div>
-                        ));
+                        return uniqueServiceCodes.map((serviceCode, idx) => {
+                          // For WATER and ELECTRIC, show English service code for clarity
+                          // For other services, use translation if available
+                          let displayText = SERVICE_CODE_LABELS[serviceCode] || serviceCode;
+                          if (serviceCode === 'WATER') {
+                            displayText = 'Water';
+                          } else if (serviceCode === 'ELECTRIC' || serviceCode === 'ELECTRICITY') {
+                            displayText = 'Electric';
+                          }
+                          return (
+                            <div key={idx} className="text-xs">
+                              {displayText}
+                            </div>
+                          );
+                        });
                       })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">

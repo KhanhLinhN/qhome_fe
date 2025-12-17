@@ -38,11 +38,11 @@ export default function Home() {
     handlePageChange
   } = useBuildingPage()
 
-  // Order by createdAt desc (newest first)
+  // Order by code (ABC order)
   const ordered = (data?.content || []).slice().sort((a: any, b: any) => {
-    const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return tb - ta;
+    const codeA = (a.code || '').toUpperCase();
+    const codeB = (b.code || '').toUpperCase();
+    return codeA.localeCompare(codeB);
   });
 
   const tableData = ordered.map((item: any) => ({

@@ -54,6 +54,7 @@ export default function TechnicianInspectionAssignmentsPage() {
   const [unitMeters, setUnitMeters] = useState<MeterDto[]>([]);
   const [loadingMeters, setLoadingMeters] = useState(false);
   const [meterReadings, setMeterReadings] = useState<Record<string, { index: string; note?: string }>>({});
+  const [meterReadingErrors, setMeterReadingErrors] = useState<Record<string, string>>({});
   const [readingDate, setReadingDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [activeCycle, setActiveCycle] = useState<ReadingCycleDto | null>(null);
   const [activeAssignment, setActiveAssignment] = useState<MeterReadingAssignmentDto | null>(null);
@@ -101,13 +102,16 @@ export default function TechnicianInspectionAssignmentsPage() {
     if (selectedInspection?.unitId && selectedInspection?.status === InspectionStatus.COMPLETED) {
       // Always try to load separate invoices, even if main invoice exists
       // This ensures we have fallback if main invoice doesn't have water/electric lines
-      loadWaterElectricInvoices(selectedInspection.unitId, activeCycle?.id);
+      // For completed inspections, load ALL water/electric invoices for the unit
+      // Don't filter by cycleId - invoices from reading cycle might have different cycleId
+      // than the inspection cycle, but they're still relevant for the total cost
+      loadWaterElectricInvoices(selectedInspection.unitId, undefined); // Don't filter by cycleId
     } else if (selectedInspection?.status !== InspectionStatus.COMPLETED) {
       // Only reset if inspection is not completed
       // This prevents resetting invoices when updating items in a completed inspection
       setWaterElectricInvoices([]);
     }
-  }, [selectedInspection?.unitId, selectedInspection?.status, activeCycle?.id]);
+  }, [selectedInspection?.unitId, selectedInspection?.status]);
 
   const loadMyInspections = async () => {
     if (!user?.userId && !isAdmin) return;
@@ -273,7 +277,6 @@ export default function TechnicianInspectionAssignmentsPage() {
   const calculatePriceFromUsage = (usage: number, serviceCode: string): number => {
     const tiers = pricingTiers[serviceCode] || [];
     if (tiers.length === 0) {
-      console.warn(`No pricing tiers found for serviceCode: ${serviceCode}, available:`, Object.keys(pricingTiers));
       return 0;
     }
     
@@ -304,7 +307,6 @@ export default function TechnicianInspectionAssignmentsPage() {
       }
     }
     
-    console.log(`Calculated price for ${serviceCode}: usage=${usage}, price=${totalPrice}, tiers used:`, sortedTiers.length);
     return totalPrice;
   };
 
@@ -313,29 +315,16 @@ export default function TechnicianInspectionAssignmentsPage() {
     try {
       const today = new Date().toISOString().split('T')[0];
       const [waterTiers, electricTiers] = await Promise.all([
-        getActivePricingTiersByService('WATER', today).catch((err) => {
-          console.warn('Failed to load WATER pricing tiers:', err);
-          return [];
-        }),
-        getActivePricingTiersByService('ELECTRIC', today).catch((err) => {
-          console.warn('Failed to load ELECTRIC pricing tiers:', err);
-          return [];
-        })
+        getActivePricingTiersByService('WATER', today).catch(() => []),
+        getActivePricingTiersByService('ELECTRIC', today).catch(() => [])
       ]);
-      
-      console.log('Loaded pricing tiers:', {
-        WATER: waterTiers.length,
-        ELECTRIC: electricTiers.length,
-        waterTiers: waterTiers,
-        electricTiers: electricTiers
-      });
       
       setPricingTiers({
         WATER: waterTiers,
         ELECTRIC: electricTiers
       });
     } catch (error) {
-      console.warn('Failed to load pricing tiers:', error);
+      // Silently fail - pricing tiers are optional
     }
   };
 
@@ -399,12 +388,8 @@ export default function TechnicianInspectionAssignmentsPage() {
           // Validate price - should be reasonable (less than 100 million VND)
           if (price > 0 && price < 100000000) {
             newCalculatedPrices[meter.id] = price;
-          } else {
-            console.warn(`Invalid price calculated for meter ${meter.id}: ${price} (usage: ${usage})`);
           }
         }
-      } else if (usage >= 1000000) {
-        console.warn(`Usage too large for meter ${meter.id}: ${usage} (prev: ${prevIndex}, curr: ${currentIndex})`);
       }
     });
     
@@ -424,16 +409,8 @@ export default function TechnicianInspectionAssignmentsPage() {
         const waterElectricLines = invoice.lines.filter(line => 
           line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC'
         );
-        console.log('Main invoice loaded:', {
-          invoiceId: invoice.id,
-          totalAmount: invoice.totalAmount,
-          totalLines: invoice.lines.length,
-          waterElectricLines: waterElectricLines.length,
-          waterElectricTotal: waterElectricLines.reduce((sum, line) => sum + (line.lineTotal || 0), 0)
-        });
       }
     } catch (error: any) {
-      console.error('Failed to load main invoice:', error);
       setMainInvoice(null);
     } finally {
       setLoadingMainInvoice(false);
@@ -451,10 +428,19 @@ export default function TechnicianInspectionAssignmentsPage() {
         getAllInvoicesForAdmin({ unitId, serviceCode: 'ELECTRIC' }).catch(() => [])
       ]);
       
-      // Filter by cycleId if provided, otherwise show all invoices for this unit
+      // Combine all water/electric invoices
       let allInvoices = [...waterInvoices, ...electricInvoices];
-      if (cycleId) {
-        allInvoices = allInvoices.filter(inv => inv.cycleId === cycleId);
+      
+      // If cycleId is provided, try to filter by it, but if no results, fallback to all invoices
+      // This ensures we show water/electric invoices even if cycleId doesn't match
+      if (cycleId && allInvoices.length > 0) {
+        const filteredByCycle = allInvoices.filter(inv => inv.cycleId === cycleId);
+        // Only use filtered results if we found invoices matching the cycle
+        // Otherwise, use all invoices (they might be from a different cycle but still relevant)
+        if (filteredByCycle.length > 0) {
+          allInvoices = filteredByCycle;
+        }
+        // If filteredByCycle is empty, keep allInvoices (don't filter)
       }
       
       // Also try to load invoices without serviceCode filter to catch any missed ones
@@ -466,8 +452,10 @@ export default function TechnicianInspectionAssignmentsPage() {
             return serviceCodes.includes('WATER') || serviceCodes.includes('ELECTRIC');
           });
           
-          if (cycleId) {
-            allInvoices = waterElectricOnly.filter(inv => inv.cycleId === cycleId);
+          // If cycleId provided and we have invoices, try to filter, but fallback to all if no match
+          if (cycleId && waterElectricOnly.length > 0) {
+            const filteredByCycle = waterElectricOnly.filter(inv => inv.cycleId === cycleId);
+            allInvoices = filteredByCycle.length > 0 ? filteredByCycle : waterElectricOnly;
           } else {
             allInvoices = waterElectricOnly;
           }
@@ -478,7 +466,6 @@ export default function TechnicianInspectionAssignmentsPage() {
       
       setWaterElectricInvoices(allInvoices);
     } catch (error: any) {
-      console.warn('Failed to load water/electric invoices:', error);
       setWaterElectricInvoices([]);
     } finally {
       setLoadingInvoices(false);
@@ -682,15 +669,12 @@ export default function TechnicianInspectionAssignmentsPage() {
         if (updated.status === InspectionStatus.COMPLETED) {
           if (updated.invoiceId) {
             // Reload main invoice
-            loadMainInvoice(updated.invoiceId).catch(err => 
-              console.warn('Failed to reload main invoice after item update:', err)
-            );
+            loadMainInvoice(updated.invoiceId).catch(() => {});
           }
           if (updated.unitId) {
-            // Reload water/electric invoices
-            loadWaterElectricInvoices(updated.unitId, activeCycle?.id).catch(err =>
-              console.warn('Failed to reload water/electric invoices after item update:', err)
-            );
+            // Reload water/electric invoices - load ALL invoices, don't filter by cycleId
+            // Invoices from reading cycle might have different cycleId than inspection cycle
+            loadWaterElectricInvoices(updated.unitId, undefined).catch(() => {});
           }
         }
         
@@ -751,6 +735,90 @@ export default function TechnicianInspectionAssignmentsPage() {
         'error'
       );
       return;
+    }
+    
+    // VALIDATION 3: Meter readings validation - check if there are any errors
+    if (Object.keys(meterReadingErrors).length > 0) {
+      show(
+        t('errors.meterReadingErrors', { 
+          defaultValue: 'Vui lòng sửa các lỗi trong chỉ số đồng hồ trước khi hoàn thành kiểm tra!' 
+        }), 
+        'error'
+      );
+      return;
+    }
+    
+    // VALIDATION 4: If meter readings are provided, validate they are greater than previous index
+    if (unitMeters.length > 0) {
+      const invalidReadings: string[] = [];
+      
+      unitMeters.forEach(meter => {
+        const reading = meterReadings[meter.id];
+        if (reading?.index && reading.index.trim() !== '') {
+          const currentIndex = parseFloat(reading.index);
+          const prevIndex = meter.lastReading !== null && meter.lastReading !== undefined ? meter.lastReading : 0;
+          
+          if (isNaN(currentIndex)) {
+            invalidReadings.push(`${meter.meterCode}: ${t('errors.invalidNumber', { defaultValue: 'Số không hợp lệ' })}`);
+          } else if (currentIndex < 0) {
+            invalidReadings.push(`${meter.meterCode}: ${t('errors.invalidIndex', { defaultValue: 'Chỉ số phải lớn hơn hoặc bằng 0' })}`);
+          } else if (currentIndex < prevIndex) {
+            invalidReadings.push(`${meter.meterCode}: ${t('errors.indexMustBeGreater', { 
+              prevIndex: prevIndex,
+              defaultValue: `Chỉ số hiện tại (${currentIndex}) phải lớn hơn chỉ số trước (${prevIndex})` 
+            })}`);
+          } else if (currentIndex === prevIndex) {
+            invalidReadings.push(`${meter.meterCode}: ${t('errors.indexMustBeGreaterThan', { 
+              prevIndex: prevIndex,
+              defaultValue: `Chỉ số hiện tại (${currentIndex}) phải lớn hơn chỉ số trước (${prevIndex}). Chỉ số không thể bằng chỉ số trước.` 
+            })}`);
+          }
+        }
+      });
+      
+      if (invalidReadings.length > 0) {
+        show(
+          t('errors.meterReadingValidationFailed', { 
+            errors: invalidReadings.join('; '),
+            defaultValue: `Lỗi chỉ số đồng hồ: ${invalidReadings.join('; ')}` 
+          }), 
+          'error'
+        );
+        return;
+      }
+    }
+    
+    // VALIDATION 5: Validate reading date if provided
+    if (readingDate) {
+      const invalidReadings: string[] = [];
+      unitMeters.forEach(meter => {
+        const reading = meterReadings[meter.id];
+        if (reading?.index && reading.index.trim() !== '') {
+          const currentIndex = parseFloat(reading.index);
+          if (!isNaN(currentIndex)) {
+            const prevIndex = meter.lastReading !== null && meter.lastReading !== undefined ? meter.lastReading : 0;
+            if (currentIndex < 0) {
+              invalidReadings.push(`${meter.meterCode}: ${t('errors.invalidIndex', { defaultValue: 'Chỉ số phải >= 0' })}`);
+            } else if (currentIndex <= prevIndex) {
+              invalidReadings.push(`${meter.meterCode}: ${t('errors.indexMustBeGreater', { 
+                prevIndex: prevIndex,
+                defaultValue: `Chỉ số hiện tại (${currentIndex}) phải lớn hơn chỉ số trước (${prevIndex})` 
+              })}`);
+            }
+          }
+        }
+      });
+      
+      if (invalidReadings.length > 0) {
+        show(
+          t('errors.meterReadingValidationFailed', { 
+            errors: invalidReadings.join('; '),
+            defaultValue: `Lỗi chỉ số đồng hồ: ${invalidReadings.join('; ')}` 
+          }), 
+          'error'
+        );
+        return;
+      }
     }
     
     // VALIDATION 3: All water/electric meters must have index > 0
@@ -949,6 +1017,7 @@ export default function TechnicianInspectionAssignmentsPage() {
           try {
             const importResponse = await exportReadingsByCycle(activeCycle.id);
             waterElectricInvoicesCreated = importResponse.invoicesCreated || 0;
+            
             if (waterElectricInvoicesCreated > 0) {
               show(
                 t('success.invoicesGenerated', { 
@@ -960,10 +1029,26 @@ export default function TechnicianInspectionAssignmentsPage() {
               
               // Wait a bit for invoices to be fully created in the database
               await new Promise(resolve => setTimeout(resolve, 1000));
+            } else if (importResponse.errors && importResponse.errors.length > 0) {
+              // Show errors if invoices were not created
+              const errorMessage = importResponse.errors.join('; ');
+              show(
+                `Không thể tạo hóa đơn điện nước: ${errorMessage}`,
+                'error'
+              );
+            } else if (importResponse.invoicesSkipped && importResponse.invoicesSkipped > 0) {
+              // Show info if some invoices were skipped
+              show(
+                `Đã xuất ${importResponse.totalReadings} chỉ số nhưng không tạo được ${importResponse.invoicesSkipped} hóa đơn. ${importResponse.message || ''}`,
+                'info'
+              );
             }
           } catch (invoiceError: any) {
-            // Log but don't fail - inspection was completed successfully
-            console.warn('Failed to generate invoices from meter readings:', invoiceError);
+            // Don't fail - inspection was completed successfully
+            show(
+              `Lỗi khi xuất hóa đơn điện nước: ${invoiceError?.response?.data?.message || invoiceError?.message || 'Lỗi không xác định'}`,
+              'error'
+            );
           }
         }
       }
@@ -984,15 +1069,14 @@ export default function TechnicianInspectionAssignmentsPage() {
             try {
               await loadMainInvoice(finalReload.invoiceId);
             } catch (invoiceError: any) {
-              console.warn('Failed to load main invoice details:', invoiceError);
+              // Silently fail - invoice was created successfully
             }
             
             // Update invoice status to PAID for invoices generated from asset inspection
             try {
               await updateInvoiceStatus(finalReload.invoiceId, 'PAID');
             } catch (statusError: any) {
-              // Log but don't fail - invoice was created successfully
-              console.warn('Failed to update invoice status to PAID:', statusError);
+              // Silently fail - invoice was created successfully
             }
           }
           
@@ -1795,35 +1879,109 @@ export default function TechnicianInspectionAssignmentsPage() {
                                               index: value
                                             }
                                           }));
+                                          
+                                          // Validate: current index must be greater than previous index
+                                          if (value && value.trim() !== '') {
+                                            const numValue = parseFloat(value);
+                                            if (!isNaN(numValue)) {
+                                              const prevIdx = meter.lastReading !== null && meter.lastReading !== undefined ? meter.lastReading : 0;
+                                              if (numValue < 0) {
+                                                setMeterReadingErrors(prev => ({
+                                                  ...prev,
+                                                  [meter.id]: t('modal.errors.invalidIndex', { defaultValue: 'Chỉ số đồng hồ phải lớn hơn hoặc bằng 0' })
+                                                }));
+                                              } else if (numValue < prevIdx) {
+                                                setMeterReadingErrors(prev => ({
+                                                  ...prev,
+                                                  [meter.id]: t('modal.errors.indexMustBeGreater', { 
+                                                    prevIndex: prevIdx,
+                                                    defaultValue: `Chỉ số hiện tại phải lớn hơn chỉ số trước (${prevIdx})` 
+                                                  })
+                                                }));
+                                              } else if (numValue === prevIdx) {
+                                                setMeterReadingErrors(prev => ({
+                                                  ...prev,
+                                                  [meter.id]: t('modal.errors.indexMustBeGreaterThan', { 
+                                                    prevIndex: prevIdx,
+                                                    defaultValue: `Chỉ số hiện tại phải lớn hơn chỉ số trước (${prevIdx}). Chỉ số không thể bằng chỉ số trước.` 
+                                                  })
+                                                }));
+                                              } else {
+                                                setMeterReadingErrors(prev => {
+                                                  const newErrors = { ...prev };
+                                                  delete newErrors[meter.id];
+                                                  return newErrors;
+                                                });
+                                              }
+                                            } else {
+                                              setMeterReadingErrors(prev => ({
+                                                ...prev,
+                                                [meter.id]: t('modal.errors.invalidNumber', { defaultValue: 'Vui lòng nhập số hợp lệ' })
+                                              }));
+                                            }
+                                          } else {
+                                            setMeterReadingErrors(prev => {
+                                              const newErrors = { ...prev };
+                                              delete newErrors[meter.id];
+                                              return newErrors;
+                                            });
+                                          }
+                                        }}
+                                        onBlur={(e) => {
+                                          // Re-validate on blur
+                                          const value = e.target.value;
+                                          if (value && value.trim() !== '') {
+                                            const numValue = parseFloat(value);
+                                            if (!isNaN(numValue)) {
+                                              const prevIdx = meter.lastReading !== null && meter.lastReading !== undefined ? meter.lastReading : 0;
+                                              if (numValue < 0) {
+                                                setMeterReadingErrors(prev => ({
+                                                  ...prev,
+                                                  [meter.id]: t('modal.errors.invalidIndex', { defaultValue: 'Chỉ số đồng hồ phải lớn hơn hoặc bằng 0' })
+                                                }));
+                                              } else if (numValue < prevIdx) {
+                                                setMeterReadingErrors(prev => ({
+                                                  ...prev,
+                                                  [meter.id]: t('modal.errors.indexMustBeGreater', { 
+                                                    prevIndex: prevIdx,
+                                                    defaultValue: `Chỉ số hiện tại phải lớn hơn chỉ số trước (${prevIdx})` 
+                                                  })
+                                                }));
+                                              } else if (numValue === prevIdx) {
+                                                setMeterReadingErrors(prev => ({
+                                                  ...prev,
+                                                  [meter.id]: t('modal.errors.indexMustBeGreaterThan', { 
+                                                    prevIndex: prevIdx,
+                                                    defaultValue: `Chỉ số hiện tại phải lớn hơn chỉ số trước (${prevIdx}). Chỉ số không thể bằng chỉ số trước.` 
+                                                  })
+                                                }));
+                                              } else {
+                                                setMeterReadingErrors(prev => {
+                                                  const newErrors = { ...prev };
+                                                  delete newErrors[meter.id];
+                                                  return newErrors;
+                                                });
+                                              }
+                                            } else {
+                                              setMeterReadingErrors(prev => ({
+                                                ...prev,
+                                                [meter.id]: t('modal.errors.invalidNumber', { defaultValue: 'Vui lòng nhập số hợp lệ' })
+                                              }));
+                                            }
+                                          }
                                         }}
                                         placeholder={t('modal.indexPlaceholder', { defaultValue: 'Nhập chỉ số đồng hồ' })}
                                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                                          (() => {
-                                            const indexValue = meterReadings[meter.id]?.index;
-                                            if (indexValue && indexValue.trim() !== '') {
-                                              const numValue = parseFloat(indexValue);
-                                              if (!isNaN(numValue) && numValue < 0) {
-                                                return 'border-red-500 focus:ring-red-500';
-                                              }
-                                            }
-                                            return 'border-gray-300 focus:ring-blue-500';
-                                          })()
+                                          meterReadingErrors[meter.id] 
+                                            ? 'border-red-500 focus:ring-red-500' 
+                                            : 'border-gray-300 focus:ring-blue-500'
                                         }`}
                                       />
-                                      {(() => {
-                                        const indexValue = meterReadings[meter.id]?.index;
-                                        if (indexValue && indexValue.trim() !== '') {
-                                          const numValue = parseFloat(indexValue);
-                                          if (!isNaN(numValue) && numValue < 0) {
-                                            return (
-                                              <p className="mt-1 text-sm text-red-600">
-                                                {t('modal.errors.invalidIndex', { defaultValue: 'Chỉ số đồng hồ phải lớn hơn hoặc bằng 0' })}
-                                              </p>
-                                            );
-                                          }
-                                        }
-                                        return null;
-                                      })()}
+                                      {meterReadingErrors[meter.id] && (
+                                        <p className="mt-1 text-sm text-red-600">
+                                          {meterReadingErrors[meter.id]}
+                                        </p>
+                                      )}
                                     </div>
                                     <div>
                                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2110,25 +2268,29 @@ export default function TechnicianInspectionAssignmentsPage() {
                       );
                     })()}
 
-                    <div className="border-t border-gray-200 pt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t('modal.inspectionNotes', { defaultValue: 'Ghi chú kiểm tra' })}
-                      </label>
-                      <textarea
-                        value={inspectorNotes}
-                        onChange={(e) => setInspectorNotes(e.target.value)}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={t('modal.notesPlaceholder', { defaultValue: 'Nhập ghi chú về tình trạng thiết bị...' })}
-                      />
-                    </div>
+                    {selectedInspection.status === InspectionStatus.IN_PROGRESS && (
+                      <>
+                        <div className="border-t border-gray-200 pt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t('modal.inspectionNotes', { defaultValue: 'Ghi chú kiểm tra' })}
+                          </label>
+                          <textarea
+                            value={inspectorNotes}
+                            onChange={(e) => setInspectorNotes(e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder={t('modal.notesPlaceholder', { defaultValue: 'Nhập ghi chú về tình trạng thiết bị...' })}
+                          />
+                        </div>
 
-                    <button
-                      onClick={handleCompleteInspection}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                    >
-                      {t('modal.completeInspection', { defaultValue: 'Hoàn thành kiểm tra' })}
-                    </button>
+                        <button
+                          onClick={handleCompleteInspection}
+                          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+                        >
+                          {t('modal.completeInspection', { defaultValue: 'Hoàn thành kiểm tra' })}
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
 

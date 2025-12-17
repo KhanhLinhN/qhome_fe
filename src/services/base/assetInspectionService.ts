@@ -33,6 +33,7 @@ export interface AssetInspection {
   inspectionDate: string;
   status: InspectionStatus;
   inspectorName?: string;
+  inspectorId?: string;
   inspectorNotes?: string;
   completedAt?: string;
   completedBy?: string;
@@ -197,6 +198,29 @@ export async function generateInvoice(inspectionId: string): Promise<AssetInspec
     console.error('Error response:', error?.response?.data);
     throw error;
   }
+}
+
+export interface AssignInspectorRequest {
+  inspectorId: string;
+  inspectorName: string;
+}
+
+export async function assignInspector(
+  inspectionId: string,
+  request: AssignInspectorRequest
+): Promise<AssetInspection> {
+  const response = await axios.put<AssetInspection>(
+    `${BASE_URL}/api/asset-inspections/${inspectionId}/assign-inspector`,
+    request,
+  );
+  // Map damageCost from backend to repairCost for frontend compatibility
+  if (response.data && response.data.items) {
+    response.data.items = response.data.items.map(item => ({
+      ...item,
+      repairCost: item.damageCost !== undefined ? item.damageCost : item.repairCost
+    }));
+  }
+  return response.data;
 }
 
 export async function getAllInspections(

@@ -1099,16 +1099,17 @@ export default function ReadingAssignDashboard({
                         )} căn hộ/phòng chưa được assign (chỉ hiển thị căn có chủ nhà):
                       </p>
                       <div className="space-y-1 text-xs">
-                        {buildingGroups.map((group) => 
-                          group.floors.map((floor) => (
-                            <div key={`${group.key}-${floor.floor}`}>
+                        {buildingGroups.map((group) => {
+                          const totalUnits = group.floors.reduce((sum, floor) => sum + floor.unitCodes.length, 0);
+                          return (
+                            <div key={group.key}>
                               <span className="font-semibold">
-                                {group.buildingCode || group.buildingName || 'Tòa nhà chưa rõ'} - Tầng {floor.floor ?? 'N/A'}:
+                                {group.buildingCode || group.buildingName || 'Tòa nhà chưa rõ'}:
                               </span>{' '}
-                              {floor.unitCodes.join(', ')}
+                              {totalUnits} căn hộ chưa có công tơ
                             </div>
-                          ))
-                        )}
+                          );
+                        })}
                       </div>
                     </div>
                   ) : unitsWithResidentMap.size > 0 ? (
@@ -1207,15 +1208,13 @@ export default function ReadingAssignDashboard({
                                   </button>
                                 </div>
                               </div>
-                              <div className="mt-3 space-y-2 text-sm text-gray-700">
-                                {group.floors.map((floor) => (
-                                  <div key={`${group.key}-${floor.floor}-${floor.unitCodes.join(',')}`}>
-                                    <span className="font-semibold">
-                                      {t('floorLabel', { floor: floor.floor ?? 'N/A' })}
-                                    </span>{' '}
-                                    {floor.unitCodes.join(', ')}
-                                  </div>
-                                ))}
+                              <div className="mt-3 text-sm text-gray-700">
+                                <div>
+                                  <span className="font-semibold">
+                                    Tổng cộng:
+                                  </span>{' '}
+                                  {group.floors.reduce((sum, floor) => sum + floor.unitCodes.length, 0)} căn hộ chưa có công tơ
+                                </div>
                               </div>
                             </div>
                           );
