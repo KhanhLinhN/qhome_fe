@@ -22,9 +22,10 @@ export const useBuildingDetailPage = (buildingId: string | string[] | undefined)
             const buildingData = await getBuilding(buildingId.toString());
             console.log('buildingData', buildingData);
             setBuildingData(buildingData as unknown as Building);
-        } catch (err) {
-            setError(err as Error);
-            console.error(err);
+        } catch (err: any) {
+            const errorMessage = err?.message || err?.response?.data?.message || 'Không thể tải thông tin tòa nhà';
+            setError(new Error(errorMessage));
+            console.error('Failed to fetch building:', err);
         } finally {
             setLoading(false);
         }

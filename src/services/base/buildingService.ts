@@ -25,12 +25,18 @@ export async function getBuildings(): Promise<Building[]> {
 
 
 export async function getBuilding(id: string): Promise<Building> {
-  const response = await axios.get(
-    `${BASE_URL}/api/buildings/${id}`,
-    { withCredentials: true }
-  );
-  console.log('Building', response.data);
-  return response.data;
+  try {
+    const response = await axios.get(
+      `${BASE_URL}/api/buildings/${id}`,
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      throw new Error(`Building không tồn tại với ID: ${id}`);
+    }
+    throw error;
+  }
 }
 
 /**

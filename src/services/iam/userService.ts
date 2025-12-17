@@ -291,7 +291,11 @@ export async function checkEmailExists(email: string): Promise<boolean> {
     );
     return response.status === 200; // Email tồn tại nếu status 200
   } catch (err: any) {
-    // Chỉ catch các lỗi không phải 404 (network, 500, etc.)
+    // Nếu là 404, đây là expected behavior (email không tồn tại) - không log như error
+    if (err?.response?.status === 404) {
+      return false;
+    }
+    // Chỉ log các lỗi không phải 404 (network, 500, etc.)
     console.warn('Error checking email (non-404):', err?.response?.status || err?.message);
     return false; // Trả về false để không block submit, backend sẽ validate khi submit
   }

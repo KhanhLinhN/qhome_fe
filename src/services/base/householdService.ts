@@ -84,14 +84,23 @@ export async function fetchCurrentHouseholdByUnit(unitId: string): Promise<House
   try {
     const response = await axios.get<HouseholdDto>(
       `${BASE_URL}/api/households/units/${unitId}/current`,
-      { withCredentials: true },
+      { 
+        withCredentials: true,
+        validateStatus: (status) => status === 200 || status === 404,
+      },
     );
-    return response.data;
-  } catch (error: any) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
+    // 404 means no household exists for this unit, which is valid
+    if (response.status === 404) {
       return null;
     }
-    throw error;
+    return response.data;
+  } catch (error: any) {
+    // Only log non-404 errors as warnings
+    if (axios.isAxiosError(error) && error.response?.status !== 404) {
+      console.warn(`Failed to fetch household for unit ${unitId}:`, error);
+    }
+    // For any other error, return null (unit has no household)
+    return null;
   }
 }
 

@@ -82,13 +82,13 @@ export default function TechnicianInspectionAssignmentsPage() {
     }
   }, [user?.userId, isAdmin]);
 
-  // Load water/electric invoices when inspection is opened
+  // Load water/electric invoices only when inspection is completed
   useEffect(() => {
-    if (selectedInspection?.unitId) {
+    if (selectedInspection?.unitId && selectedInspection?.status === InspectionStatus.COMPLETED) {
       // Load invoices for the unit, filter by cycle if available
       loadWaterElectricInvoices(selectedInspection.unitId, activeCycle?.id);
     }
-  }, [selectedInspection?.unitId, activeCycle?.id]);
+  }, [selectedInspection?.unitId, selectedInspection?.status, activeCycle?.id]);
 
   const loadMyInspections = async () => {
     if (!user?.userId && !isAdmin) return;
@@ -1161,25 +1161,49 @@ export default function TechnicianInspectionAssignmentsPage() {
                       {getStatusLabel(selectedInspection.status)}
                     </span>
                   </div>
-                  {(selectedInspection.totalDamageCost !== undefined && selectedInspection.totalDamageCost !== null) && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        {t('modal.totalDamageCost', { defaultValue: 'Tổng chi phí thiệt hại' })}
-                      </label>
-                      <p className={`mt-1 text-lg font-semibold ${
-                        selectedInspection.totalDamageCost > 0 ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {selectedInspection.totalDamageCost > 0 
-                          ? `${selectedInspection.totalDamageCost.toLocaleString('vi-VN')} VNĐ`
-                          : '0 VNĐ'}
-                      </p>
-                      {selectedInspection.invoiceId && (
-                        <p className="mt-1 text-xs text-gray-500">
-                          {t('modal.invoiceId', { defaultValue: 'Mã hóa đơn' })}: {selectedInspection.invoiceId}
+                  {(() => {
+                    // Calculate total from items (same logic as bottom section)
+                    let calculatedTotal = selectedInspection.items?.reduce((sum, item) => {
+                      const cost = item.repairCost !== undefined && item.repairCost !== null
+                        ? item.repairCost
+                        : (item.damageCost !== undefined && item.damageCost !== null ? item.damageCost : 0);
+                      return sum + cost;
+                    }, 0) || 0;
+                    
+                    // Also include costs from tempInspectionData (for items not yet created or being edited)
+                    const tempTotal = Object.values(tempInspectionData).reduce((sum, temp) => {
+                      const cost = temp.repairCost !== undefined && temp.repairCost !== null ? temp.repairCost : 0;
+                      return sum + cost;
+                    }, 0);
+                    
+                    // Add temp total to calculated total
+                    calculatedTotal = calculatedTotal + tempTotal;
+                    
+                    // Use calculated total if backend total doesn't match (backend might be delayed)
+                    const displayTotal = calculatedTotal > 0 && Math.abs(calculatedTotal - (selectedInspection.totalDamageCost || 0)) > 0.01
+                      ? calculatedTotal
+                      : (selectedInspection.totalDamageCost || 0);
+                    
+                    return (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          {t('modal.totalDamageCost', { defaultValue: 'Tổng chi phí thiệt hại' })}
+                        </label>
+                        <p className={`mt-1 text-lg font-semibold ${
+                          displayTotal > 0 ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                          {displayTotal > 0 
+                            ? `${displayTotal.toLocaleString('vi-VN')} VNĐ`
+                            : '0 VNĐ'}
                         </p>
-                      )}
-                    </div>
-                  )}
+                        {selectedInspection.invoiceId && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            {t('modal.invoiceId', { defaultValue: 'Mã hóa đơn' })}: {selectedInspection.invoiceId}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {selectedInspection.status === InspectionStatus.PENDING && (
@@ -1198,85 +1222,89 @@ export default function TechnicianInspectionAssignmentsPage() {
                   </div>
                 )}
 
-                {selectedInspection.status === InspectionStatus.IN_PROGRESS && (
+                {(selectedInspection.status === InspectionStatus.IN_PROGRESS || selectedInspection.status === InspectionStatus.COMPLETED) && (
                   <>
                     <div className="border-t border-gray-200 pt-4">
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">
-                          {t('modal.equipmentList', { defaultValue: 'Danh sách thiết bị' })}
+                          {selectedInspection.status === InspectionStatus.COMPLETED 
+                            ? t('modal.inspectionResult', { defaultValue: 'Kết quả kiểm tra' })
+                            : t('modal.equipmentList', { defaultValue: 'Danh sách thiết bị' })}
                         </h3>
-                        <button
-                          onClick={async () => {
-                            if (selectedInspection) {
-                              try {
-                                // Try by contract ID first (more reliable)
-                                let fullInspection = await getInspectionByContractId(selectedInspection.contractId);
-                                
-                                // If that fails, try by ID (but handle errors gracefully)
-                                if (!fullInspection || !fullInspection.items || fullInspection.items.length === 0) {
-                                  try {
-                                    const inspectionById = await getInspectionById(selectedInspection.id);
-                                    if (inspectionById && inspectionById.items && inspectionById.items.length > 0) {
-                                      fullInspection = inspectionById;
-                                    }
-                                  } catch (err) {
-                                    // Ignore errors from getInspectionById, continue with contract-based result
-                                  }
-                                }
-                                
-                                if (fullInspection) {
-                                  // If items are now available, try to sync temp data
-                                  if (fullInspection.items && fullInspection.items.length > 0) {
-                                    // Try to match temp data with items and update them
-                                    const itemsToUpdate: Promise<any>[] = [];
-                                    fullInspection.items.forEach(item => {
-                                      const asset = unitAssets.find(a => a.id === item.assetId || a.assetCode === item.assetCode) ||
-                                                   assetsMap[item.assetId] ||
-                                                   assetsMap[item.assetCode || ''];
-                                      if (asset && tempInspectionData[asset.id]) {
-                                        const tempData = tempInspectionData[asset.id];
-                                        if (tempData.conditionStatus && !item.checked) {
-                                          itemsToUpdate.push(
-                                            updateInspectionItem(item.id, {
-                                              conditionStatus: tempData.conditionStatus,
-                                              notes: tempData.notes || undefined,
-                                              damageCost: tempData.repairCost !== undefined ? tempData.repairCost : undefined, // Backend expects 'damageCost'
-                                              checked: true
-                                            }).catch(() => {})
-                                          );
-                                        }
+                        {selectedInspection.status === InspectionStatus.IN_PROGRESS && (
+                          <button
+                            onClick={async () => {
+                              if (selectedInspection) {
+                                try {
+                                  // Try by contract ID first (more reliable)
+                                  let fullInspection = await getInspectionByContractId(selectedInspection.contractId);
+                                  
+                                  // If that fails, try by ID (but handle errors gracefully)
+                                  if (!fullInspection || !fullInspection.items || fullInspection.items.length === 0) {
+                                    try {
+                                      const inspectionById = await getInspectionById(selectedInspection.id);
+                                      if (inspectionById && inspectionById.items && inspectionById.items.length > 0) {
+                                        fullInspection = inspectionById;
                                       }
-                                    });
-                                    
-                                    if (itemsToUpdate.length > 0) {
-                                      Promise.all(itemsToUpdate).then(() => {
-                                        // Reload inspection after syncing
-                                        getInspectionByContractId(selectedInspection.contractId).then(updated => {
-                                          if (updated) setSelectedInspection(updated);
-                                        });
-                                      });
+                                    } catch (err) {
+                                      // Ignore errors from getInspectionById, continue with contract-based result
                                     }
-                                    
-                                    setSelectedInspection(fullInspection);
-                                    // Clear temp data after syncing
-                                    setTempInspectionData({});
-                                    show(t('success.refreshItems', { defaultValue: `Đã làm mới danh sách thiết bị (${fullInspection.items.length} thiết bị)` }), 'success');
+                                  }
+                                  
+                                  if (fullInspection) {
+                                    // If items are now available, try to sync temp data
+                                    if (fullInspection.items && fullInspection.items.length > 0) {
+                                      // Try to match temp data with items and update them
+                                      const itemsToUpdate: Promise<any>[] = [];
+                                      fullInspection.items.forEach(item => {
+                                        const asset = unitAssets.find(a => a.id === item.assetId || a.assetCode === item.assetCode) ||
+                                                     assetsMap[item.assetId] ||
+                                                     assetsMap[item.assetCode || ''];
+                                        if (asset && tempInspectionData[asset.id]) {
+                                          const tempData = tempInspectionData[asset.id];
+                                          if (tempData.conditionStatus && !item.checked) {
+                                            itemsToUpdate.push(
+                                              updateInspectionItem(item.id, {
+                                                conditionStatus: tempData.conditionStatus,
+                                                notes: tempData.notes || undefined,
+                                                damageCost: tempData.repairCost !== undefined ? tempData.repairCost : undefined, // Backend expects 'damageCost'
+                                                checked: true
+                                              }).catch(() => {})
+                                            );
+                                          }
+                                        }
+                                      });
+                                      
+                                      if (itemsToUpdate.length > 0) {
+                                        Promise.all(itemsToUpdate).then(() => {
+                                          // Reload inspection after syncing
+                                          getInspectionByContractId(selectedInspection.contractId).then(updated => {
+                                            if (updated) setSelectedInspection(updated);
+                                          });
+                                        });
+                                      }
+                                      
+                                      setSelectedInspection(fullInspection);
+                                      // Clear temp data after syncing
+                                      setTempInspectionData({});
+                                      show(t('success.refreshItems', { defaultValue: `Đã làm mới danh sách thiết bị (${fullInspection.items.length} thiết bị)` }), 'success');
+                                    } else {
+                                      setSelectedInspection(fullInspection);
+                                      show(t('warnings.itemsNotReady', { defaultValue: 'Danh sách thiết bị chưa được tạo. Vui lòng thử lại sau.' }), 'info');
+                                    }
                                   } else {
-                                    setSelectedInspection(fullInspection);
                                     show(t('warnings.itemsNotReady', { defaultValue: 'Danh sách thiết bị chưa được tạo. Vui lòng thử lại sau.' }), 'info');
                                   }
-                                } else {
-                                  show(t('warnings.itemsNotReady', { defaultValue: 'Danh sách thiết bị chưa được tạo. Vui lòng thử lại sau.' }), 'info');
+                                } catch (error: any) {
+                                  show(t('errors.refreshFailed', { defaultValue: 'Không thể làm mới danh sách thiết bị' }), 'error');
                                 }
-                              } catch (error: any) {
-                                show(t('errors.refreshFailed', { defaultValue: 'Không thể làm mới danh sách thiết bị' }), 'error');
                               }
-                            }
-                          }}
-                          className="px-3 py-1 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md border border-blue-200 font-medium"
-                        >
-                          🔄 {t('modal.refresh', { defaultValue: 'Làm mới' })}
-                        </button>
+                            }}
+                            className="px-3 py-1 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md border border-blue-200 font-medium"
+                          >
+                            🔄 {t('modal.refresh', { defaultValue: 'Làm mới' })}
+                          </button>
+                        )}
                       </div>
                       <div className="space-y-3">
                         {selectedInspection.items && selectedInspection.items.length > 0 ? (
@@ -1303,7 +1331,7 @@ export default function TechnicianInspectionAssignmentsPage() {
                                 item={item}
                                 asset={asset}
                                 onUpdate={(conditionStatus, notes, repairCost) => handleUpdateInspectionItem(item.id, conditionStatus, notes, repairCost)}
-                                disabled={false}
+                                disabled={selectedInspection.status === InspectionStatus.COMPLETED}
                               />
                             );
                           })
@@ -1695,15 +1723,25 @@ export default function TechnicianInspectionAssignmentsPage() {
                       }) || [];
                       
                       // Calculate total from items as fallback/verification
-                      const calculatedTotal = damagedItems.reduce((sum, item) => {
+                      let calculatedTotal = damagedItems.reduce((sum, item) => {
                         const cost = item.repairCost !== undefined && item.repairCost !== null
                           ? item.repairCost
                           : (item.damageCost !== undefined && item.damageCost !== null ? item.damageCost : 0);
                         return sum + cost;
                       }, 0);
                       
-                      // Use calculated total if backend total doesn't match (backend might be delayed)
-                      const displayTotal = calculatedTotal > 0 && Math.abs(calculatedTotal - (selectedInspection.totalDamageCost || 0)) > 0.01
+                      // Also include costs from tempInspectionData (for items not yet created or being edited)
+                      const tempTotal = Object.values(tempInspectionData).reduce((sum, temp) => {
+                        const cost = temp.repairCost !== undefined && temp.repairCost !== null ? temp.repairCost : 0;
+                        return sum + cost;
+                      }, 0);
+                      
+                      // Add temp total to calculated total
+                      calculatedTotal = calculatedTotal + tempTotal;
+                      
+                      // Use calculated total if it's greater than 0, otherwise use backend total
+                      // This ensures we always show the correct total even if backend hasn't updated yet
+                      const displayTotal = calculatedTotal > 0 
                         ? calculatedTotal
                         : (selectedInspection.totalDamageCost || 0);
                       
@@ -1775,8 +1813,8 @@ export default function TechnicianInspectionAssignmentsPage() {
                               </div>
                             )}
                             
-                            {/* Grand Total */}
-                            {waterElectricTotal > 0 && displayTotal > 0 && (
+                            {/* Grand Total - Show if either damage cost or water/electric cost exists */}
+                            {(displayTotal > 0 || waterElectricTotal > 0) && (
                               <div className="mt-3 pt-3 border-t-2 border-red-400">
                                 <div className="flex justify-between items-center">
                                   <span className="text-lg font-bold text-gray-900">
@@ -2188,9 +2226,16 @@ function InspectionItemRow({
                   }
                 }}
                 onBlur={() => {
-                  // Auto-save when user finishes editing repairCost (if conditionStatus is set)
-                  if (conditionStatus && conditionStatus.trim() !== '') {
-                    handleSave();
+                  // Auto-save when user finishes editing repairCost
+                  // Allow saving even if only repairCost is changed (conditionStatus may already be set)
+                  if (repairCost !== undefined && repairCost !== null) {
+                    // If conditionStatus is set, save with it; otherwise try to save with existing conditionStatus
+                    const statusToSave = conditionStatus && conditionStatus.trim() !== '' 
+                      ? conditionStatus 
+                      : (item.conditionStatus || '');
+                    if (statusToSave) {
+                      onUpdate(statusToSave, notes, repairCost);
+                    }
                   }
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

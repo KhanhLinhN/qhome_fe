@@ -972,11 +972,97 @@ export default function AccountNewResidentPage() {
       setUnitInfo(null);
       setHouseholdError(null);
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        t('messages.createAccountError');
-      setManualError(message);
+      const fieldErrors: ManualFieldErrors = {};
+      let generalMessage = '';
+      
+      if (err?.response?.data) {
+        const errorData = err.response.data;
+        
+        // Parse field-specific errors từ backend
+        // Format 1: errors array với field và message
+        if (Array.isArray(errorData.errors)) {
+          errorData.errors.forEach((error: any) => {
+            if (typeof error === 'string') {
+              // Nếu là string, check keywords
+              const lowerError = error.toLowerCase();
+              if (lowerError.includes('email') || lowerError.includes('e-mail')) {
+                fieldErrors.email = error;
+              } else if (lowerError.includes('phone') || lowerError.includes('số điện thoại')) {
+                fieldErrors.phone = error;
+              } else if (lowerError.includes('national') || lowerError.includes('cccd') || lowerError.includes('căn cước')) {
+                fieldErrors.nationalId = error;
+              }
+            } else if (error.field && error.message) {
+              // Format: { field: "email", message: "..." }
+              const fieldName = error.field.toLowerCase();
+              if (fieldName.includes('email')) {
+                fieldErrors.email = error.message;
+              } else if (fieldName.includes('phone')) {
+                fieldErrors.phone = error.message;
+              } else if (fieldName.includes('national') || fieldName.includes('cccd')) {
+                fieldErrors.nationalId = error.message;
+              }
+            }
+          });
+        }
+        
+        // Format 2: errors object với field names
+        if (errorData.errors && typeof errorData.errors === 'object' && !Array.isArray(errorData.errors)) {
+          Object.keys(errorData.errors).forEach(key => {
+            const lowerKey = key.toLowerCase();
+            const errorValue = Array.isArray(errorData.errors[key]) 
+              ? errorData.errors[key][0] 
+              : errorData.errors[key];
+            
+            if (lowerKey.includes('email')) {
+              fieldErrors.email = errorValue;
+            } else if (lowerKey.includes('phone')) {
+              fieldErrors.phone = errorValue;
+            } else if (lowerKey.includes('national') || lowerKey.includes('cccd')) {
+              fieldErrors.nationalId = errorValue;
+            }
+          });
+        }
+        
+        // Format 3: Parse từ message string
+        const message = errorData.message || errorData.error || '';
+        if (message && Object.keys(fieldErrors).length === 0) {
+          const lowerMessage = message.toLowerCase();
+          if (lowerMessage.includes('email') && (lowerMessage.includes('exists') || lowerMessage.includes('tồn tại') || lowerMessage.includes('đã có'))) {
+            fieldErrors.email = message;
+          } else if (lowerMessage.includes('phone') && (lowerMessage.includes('exists') || lowerMessage.includes('tồn tại') || lowerMessage.includes('đã có'))) {
+            fieldErrors.phone = message;
+          } else if ((lowerMessage.includes('national') || lowerMessage.includes('cccd') || lowerMessage.includes('căn cước')) && (lowerMessage.includes('exists') || lowerMessage.includes('tồn tại') || lowerMessage.includes('đã có'))) {
+            fieldErrors.nationalId = message;
+          } else {
+            generalMessage = message;
+          }
+        } else if (message) {
+          generalMessage = message;
+        }
+      } else if (err?.message) {
+        generalMessage = err.message;
+      }
+      
+      // Set field errors nếu có
+      if (Object.keys(fieldErrors).length > 0) {
+        setManualFieldErrors(fieldErrors);
+      }
+      
+      // Set general error nếu không có field-specific errors
+      if (generalMessage || Object.keys(fieldErrors).length === 0) {
+        setManualError(generalMessage || t('messages.createAccountError'));
+      } else {
+        setManualError(''); // Clear general error nếu có field errors
+      }
+      
+      console.error('Failed to provision primary resident:', {
+        status: err?.response?.status,
+        message: err?.response?.data?.message,
+        errors: err?.response?.data?.errors,
+        fieldErrors,
+        payload
+      });
     } finally {
       setManualSubmitting(false);
     }

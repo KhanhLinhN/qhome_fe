@@ -269,10 +269,13 @@ export async function getReadingCycleById(cycleId: string): Promise<ReadingCycle
   };
 }
 
-export async function getCycleUnassignedInfo(cycleId: string): Promise<ReadingCycleUnassignedInfoDto> {
+export async function getCycleUnassignedInfo(cycleId: string, onlyWithOwner: boolean = true): Promise<ReadingCycleUnassignedInfoDto> {
   const response = await axios.get(
     `${BASE_URL}/api/reading-cycles/${cycleId}/unassigned`,
-    { withCredentials: true }
+    { 
+      params: { onlyWithOwner },
+      withCredentials: true 
+    }
   );
   return response.data;
 }

@@ -117,10 +117,23 @@ export async function provisionPrimaryResident(
   unitId: string,
   payload: PrimaryResidentProvisionRequest,
 ): Promise<PrimaryResidentProvisionResponse> {
-  const response = await axios.post<PrimaryResidentProvisionResponse>(
-    `${BASE_URL}/api/units/${unitId}/primary-resident/provision`,
-    payload,
-    { withCredentials: true },
-  );
-  return response.data;
+  try {
+    const response = await axios.post<PrimaryResidentProvisionResponse>(
+      `${BASE_URL}/api/units/${unitId}/primary-resident/provision`,
+      payload,
+      { withCredentials: true },
+    );
+    return response.data;
+  } catch (err: any) {
+    // Log chi tiết lỗi để debug
+    if (err?.response?.data) {
+      console.error('Provision primary resident error:', {
+        status: err.response.status,
+        message: err.response.data.message,
+        errors: err.response.data.errors,
+        data: err.response.data
+      });
+    }
+    throw err; // Re-throw để component có thể handle
+  }
 }
