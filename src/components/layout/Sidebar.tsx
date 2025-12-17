@@ -133,6 +133,7 @@ const technicianSections: NavSection[] = [
   {
     titleKey: "services",
     items: [
+      {href: "/base/asset-inspection-assignments", labelKey: "assetInspectionAssignments", icon: "🔍"},
       // {href: "base/showAssign", labelKey: "taskList", icon: "🧾"},
     ],
   },

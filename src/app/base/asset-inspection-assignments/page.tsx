@@ -16,7 +16,7 @@ import {
   generateInvoice,
   type UpdateAssetInspectionItemRequest,
 } from '@/src/services/base/assetInspectionService';
-import { updateInvoiceStatus, getAllInvoicesForAdmin, type InvoiceDto } from '@/src/services/finance/invoiceAdminService';
+import { updateInvoiceStatus, getAllInvoicesForAdmin, getInvoiceById, type InvoiceDto } from '@/src/services/finance/invoiceAdminService';
 import { getActivePricingTiersByService, type PricingTierDto } from '@/src/services/finance/pricingTierService';
 import {
   getMetersByUnit,
@@ -72,6 +72,10 @@ export default function TechnicianInspectionAssignmentsPage() {
   const [waterElectricInvoices, setWaterElectricInvoices] = useState<InvoiceDto[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   
+  // Main inspection invoice (includes damage + water/electric)
+  const [mainInvoice, setMainInvoice] = useState<InvoiceDto | null>(null);
+  const [loadingMainInvoice, setLoadingMainInvoice] = useState(false);
+  
   // Pricing tiers and calculated prices
   const [pricingTiers, setPricingTiers] = useState<Record<string, PricingTierDto[]>>({});
   const [calculatedPrices, setCalculatedPrices] = useState<Record<string, number>>({}); // meterId -> calculated price
@@ -82,11 +86,26 @@ export default function TechnicianInspectionAssignmentsPage() {
     }
   }, [user?.userId, isAdmin]);
 
-  // Load water/electric invoices only when inspection is completed
+  // Load main invoice when inspection has invoiceId
+  useEffect(() => {
+    if (selectedInspection?.invoiceId) {
+      loadMainInvoice(selectedInspection.invoiceId);
+    } else {
+      setMainInvoice(null);
+    }
+  }, [selectedInspection?.invoiceId]);
+
+  // Load water/electric invoices when inspection is completed
+  // Load even if main invoice exists, in case main invoice doesn't have water/electric lines yet
   useEffect(() => {
     if (selectedInspection?.unitId && selectedInspection?.status === InspectionStatus.COMPLETED) {
-      // Load invoices for the unit, filter by cycle if available
+      // Always try to load separate invoices, even if main invoice exists
+      // This ensures we have fallback if main invoice doesn't have water/electric lines
       loadWaterElectricInvoices(selectedInspection.unitId, activeCycle?.id);
+    } else if (selectedInspection?.status !== InspectionStatus.COMPLETED) {
+      // Only reset if inspection is not completed
+      // This prevents resetting invoices when updating items in a completed inspection
+      setWaterElectricInvoices([]);
     }
   }, [selectedInspection?.unitId, selectedInspection?.status, activeCycle?.id]);
 
@@ -321,8 +340,30 @@ export default function TechnicianInspectionAssignmentsPage() {
   };
 
   // Calculate prices when meter readings change
+  // But preserve calculatedPrices if inspection is completed (to avoid reset)
   useEffect(() => {
-    if (Object.keys(pricingTiers).length === 0) return;
+    // Don't calculate if inspection is already completed - use actual invoices instead
+    // Also preserve existing calculatedPrices if they exist and inspection is completed
+    const isCompleted = selectedInspection?.status === InspectionStatus.COMPLETED;
+    
+    if (isCompleted) {
+      // If we already have calculatedPrices, keep them (they might be needed until invoices load)
+      // Only reset if we don't have any calculated prices
+      if (Object.keys(calculatedPrices).length === 0) {
+        // No calculated prices to preserve, but don't calculate new ones either
+        return;
+      }
+      // Keep existing calculatedPrices - don't recalculate
+      return;
+    }
+    
+    if (Object.keys(pricingTiers).length === 0) {
+      // Don't reset calculatedPrices if inspection is completed
+      if (!isCompleted) {
+        setCalculatedPrices({});
+      }
+      return;
+    }
     
     const newCalculatedPrices: Record<string, number> = {};
     
@@ -340,7 +381,9 @@ export default function TechnicianInspectionAssignmentsPage() {
       
       const usage = currentIndex - prevIndex;
       
-      if (usage > 0) {
+      // Validate usage - should be reasonable (less than 1 million for water/electric)
+      // This prevents calculation errors from showing huge numbers
+      if (usage > 0 && usage < 1000000) {
         // Normalize serviceCode - handle both uppercase and lowercase, and variations
         let serviceCode = (meter.serviceCode || '').toUpperCase();
         
@@ -353,15 +396,49 @@ export default function TechnicianInspectionAssignmentsPage() {
         
         if (serviceCode === 'ELECTRIC' || serviceCode === 'WATER') {
           const price = calculatePriceFromUsage(usage, serviceCode);
-          if (price > 0) {
+          // Validate price - should be reasonable (less than 100 million VND)
+          if (price > 0 && price < 100000000) {
             newCalculatedPrices[meter.id] = price;
+          } else {
+            console.warn(`Invalid price calculated for meter ${meter.id}: ${price} (usage: ${usage})`);
           }
         }
+      } else if (usage >= 1000000) {
+        console.warn(`Usage too large for meter ${meter.id}: ${usage} (prev: ${prevIndex}, curr: ${currentIndex})`);
       }
     });
     
     setCalculatedPrices(newCalculatedPrices);
-  }, [meterReadings, unitMeters, pricingTiers]);
+  }, [meterReadings, unitMeters, pricingTiers, selectedInspection?.status, selectedInspection?.invoiceId]);
+
+  const loadMainInvoice = async (invoiceId: string) => {
+    if (!invoiceId) return;
+    
+    setLoadingMainInvoice(true);
+    try {
+      const invoice = await getInvoiceById(invoiceId);
+      setMainInvoice(invoice);
+      
+      // Log invoice details for debugging
+      if (invoice && invoice.lines) {
+        const waterElectricLines = invoice.lines.filter(line => 
+          line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC'
+        );
+        console.log('Main invoice loaded:', {
+          invoiceId: invoice.id,
+          totalAmount: invoice.totalAmount,
+          totalLines: invoice.lines.length,
+          waterElectricLines: waterElectricLines.length,
+          waterElectricTotal: waterElectricLines.reduce((sum, line) => sum + (line.lineTotal || 0), 0)
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to load main invoice:', error);
+      setMainInvoice(null);
+    } finally {
+      setLoadingMainInvoice(false);
+    }
+  };
 
   const loadWaterElectricInvoices = async (unitId: string, cycleId?: string) => {
     if (!unitId) return;
@@ -600,6 +677,22 @@ export default function TechnicianInspectionAssignmentsPage() {
       if (updated) {
         // Preserve modal state - don't close modal on update
         setSelectedInspection(updated);
+        
+        // Reload invoices if inspection is completed to ensure they're still displayed
+        if (updated.status === InspectionStatus.COMPLETED) {
+          if (updated.invoiceId) {
+            // Reload main invoice
+            loadMainInvoice(updated.invoiceId).catch(err => 
+              console.warn('Failed to reload main invoice after item update:', err)
+            );
+          }
+          if (updated.unitId) {
+            // Reload water/electric invoices
+            loadWaterElectricInvoices(updated.unitId, activeCycle?.id).catch(err =>
+              console.warn('Failed to reload water/electric invoices after item update:', err)
+            );
+          }
+        }
         
         // Calculate total from items to verify - use robust cost extraction
         const calculatedTotal = updated.items?.reduce((sum, item) => {
@@ -845,7 +938,38 @@ export default function TechnicianInspectionAssignmentsPage() {
       const reloadedInspection = await getInspectionByContractId(selectedInspection.contractId);
       const inspectionToUse = reloadedInspection || updated;
       
+      // IMPORTANT: Generate water/electric invoices FIRST before generating main invoice
+      // This ensures water/electric invoices are available when main invoice is created
+      let waterElectricInvoicesCreated = 0;
+      if (activeCycle?.id && unitMeters.length > 0 && inspectionToUse.unitId) {
+        // Check if we have meter readings
+        const hasReadings = Object.values(meterReadings).some(r => r.index && r.index.trim() !== '');
+        
+        if (hasReadings) {
+          try {
+            const importResponse = await exportReadingsByCycle(activeCycle.id);
+            waterElectricInvoicesCreated = importResponse.invoicesCreated || 0;
+            if (waterElectricInvoicesCreated > 0) {
+              show(
+                t('success.invoicesGenerated', { 
+                  count: waterElectricInvoicesCreated,
+                  defaultValue: `Đã tự động tạo ${waterElectricInvoicesCreated} hóa đơn điện nước` 
+                }), 
+                'success'
+              );
+              
+              // Wait a bit for invoices to be fully created in the database
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          } catch (invoiceError: any) {
+            // Log but don't fail - inspection was completed successfully
+            console.warn('Failed to generate invoices from meter readings:', invoiceError);
+          }
+        }
+      }
+      
       // Auto-generate invoice if there's damage cost
+      // Now water/electric invoices should be available if they were created
       let finalInspection = inspectionToUse;
       if (inspectionToUse.totalDamageCost && inspectionToUse.totalDamageCost > 0 && !inspectionToUse.invoiceId) {
         try {
@@ -855,6 +979,13 @@ export default function TechnicianInspectionAssignmentsPage() {
           const finalReload = await getInspectionByContractId(selectedInspection.contractId);
           if (finalReload && finalReload.invoiceId) {
             finalInspection = finalReload;
+            
+            // Load main invoice details (includes damage + water/electric)
+            try {
+              await loadMainInvoice(finalReload.invoiceId);
+            } catch (invoiceError: any) {
+              console.warn('Failed to load main invoice details:', invoiceError);
+            }
             
             // Update invoice status to PAID for invoices generated from asset inspection
             try {
@@ -872,37 +1003,61 @@ export default function TechnicianInspectionAssignmentsPage() {
         }
       }
       
-      // Generate invoices for water/electric after completing inspection
-      if (activeCycle?.id && unitMeters.length > 0 && finalInspection.unitId) {
-        // Check if we have meter readings
-        const hasReadings = Object.values(meterReadings).some(r => r.index && r.index.trim() !== '');
-        
-        if (hasReadings) {
-          try {
-            const importResponse = await exportReadingsByCycle(activeCycle.id);
-            if (importResponse.invoicesCreated > 0) {
-              show(
-                t('success.invoicesGenerated', { 
-                  count: importResponse.invoicesCreated,
-                  defaultValue: `Đã tự động tạo ${importResponse.invoicesCreated} hóa đơn điện nước` 
-                }), 
-                'success'
-              );
-            }
-          } catch (invoiceError: any) {
-            // Log but don't fail - inspection was completed successfully
-            console.warn('Failed to generate invoices from meter readings:', invoiceError);
-          }
-        }
-      }
+      // Preserve calculatedPrices before setting selectedInspection to avoid reset
+      const preservedCalculatedPrices = { ...calculatedPrices };
       
       setSelectedInspection(finalInspection);
       await loadMyInspections();
       
-      // Reload water/electric invoices after completing inspection
-      if (finalInspection.unitId) {
-        await loadWaterElectricInvoices(finalInspection.unitId, activeCycle?.id);
+      // Restore calculatedPrices if inspection is completed and we have preserved prices
+      // This ensures prices are displayed until invoices are loaded
+      // Use setTimeout to ensure state updates are processed first
+      if (finalInspection.status === InspectionStatus.COMPLETED && 
+          Object.keys(preservedCalculatedPrices).length > 0) {
+        setTimeout(() => {
+          // Check if we still need calculatedPrices (no main invoice and no separate invoices)
+          setCalculatedPrices(prev => {
+            // Only restore if we don't have invoices yet
+            // If mainInvoice or waterElectricInvoices exist, they will be loaded by useEffect
+            // So we only restore if calculatedPrices is empty
+            if (Object.keys(prev).length === 0) {
+              return preservedCalculatedPrices;
+            }
+            return prev;
+          });
+        }, 100);
       }
+      
+      // Reload water/electric invoices after completing inspection with retry logic
+      if (finalInspection.unitId) {
+        let retryCount = 0;
+        const maxRetries = 5;
+        
+        const reloadInvoicesWithRetry = async () => {
+          // Load water/electric invoices
+          await loadWaterElectricInvoices(finalInspection.unitId!, activeCycle?.id);
+          
+          // Also reload main invoice if it exists
+          if (finalInspection.invoiceId) {
+            await loadMainInvoice(finalInspection.invoiceId);
+          }
+          
+          // Check if we need to retry
+          // We'll retry if no main invoice and no separate invoices after a delay
+          // Note: We can't check state here directly, so we'll just retry a few times
+          if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(reloadInvoicesWithRetry, 1000); // Retry after 1 second
+          }
+        };
+        
+        // Start loading after a short delay to allow backend to process
+        setTimeout(reloadInvoicesWithRetry, 1000);
+      }
+      
+      // Preserve meterReadings and calculatedPrices after completing inspection
+      // They are needed for display until main invoice is loaded
+      // Don't reset them - they will be used if main invoice is not available yet
       
       if (unitMeters.length > 0 && activeAssignment) {
         const readingsCount = Object.values(meterReadings).filter(r => r.index && r.index.trim() !== '').length;
@@ -1739,18 +1894,61 @@ export default function TechnicianInspectionAssignmentsPage() {
                       // Add temp total to calculated total
                       calculatedTotal = calculatedTotal + tempTotal;
                       
-                      // Use calculated total if it's greater than 0, otherwise use backend total
-                      // This ensures we always show the correct total even if backend hasn't updated yet
-                      const displayTotal = calculatedTotal > 0 
-                        ? calculatedTotal
-                        : (selectedInspection.totalDamageCost || 0);
+                      // If main invoice exists, use it to calculate totals
+                      let displayTotal = 0;
+                      let waterElectricTotal = 0;
+                      let grandTotal = 0;
                       
-                      // Calculate total water/electric invoice amount
-                      // Use calculated prices if invoices not yet generated, otherwise use invoice amounts
-                      const calculatedWaterElectricTotal = Object.values(calculatedPrices).reduce((sum, price) => sum + price, 0);
-                      const invoiceWaterElectricTotal = waterElectricInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
-                      const waterElectricTotal = invoiceWaterElectricTotal > 0 ? invoiceWaterElectricTotal : calculatedWaterElectricTotal;
-                      const grandTotal = displayTotal + waterElectricTotal;
+                      if (mainInvoice && mainInvoice.lines) {
+                        // Calculate from main invoice lines
+                        const damageLines = mainInvoice.lines.filter(line => 
+                          line.serviceCode === 'ASSET_DAMAGE'
+                        );
+                        const waterElectricLines = mainInvoice.lines.filter(line => 
+                          line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC'
+                        );
+                        
+                        displayTotal = damageLines.reduce((sum, line) => sum + (line.lineTotal || 0), 0);
+                        const mainInvoiceWaterElectricTotal = waterElectricLines.reduce((sum, line) => sum + (line.lineTotal || 0), 0);
+                        
+                        // Priority: 1) Main invoice lines, 2) Separate invoices, 3) Calculated prices
+                        if (mainInvoiceWaterElectricTotal > 0) {
+                          // Use main invoice lines if available
+                          waterElectricTotal = mainInvoiceWaterElectricTotal;
+                        } else if (waterElectricInvoices.length > 0) {
+                          // Use separate water/electric invoices if available
+                          waterElectricTotal = waterElectricInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+                        } else {
+                          // Fallback to calculated prices if available (always show if we have them)
+                          const calculatedWaterElectricTotal = Object.values(calculatedPrices)
+                            .filter(price => price > 0 && price < 100000000) // Validate prices are reasonable
+                            .reduce((sum, price) => sum + price, 0);
+                          waterElectricTotal = calculatedWaterElectricTotal;
+                        }
+                        
+                        // Recalculate grandTotal to include water/electric from fallback sources
+                        grandTotal = displayTotal + waterElectricTotal;
+                      } else {
+                        // Fallback to calculated values if no main invoice
+                        displayTotal = calculatedTotal > 0 
+                          ? calculatedTotal
+                          : (selectedInspection.totalDamageCost || 0);
+                        
+                        // Calculate total water/electric invoice amount
+                        // Priority: 1) Separate invoices, 2) Calculated prices (always show if available)
+                        if (waterElectricInvoices.length > 0) {
+                          // Use separate water/electric invoices if available
+                          waterElectricTotal = waterElectricInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+                        } else {
+                          // Always fallback to calculated prices if available (even if inspection completed)
+                          // This ensures prices are shown until invoices are loaded
+                          const calculatedWaterElectricTotal = Object.values(calculatedPrices)
+                            .filter(price => price > 0 && price < 100000000) // Validate prices are reasonable
+                            .reduce((sum, price) => sum + price, 0);
+                          waterElectricTotal = calculatedWaterElectricTotal;
+                        }
+                        grandTotal = displayTotal + waterElectricTotal;
+                      }
                       
                       return (
                       <div className="border-t border-gray-200 pt-4">
@@ -1774,14 +1972,14 @@ export default function TechnicianInspectionAssignmentsPage() {
                               </p>
                             )}
                             
-                            {/* Water/Electric Invoice Total - Always show if there are meters */}
-                            {(unitMeters.length > 0 || waterElectricInvoices.length > 0 || calculatedWaterElectricTotal > 0) && (
+                            {/* Water/Electric Invoice Total - Show if there are meters or main invoice has water/electric lines */}
+                            {(unitMeters.length > 0 || waterElectricInvoices.length > 0 || waterElectricTotal > 0 || (mainInvoice && mainInvoice.lines?.some(l => l.serviceCode === 'WATER' || l.serviceCode === 'ELECTRIC'))) && (
                               <div className="mt-3 pt-3 border-t border-red-200">
                                 <div className="flex justify-between items-center mb-2">
                                   <span className="text-sm font-medium text-gray-700">
                                     {t('modal.waterElectricTotal', { defaultValue: 'Tổng tiền điện nước' })}:
                                   </span>
-                                  {loadingInvoices ? (
+                                  {loadingMainInvoice || loadingInvoices ? (
                                     <span className="text-sm text-gray-500">Đang tải...</span>
                                   ) : (
                                     <span className={`text-xl font-semibold ${
@@ -1789,13 +1987,25 @@ export default function TechnicianInspectionAssignmentsPage() {
                                     }`}>
                                       {waterElectricTotal > 0 
                                         ? `${waterElectricTotal.toLocaleString('vi-VN')} VNĐ`
-                                        : calculatedWaterElectricTotal > 0
-                                        ? `${calculatedWaterElectricTotal.toLocaleString('vi-VN')} VNĐ (dự tính)`
                                         : 'Chưa có hóa đơn'}
                                     </span>
                                   )}
                                 </div>
-                                {waterElectricInvoices.length > 0 && (
+                                {/* Show lines from main invoice if available */}
+                                {mainInvoice && mainInvoice.lines && (
+                                  <div className="text-xs text-gray-500 space-y-1">
+                                    {mainInvoice.lines
+                                      .filter(line => line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC')
+                                      .map((line, idx) => (
+                                        <div key={line.id || idx} className="flex justify-between">
+                                          <span>{line.serviceCode === 'WATER' ? 'Nước' : 'Điện'}</span>
+                                          <span>{(line.lineTotal || 0).toLocaleString('vi-VN')} VNĐ</span>
+                                        </div>
+                                      ))}
+                                  </div>
+                                )}
+                                {/* Show separate invoices if main invoice doesn't have water/electric lines */}
+                                {mainInvoice && waterElectricTotal > 0 && mainInvoice.lines?.filter(l => l.serviceCode === 'WATER' || l.serviceCode === 'ELECTRIC').length === 0 && waterElectricInvoices.length > 0 && (
                                   <div className="text-xs text-gray-500 space-y-1">
                                     {waterElectricInvoices.map(inv => (
                                       <div key={inv.id} className="flex justify-between">
@@ -1805,7 +2015,33 @@ export default function TechnicianInspectionAssignmentsPage() {
                                     ))}
                                   </div>
                                 )}
-                                {waterElectricInvoices.length === 0 && !loadingInvoices && unitMeters.length > 0 && (
+                                {/* Fallback to separate invoices if no main invoice */}
+                                {!mainInvoice && waterElectricInvoices.length > 0 && (
+                                  <div className="text-xs text-gray-500 space-y-1">
+                                    {waterElectricInvoices.map(inv => (
+                                      <div key={inv.id} className="flex justify-between">
+                                        <span>{inv.lines?.[0]?.serviceCode === 'WATER' ? 'Nước' : 'Điện'}</span>
+                                        <span>{inv.totalAmount.toLocaleString('vi-VN')} VNĐ</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {/* Show calculated prices if no invoices but we have calculated prices */}
+                                {waterElectricTotal > 0 && waterElectricInvoices.length === 0 && (!mainInvoice || mainInvoice.lines?.filter(l => l.serviceCode === 'WATER' || l.serviceCode === 'ELECTRIC').length === 0) && Object.keys(calculatedPrices).length > 0 && (
+                                  <div className="text-xs text-gray-500 space-y-1">
+                                    {Object.entries(calculatedPrices).map(([meterId, price]) => {
+                                      const meter = unitMeters.find(m => m.id === meterId);
+                                      const serviceCode = meter?.serviceCode?.toUpperCase() || '';
+                                      return (
+                                        <div key={meterId} className="flex justify-between">
+                                          <span>{serviceCode.includes('WATER') ? 'Nước' : 'Điện'}</span>
+                                          <span>{price.toLocaleString('vi-VN')} VNĐ (dự tính)</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                {waterElectricTotal === 0 && waterElectricInvoices.length === 0 && !loadingInvoices && unitMeters.length > 0 && (
                                   <p className="text-xs text-gray-400 italic">
                                     Hóa đơn sẽ được tạo sau khi hoàn thành kiểm tra và đo chỉ số đồng hồ
                                   </p>
