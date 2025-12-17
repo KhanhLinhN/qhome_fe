@@ -109,12 +109,25 @@ export async function uploadContractFiles(
 ): Promise<ContractFileSummary[]> {
   const formData = new FormData();
   const fileArray = Array.isArray(files) ? files : Array.from(files);
-  fileArray.forEach((file) => {
-    formData.append('files', file);
-  });
+  
+  // Use /files/multiple endpoint for multiple files, /files for single file
+  const isMultiple = fileArray.length > 1;
+  const endpoint = isMultiple 
+    ? `${BASE_URL}/api/contracts/${contractId}/files/multiple`
+    : `${BASE_URL}/api/contracts/${contractId}/files`;
+  
+  if (isMultiple) {
+    // For multiple files endpoint, append all files with key 'files'
+    fileArray.forEach((file) => {
+      formData.append('files', file);
+    });
+  } else {
+    // For single file endpoint, use key 'file'
+    formData.append('file', fileArray[0]);
+  }
 
   const response = await axios.post<ContractFileSummary[]>(
-    `${BASE_URL}/api/contracts/${contractId}/files`,
+    endpoint,
     formData,
     {
       withCredentials: true,
