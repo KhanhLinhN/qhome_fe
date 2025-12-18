@@ -96,6 +96,7 @@ const adminSections: NavSection[] = [
     items: [
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
+      {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
     ],
   },
 ];
