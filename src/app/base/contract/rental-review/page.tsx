@@ -658,10 +658,24 @@ export default function RentalContractReviewPage() {
 
     // Filter by building
     if (selectedBuildingId) {
-      filtered = filtered.filter(c => {
-        const unit = unitsMap.get(c.unitId);
-        return unit?.buildingId === selectedBuildingId;
-      });
+      const selectedBuilding = buildingsMap.get(selectedBuildingId);
+      if (selectedBuilding) {
+        filtered = filtered.filter(c => {
+          // Try using buildingCode first (if contract was enriched with it)
+          if (c.buildingCode && selectedBuilding.code) {
+            return c.buildingCode === selectedBuilding.code;
+          }
+          // Fallback to using unitsMap
+          const unit = unitsMap.get(c.unitId);
+          return unit?.buildingId === selectedBuildingId;
+        });
+      } else {
+        // If building not found in map, use unitsMap
+        filtered = filtered.filter(c => {
+          const unit = unitsMap.get(c.unitId);
+          return unit?.buildingId === selectedBuildingId;
+        });
+      }
     }
 
     // Filter by unit
@@ -744,11 +758,15 @@ export default function RentalContractReviewPage() {
         } else if (statusFilter === 'cancelled') {
           return c.status === 'CANCELLED' || c.status === 'CANCELED';
         } else if (statusFilter === 'notInspected') {
-          // Chỉ hiển thị các hợp đồng chưa có inspection
+          // Chỉ hiển thị các hợp đồng chưa có inspection (hoặc chỉ có inspection với status PENDING)
           // Và hợp đồng phải là EXPIRED hoặc CANCELLED (theo điều kiện isContractExpired)
           const isExpiredOrCancelled = c.status === 'EXPIRED' || c.status === 'CANCELLED' || c.status === 'CANCELED';
-          const hasInspection = contractsWithInspection.has(c.id);
-          return isExpiredOrCancelled && !hasInspection;
+          // Chỉ coi là đã có inspection khi có inspection với status là COMPLETED hoặc IN_PROGRESS
+          // PENDING vẫn được coi là "chưa kiểm tra" vì chưa thực sự kiểm tra
+          const inspection = inspectionsByContractId.get(c.id);
+          const hasRealInspection = inspection && 
+            (inspection.status === InspectionStatus.COMPLETED || inspection.status === InspectionStatus.IN_PROGRESS);
+          return isExpiredOrCancelled && !hasRealInspection;
         }
         return true;
       });
@@ -777,7 +795,7 @@ export default function RentalContractReviewPage() {
     });
 
     return filtered;
-  }, [contracts, selectedBuildingId, selectedUnitId, statusFilter, searchTerm, unitsMap, contractsWithInspection]);
+  }, [contracts, selectedBuildingId, selectedUnitId, statusFilter, searchTerm, unitsMap, buildingsMap, contractsWithInspection]);
 
   // Apply pagination to filtered contracts
   const contractsToDisplay = useMemo(() => {
