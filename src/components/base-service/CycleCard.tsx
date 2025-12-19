@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   ReadingCycleDto,
   MeterReadingAssignmentDto,
@@ -52,6 +53,7 @@ const CycleCard = ({
 }: CycleCardProps) => {
   const router = useRouter();
   const { show } = useNotifications();
+  const t = useTranslations('ReadingAssign');
   const [creatingMeters, setCreatingMeters] = useState<Set<string>>(new Set());
   const [showCreateMeterModal, setShowCreateMeterModal] = useState(false);
   const [selectedMeterGroup, setSelectedMeterGroup] = useState<{
@@ -335,13 +337,13 @@ const CycleCard = ({
           {assignmentBlockedReason && (
             <p className="text-xs text-red-500 mt-1">{assignmentBlockedReason}</p>
           )}
-            <p className="text-sm text-gray-500">
-              {cycle.serviceName
-                ? `Dịch vụ: ${cycle.serviceName}`
-                : cycle.serviceCode
-                ? `Mã: ${cycle.serviceCode}`
-                : 'Dịch vụ chưa xác định'}
-            </p>
+          <p className="text-sm text-gray-500">
+            {cycle.serviceName
+              ? `${t('servicePrefix')} ${cycle.serviceName}`
+              : cycle.serviceCode
+              ? `${t('codePrefix')} ${cycle.serviceCode}`
+              : t('serviceUnknown')}
+          </p>
             <button
               type="button"
               onClick={(e) => {
@@ -353,11 +355,13 @@ const CycleCard = ({
               aria-label="Add assignment for this cycle"
               disabled={!assignmentAllowed}
             >
-              Thêm assignment cho chu kỳ này
+              {t('addAssignmentForCycle')}
             </button>
           </div>
           <div className="text-sm text-gray-600">
-            {assignments.length} assignment{assignments.length !== 1 ? 's' : ''}
+            {assignments.length === 1 
+              ? t('assignmentsCount', { count: assignments.length })
+              : t('assignmentsCountPlural', { count: assignments.length })}
           </div>
         </div>
 
@@ -371,7 +375,7 @@ const CycleCard = ({
               }}
               className="px-4 py-2 text-white bg-[#02542D] hover:bg-[#024428] rounded-md transition-colors"
             >
-              View Cycle
+              {t('viewCycle')}
             </button>
           )}
         </div>
@@ -471,7 +475,7 @@ const CycleCard = ({
         <div className="border-t border-gray-200">
           {assignments.length === 0 ? (
             <div className="p-6 text-center text-gray-500">
-              No assignments yet for this cycle
+              {t('noAssignmentsYet')}
             </div>
           ) : (
             <AssignmentTable

@@ -18,6 +18,7 @@ import {
   updateAsset,
   deleteAsset,
   deactivateAsset,
+  exportAssetsToExcel,
 } from '@/src/services/base/assetService';
 import { getBuildings } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, type Unit } from '@/src/services/base/unitService';
@@ -83,12 +84,16 @@ export default function AssetManagementPage() {
   const [showForm, setShowForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDeleteAsset, setPendingDeleteAsset] = useState<Asset | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const [checkingActiveAsset, setCheckingActiveAsset] = useState(false);
+  const [exporting, setExporting] = useState(false);
   
   // Filters
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
   const [selectedUnitId, setSelectedUnitId] = useState<string>('');
   const [selectedAssetType, setSelectedAssetType] = useState<AssetType | ''>('');
-  const [showActiveOnly, setShowActiveOnly] = useState(true);
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
   
   // Buildings and Units for dropdowns
   const [buildings, setBuildings] = useState<Array<{ id: string; code: string; name: string }>>([]);
@@ -142,6 +147,13 @@ export default function AssetManagementPage() {
     loadAssets();
     setPageNo(0);
   }, [selectedBuildingId, selectedUnitId, selectedAssetType, showActiveOnly]);
+
+  // Validate active asset when form is opened or editingAsset changes
+  useEffect(() => {
+    if (showForm && editingAsset && editingAsset.active && editingAsset.unitId && editingAsset.assetType) {
+      validateActiveAsset(editingAsset.unitId, editingAsset.assetType, editingAsset.active, editingAsset.id);
+    }
+  }, [showForm, editingAsset?.unitId, editingAsset?.assetType, editingAsset?.active]);
 
   // Apply pagination to assets
   const assetsToDisplay = useMemo(() => {
@@ -239,6 +251,38 @@ export default function AssetManagementPage() {
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      setExporting(true);
+      
+      const blob = await exportAssetsToExcel(
+        selectedBuildingId || undefined,
+        selectedUnitId || undefined,
+        selectedAssetType || undefined
+      );
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const filename = `danh_sach_thiet_bi_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.setAttribute('download', filename);
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      show('Xuất Excel thành công', 'success');
+    } catch (error: any) {
+      console.error('Failed to export Excel:', error);
+      show(error?.response?.data?.message || error?.message || 'Không thể xuất file Excel', 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const startCreate = (unitId?: string, assetType?: AssetType, buildingId?: string) => {
     const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
     const finalAssetType = assetType || AssetType.AIR_CONDITIONER;
@@ -281,6 +325,8 @@ export default function AssetManagementPage() {
     }
     
     setShowForm(true);
+    setFormErrors({});
+    setTouchedFields({});
   };
 
   const startEdit = (asset: Asset) => {
@@ -296,6 +342,8 @@ export default function AssetManagementPage() {
     });
     setIsCreateMode(false);
     setShowForm(true);
+    setFormErrors({});
+    setTouchedFields({});
     
     // Load units for selected building if available
     if (asset.buildingId) {
@@ -370,47 +418,200 @@ export default function AssetManagementPage() {
     return `${prefix}-${unitCode}-${numberStr}`;
   };
 
-  const validateForm = (): boolean => {
-    if (!editingAsset) return false;
+  const validateForm = (): { isValid: boolean; errors: Record<string, string> } => {
+    const errors: Record<string, string> = {};
+    
+    if (!editingAsset) {
+      return { isValid: false, errors };
+    }
     
     if (isCreateMode && !selectedBuildingId) {
-      show('Vui lòng chọn tòa nhà', 'error');
-      return false;
+      errors.buildingId = 'Vui lòng chọn tòa nhà';
     }
     
     if (!editingAsset.unitId) {
-      show('Vui lòng chọn căn hộ', 'error');
-      return false;
+      errors.unitId = 'Vui lòng chọn căn hộ';
     }
     
     if (!editingAsset.assetCode.trim()) {
-      show('Mã thiết bị không được để trống', 'error');
-      return false;
+      errors.assetCode = 'Mã thiết bị không được để trống';
     }
     
-    return true;
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    };
+  };
+
+  const validateField = (fieldName: string, value: any) => {
+    const errors = { ...formErrors };
+    
+    if (!editingAsset) {
+      setFormErrors(errors);
+      return;
+    }
+
+    switch (fieldName) {
+      case 'buildingId':
+        if (isCreateMode && !value) {
+          errors.buildingId = 'Vui lòng chọn tòa nhà';
+        } else {
+          delete errors.buildingId;
+        }
+        break;
+      case 'unitId':
+        if (!value) {
+          errors.unitId = 'Vui lòng chọn căn hộ';
+        } else {
+          delete errors.unitId;
+        }
+        break;
+      case 'assetCode':
+        if (!value || !value.trim()) {
+          errors.assetCode = 'Mã thiết bị không được để trống';
+        } else {
+          delete errors.assetCode;
+        }
+        break;
+    }
+    
+    setFormErrors(errors);
+  };
+
+  // Async validation for duplicate active asset
+  const validateActiveAsset = async (unitId: string, assetType: AssetType, active: boolean, currentAssetId?: string) => {
+    if (!active || !unitId || !assetType) {
+      // Clear error if active is false or unitId/assetType is missing
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.activeAsset;
+        return newErrors;
+      });
+      return;
+    }
+
+    setCheckingActiveAsset(true);
+    try {
+      const allUnitAssets = await getAssetsByUnit(unitId);
+      const existingActiveAsset = allUnitAssets.find(
+        asset => asset.assetType === assetType && asset.active && asset.id !== currentAssetId
+      );
+      
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        if (existingActiveAsset) {
+          newErrors.activeAsset = `Đã có thiết bị loại "${ASSET_TYPE_LABELS[assetType]}" đang hoạt động trong căn hộ này. Vui lòng vô hiệu hóa thiết bị đó trước.`;
+        } else {
+          delete newErrors.activeAsset;
+        }
+        return newErrors;
+      });
+    } catch (error) {
+      console.warn('Failed to check active asset:', error);
+      // Don't show error if API call fails, let user try to save
+    } finally {
+      setCheckingActiveAsset(false);
+    }
   };
 
   const handleSave = async () => {
-    if (!editingAsset || !validateForm()) {
+    // Mark all fields as touched
+    setTouchedFields({
+      buildingId: true,
+      unitId: true,
+      assetCode: true,
+    });
+
+    const validation = validateForm();
+    if (!validation.isValid) {
+      setFormErrors(validation.errors);
+      return;
+    }
+    
+    if (!editingAsset) {
       return;
     }
 
     setSaving(true);
     try {
       if (isCreateMode) {
-        const payload: CreateAssetRequest = {
-          unitId: editingAsset.unitId,
-          assetType: editingAsset.assetType,
-          assetCode: editingAsset.assetCode.trim(),
-          name: editingAsset.name.trim() || undefined,
-          active: editingAsset.active,
-          installedAt: editingAsset.installedAt || undefined,
-          purchasePrice: editingAsset.purchasePrice ?? undefined,
-        };
-        await createAsset(payload);
-        show('Tạo thiết bị thành công', 'success');
+        // Load all assets in the unit for validation and checking inactive assets
+        let allUnitAssets: Asset[] = [];
+        try {
+          allUnitAssets = await getAssetsByUnit(editingAsset.unitId);
+        } catch (error) {
+          console.warn('Failed to check existing assets:', error);
+        }
+
+        // Validate: Cannot have 2 assets of same type active in the same unit
+        // This validation is also done in validateActiveAsset, but double-check here
+        if (editingAsset.active) {
+          const existingActiveAsset = allUnitAssets.find(
+            asset => asset.assetType === editingAsset.assetType && asset.active
+          );
+          if (existingActiveAsset) {
+            setFormErrors(prev => ({
+              ...prev,
+              activeAsset: `Đã có thiết bị loại "${ASSET_TYPE_LABELS[editingAsset.assetType]}" đang hoạt động trong căn hộ này. Vui lòng vô hiệu hóa thiết bị đó trước.`
+            }));
+            setSaving(false);
+            return;
+          }
+        }
+
+        // Check if there's an inactive asset with the same unitId and assetType
+        // If exists, update it instead of creating a new one
+        const existingInactiveAsset = allUnitAssets.find(
+          asset => asset.assetType === editingAsset.assetType && !asset.active
+        ) || null;
+
+        if (existingInactiveAsset) {
+          // Update the existing inactive asset instead of creating new one
+          const payload: UpdateAssetRequest = {
+            assetCode: editingAsset.assetCode.trim(),
+            name: editingAsset.name.trim() || undefined,
+            active: editingAsset.active,
+            installedAt: editingAsset.installedAt || undefined,
+            purchasePrice: editingAsset.purchasePrice ?? undefined,
+          };
+          await updateAsset(existingInactiveAsset.id, payload);
+          show('Cập nhật thiết bị thành công', 'success');
+        } else {
+          // No inactive asset found, create new one
+          const payload: CreateAssetRequest = {
+            unitId: editingAsset.unitId,
+            assetType: editingAsset.assetType,
+            assetCode: editingAsset.assetCode.trim(),
+            name: editingAsset.name.trim() || undefined,
+            active: editingAsset.active,
+            installedAt: editingAsset.installedAt || undefined,
+            purchasePrice: editingAsset.purchasePrice ?? undefined,
+          };
+          await createAsset(payload);
+          show('Tạo thiết bị thành công', 'success');
+        }
       } else {
+        // Validate: Cannot have 2 assets of same type active in the same unit
+        // This validation is also done in validateActiveAsset, but double-check here
+        if (editingAsset.active) {
+          try {
+            const allUnitAssets = await getAssetsByUnit(editingAsset.unitId);
+            const existingActiveAsset = allUnitAssets.find(
+              asset => asset.assetType === editingAsset.assetType && asset.active && asset.id !== editingAsset.id
+            );
+            if (existingActiveAsset) {
+              setFormErrors(prev => ({
+                ...prev,
+                activeAsset: `Đã có thiết bị loại "${ASSET_TYPE_LABELS[editingAsset.assetType]}" đang hoạt động trong căn hộ này. Vui lòng vô hiệu hóa thiết bị đó trước.`
+              }));
+              setSaving(false);
+              return;
+            }
+          } catch (error) {
+            console.warn('Failed to check existing assets:', error);
+          }
+        }
+
         const payload: UpdateAssetRequest = {
           assetCode: editingAsset.assetCode.trim(),
           name: editingAsset.name.trim() || undefined,
@@ -423,6 +624,8 @@ export default function AssetManagementPage() {
       }
       setShowForm(false);
       setEditingAsset(null);
+      setFormErrors({});
+      setTouchedFields({});
       await loadAssets();
     } catch (error: any) {
       console.error('Failed to save asset:', error);
@@ -879,12 +1082,36 @@ export default function AssetManagementPage() {
         <div className="text-sm text-gray-600">
           Tổng số: {assets.length} thiết bị
         </div>
-        <button
-          onClick={() => startCreate()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          + Thêm thiết bị
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleExportExcel}
+            disabled={exporting || assets.length === 0}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {exporting ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Đang xuất...
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Xuất Excel
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => startCreate()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            + Thêm thiết bị
+          </button>
+        </div>
       </div>
 
       {/* Assets List */}
@@ -933,9 +1160,9 @@ export default function AssetManagementPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {assetsToDisplay.map((asset) => (
-                  <tr key={asset.id} className="hover:bg-gray-50">
+                  <tr key={asset.id} className={`hover:bg-gray-50 ${!asset.active ? 'opacity-60' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className={`text-sm font-medium ${asset.active ? 'text-gray-900' : 'text-gray-500'}`}>
                         {asset.assetCode}
                       </div>
                       {asset.serialNumber && (
@@ -945,7 +1172,7 @@ export default function AssetManagementPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
+                      <div className={`text-sm ${asset.active ? 'text-gray-900' : 'text-gray-500'}`}>
                         {asset.name || '-'}
                       </div>
                       {asset.model && (
@@ -955,12 +1182,12 @@ export default function AssetManagementPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className={`text-sm ${asset.active ? 'text-gray-900' : 'text-gray-500'}`}>
                         {ASSET_TYPE_LABELS[asset.assetType]}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className={`text-sm ${asset.active ? 'text-gray-900' : 'text-gray-500'}`}>
                         {asset.unitCode || '-'}
                       </div>
                       {asset.buildingCode && (
@@ -971,7 +1198,7 @@ export default function AssetManagementPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className={`text-sm ${asset.active ? 'text-gray-900' : 'text-gray-500'}`}>
                         {formatDate(asset.installedAt)}
                       </div>
                     </td>
@@ -1031,6 +1258,8 @@ export default function AssetManagementPage() {
           if (e.target === e.currentTarget) {
             setShowForm(false);
             setEditingAsset(null);
+            setFormErrors({});
+            setTouchedFields({});
           }
         }}>
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col relative z-[10000]" style={{ overflow: 'visible' }}>
@@ -1052,6 +1281,8 @@ export default function AssetManagementPage() {
                       onChange={(e) => {
                         const buildingId = e.target.value;
                         setSelectedBuildingId(buildingId);
+                        setTouchedFields({ ...touchedFields, buildingId: true });
+                        validateField('buildingId', buildingId);
                         if (isCreateMode) {
                           // Reset unitId and assetCode when building changes
                           setEditingAsset({ ...editingAsset, unitId: '', assetCode: '' });
@@ -1062,7 +1293,15 @@ export default function AssetManagementPage() {
                           }
                         }
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onBlur={() => {
+                        setTouchedFields({ ...touchedFields, buildingId: true });
+                        validateField('buildingId', isCreateMode ? selectedBuildingId : (editingAsset.unitId ? assets.find(a => a.unitId === editingAsset.unitId)?.buildingId || '' : ''));
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                        touchedFields.buildingId && formErrors.buildingId
+                          ? 'border-red-500 focus:ring-red-500'
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
                       disabled={!isCreateMode}
                       required
                     >
@@ -1073,6 +1312,9 @@ export default function AssetManagementPage() {
                         </option>
                       ))}
                     </select>
+                    {touchedFields.buildingId && formErrors.buildingId && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.buildingId}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1091,8 +1333,25 @@ export default function AssetManagementPage() {
                         }
                         
                         setEditingAsset({ ...editingAsset, unitId: newUnitId, assetCode: newAssetCode });
+                        setTouchedFields({ ...touchedFields, unitId: true });
+                        validateField('unitId', newUnitId);
+                        if (newAssetCode) {
+                          validateField('assetCode', newAssetCode);
+                        }
+                        // Validate duplicate active asset when unit changes
+                        if (editingAsset.active && editingAsset.assetType && newUnitId) {
+                          validateActiveAsset(newUnitId, editingAsset.assetType, editingAsset.active, editingAsset.id);
+                        }
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      onBlur={() => {
+                        setTouchedFields({ ...touchedFields, unitId: true });
+                        validateField('unitId', editingAsset.unitId);
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                        touchedFields.unitId && formErrors.unitId
+                          ? 'border-red-500 focus:ring-red-500'
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
                       disabled={!selectedBuildingId && isCreateMode}
                       required
                     >
@@ -1105,11 +1364,13 @@ export default function AssetManagementPage() {
                         </option>
                       ))}
                     </select>
-                    {isCreateMode && !selectedBuildingId && (
+                    {touchedFields.unitId && formErrors.unitId ? (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.unitId}</p>
+                    ) : isCreateMode && !selectedBuildingId ? (
                       <p className="mt-1 text-sm text-gray-500">
                         Vui lòng chọn tòa nhà trước để hiển thị danh sách căn hộ
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -1138,13 +1399,18 @@ export default function AssetManagementPage() {
                           newAssetCode = generateAssetCode(newAssetType, editingAsset.unitId);
                         }
                         
-                        setEditingAsset({ 
+                        const updatedAsset = { 
                           ...editingAsset, 
                           assetType: newAssetType, 
                           assetCode: newAssetCode,
                           name: newName,
                           purchasePrice: newPrice,
-                        });
+                        };
+                        setEditingAsset(updatedAsset);
+                        // Validate duplicate active asset when asset type changes
+                        if (updatedAsset.active && updatedAsset.unitId && newAssetType) {
+                          validateActiveAsset(updatedAsset.unitId, newAssetType, updatedAsset.active, updatedAsset.id);
+                        }
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
@@ -1168,16 +1434,30 @@ export default function AssetManagementPage() {
                     <input
                       type="text"
                       value={editingAsset.assetCode}
-                      onChange={(e) => setEditingAsset({ ...editingAsset, assetCode: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                      onChange={(e) => {
+                        setEditingAsset({ ...editingAsset, assetCode: e.target.value });
+                        setTouchedFields({ ...touchedFields, assetCode: true });
+                        validateField('assetCode', e.target.value);
+                      }}
+                      onBlur={() => {
+                        setTouchedFields({ ...touchedFields, assetCode: true });
+                        validateField('assetCode', editingAsset.assetCode);
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 bg-gray-50 ${
+                        touchedFields.assetCode && formErrors.assetCode
+                          ? 'border-red-500 focus:ring-red-500'
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
                       placeholder={isCreateMode ? "Mã sẽ được tạo tự động" : "VD: AC-A101-001"}
                       readOnly={isCreateMode}
                     />
-                    {isCreateMode && editingAsset.assetCode && (
+                    {touchedFields.assetCode && formErrors.assetCode ? (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.assetCode}</p>
+                    ) : isCreateMode && editingAsset.assetCode ? (
                       <p className="mt-1 text-xs text-gray-500">
                         Mã được tạo tự động dựa trên loại thiết bị và căn hộ
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -1259,19 +1539,31 @@ export default function AssetManagementPage() {
                     </p>
                   </div>
 
-                  <div className="flex items-end">
+                  <div>
                     <div className="flex items-center h-10">
                       <input
                         type="checkbox"
                         id="active"
                         checked={editingAsset.active}
-                        onChange={(e) => setEditingAsset({ ...editingAsset, active: e.target.checked })}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        onChange={(e) => {
+                          const newActive = e.target.checked;
+                          setEditingAsset({ ...editingAsset, active: newActive });
+                          // Validate duplicate active asset when checkbox changes
+                          if (editingAsset.unitId && editingAsset.assetType) {
+                            validateActiveAsset(editingAsset.unitId, editingAsset.assetType, newActive, editingAsset.id);
+                          }
+                        }}
+                        className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                          formErrors.activeAsset ? 'border-red-500' : ''
+                        }`}
                       />
                       <label htmlFor="active" className="ml-2 text-sm text-gray-700">
                         Đang hoạt động
                       </label>
                     </div>
+                    {formErrors.activeAsset && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.activeAsset}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1281,15 +1573,17 @@ export default function AssetManagementPage() {
               <div className="flex gap-3">
                 <button
                   onClick={handleSave}
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 relative z-[10001]"
+                  disabled={saving || Object.keys(formErrors).length > 0 || checkingActiveAsset}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed relative z-[10001]"
                 >
-                  {saving ? 'Đang lưu...' : 'Lưu'}
+                  {saving ? 'Đang lưu...' : checkingActiveAsset ? 'Đang kiểm tra...' : 'Lưu'}
                 </button>
                 <button
                   onClick={() => {
                     setShowForm(false);
                     setEditingAsset(null);
+                    setFormErrors({});
+                    setTouchedFields({});
                   }}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 relative z-[10001]"
                 >

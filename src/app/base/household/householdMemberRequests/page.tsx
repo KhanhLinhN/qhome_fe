@@ -7,7 +7,7 @@ import {
   fetchPendingHouseholdMemberRequests,
   HouseholdMemberRequest,
 } from '@/src/services/base/householdMemberRequestService';
-import { fetchResidentByIdForAdmin } from '@/src/services/base/residentService';
+import { fetchResidentByUserId } from '@/src/services/base/residentService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import Pagination from '@/src/components/customer-interaction/Pagination';
 
@@ -78,16 +78,16 @@ export default function HouseholdMemberRequestsPage() {
       // Gọi API để lấy thông tin email và số điện thoại cho từng người gửi yêu cầu
       const detailsMap: Record<string, { email?: string | null; phone?: string | null }> = {};
       await Promise.all(
-        uniqueRequestedByIds.map(async (requestedById) => {
+        uniqueRequestedByIds.map(async (requestedByUserId) => {
           try {
-            const resident = await fetchResidentByIdForAdmin(requestedById);
-            detailsMap[requestedById] = {
+            const resident = await fetchResidentByUserId(requestedByUserId);
+            detailsMap[requestedByUserId] = {
               email: resident.email || null,
               phone: resident.phone || null,
             };
           } catch (err) {
-            console.error(`Failed to fetch resident ${requestedById}:`, err);
-            detailsMap[requestedById] = {
+            console.error(`Failed to fetch resident for user ${requestedByUserId}:`, err);
+            detailsMap[requestedByUserId] = {
               email: null,
               phone: null,
             };

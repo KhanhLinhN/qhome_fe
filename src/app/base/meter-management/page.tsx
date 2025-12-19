@@ -13,6 +13,7 @@ import {
   type MeterDto,
   type ServiceDto,
   type UnitWithoutMeterDto,
+  ALLOWED_SERVICE_CODES,
 } from '@/src/services/base/waterService';
 import Pagination from '@/src/components/customer-interaction/Pagination';
 
@@ -55,7 +56,10 @@ export default function MeterManagementPage() {
         const [buildingRes, serviceRes] = await Promise.all([getBuildings(), getAllServices()]);
         if (!active) return;
         setBuildings(buildingRes);
-        setServices(serviceRes.filter((service) => service.active && service.requiresMeter));
+        // Only show water and electric services that are active and require meter
+        setServices(serviceRes.filter((service) => 
+          service.active && service.requiresMeter && ALLOWED_SERVICE_CODES.includes(service.code)
+        ));
       } catch (err) {
         console.error('Failed to load metadata:', err);
       }

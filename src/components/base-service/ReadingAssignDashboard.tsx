@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   getAllReadingCycles,
@@ -44,11 +44,11 @@ const getCycleReferenceDate = (cycle: ReadingCycleDto): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const formatMonthLabel = (date: Date | null, t?: (key: string) => string): string => {
+const formatMonthLabel = (date: Date | null, t?: (key: string) => string, locale?: string): string => {
   if (!date) {
-    return t ? t('monthUnknown') : 'tháng chưa xác định';
+    return t ? t('monthUnknown') : 'unknown month';
   }
-  return date.toLocaleString('vi-VN', { month: 'long', year: 'numeric' });
+  return date.toLocaleString(locale || 'en', { month: 'long', year: 'numeric' });
 };
 
 type UnassignedFloorDto = ReadingCycleUnassignedInfoDto['floors'][number];
@@ -80,6 +80,7 @@ export default function ReadingAssignDashboard({
   const router = useRouter();
   const { show } = useNotifications();
   const t = useTranslations('ReadingAssign');
+  const locale = useLocale();
   const [cyclesWithAssignments, setCyclesWithAssignments] = useState<CycleWithAssignments[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedCycleId, setExpandedCycleId] = useState<string | null>(null);
@@ -122,7 +123,7 @@ export default function ReadingAssignDashboard({
   const currentDate = useMemo(() => new Date(), []);
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
-  const currentMonthLabel = currentDate.toLocaleString('vi-VN', { month: 'long', year: 'numeric' });
+  const currentMonthLabel = currentDate.toLocaleString(locale, { month: 'long', year: 'numeric' });
 
   const isCycleCurrentMonth = useCallback(
     (cycle: ReadingCycleDto) => {
@@ -1005,7 +1006,7 @@ export default function ReadingAssignDashboard({
 
                 <div className="mt-6 space-y-4">
                   {group.cycles.map(({ cycle, assignments, unassignedInfo, canCompleteCycle }) => {
-                    const cycleMonthLabel = formatMonthLabel(getCycleReferenceDate(cycle), t);
+                    const cycleMonthLabel = formatMonthLabel(getCycleReferenceDate(cycle), t, locale);
                     let assignmentBlockedReason: string | undefined;
                     if (!isCycleCurrentMonth(cycle)) {
                       assignmentBlockedReason = t('cycleRestrictedMessage', { month: cycleMonthLabel });
@@ -1101,12 +1102,15 @@ export default function ReadingAssignDashboard({
                       <div className="space-y-1 text-xs">
                         {buildingGroups.map((group) => {
                           const totalUnits = group.floors.reduce((sum, floor) => sum + floor.unitCodes.length, 0);
+                          const missingMeterCount = group.floors.reduce((sum, floor) => 
+                            sum + floor.unitCodes.filter((code: string) => code.includes('(chưa có công tơ)')).length, 0
+                          );
                           return (
                             <div key={group.key}>
                               <span className="font-semibold">
                                 {group.buildingCode || group.buildingName || 'Tòa nhà chưa rõ'}:
                               </span>{' '}
-                              {totalUnits} căn hộ chưa có công tơ
+                              {totalUnits} căn hộ{missingMeterCount > 0 ? ` (${missingMeterCount} chưa có công tơ)` : ''}
                             </div>
                           );
                         })}
@@ -1213,7 +1217,13 @@ export default function ReadingAssignDashboard({
                                   <span className="font-semibold">
                                     Tổng cộng:
                                   </span>{' '}
-                                  {group.floors.reduce((sum, floor) => sum + floor.unitCodes.length, 0)} căn hộ chưa có công tơ
+                                  {(() => {
+                                    const total = group.floors.reduce((sum, floor) => sum + floor.unitCodes.length, 0);
+                                    const missingMeter = group.floors.reduce((sum, floor) => 
+                                      sum + floor.unitCodes.filter((code: string) => code.includes('(chưa có công tơ)')).length, 0
+                                    );
+                                    return `${total} căn hộ${missingMeter > 0 ? ` (${missingMeter} chưa có công tơ)` : ''}`;
+                                  })()}
                                 </div>
                               </div>
                             </div>

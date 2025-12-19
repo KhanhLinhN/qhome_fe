@@ -20,6 +20,9 @@ import {
   createMeter,
   getAllServices,
   exportMeters,
+  getUnitsWithoutMeter,
+  UnitWithoutMeterDto,
+  ALLOWED_SERVICE_CODES,
 } from '@/src/services/base/waterService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useDeleteBuilding } from '@/src/hooks/useBuildingDelete';
@@ -56,6 +59,8 @@ export default function BuildingDetail () {
     });
     const [meterStatus, setMeterStatus] = useState<string | null>(null);
     const [creatingMeter, setCreatingMeter] = useState(false);
+    const [unitsWithoutMeter, setUnitsWithoutMeter] = useState<UnitWithoutMeterDto[]>([]);
+    const [loadingUnitsWithoutMeter, setLoadingUnitsWithoutMeter] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const meterDateInputRef = useRef<HTMLInputElement | null>(null);
     
@@ -123,7 +128,10 @@ export default function BuildingDetail () {
         const loadServices = async () => {
             try {
                 const data = await getAllServices();
-                setServices(data.filter(service => service.active));
+                // Only show active water and electric services
+                setServices(data.filter(service => 
+                    service.active && ALLOWED_SERVICE_CODES.includes(service.code)
+                ));
             } catch (err) {
                 console.error('Failed to load services:', err);
             }
@@ -132,6 +140,29 @@ export default function BuildingDetail () {
         loadUnits();
         loadServices();
     }, [buildingId]);
+
+    // Load units without meter when service is selected
+    useEffect(() => {
+        const loadUnitsWithoutMeter = async () => {
+            if (!meterForm.serviceId || typeof buildingId !== 'string') {
+                setUnitsWithoutMeter([]);
+                return;
+            }
+            
+            try {
+                setLoadingUnitsWithoutMeter(true);
+                const unitsWithoutMeterData = await getUnitsWithoutMeter(meterForm.serviceId, buildingId);
+                setUnitsWithoutMeter(unitsWithoutMeterData);
+            } catch (err) {
+                console.error('Failed to load units without meter:', err);
+                setUnitsWithoutMeter([]);
+            } finally {
+                setLoadingUnitsWithoutMeter(false);
+            }
+        };
+        
+        loadUnitsWithoutMeter();
+    }, [meterForm.serviceId, buildingId]);
 
     // Auto-open meter form and pre-fill when unitId and serviceId are in query params
     useEffect(() => {
@@ -508,6 +539,20 @@ export default function BuildingDetail () {
                                     setMeterStatus(t('messages.pleaseSelectUnitAndService'));
                                     return;
                                 }
+                                
+                                // Validate installation date is not in the future
+                                if (meterForm.installedAt) {
+                                    const installedDate = new Date(meterForm.installedAt);
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+                                    installedDate.setHours(0, 0, 0, 0);
+                                    
+                                    if (installedDate > today) {
+                                        setMeterStatus(t('messages.installedDateFuture') || 'Ngày lắp đặt không thể là ngày tương lai');
+                                        return;
+                                    }
+                                }
+                                
                                 setCreatingMeter(true);
                                 try {
                                     await createMeter({
@@ -516,8 +561,14 @@ export default function BuildingDetail () {
                                         installedAt: meterForm.installedAt || undefined,
                                     });
                                     setMeterStatus(t('messages.meterAddedSuccess'));
+                                    // Reload units without meter for the current service
+                                    if (typeof buildingId === 'string') {
+                                        const updatedUnits = await getUnitsWithoutMeter(meterForm.serviceId, buildingId);
+                                        setUnitsWithoutMeter(updatedUnits);
+                                    }
+                                    // Reset form but keep service selected
                                     setMeterForm({
-                                        unitId: meterForm.unitId,
+                                        unitId: '',
                                         serviceId: meterForm.serviceId,
                                         installedAt: '',
                                     });
@@ -531,35 +582,17 @@ export default function BuildingDetail () {
                         >
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                                 <label className="text-sm text-gray-600">
-                                    {t('unit')}
-                                    <select
-                                        value={meterForm.unitId}
-                                        onChange={(e) => setMeterForm(prev => ({ ...prev, unitId: e.target.value }))}
-                                        disabled={loadingUnits || units.length === 0}
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#739559] focus:border-[#739559] relative z-20"
-                                    >
-                                        <option value="">
-                                            {loadingUnits ? t('loading') : units.length === 0 ? tUnits('noUnit') : t('selectUnit')}
-                                        </option>
-                                        {units.map(unit => (
-                                            <option key={unit.id} value={unit.id}>
-                                                {unit.code}{unit.floor != null ? ` (Tầng ${unit.floor})` : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {loadingUnits && (
-                                        <div className="text-xs text-gray-500 mt-1">Đang tải danh sách căn hộ...</div>
-                                    )}
-                                    {!loadingUnits && units.length === 0 && (
-                                        <div className="text-xs text-orange-600 mt-1">Không có căn hộ nào trong tòa nhà này</div>
-                                    )}
-                                </label>
-                                <label className="text-sm text-gray-600">
                                     {t('service')}
                                     <select
                                         value={meterForm.serviceId}
-                                        onChange={(e) => setMeterForm(prev => ({ ...prev, serviceId: e.target.value }))}
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                        onChange={(e) => {
+                                            setMeterForm(prev => ({ 
+                                                ...prev, 
+                                                serviceId: e.target.value,
+                                                unitId: '' // Reset unit when service changes
+                                            }));
+                                        }}
+                                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#739559] focus:border-[#739559]"
                                     >
                                         <option value="">{t('selectService')}</option>
                                         {services.map(service => (
@@ -568,6 +601,37 @@ export default function BuildingDetail () {
                                             </option>
                                         ))}
                                     </select>
+                                </label>
+                                <label className="text-sm text-gray-600">
+                                    {t('unit')}
+                                    <select
+                                        value={meterForm.unitId}
+                                        onChange={(e) => setMeterForm(prev => ({ ...prev, unitId: e.target.value }))}
+                                        disabled={!meterForm.serviceId || loadingUnitsWithoutMeter}
+                                        className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#739559] focus:border-[#739559] relative z-20"
+                                    >
+                                        <option value="">
+                                            {!meterForm.serviceId 
+                                                ? 'Chọn dịch vụ trước' 
+                                                : loadingUnitsWithoutMeter 
+                                                    ? t('loading') 
+                                                    : unitsWithoutMeter.length === 0 
+                                                        ? 'Tất cả căn hộ đã có công tơ' 
+                                                        : t('selectUnit')
+                                            }
+                                        </option>
+                                        {unitsWithoutMeter.map(unit => (
+                                            <option key={unit.unitId} value={unit.unitId}>
+                                                {unit.unitCode}{unit.floor != null ? ` (Tầng ${unit.floor})` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {loadingUnitsWithoutMeter && (
+                                        <div className="text-xs text-gray-500 mt-1">Đang tải danh sách căn hộ chưa có công tơ...</div>
+                                    )}
+                                    {!loadingUnitsWithoutMeter && meterForm.serviceId && unitsWithoutMeter.length === 0 && (
+                                        <div className="text-xs text-green-600 mt-1">✓ Tất cả căn hộ đã có công tơ cho dịch vụ này</div>
+                                    )}
                                 </label>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -578,6 +642,7 @@ export default function BuildingDetail () {
                                             ref={meterDateInputRef}
                                             type="date"
                                             value={meterForm.installedAt}
+                                            max={new Date().toISOString().split('T')[0]}
                                             onChange={(e) => setMeterForm(prev => ({ ...prev, installedAt: e.target.value }))}
                                             className="absolute inset-0 opacity-0 pointer-events-none"
                                         />
@@ -589,6 +654,7 @@ export default function BuildingDetail () {
                                             {meterForm.installedAt || 'mm/dd/yyyy'}
                                         </button>
                                     </div>
+                                    <span className="text-xs text-gray-500 mt-1">{t('messages.installedDateHelper') || 'Ngày lắp đặt phải là hôm nay hoặc trước đó'}</span>
                                 </div>
                             </div>
                                 <div className="flex flex-wrap gap-3 mb-3">
@@ -601,7 +667,13 @@ export default function BuildingDetail () {
                                     </button>
                                 </div>
                             {meterStatus && (
-                                <div className="text-sm text-green-600 mb-3">{meterStatus}</div>
+                                <div className={`text-sm mb-3 ${
+                                    meterStatus.includes('thành công') || meterStatus.includes('successfully') 
+                                        ? 'text-green-600' 
+                                        : 'text-red-600'
+                                }`}>
+                                    {meterStatus}
+                                </div>
                             )}
                             <div className="flex gap-3">
                                 <button
@@ -801,3 +873,4 @@ export default function BuildingDetail () {
         </div>
     );
 };
+

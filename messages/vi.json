@@ -997,7 +997,12 @@
       "failedToExportMeterExcel": "Xuất Excel công tơ thất bại",
       "meterAddedSuccess": "Thêm công tơ thành công",
       "failedToCreateMeter": "Không thể tạo công tơ",
-      "pleaseSelectUnitAndService":"Vui lòng chọn căn hộ và dịch vụ",
+      "pleaseSelectUnitAndService":"Vui lòng chọn dịch vụ và căn hộ",
+      "selectServiceFirst": "Chọn dịch vụ trước",
+      "allUnitsHaveMeters": "Tất cả căn hộ đã có công tơ cho dịch vụ này",
+      "loadingUnitsWithoutMeter": "Đang tải danh sách căn hộ chưa có công tơ...",
+      "installedDateFuture": "Ngày lắp đặt không thể là ngày tương lai",
+      "installedDateHelper": "Ngày lắp đặt phải là hôm nay hoặc trước đó",
       "updateStatusError": "Cập nhật trạng thái tòa nhà thất bại",
       "downloadTemplateError": "Tải template thất bại",
       "exportError": "Xuất Excel thất bại",
@@ -2474,6 +2479,8 @@
     "service": "Dịch vụ",
     "serviceUnknown": "Dịch vụ chưa xác định",
     "serviceCode": "Mã dịch vụ:",
+    "servicePrefix": "Dịch vụ:",
+    "codePrefix": "Mã:",
     "cycles": "chu kỳ",
     "cycleRestrictedMessage": "Chu kỳ {month} chỉ được giao trong tháng {month}.",
     "cycleNotInProgress": "Chu kỳ chưa chuyển sang trạng thái IN_PROGRESS nên chưa thể phân công.",
@@ -2487,6 +2494,11 @@
     "noBuildingId": "Không có ID tòa",
     "floor": "Tầng",
     "floorLabel": "Tầng {floor}:",
+    "addAssignmentForCycle": "Thêm assignment cho chu kỳ này",
+    "assignmentsCount": "{count} assignment",
+    "assignmentsCountPlural": "{count} assignments",
+    "viewCycle": "Xem chu kỳ",
+    "noAssignmentsYet": "Chưa có assignment cho chu kỳ này",
     "confirmDeleteAssignment": "Bạn có chắc muốn xóa assignment này? Hành động này không thể hoàn tác.",
     "confirmCompleteAssignment": "Đánh dấu assignment này là đã hoàn thành?",
     "confirmCompleteCycle": "Đánh dấu chu kỳ đọc này là đã hoàn thành?",
@@ -2596,6 +2608,9 @@
         "description": "Chuyển qua phần phân công đọc điện/nước cho từng chu kỳ."
       }
     }
+  },
+  "AssetInspectionManagement": {
+    "title": "Quản lý kiểm tra thiết bị"
   },
   "ApprovedCards": {
     "title": "Quản lý thẻ đã duyệt",
@@ -3286,7 +3301,7 @@
       "nationalId": {
         "required": "CMND/CCCD không được để trống.",
         "specialChars": "CMND/CCCD không được chứa ký tự đặc biệt.",
-        "mustBe13Digits": "CMND/CCCD phải có đúng 12 số.",
+        "mustBe12Digits": "CMND/CCCD phải có đúng 12 số.",
         "exists": "Số căn cước công dân đã tồn tại trong hệ thống.",
         "checkError": "Không thể kiểm tra số căn cước công dân. Vui lòng thử lại."
       },
@@ -3298,6 +3313,7 @@
       "dob": {
         "required": "Ngày sinh không được để trống.",
         "invalid": "Ngày sinh không hợp lệ.",
+        "futureDate": "Ngày sinh không thể là ngày trong tương lai.",
         "ageMin": "Tuổi phải lớn hơn 18.",
         "ageMax": "Tuổi phải nhỏ hơn 200."
       },
@@ -4413,6 +4429,7 @@
     "services": {
       "electricity": "Điện",
       "water": "Nước",
+      "maintenance": "Sửa chữa/Bảo trì",
       "vehicleCard": "Thẻ xe",
       "elevatorCard": "Thẻ thang máy",
       "residentCard": "Thẻ cư dân"
