@@ -91,6 +91,8 @@ export default function LoginForm(){
         errorMessage = e?.response?.data?.message || "Thông tin đăng nhập không hợp lệ";
       } else if (e?.code === 'ERR_NETWORK' || e?.message?.includes('Network')) {
         errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra backend đang chạy.";
+      }else{
+        errorMessage = e?.message || errorMessage;
       }
       
       show(errorMessage, "error");
