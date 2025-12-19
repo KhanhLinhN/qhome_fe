@@ -25,6 +25,7 @@ import {
   updateInspectionItem,
   startInspection,
   completeInspection,
+  assignInspector,
   type CreateAssetInspectionRequest,
   type UpdateAssetInspectionItemRequest,
 } from '@/src/services/base/assetInspectionService';
@@ -501,14 +502,31 @@ export default function RentalContractReviewPage() {
 
     setCreatingInspection(true);
     try {
-      const request: CreateAssetInspectionRequest = {
-        contractId: contract.id,
-        unitId: contract.unitId,
-        inspectionDate: new Date().toISOString().split('T')[0],
-        inspectorName: selectedTechnician.username || selectedTechnician.email || 'N/A',
-        inspectorId: selectedTechnician.userId, // Gửi inspectorId để backend có thể validate và lưu
-      };
-      const inspection = await createInspection(request);
+      // Kiểm tra xem đã có inspection cho contract này chưa (có thể được tạo từ Flutter app khi cancel)
+      const existingInspection = await getInspectionByContractId(contract.id);
+      
+      let inspection: AssetInspection;
+      
+      if (existingInspection && existingInspection.status === InspectionStatus.PENDING) {
+        // Đã có inspection với status PENDING, gán lại technician thay vì tạo mới
+        inspection = await assignInspector(existingInspection.id, {
+          inspectorId: selectedTechnician.userId,
+          inspectorName: selectedTechnician.username || selectedTechnician.email || 'N/A',
+        });
+        show(t('success.reassignInspection', { name: selectedTechnician.username }) || `Đã gán lại kỹ thuật viên ${selectedTechnician.username}`, 'success');
+      } else {
+        // Chưa có inspection hoặc inspection không phải PENDING, tạo mới
+        const request: CreateAssetInspectionRequest = {
+          contractId: contract.id,
+          unitId: contract.unitId,
+          inspectionDate: new Date().toISOString().split('T')[0],
+          inspectorName: selectedTechnician.username || selectedTechnician.email || 'N/A',
+          inspectorId: selectedTechnician.userId, // Gửi inspectorId để backend có thể validate và lưu
+        };
+        inspection = await createInspection(request);
+        show(t('success.assignInspection', { name: selectedTechnician.username }), 'success');
+      }
+      
       setCurrentInspection(inspection);
       setSelectedTechnicianId('');
       // Update contractsWithInspection map
@@ -519,9 +537,8 @@ export default function RentalContractReviewPage() {
         newMap.set(contract.id, inspection);
         return newMap;
       });
-      show(t('success.assignInspection', { name: selectedTechnician.username }), 'success');
     } catch (error: any) {
-      console.error('Failed to create inspection:', error);
+      console.error('Failed to create/assign inspection:', error);
       show(error?.response?.data?.message || error?.message || t('errors.createInspection'), 'error');
     } finally {
       setCreatingInspection(false);
