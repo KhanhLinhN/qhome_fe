@@ -1779,6 +1779,7 @@
     "updated": "Updated successfully",
     "errorUpdate": "Failed to update",
     "errorDelete": "Failed to delete",
+    "cannotPublishBeforeDate": "Cannot publish before publish date",
     "changeStatusTarget": "Change Status and Target",
     "selectScope": "Select scope",
     "all": "All",
