@@ -57,9 +57,10 @@ export default function RentalContractReviewPage() {
   const t = useTranslations('RentalReview');
   const searchParams = useSearchParams();
   
-  // Check user roles - only SUPPORTER can view
+  // Check user roles - ADMIN and SUPPORTER can view
+  const isAdmin = hasRole('ADMIN') || hasRole('admin') || hasRole('ROLE_ADMIN') || hasRole('ROLE_admin');
   const isSupporter = hasRole('SUPPORTER') || hasRole('supporter') || hasRole('ROLE_SUPPORTER') || hasRole('ROLE_supporter');
-  const canView = isSupporter;
+  const canView = isAdmin || isSupporter;
 
   const [contracts, setContracts] = useState<RentalContractWithUnit[]>([]);
   const [loading, setLoading] = useState(false);
