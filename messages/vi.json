@@ -1832,6 +1832,7 @@
     "updated": "Cập nhật thành công",
     "errorUpdate": "Cập nhật thất bại",
     "errorDelete": "Xóa thất bại",
+    "cannotPublishBeforeDate": "Không thể đổi trạng thái thành đã xuất bản khi chưa đến ngày xuất bản",
     "changeStatusTarget": "Thay đổi trạng thái và đối tượng",
     "selectScope": "Chọn phạm vi",
     "all": "Tất cả",
