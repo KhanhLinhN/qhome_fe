@@ -151,6 +151,22 @@ export default function NewsList() {
             return;
         }
         
+        // Check if trying to publish but publishAt date hasn't arrived yet
+        if (changeStatus === 'PUBLISHED') {
+            const item = newsList.find(n => n.id === changeId);
+            if (item?.publishAt) {
+                const publishDate = new Date(item.publishAt);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+                publishDate.setHours(0, 0, 0, 0);
+                
+                if (publishDate > today) {
+                    show(t('cannotPublishBeforeDate') || 'Không thể đổi trạng thái thành đã xuất bản khi chưa đến ngày xuất bản', 'error');
+                    return;
+                }
+            }
+        }
+        
         try {
             setChanging(true);
             await updateNews(changeId, {
@@ -337,7 +353,24 @@ export default function NewsList() {
                                                 <option value="">{t('selectStatus')}</option>
                                                 <option value="DRAFT">{t('draft')}</option>
                                                 <option value="SCHEDULED">{t('scheduled')}</option>
-                                                <option value="PUBLISHED">{t('published')}</option>
+                                                {(() => {
+                                                    const item = newsList.find(n => n.id === changeId);
+                                                    const canPublish = item?.publishAt ? (() => {
+                                                        const publishDate = new Date(item.publishAt);
+                                                        const today = new Date();
+                                                        today.setHours(0, 0, 0, 0);
+                                                        publishDate.setHours(0, 0, 0, 0);
+                                                        return publishDate <= today;
+                                                    })() : true;
+                                                    return (
+                                                        <option 
+                                                            value="PUBLISHED" 
+                                                            disabled={!canPublish}
+                                                        >
+                                                            {t('published')}{!canPublish ? ` (${t('cannotPublishBeforeDate') || 'Chưa đến ngày xuất bản'})` : ''}
+                                                        </option>
+                                                    );
+                                                })()}
                                                 <option value="HIDDEN">{t('hidden')}</option>
                                                 <option value="EXPIRED">{t('expired')}</option>
                                                 <option value="ARCHIVED">{t('archived')}</option>
