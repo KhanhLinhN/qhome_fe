@@ -4754,6 +4754,7 @@
     },
     "success": {
       "assignInspection": "Đã gán việc kiểm tra thiết bị cho kỹ thuật viên {name}",
+      "reassignInspection": "Đã gán lại việc kiểm tra thiết bị cho kỹ thuật viên {name}",
       "startInspection": "Bắt đầu kiểm tra thiết bị",
       "completeInspection": "Hoàn thành kiểm tra thiết bị",
       "createInspectionWithReadings": "Đã tạo kiểm tra thiết bị và {readingCount} chỉ số đồng hồ đo",
