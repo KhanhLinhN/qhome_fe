@@ -16,12 +16,13 @@ export default function InvoicesManagementPage() {
   const { hasRole, user, isLoading } = useAuth();
   const router = useRouter();
   
-  // Check user roles - only ACCOUNTANT can view
+  // Check user roles - ADMIN and ACCOUNTANT can view
   // Check multiple possible role formats
+  const isAdmin = hasRole('ADMIN') || hasRole('admin') || hasRole('ROLE_ADMIN') || hasRole('ROLE_admin');
   const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') || hasRole('ROLE_ACCOUNTANT') || hasRole('ROLE_accountant');
-  const canView = isAccountant;
-  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
-  const canExport = isAccountant; // Only ACCOUNTANT can export Excel
+  const canView = isAdmin || isAccountant;
+  const canEdit = isAdmin || isAccountant; // ADMIN and ACCOUNTANT can edit/create/delete
+  const canExport = isAdmin || isAccountant; // ADMIN and ACCOUNTANT can export Excel
   
   const SERVICE_CODE_OPTIONS = [
     { value: '', label: t('filters.allServices') },
@@ -102,7 +103,7 @@ export default function InvoicesManagementPage() {
       return;
     }
     loadInvoices();
-  }, [serviceCodeFilter, statusFilter, monthFilter, canView, show, router, isLoading, user, isAccountant]);
+  }, [serviceCodeFilter, statusFilter, monthFilter, canView, show, router, isLoading, user, isAdmin, isAccountant]);
 
   const loadInvoices = async () => {
     setLoading(true);

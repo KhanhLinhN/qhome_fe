@@ -32,10 +32,11 @@ export default function BillingCyclesPage() {
   const { hasRole, isLoading } = useAuth();
   const router = useRouter();
   
-  // Check user roles - only ACCOUNTANT can view
+  // Check user roles - ADMIN and ACCOUNTANT can view
+  const isAdmin = hasRole('ADMIN') || hasRole('admin') || hasRole('ROLE_ADMIN') || hasRole('ROLE_admin');
   const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') || hasRole('ROLE_ACCOUNTANT') || hasRole('ROLE_accountant');
-  const canView = isAccountant;
-  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
+  const canView = isAdmin || isAccountant;
+  const canEdit = isAdmin || isAccountant; // ADMIN and ACCOUNTANT can edit/create/delete
   
   const [year, setYear] = useState(new Date().getFullYear());
   const [cycles, setCycles] = useState<BillingCycleDto[]>([]);

@@ -29,9 +29,10 @@ export default function AddAssignmentPage() {
   const { user, hasRole, isLoading } = useAuth();
   const { show } = useNotifications();
   
-  // Check user roles - only TECHNICIAN can view
+  // Check user roles - ADMIN and TECHNICIAN can view
+  const isAdmin = hasRole('ADMIN') || hasRole('admin') || hasRole('ROLE_ADMIN') || hasRole('ROLE_admin');
   const isTechnician = hasRole('TECHNICIAN') || hasRole('technician') || hasRole('ROLE_TECHNICIAN') || hasRole('ROLE_technician');
-  const canView = isTechnician;
+  const canView = isAdmin || isTechnician;
 
   const [loading, setLoading] = useState(false);
   const [cycles, setCycles] = useState<ReadingCycleDto[]>([]);
