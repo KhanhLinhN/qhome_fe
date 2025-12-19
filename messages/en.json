@@ -4747,6 +4747,7 @@
       "notesPlaceholder": "Enter notes about equipment condition...",
       "completeInspection": "Complete Inspection",
       "results": "Inspection Results",
+      "inspectionResult": "Inspection Result",
       "close": "Close",
       "condition": {
         "good": "Good",

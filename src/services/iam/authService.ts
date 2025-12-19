@@ -3,6 +3,7 @@
  * Tương ứng với iam-service backend (port 8088)
  */
 import axios from "@/src/lib/axios";
+import { th } from "zod/locales";
 
 export type LoginPayload = { 
   username: string; 
@@ -54,10 +55,15 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   
   // Lưu JWT token vào localStorage
   if (response.data?.accessToken) {
-    localStorage.setItem('accessToken', response.data.accessToken);
-  }
-  
-  return response.data;
+    console.log("login",response.data);
+    if(response.data.userInfo.roles.includes('resident')){
+      throw new Error("Residents are not allowed to login via this portal.");
+    }
+    else{
+      localStorage.setItem('accessToken', response.data.accessToken);
+      return response.data;
+    }
+  }  
 }
 
 /**
