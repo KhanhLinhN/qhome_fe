@@ -443,15 +443,25 @@ export default function RentalContractReviewPage() {
       // Try to get existing inspection
       const existingInspection = await getInspectionByContractId(contract.id);
       if (existingInspection) {
-        setCurrentInspection(existingInspection);
-        
-        // If inspection is IN_PROGRESS, load meters and cycle/assignment for technician
-        if (existingInspection.status === InspectionStatus.IN_PROGRESS && existingInspection.unitId) {
-          await loadUnitMeters(existingInspection.unitId);
-          
-          // Load active cycle and assignment if inspectorId exists
+        // If inspection status is PENDING, allow reassigning technician
+        if (existingInspection.status === InspectionStatus.PENDING) {
+          setCurrentInspection(null); // Set to null to show assignment form
+          await loadTechnicians();
+          // Optionally pre-select the current inspector if exists
           if (existingInspection.completedBy) {
-            await loadActiveCycleAndAssignment(existingInspection.completedBy);
+            setSelectedTechnicianId(existingInspection.completedBy);
+          }
+        } else {
+          setCurrentInspection(existingInspection);
+          
+          // If inspection is IN_PROGRESS, load meters and cycle/assignment for technician
+          if (existingInspection.status === InspectionStatus.IN_PROGRESS && existingInspection.unitId) {
+            await loadUnitMeters(existingInspection.unitId);
+            
+            // Load active cycle and assignment if inspectorId exists
+            if (existingInspection.completedBy) {
+              await loadActiveCycleAndAssignment(existingInspection.completedBy);
+            }
           }
         }
       } else {
@@ -1469,7 +1479,7 @@ export default function RentalContractReviewPage() {
             <div className="px-6 py-6 flex-1 min-h-0 overflow-y-auto">
               {inspectionLoading ? (
                 <div className="text-center text-gray-500">{t('inspectionModal.loading')}</div>
-              ) : !currentInspection ? (
+              ) : !currentInspection || (currentInspection && currentInspection.status === InspectionStatus.PENDING) ? (
                 <div className="space-y-4">
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
                     <p className="text-sm text-blue-800 mb-2">
