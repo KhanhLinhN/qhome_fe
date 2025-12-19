@@ -12,16 +12,19 @@ export function getRedirectPathByRole(roles: string[]): string {
     return '/tenant-owner';  // Tenant owner vào giao diện riêng (không có phân quyền)
   }
   
-  if (roles.includes('account')) {
-    return '/dashboard';  // Kế toán vào trang accounting
+  if (roles.includes('accountant')) {
+    return '/base/readingCycles';  // Kế toán vào trang accounting
   }
   
-  if (roles.includes('technician') || roles.includes('supporter')) {
-    return '/customer-interaction/request';  // Kỹ thuật viên/supporter vào trang xử lý request
+  if (roles.includes('supporter')) {
+    return '/customer-interaction/new/newList'; 
   }
   
-  // Default: nếu không match role nào, vào customer interaction
-  return '/customer-interaction/request';
+  if(roles.includes('technician')){
+    return '/customer-interaction/request';
+  }
+
+  return '/login';
 }
 
 
