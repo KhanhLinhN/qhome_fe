@@ -17,6 +17,7 @@ import {
   ReadingCycleCreateReq,
   ReadingCycleUpdateReq,
   ServiceDto,
+  ALLOWED_SERVICE_CODES,
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import CycleModal from '@/src/components/water/CycleModal';
@@ -51,7 +52,10 @@ export default function ReadingCyclesPage() {
   const loadServices = async () => {
     try {
       const data = await getAllServices();
-      setServices(data.filter((service) => service.requiresMeter));
+      // Only show water and electric services that require meters
+      setServices(data.filter((service) => 
+        service.requiresMeter && ALLOWED_SERVICE_CODES.includes(service.code)
+      ));
     } catch (error) {
       console.error('Failed to load services:', error);
     }

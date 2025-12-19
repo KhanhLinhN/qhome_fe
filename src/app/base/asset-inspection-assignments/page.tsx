@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import {
@@ -37,12 +38,14 @@ import { getAssetsByUnit, getAssetById } from '@/src/services/base/assetService'
 import { type Asset } from '@/src/types/asset';
 
 export default function TechnicianInspectionAssignmentsPage() {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, isLoading } = useAuth();
   const { show } = useNotifications();
+  const router = useRouter();
   const t = useTranslations('TechnicianInspections');
   
-  // Check if user is admin
-  const isAdmin = hasRole('ADMIN') || hasRole('admin') || hasRole('ROLE_ADMIN') || hasRole('ROLE_admin');
+  // Check user roles - only TECHNICIAN can view
+  const isTechnician = hasRole('TECHNICIAN') || hasRole('technician') || hasRole('ROLE_TECHNICIAN') || hasRole('ROLE_technician');
+  const canView = isTechnician;
 
   const [loading, setLoading] = useState(false);
   const [inspections, setInspections] = useState<AssetInspection[]>([]);
@@ -82,10 +85,22 @@ export default function TechnicianInspectionAssignmentsPage() {
   const [calculatedPrices, setCalculatedPrices] = useState<Record<string, number>>({}); // meterId -> calculated price
 
   useEffect(() => {
-    if (user?.userId || isAdmin) {
+    // Wait for user to load before checking permissions
+    if (isLoading) {
+      return;
+    }
+    
+    // Check if user has permission to view
+    if (!canView) {
+      show('Bạn không có quyền truy cập trang này', 'error');
+      router.push('/');
+      return;
+    }
+    
+    if (user?.userId) {
       loadMyInspections();
     }
-  }, [user?.userId, isAdmin]);
+  }, [isLoading, canView, user?.userId, show, router]);
 
   // Load main invoice when inspection has invoiceId
   useEffect(() => {
@@ -114,14 +129,12 @@ export default function TechnicianInspectionAssignmentsPage() {
   }, [selectedInspection?.unitId, selectedInspection?.status]);
 
   const loadMyInspections = async () => {
-    if (!user?.userId && !isAdmin) return;
+    if (!user?.userId) return;
     
     setLoading(true);
     try {
-      // If admin, load all inspections; otherwise load only assigned inspections
-      const data = isAdmin 
-        ? await getAllInspections() // No userId parameter = get all inspections
-        : await getAllInspections(user?.userId);
+      // Load only inspections assigned to this technician
+      const data = await getAllInspections(user?.userId);
       setInspections(data);
     } catch (error: any) {
       show(error?.response?.data?.message || error?.message || t('errors.loadFailed'), 'error');

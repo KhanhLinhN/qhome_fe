@@ -28,6 +28,23 @@ export async function fetchResidentById(residentId: string): Promise<Resident> {
 }
 
 /**
+ * Fetch a resident by ID (Admin version - same as fetchResidentById)
+ */
+export async function fetchResidentByIdForAdmin(residentId: string): Promise<Resident> {
+  return fetchResidentById(residentId);
+}
+
+/**
+ * Fetch a resident by user ID
+ */
+export async function fetchResidentByUserId(userId: string): Promise<Resident> {
+  const response = await axios.get(`${BASE_URL}/api/residents/by-user/${userId}`, {
+    ...withCredentials,
+  });
+  return response.data as Resident;
+}
+
+/**
  * Get all residents
  */
 export async function getAllResidents(): Promise<Resident[]> {

@@ -14,7 +14,7 @@ import {
   exportBillingCycleToExcel,
   getMissingServicesInCycle,
 } from '@/src/services/finance/billingCycleService';
-import { getAllServices, ServiceDto } from '@/src/services/base/waterService';
+import { getAllServices, ServiceDto, ALLOWED_SERVICE_CODES } from '@/src/services/base/waterService';
 import { getBuildings, Building } from '@/src/services/base/buildingService';
 import { getUnitsByBuilding, Unit } from '@/src/services/base/unitService';
 import { useAuth } from '@/src/contexts/AuthContext';
@@ -99,7 +99,8 @@ export default function BillingCycleManagePage() {
   const loadServices = async () => {
     try {
       const data = await getAllServices();
-      setServices(data);
+      // Only show water and electric services
+      setServices(data.filter(service => ALLOWED_SERVICE_CODES.includes(service.code)));
     } catch (error) {
       console.error('Failed to load services', error);
     }

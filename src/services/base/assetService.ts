@@ -74,6 +74,27 @@ export async function deactivateAsset(id: string): Promise<Asset> {
   return response.data;
 }
 
+/**
+ * GET /api/assets/export
+ */
+export async function exportAssetsToExcel(
+  buildingId?: string,
+  unitId?: string,
+  assetType?: string
+): Promise<Blob> {
+  const params: Record<string, string> = {};
+  if (buildingId) params.buildingId = buildingId;
+  if (unitId) params.unitId = unitId;
+  if (assetType) params.assetType = assetType;
+  
+  const response = await axios.get(`${BASE_URL}/api/assets/export`, {
+    params,
+    responseType: 'blob',
+    withCredentials: true,
+  });
+  return response.data as Blob;
+}
+
 
 
 

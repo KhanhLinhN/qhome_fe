@@ -58,11 +58,10 @@ export default function PricingTiersManagementPage() {
   const { hasRole, user, isLoading } = useAuth();
   const router = useRouter();
   
-  // Check user roles - only ADMIN and ACCOUNTANT can view
-  const isAdmin = hasRole('ADMIN') || hasRole('admin');
-  const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant');
-  const canView = isAdmin || isAccountant;
-  const canEdit = isAdmin || isAccountant; // ADMIN and ACCOUNTANT can edit/create/delete
+  // Check user roles - only ACCOUNTANT can view
+  const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') || hasRole('ROLE_ACCOUNTANT') || hasRole('ROLE_accountant');
+  const canView = isAccountant;
+  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
   
   const SERVICE_OPTIONS = [
     { value: 'ELECTRIC', label: t('services.electric'), icon: '⚡' },
@@ -279,6 +278,11 @@ export default function PricingTiersManagementPage() {
       return;
     }
     
+    if (hasFinalTier) {
+      show('Không thể thêm bậc giá mới khi đã có bậc cuối cùng', 'error');
+      return;
+    }
+    
     const maxOrder = sortedTiers.length > 0 ? Math.max(...sortedTiers.map((t) => t.tierOrder ?? 0)) : 0;
     
     // Find the last tier's maxQuantity to calculate minQuantity for new tier
@@ -357,15 +361,54 @@ export default function PricingTiersManagementPage() {
       effectiveFrom: tier.effectiveFrom
         ? new Date(tier.effectiveFrom).toISOString().split('T')[0]
         : new Date().toISOString().split('T')[0],
-      effectiveUntil: tier.effectiveUntil
-        ? new Date(tier.effectiveUntil).toISOString().split('T')[0]
-        : null,
+      effectiveUntil: null, // Removed from UI
       active: tier.active !== false,
       description: tier.description || '',
     });
     setIsCreateMode(false);
     setShowForm(true);
     setFormErrors({});
+  };
+  
+  // Helper to check if a tier is the last tier
+  const isLastTier = (tier: PricingTierDto): boolean => {
+    // Last tier is either:
+    // 1. Tier with maxQuantity = null (unlimited) - this is definitely the last tier
+    if (tier.maxQuantity === null || tier.maxQuantity === undefined) {
+      return true;
+    }
+    
+    // 2. Check if there's any other active tier with maxQuantity = null (unlimited)
+    // If yes, that tier is the last one, not this one
+    const activeTiers = sortedTiers.filter(t => isTierCurrentlyActive(t) && t.id !== tier.id);
+    const hasOtherUnlimitedTier = activeTiers.some(t => t.maxQuantity === null || t.maxQuantity === undefined);
+    if (hasOtherUnlimitedTier) {
+      return false; // Another tier is unlimited, so this is not the last
+    }
+    
+    // 3. Check if this tier has the highest maxQuantity among all active tiers
+    const allActiveTiers = sortedTiers.filter(t => isTierCurrentlyActive(t));
+    if (allActiveTiers.length === 1) {
+      return true; // Only one tier, so it's the last
+    }
+    
+    const tiersWithMax = allActiveTiers.filter(t => t.maxQuantity !== null && t.maxQuantity !== undefined);
+    if (tiersWithMax.length === 0) {
+      return true; // No tiers with max, so this is last
+    }
+    
+    const maxMaxQuantity = Math.max(...tiersWithMax.map(t => Number(t.maxQuantity)));
+    const thisMax = Number(tier.maxQuantity);
+    
+    return thisMax >= maxMaxQuantity; // This tier has the highest maxQuantity
+  };
+  
+  // Helper to check if editing tier is the last tier (can edit minQuantity/maxQuantity)
+  const isEditingLastTier = (): boolean => {
+    if (!editingTier || !editingTier.id) return false;
+    const editingTierData = tiers.find(t => t.id === editingTier.id);
+    if (!editingTierData) return false;
+    return isLastTier(editingTierData);
   };
 
   const handleDeleteClick = (tier: PricingTierDto) => {
@@ -427,17 +470,7 @@ export default function PricingTiersManagementPage() {
       }
     }
 
-    if (!editingTier.effectiveFrom) {
-      errors.effectiveFrom = t('validation.effectiveFromRequired');
-    }
-
-    if (
-      editingTier.effectiveUntil &&
-      editingTier.effectiveFrom &&
-      new Date(editingTier.effectiveUntil) < new Date(editingTier.effectiveFrom)
-    ) {
-      errors.effectiveUntil = t('validation.effectiveUntilAfterFrom');
-    }
+    // Effective dates removed from UI - always use today's date
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -471,8 +504,8 @@ export default function PricingTiersManagementPage() {
           minQuantity: editingTier.minQuantity,
           maxQuantity: editingTier.maxQuantity ?? null,
           unitPrice: editingTier.unitPrice,
-          effectiveFrom: editingTier.effectiveFrom,
-          effectiveUntil: editingTier.effectiveUntil ?? null,
+          effectiveFrom: new Date().toISOString().split('T')[0], // Always use today's date
+          effectiveUntil: null,
           active: editingTier.active,
           description: editingTier.description || undefined,
         };
@@ -484,8 +517,8 @@ export default function PricingTiersManagementPage() {
           minQuantity: editingTier.minQuantity,
           maxQuantity: editingTier.maxQuantity ?? null,
           unitPrice: editingTier.unitPrice,
-          effectiveFrom: editingTier.effectiveFrom,
-          effectiveUntil: editingTier.effectiveUntil ?? null,
+          effectiveFrom: editingTier.effectiveFrom || new Date().toISOString().split('T')[0], // Keep existing or use today
+          effectiveUntil: null,
           active: editingTier.active,
           description: editingTier.description || undefined,
         };
@@ -590,9 +623,9 @@ export default function PricingTiersManagementPage() {
         </div>
         <button
           onClick={startCreate}
-          disabled={!canEdit}
+          disabled={!canEdit || hasFinalTier}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-          title={!canEdit ? 'Bạn không có quyền thêm bậc giá' : ''}
+          title={!canEdit ? 'Bạn không có quyền thêm bậc giá' : hasFinalTier ? 'Không thể thêm bậc giá mới khi đã có bậc cuối cùng' : ''}
         >
           {t('buttons.addNewTier')}
         </button>
@@ -849,8 +882,9 @@ export default function PricingTiersManagementPage() {
                       step="0.01"
                       value={editingTier.minQuantity ?? ''}
                       onChange={(e) => {
-                        if (!isCreateMode) {
-                          // Only allow editing in edit mode
+                        if (!isCreateMode && isEditingLastTier()) {
+                          // Only allow editing minQuantity for last tier in edit mode
+                          // Other tiers have fixed minQuantity due to backend validation
                           setEditingTier({
                             ...editingTier,
                             minQuantity: e.target.value ? parseFloat(e.target.value) : null,
@@ -860,16 +894,21 @@ export default function PricingTiersManagementPage() {
                           }
                         }
                       }}
-                      readOnly={isCreateMode}
-                      disabled={isCreateMode}
+                      readOnly={isCreateMode || (!isCreateMode && !isEditingLastTier())}
+                      disabled={isCreateMode || (!isCreateMode && !isEditingLastTier())}
                       className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        isCreateMode ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : ''
+                        (isCreateMode || (!isCreateMode && !isEditingLastTier())) ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : ''
                       }`}
                       placeholder="0"
                     />
                     {isCreateMode && (
                       <p className="text-xs text-gray-500 mt-1">
                         {t('form.minQuantityAutoGenerated', { defaultValue: 'Tự động tính từ bậc giá cuối cùng' })}
+                      </p>
+                    )}
+                    {!isCreateMode && !isEditingLastTier() && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Chỉ có thể sửa số lượng tối thiểu của bậc giá cuối cùng
                       </p>
                     )}
                     {formErrors.minQuantity && (
@@ -901,9 +940,15 @@ export default function PricingTiersManagementPage() {
                     {formErrors.maxQuantity && (
                       <p className="text-red-500 text-xs mt-1">{formErrors.maxQuantity}</p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      {t('form.maxQuantityHint')}
-                    </p>
+                    {!isEditingLastTier() ? (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Chỉ có thể sửa số lượng tối đa của bậc giá cuối cùng
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {t('form.maxQuantityHint')}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -941,51 +986,6 @@ export default function PricingTiersManagementPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="relative z-50">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('form.effectiveFrom')}
-                    </label>
-                    <input
-                      type="date"
-                      value={editingTier.effectiveFrom}
-                      onChange={(e) => {
-                        setEditingTier({ ...editingTier, effectiveFrom: e.target.value });
-                        if (formErrors.overlap || formErrors.general) {
-                          setFormErrors({ ...formErrors, overlap: undefined, general: undefined });
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 relative z-50"
-                    />
-                    {formErrors.effectiveFrom && (
-                      <p className="text-red-500 text-xs mt-1">{formErrors.effectiveFrom}</p>
-                    )}
-                  </div>
-
-                  <div className="relative z-50">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('form.effectiveUntil')}
-                    </label>
-                    <input
-                      type="date"
-                      value={editingTier.effectiveUntil ?? ''}
-                      onChange={(e) => {
-                        setEditingTier({
-                          ...editingTier,
-                          effectiveUntil: e.target.value || null,
-                        });
-                        if (formErrors.overlap || formErrors.general) {
-                          setFormErrors({ ...formErrors, overlap: undefined, general: undefined });
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 relative z-50"
-                    />
-                    {formErrors.effectiveUntil && (
-                      <p className="text-red-500 text-xs mt-1">{formErrors.effectiveUntil}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">{t('form.effectiveUntilHint')}</p>
-                  </div>
-                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1053,9 +1053,9 @@ export default function PricingTiersManagementPage() {
           <p className="text-gray-500 mb-4">{t('empty.noTiers')}</p>
           <button
             onClick={startCreate}
-            disabled={!canEdit}
+            disabled={!canEdit || hasFinalTier}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-            title={!canEdit ? 'Bạn không có quyền thêm bậc giá' : ''}
+            title={!canEdit ? 'Bạn không có quyền thêm bậc giá' : hasFinalTier ? 'Không thể thêm bậc giá mới khi đã có bậc cuối cùng' : ''}
           >
             {t('buttons.addFirstTier')}
           </button>
@@ -1074,9 +1074,6 @@ export default function PricingTiersManagementPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('table.unitPrice')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.effective')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('table.status')}
@@ -1120,19 +1117,6 @@ export default function PricingTiersManagementPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {tier.effectiveFrom
-                            ? new Date(tier.effectiveFrom).toLocaleDateString('vi-VN')
-                            : t('common.notAvailable')}
-                        </div>
-                        {tier.effectiveUntil && (
-                          <div className="text-xs text-gray-500">
-                            {t('table.to')}{' '}
-                            {new Date(tier.effectiveUntil).toLocaleDateString('vi-VN')}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded ${
                             isActive
@@ -1144,22 +1128,30 @@ export default function PricingTiersManagementPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => startEdit(tier)}
-                          disabled={!canEdit}
-                          className="text-blue-600 hover:text-blue-900 mr-4 disabled:text-gray-400 disabled:cursor-not-allowed"
-                          title={!canEdit ? 'Bạn không có quyền chỉnh sửa' : ''}
-                        >
-                          {t('buttons.edit')}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(tier)}
-                          disabled={!canEdit}
-                          className="text-red-600 hover:text-red-900 disabled:text-gray-400 disabled:cursor-not-allowed"
-                          title={!canEdit ? 'Bạn không có quyền xóa' : ''}
-                        >
-                          {t('buttons.delete')}
-                        </button>
+                        {(() => {
+                          const tierIsLast = isLastTier(tier);
+                          const canEditDelete = canEdit && tierIsLast;
+                          return (
+                            <>
+                              <button
+                                onClick={() => startEdit(tier)}
+                                disabled={!canEditDelete}
+                                className="text-blue-600 hover:text-blue-900 mr-4 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                title={!canEdit ? 'Bạn không có quyền chỉnh sửa' : !tierIsLast ? 'Chỉ có thể sửa bậc giá cuối cùng' : ''}
+                              >
+                                {t('buttons.edit')}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteClick(tier)}
+                                disabled={!canEditDelete}
+                                className="text-red-600 hover:text-red-900 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                title={!canEdit ? 'Bạn không có quyền xóa' : !tierIsLast ? 'Chỉ có thể xóa bậc giá cuối cùng' : ''}
+                              >
+                                {t('buttons.delete')}
+                              </button>
+                            </>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );

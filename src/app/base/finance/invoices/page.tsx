@@ -16,18 +16,18 @@ export default function InvoicesManagementPage() {
   const { hasRole, user, isLoading } = useAuth();
   const router = useRouter();
   
-  // Check user roles - only ADMIN and ACCOUNTANT can view
+  // Check user roles - only ACCOUNTANT can view
   // Check multiple possible role formats
-  const isAdmin = hasRole('ADMIN') || hasRole('admin') || hasRole('ROLE_ADMIN') || hasRole('ROLE_admin');
   const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') || hasRole('ROLE_ACCOUNTANT') || hasRole('ROLE_accountant');
-  const canView = isAdmin || isAccountant;
+  const canView = isAccountant;
   const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
-  const canExport = isAdmin || isAccountant; // Both ADMIN and ACCOUNTANT can export Excel
+  const canExport = isAccountant; // Only ACCOUNTANT can export Excel
   
   const SERVICE_CODE_OPTIONS = [
     { value: '', label: t('filters.allServices') },
     { value: 'ELECTRICITY', label: t('services.electricity') },
     { value: 'WATER', label: t('services.water') },
+    { value: 'MAINTENANCE', label: t('services.maintenance') },
     { value: 'VEHICLE_CARD', label: t('services.vehicleCard') },
     { value: 'ELEVATOR_CARD', label: t('services.elevatorCard') },
     { value: 'RESIDENT_CARD', label: t('services.residentCard') },
@@ -54,6 +54,7 @@ export default function InvoicesManagementPage() {
     ELECTRICITY: t('services.electricity'),
     ELECTRIC: t('services.electricity'), // Alternative service code
     WATER: t('services.water'),
+    MAINTENANCE: t('services.maintenance'),
     VEHICLE_CARD: t('services.vehicleCard'),
     ELEVATOR_CARD: t('services.elevatorCard'),
     RESIDENT_CARD: t('services.residentCard'),
@@ -91,7 +92,7 @@ export default function InvoicesManagementPage() {
     // Debug: log user roles to help diagnose permission issues
     if (user) {
       console.log('User roles:', user.roles);
-      console.log('isAdmin:', isAdmin, 'isAccountant:', isAccountant, 'canView:', canView);
+      console.log('isAccountant:', isAccountant, 'canView:', canView);
     }
     
     // Check if user has permission to view

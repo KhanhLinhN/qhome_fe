@@ -748,7 +748,11 @@ export async function deleteAssignment(assignmentId: string): Promise<void> {
   );
 }
 
-export const WATER_SERVICE_CODE = 'WATER'; // Adjust based on your system
+export const WATER_SERVICE_CODE = 'WATER';
+export const ELECTRIC_SERVICE_CODE = 'ELECTRIC';
+
+// Only allow water and electric services
+export const ALLOWED_SERVICE_CODES = [WATER_SERVICE_CODE, ELECTRIC_SERVICE_CODE];
 
 export async function getWaterServiceId(): Promise<string | null> {
   try {

@@ -17,7 +17,7 @@ import {
 } from '@/src/services/base/contractService';
 import { getAssetsByUnit, createAsset } from '@/src/services/base/assetService';
 import { AssetType, type Asset, type CreateAssetRequest } from '@/src/types/asset';
-import { createMeter, getAllServices, getMeters, type ServiceDto, type MeterCreateReq, type MeterDto } from '@/src/services/base/waterService';
+import { createMeter, getAllServices, getMeters, type ServiceDto, type MeterCreateReq, type MeterDto, ALLOWED_SERVICE_CODES } from '@/src/services/base/waterService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
 
 type AsyncState<T> = {
@@ -713,9 +713,11 @@ export default function ContractManagementPage() {
       const meters = await getMeters({ unitId, active: true });
       setUnitMeters(meters);
       
-      // Get all services that require meters
+      // Get all services that require meters (water and electric only)
       const allServices = await getAllServices();
-      const servicesRequiringMeter = allServices.filter(s => s.requiresMeter);
+      const servicesRequiringMeter = allServices.filter(s => 
+        s.requiresMeter && ALLOWED_SERVICE_CODES.includes(s.code)
+      );
       
       // Find which services are missing meters
       const existingServiceIds = new Set(meters.map(m => m.serviceId));
@@ -1305,6 +1307,8 @@ export default function ContractManagementPage() {
       // Automatically create meters for water and electricity after contract creation
       try {
         const services = await getAllServices();
+        // Filter to only water and electric services
+        const filteredServices = services.filter(s => ALLOWED_SERVICE_CODES.includes(s.code));
         const waterService = services.find(s => 
           s.code?.toUpperCase() === 'WATER' || 
           s.name?.toLowerCase().includes('nước') ||
@@ -2264,11 +2268,6 @@ export default function ContractManagementPage() {
                                   </li>
                                 )}
                               </ul>
-                              <p className="text-xs italic mt-2 pt-2 border-t border-gray-300">
-                                {t('rentCalculation.formula', { 
-                                  defaultValue: 'Công thức: Ngày lẻ < 15 ngày tính nửa tháng, >= 15 ngày tính full tháng' 
-                                })}
-                              </p>
                             </div>
                           )}
                         </div>

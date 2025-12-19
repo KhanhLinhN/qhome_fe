@@ -11,6 +11,7 @@ import {
   MeterReadingAssignmentCreateReq,
   ReadingCycleDto,
   ServiceDto,
+  ALLOWED_SERVICE_CODES,
 } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import Select from '@/src/components/customer-interaction/Select';
@@ -25,8 +26,12 @@ export default function AddAssignmentPage() {
   const t = useTranslations('AddAssignment');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, isLoading } = useAuth();
   const { show } = useNotifications();
+  
+  // Check user roles - only TECHNICIAN can view
+  const isTechnician = hasRole('TECHNICIAN') || hasRole('technician') || hasRole('ROLE_TECHNICIAN') || hasRole('ROLE_technician');
+  const canView = isTechnician;
 
   const [loading, setLoading] = useState(false);
   const [cycles, setCycles] = useState<ReadingCycleDto[]>([]);
@@ -55,8 +60,20 @@ export default function AddAssignmentPage() {
   const [startDateError, setStartDateError] = useState<string>('');
   const [endDateError, setEndDateError] = useState<string>('');
 
-  // Load initial data
+  // Check permissions and load initial data
   useEffect(() => {
+    // Wait for user to load before checking permissions
+    if (isLoading) {
+      return;
+    }
+    
+    // Check if user has permission to view
+    if (!canView) {
+      show('Bạn không có quyền truy cập trang này', 'error');
+      router.push('/');
+      return;
+    }
+    
     const loadData = async () => {
       try {
         setLoading(true);
@@ -68,8 +85,10 @@ export default function AddAssignmentPage() {
 
         setCycles(cyclesData);
         setBuildings(buildingsData);
-        // Filter services that are active and require meter
-        setServices(servicesData.filter(s => s.active && s.requiresMeter));
+        // Filter services that are active, require meter, and are water/electric only
+        setServices(servicesData.filter(s => 
+          s.active && s.requiresMeter && ALLOWED_SERVICE_CODES.includes(s.code)
+        ));
 
         // Load staff with technician role
         try {
@@ -88,7 +107,7 @@ export default function AddAssignmentPage() {
     };
 
     loadData();
-  }, [show]);
+  }, [isLoading, canView, show, router]);
 
   const buildingParam = searchParams.get('buildingId') || '';
   const serviceParam = searchParams.get('serviceId') || '';

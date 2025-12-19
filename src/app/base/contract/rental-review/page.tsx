@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { useNotificationAdd } from '@/src/hooks/useNotificationAdd';
@@ -52,12 +52,14 @@ interface RentalContractWithUnit extends ContractSummary {
 export default function RentalContractReviewPage() {
   const { show } = useNotifications();
   const { addNotification } = useNotificationAdd();
-  const { hasRole } = useAuth();
+  const { hasRole, isLoading } = useAuth();
+  const router = useRouter();
   const t = useTranslations('RentalReview');
   const searchParams = useSearchParams();
   
-  // Check if user is admin
-  const isAdmin = hasRole('ADMIN') || hasRole('admin') || hasRole('ROLE_ADMIN') || hasRole('ROLE_admin');
+  // Check user roles - only SUPPORTER can view
+  const isSupporter = hasRole('SUPPORTER') || hasRole('supporter') || hasRole('ROLE_SUPPORTER') || hasRole('ROLE_supporter');
+  const canView = isSupporter;
 
   const [contracts, setContracts] = useState<RentalContractWithUnit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -113,6 +115,18 @@ export default function RentalContractReviewPage() {
 
   // Load buildings first, then contracts on mount
   useEffect(() => {
+    // Wait for user to load before checking permissions
+    if (isLoading) {
+      return;
+    }
+    
+    // Check if user has permission to view
+    if (!canView) {
+      show('Bạn không có quyền truy cập trang này', 'error');
+      router.push('/');
+      return;
+    }
+    
     const initializeData = async () => {
       setLoading(true);
       try {
@@ -180,7 +194,7 @@ export default function RentalContractReviewPage() {
       }
     };
     initializeData();
-  }, []);
+  }, [isLoading, canView, show, router]);
 
   // Load units when building changes
   useEffect(() => {

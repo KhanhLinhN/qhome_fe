@@ -14,7 +14,7 @@ import {
   loadBuildingInvoices,
   syncMissingBillingCycles,
 } from '@/src/services/finance/billingCycleService';
-import { getAllServices, ServiceDto } from '@/src/services/base/waterService';
+import { getAllServices, ServiceDto, ALLOWED_SERVICE_CODES } from '@/src/services/base/waterService';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -32,11 +32,10 @@ export default function BillingCyclesPage() {
   const { hasRole, isLoading } = useAuth();
   const router = useRouter();
   
-  // Check user roles - only ADMIN and ACCOUNTANT can view
-  const isAdmin = hasRole('admin') || hasRole('ADMIN');
-  const isAccountant = hasRole('accountant') || hasRole('ACCOUNTANT');
-  const canView = isAdmin || isAccountant;
-  const canEdit = isAdmin || isAccountant; // ADMIN and ACCOUNTANT can edit/create/delete
+  // Check user roles - only ACCOUNTANT can view
+  const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') || hasRole('ROLE_ACCOUNTANT') || hasRole('ROLE_accountant');
+  const canView = isAccountant;
+  const canEdit = isAccountant; // Only ACCOUNTANT can edit/create/delete
   
   const [year, setYear] = useState(new Date().getFullYear());
   const [cycles, setCycles] = useState<BillingCycleDto[]>([]);
@@ -149,7 +148,8 @@ export default function BillingCyclesPage() {
   const loadServices = async () => {
     try {
       const allServices = await getAllServices();
-      setServices(allServices);
+      // Only show water and electric services
+      setServices(allServices.filter(service => ALLOWED_SERVICE_CODES.includes(service.code)));
     } catch (error) {
       console.error('Failed to load services for filter', error);
     }
