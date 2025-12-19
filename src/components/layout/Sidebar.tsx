@@ -143,6 +143,12 @@ const technicianSections: NavSection[] = [
       {href: "/base/showAssign", labelKey: "taskList", icon: "🧾"},
     ],
   },
+  {
+    titleKey: "residentInteraction",
+    items: [
+      {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
+    ],
+  },
 ];
 
 const tenantOwnerSections: NavSection[] = [
