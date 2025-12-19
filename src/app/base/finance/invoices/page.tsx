@@ -102,7 +102,7 @@ export default function InvoicesManagementPage() {
       return;
     }
     loadInvoices();
-  }, [serviceCodeFilter, statusFilter, monthFilter, canView, show, router, isLoading, user, isAdmin, isAccountant]);
+  }, [serviceCodeFilter, statusFilter, monthFilter, canView, show, router, isLoading, user, isAccountant]);
 
   const loadInvoices = async () => {
     setLoading(true);
