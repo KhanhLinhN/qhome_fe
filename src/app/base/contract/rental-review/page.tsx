@@ -179,10 +179,13 @@ export default function RentalContractReviewPage() {
         try {
           const allInspections = await getAllInspections();
           const contractsWithInspectionSet = new Set<string>();
+          const inspectionsMap = new Map<string, AssetInspection>();
           allInspections.forEach(inspection => {
             contractsWithInspectionSet.add(inspection.contractId);
+            inspectionsMap.set(inspection.contractId, inspection);
           });
           setContractsWithInspection(contractsWithInspectionSet);
+          setInspectionsByContractId(inspectionsMap);
         } catch (error: any) {
           console.warn('Failed to load inspections:', error);
           // Continue without inspection data
