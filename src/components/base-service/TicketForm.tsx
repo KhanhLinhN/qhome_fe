@@ -7,6 +7,7 @@ import {
 import Select from '@/src/components/customer-interaction/Select';
 import { createServiceTicket, updateServiceTicket, checkTicketCodeExistsGlobally, getService, getServiceTicket } from '@/src/services/asset-maintenance/serviceService';
 import { CreateServiceTicketPayload, UpdateServiceTicketPayload, ServiceTicketType } from '@/src/types/service';
+import { formatCurrency, parseCurrency } from '@/src/utils/formatCurrency';
 
 function TicketForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFormProps) {
   const [formData, setFormData] = useState({
@@ -22,6 +23,8 @@ function TicketForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFor
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [serviceName, setServiceName] = useState<string>('');
+  const [serviceMinDurationHours, setServiceMinDurationHours] = useState<number | null>(null);
+  const [serviceMaxCapacity, setServiceMaxCapacity] = useState<number | null>(null);
   const codeGenerationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const ticketTypeOptions = useMemo(
@@ -68,6 +71,8 @@ function TicketForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFor
         try {
           const service = await getService(serviceId);
           setServiceName(service.name || '');
+          setServiceMinDurationHours(service.minDurationHours ?? null);
+          setServiceMaxCapacity(service.maxCapacity ?? null);
         } catch (error) {
           console.error('Failed to fetch service:', error);
         }
@@ -241,6 +246,11 @@ function TicketForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFor
           const duration = Number(stringValue);
           if (Number.isNaN(duration) || duration <= 0) {
             setErrors((prev) => ({ ...prev, durationHours: 'Thời lượng phải lớn hơn 0' }));
+          } else if (serviceMinDurationHours !== null && duration <= serviceMinDurationHours) {
+            setErrors((prev) => ({ 
+              ...prev, 
+              durationHours: t('Service.validation.ticketDurationMin') || `Thời lượng phải lớn hơn ${serviceMinDurationHours} giờ (thời lượng tối thiểu của service)` 
+            }));
           }
         }
         break;
@@ -258,6 +268,11 @@ function TicketForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFor
             setErrors((prev) => ({ ...prev, maxPeople: 'Số người tối đa phải lớn hơn 0' }));
           } else if (maxPeople >= 1000) {
             setErrors((prev) => ({ ...prev, maxPeople: 'Số người tối đa phải nhỏ hơn 1000' }));
+          } else if (serviceMaxCapacity !== null && maxPeople > serviceMaxCapacity) {
+            setErrors((prev) => ({ 
+              ...prev, 
+              maxPeople: t('Service.validation.ticketMaxPeopleMax') || `Số người tối đa phải nhỏ hơn hoặc bằng ${serviceMaxCapacity} (sức chứa tối đa của service)` 
+            }));
           }
         }
         break;
@@ -320,20 +335,22 @@ function TicketForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFor
     // Validate price: not null, > 0
     const price = Number(formData.price);
     if (!formData.price.trim() || Number.isNaN(price) || price <= 0) {
-      nextErrors.price = 'Giá vé phải lớn hơn 0';
+      nextErrors.price = t('Service.validation.ticketPrice');
     }
     
-    // Validate durationHours: not null, > 0
+    // Validate durationHours: not null, > 0, >= service minDurationHours
     if (!formData.durationHours.trim()) {
-      nextErrors.durationHours = 'Thời lượng không được để trống';
+      nextErrors.durationHours = t('Service.validation.ticketDurationHours');
     } else {
       const duration = Number(formData.durationHours);
       if (Number.isNaN(duration) || duration <= 0) {
         nextErrors.durationHours = 'Thời lượng phải lớn hơn 0';
+      } else if (serviceMinDurationHours !== null && duration <= serviceMinDurationHours) {
+        nextErrors.durationHours = t('Service.validation.ticketDurationMin') || `Thời lượng phải lớn hơn ${serviceMinDurationHours} giờ (thời lượng tối thiểu của service)`;
       }
     }
     
-    // Validate maxPeople: not null, > 0, < 1000
+    // Validate maxPeople: not null, > 0, < 1000, <= service maxCapacity
     if (!formData.maxPeople.trim()) {
       nextErrors.maxPeople = 'Số người tối đa không được để trống';
     } else {
@@ -342,6 +359,8 @@ function TicketForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFor
         nextErrors.maxPeople = 'Số người tối đa phải lớn hơn 0';
       } else if (maxPeople >= 1000) {
         nextErrors.maxPeople = 'Số người tối đa phải nhỏ hơn 1000';
+      } else if (serviceMaxCapacity !== null && maxPeople > serviceMaxCapacity) {
+        nextErrors.maxPeople = t('Service.validation.ticketMaxPeopleMax') || `Số người tối đa phải nhỏ hơn hoặc bằng ${serviceMaxCapacity} (sức chứa tối đa của service)`;
       }
     }
     
@@ -472,11 +491,13 @@ function TicketForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFor
         <DetailField
           label={`${t('Service.ticketPrice')} *`}
           name="price"
-          value={formData.price}
-          onChange={(event) => handleChange('price', event.target.value)}
+          value={formatCurrency(formData.price)}
+          onChange={(event) => {
+            const parsed = parseCurrency(event.target.value);
+            handleChange('price', parsed);
+          }}
           readonly={false}
           error={errors.price}
-          inputType="number"
         />
         <DetailField
           label={`${t('Service.ticketDuration')} *`}

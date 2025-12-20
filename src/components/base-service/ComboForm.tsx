@@ -6,6 +6,7 @@ import {
 } from '@/src/components/base-service/ServiceFormControls';
 import { createServiceCombo, checkComboCodeExistsGlobally, checkComboItemCodeExistsGlobally, getService } from '@/src/services/asset-maintenance/serviceService';
 import { CreateServiceComboPayload, ServiceComboItemPayload } from '@/src/types/service';
+import { formatCurrency, parseCurrency } from '@/src/utils/formatCurrency';
 
 interface ComboItemFormState {
   id: string;
@@ -729,11 +730,13 @@ function ComboForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) {
         <DetailField
           label={t('Service.comboPrice')}
           name="price"
-          value={formData.price}
-          onChange={(event) => handleChange('price', event.target.value)}
+          value={formatCurrency(formData.price)}
+          onChange={(event) => {
+            const parsed = parseCurrency(event.target.value);
+            handleChange('price', parsed);
+          }}
           readonly={false}
           error={errors.price}
-          inputType="number"
         />
         <DetailField
           label={t('Service.comboDuration')}
@@ -836,13 +839,12 @@ function ComboForm({ serviceId, onSuccess, onCancel, t, show }: BaseFormProps) {
                         {t('Service.comboItemPrice')} <span className="text-red-500">*</span>
                       </label>
                       <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={item.price}
-                        onChange={(event) =>
-                          handleItemFieldChange(item.id, 'price', event.target.value)
-                        }
+                        type="text"
+                        value={formatCurrency(item.price)}
+                        onChange={(event) => {
+                          const parsed = parseCurrency(event.target.value);
+                          handleItemFieldChange(item.id, 'price', parsed);
+                        }}
                         className={`h-10 rounded-md border px-3 py-2 text-sm text-[#02542D] focus:outline-none focus:ring-2 ${
                           errorsForItem.price
                             ? 'border-red-300 focus:border-red-500 focus:ring-red-100'

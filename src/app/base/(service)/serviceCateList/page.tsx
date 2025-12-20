@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Table from '@/src/components/base-service/Table';
 import DetailField from '@/src/components/base-service/DetailField';
-import Select from '@/src/components/customer-interaction/Select';
 import { useServiceCategoryList } from '@/src/hooks/useServiceCategoryList';
 import { useNotifications } from '@/src/hooks/useNotifications';
 import { Page, Service, ServiceCategory } from '@/src/types/service';
@@ -137,7 +136,7 @@ export default function ServiceCategoryListPage() {
         selectedCategory.sortOrder !== undefined && selectedCategory.sortOrder !== null
           ? String(selectedCategory.sortOrder)
           : '',
-      isActive: selectedCategory.isActive ?? true,
+      isActive: true, // Always set to Active
       createdAt: formatDate(selectedCategory.createdAt),
     });
     setFormErrors({});
@@ -199,12 +198,6 @@ export default function ServiceCategoryListPage() {
     }
   };
 
-  const handleStatusChange = (item: { name: string; value: string }) => {
-    setFormState((prev) => ({
-      ...prev,
-      isActive: item.value === 'true',
-    }));
-  };
 
   const categoryServiceCounts = useMemo(() => {
     return services.reduce<Record<string, number>>((acc, serviceItem) => {
@@ -277,7 +270,7 @@ export default function ServiceCategoryListPage() {
         sortOrder: formState.sortOrder
           ? Number(formState.sortOrder)
           : undefined,
-        isActive: formState.isActive,
+        isActive: true, // Always set to Active
       });
       show(t('messages.updateSuccess'), 'success');
       handleCloseModal();
@@ -301,11 +294,6 @@ export default function ServiceCategoryListPage() {
     fetchServices();
     setPageNo(0);
   };
-
-  const statusOptions = [
-    { name: t('active'), value: 'true' },
-    { name: t('inactive'), value: 'false' },
-  ];
 
   const isLoading = loading || serviceLoading;
   const hasError = Boolean(error) || Boolean(serviceError);
@@ -410,19 +398,6 @@ export default function ServiceCategoryListPage() {
                   readonly={false}
                   error={formErrors.name}
                 />
-                <div className="flex flex-col mb-4">
-                  <label className="text-md font-bold text-[#02542D] mb-1">
-                    {t('status')}
-                  </label>
-                  <Select
-                    options={statusOptions}
-                    value={String(formState.isActive)}
-                    onSelect={handleStatusChange}
-                    renderItem={(item) => item.name}
-                    getValue={(item) => item.value}
-                    placeholder={t('status')}
-                  />
-                </div>
                 <DetailField
                   label={t('description')}
                   name="description"

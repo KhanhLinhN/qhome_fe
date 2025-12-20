@@ -58,6 +58,7 @@ export default function RequestDetailPage() {
                 initialStatusValue={requestData.status ?? 'New'}
                 preferredDatetime={requestData.preferredDatetime}
                 currentNote={requestData.note}
+                initialFee={requestData.fee}
                 onSave={async () => {}}
                 onAcceptDeny={acceptOrDenyRequest}
                 onAddProgressNote={addProgressNote}
