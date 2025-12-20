@@ -20,6 +20,8 @@ export default function NotificationDetail() {
 
     // Check if user is supporter (cannot view/edit INTERNAL items)
     const isSupporter = hasRole('SUPPORTER');
+    // Check if user is technician (view only, no edit)
+    const isTechnician = hasRole('TECHNICIAN') || hasRole('technician') || hasRole('ROLE_TECHNICIAN') || hasRole('ROLE_technician');
 
     const [notification, setNotification] = useState<Notification | null>(null);
     const [loading, setLoading] = useState(true);
@@ -289,8 +291,8 @@ export default function NotificationDetail() {
                         >
                             {t('back')}
                         </button>
-                        {/* Supporter cannot edit INTERNAL notifications */}
-                        {!(isSupporter && notification.scope === 'INTERNAL') && (
+                        {/* Supporter cannot edit INTERNAL notifications, Technician cannot edit any notifications */}
+                        {!(isSupporter && notification.scope === 'INTERNAL') && !isTechnician && (
                             <button
                                 type="button"
                                 onClick={() => router.push(`/customer-interaction/notiEdit/${id}`)}

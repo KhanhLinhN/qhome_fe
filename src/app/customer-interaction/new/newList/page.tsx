@@ -22,6 +22,8 @@ export default function NewsList() {
     
     // Check if user is supporter (only show EXTERNAL items)
     const isSupporter = hasRole('SUPPORTER');
+    // Check if user is technician (view only, no edit/delete)
+    const isTechnician = hasRole('TECHNICIAN') || hasRole('technician') || hasRole('ROLE_TECHNICIAN') || hasRole('ROLE_technician');
     
     const [selectedStatus, setSelectedStatus] = useState<NewsStatus | ''>('');
     const [pageNo, setPageNo] = useState<number>(0);
@@ -35,6 +37,7 @@ export default function NewsList() {
 
     // Filter and sort news by createdAt desc (newest first)
     // Supporter can only see EXTERNAL news
+    // Technician can only see PUBLISHED news
     const orderedNews = useMemo(() => {
         if (!newsList || newsList.length === 0) return [];
         
@@ -44,12 +47,17 @@ export default function NewsList() {
             filtered = newsList.filter(n => n.scope === 'EXTERNAL');
         }
         
+        // Filter by status if technician (only show PUBLISHED)
+        if (isTechnician) {
+            filtered = filtered.filter(n => n.status === 'PUBLISHED');
+        }
+        
         return filtered.slice().sort((a, b) => {
             const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             return tb - ta; // Descending order (newest first)
         });
-    }, [newsList, isSupporter]);
+    }, [newsList, isSupporter, isTechnician]);
 
     // Paginate the sorted news
     const paginatedNews = useMemo(() => {
@@ -77,6 +85,11 @@ export default function NewsList() {
 
 
     const handleEdit = (id: string) => {
+        router.push(`/customer-interaction/new/newDetail/${id}`);
+    };
+
+    // For technician: view only (same route but detail page should handle read-only)
+    const handleView = (id: string) => {
         router.push(`/customer-interaction/new/newDetail/${id}`);
     };
 
@@ -323,9 +336,9 @@ export default function NewsList() {
                             data={tableData}
                             headers={headers}
                             type="news"
-                            onEdit={handleEdit}
-                            onDelete={handleDeleteClick}
-                            onNewsChangeStatusAndTarget={handleOpenChangeStatusTarget}
+                            onEdit={isTechnician ? handleView : handleEdit}
+                            onDelete={!isTechnician ? handleDeleteClick : undefined}
+                            onNewsChangeStatusAndTarget={!isTechnician ? handleOpenChangeStatusTarget : undefined}
                         />
                         <Pagination
                             currentPage={pageNo + 1}

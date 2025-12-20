@@ -21,6 +21,8 @@ export default function NotificationList() {
     
     // Check if user is supporter (only show EXTERNAL items)
     const isSupporter = hasRole('SUPPORTER');
+    // Check if user is technician (view only, no edit/delete)
+    const isTechnician = hasRole('TECHNICIAN') || hasRole('technician') || hasRole('ROLE_TECHNICIAN') || hasRole('ROLE_technician');
     
     const [selectedType, setSelectedType] = useState<NotificationType | ''>('');
     const [pageNo, setPageNo] = useState<number>(0);
@@ -75,6 +77,11 @@ export default function NotificationList() {
     };
 
     const handleEdit = (id: string) => {
+        router.push(`/customer-interaction/notiDetail/${id}`);
+    };
+
+    // For technician: view only (same route but detail page should handle read-only)
+    const handleView = (id: string) => {
         router.push(`/customer-interaction/notiDetail/${id}`);
     };
 
@@ -237,12 +244,14 @@ export default function NotificationList() {
                         <h1 className="text-2xl font-semibold text-[#02542D]">
                             {t('listTitle')}
                         </h1>
-                        <button
-                            onClick={handleAdd}
-                            className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md font-semibold"
-                        >
-                            {t('addNotification')}
-                        </button>
+                        {!isTechnician && (
+                            <button
+                                onClick={handleAdd}
+                                className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md font-semibold"
+                            >
+                                {t('addNotification')}
+                            </button>
+                        )}
                     </div>
                     
                     {/* Filter Section */}
@@ -295,9 +304,9 @@ export default function NotificationList() {
                             data={tableData}
                             headers={headers}
                             type="notification"
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            onNotificationChangeScope={handleOpenChangeScope}
+                            onEdit={isTechnician ? handleView : handleEdit}
+                            onDelete={!isTechnician ? handleDelete : undefined}
+                            onNotificationChangeScope={!isTechnician ? handleOpenChangeScope : undefined}
                         />
                         <Pagination
                             currentPage={pageNo + 1}
