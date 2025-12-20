@@ -19,6 +19,7 @@ import { getAssetsByUnit, createAsset } from '@/src/services/base/assetService';
 import { AssetType, type Asset, type CreateAssetRequest } from '@/src/types/asset';
 import { createMeter, getAllServices, getMeters, type ServiceDto, type MeterCreateReq, type MeterDto, ALLOWED_SERVICE_CODES } from '@/src/services/base/waterService';
 import DateBox from '@/src/components/customer-interaction/DateBox';
+import { uploadNewsImageFile, uploadNewsImageFiles } from '@/src/services/customer-interaction/newService';
 
 type AsyncState<T> = {
   data: T;
@@ -790,11 +791,11 @@ export default function ContractManagementPage() {
     try {
       // Asset type labels and prefixes (same as asset management)
       const ASSET_TYPE_LABELS: Record<AssetType, string> = {
-        [AssetType.AIR_CONDITIONER]: 'Điều hòa',
-        [AssetType.KITCHEN]: 'Bếp',
-        [AssetType.WATER_HEATER]: 'Bình nước nóng',
-        [AssetType.FURNITURE]: 'Nội thất',
-        [AssetType.OTHER]: 'Khác',
+        [AssetType.AIR_CONDITIONER]: t('asset.airConditioner'),
+        [AssetType.KITCHEN]: t('asset.kitchen'),
+        [AssetType.WATER_HEATER]: t('asset.waterHeater'),
+        [AssetType.FURNITURE]: t('asset.furniture'),
+        [AssetType.OTHER]: t('asset.other'),
       };
       
       const ASSET_TYPE_PREFIX: Record<AssetType, string> = {
@@ -1001,12 +1002,8 @@ export default function ContractManagementPage() {
     // Try to get all contracts to check existing numbers
     let existingContracts: ContractSummary[] = [];
     try {
-      // Since we don't have a direct endpoint to get all contracts,
-      // we'll generate and let backend handle uniqueness
-      // If duplicate, backend will throw error and we'll retry with incremented number
       existingContracts = await getAllContracts();
     } catch (err) {
-      // If we can't fetch all contracts, we'll still try to generate
       console.warn('Could not fetch all contracts for uniqueness check:', err);
     }
     
@@ -1055,9 +1052,24 @@ export default function ContractManagementPage() {
     if (!files || files.length === 0 || !detailState.data) {
       return;
     }
+    
+    // Validate that all files are images
+    const fileArray = Array.from(files);
+    const invalidFiles = fileArray.filter(file => !file.type.startsWith('image/'));
+    if (invalidFiles.length > 0) {
+      setDetailUploadError(t('validation.onlyImagesAllowed') || 'Chỉ được phép tải lên file ảnh');
+      return;
+    }
+    
     setDetailUploadError(null);
     setDetailUploading(true);
     try {
+      // Upload to ImageKit first - upload sequentially to avoid timeout
+      for (const file of fileArray) {
+        await uploadNewsImageFile(file, detailState.data!.id);
+      }
+      
+      // Then upload to backend (for compatibility)
       await uploadContractFiles(detailState.data.id, files);
       const refreshed = await fetchContractDetail(detailState.data.id);
       if (refreshed) {
@@ -1194,9 +1206,16 @@ export default function ContractManagementPage() {
       // PURCHASE contracts are fully paid, so paymentMethod and paymentTerms are not applicable
     }
 
-    // Validate file upload: not null
+    // Validate file upload: not null and only images
     if (!createFiles || createFiles.length === 0) {
       errors.files = t('validation.filesRequired');
+    } else {
+      // Validate that all files are images
+      const fileArray = Array.from(createFiles);
+      const invalidFiles = fileArray.filter(file => !file.type.startsWith('image/'));
+      if (invalidFiles.length > 0) {
+        errors.files = t('validation.onlyImagesAllowed') || 'Chỉ được phép tải lên file ảnh';
+      }
     }
 
     // For RENTAL contracts, require meters for electricity and water
@@ -1212,6 +1231,14 @@ export default function ContractManagementPage() {
         errors.meters = t('validation.metersRequiredForRental', {
           services: missingServicesList,
           defaultValue: `Hợp đồng cho thuê yêu cầu phải có đồng hồ đo cho: ${missingServicesList}. Vui lòng tạo đồng hồ đo trước khi tạo hợp đồng.`
+        });
+      }
+
+      if (missingAssetTypes.length > 0) {
+        const missingAssetsList = missingAssetTypes.map(t => t.toString()).join(', ');
+        errors.assets = t('validation.assetsRecommendedForRental', {
+          assets: missingAssetsList,
+          defaultValue: `Khuyến nghị tạo các thiết bị sau trước khi tạo hợp đồng cho thuê: ${missingAssetsList}.`
         });
       }
     }
@@ -1294,6 +1321,13 @@ export default function ContractManagementPage() {
 
       if (createFiles && createFiles.length > 0) {
         try {
+          // Upload to ImageKit first - upload sequentially to avoid timeout
+          const fileArray = Array.from(createFiles);
+          for (const file of fileArray) {
+            await uploadNewsImageFile(file, contract.id);
+          }
+          
+          // Then upload to backend (for compatibility)
           await uploadContractFiles(contract.id, createFiles);
         } catch (fileError: any) {
           const message =
@@ -1724,7 +1758,7 @@ export default function ContractManagementPage() {
           <button
             type="button"
             onClick={handleOpenCreateModal}
-            disabled={!canCreateNewContract}
+            disabled={!canCreateNewContract || contractsState.loading || Boolean(contractsState.error)}
             className="inline-flex items-center rounded-lg bg-[#14AE5C] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0c793f] disabled:cursor-not-allowed disabled:bg-[#A3D9B1]"
           >
             {t('buttons.addContract')}
@@ -2396,18 +2430,36 @@ export default function ContractManagementPage() {
                     type="file"
                     multiple
                     onChange={(event) => {
-                      setCreateFiles(event.target.files);
-                      // Clear error when files are selected
-                      if (event.target.files && event.target.files.length > 0) {
+                      const files = event.target.files;
+                      if (files && files.length > 0) {
+                        // Validate that all files are images
+                        const fileArray = Array.from(files);
+                        const invalidFiles = fileArray.filter(file => !file.type.startsWith('image/'));
+                        if (invalidFiles.length > 0) {
+                          setFormErrors((prev) => ({
+                            ...prev,
+                            files: t('validation.onlyImagesAllowed') || 'Chỉ được phép tải lên file ảnh'
+                          }));
+                          // Clear the input
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                          }
+                          setCreateFiles(null);
+                          return;
+                        }
+                        setCreateFiles(files);
+                        // Clear error when valid files are selected
                         setFormErrors((prev) => {
                           const next = { ...prev };
                           delete next.files;
                           return next;
                         });
+                      } else {
+                        setCreateFiles(null);
                       }
                     }}
                     className="text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#02542D] hover:file:bg-gray-200"
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    accept="image/*"
                   />
                   {formErrors.files && (
                     <span className="mt-1 text-xs text-red-500">{formErrors.files}</span>
@@ -2436,7 +2488,7 @@ export default function ContractManagementPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={createSubmitting}
+                    disabled={createSubmitting || missingAssetTypes.length > 0 || missingMeterServices.length > 0  }
                     className="inline-flex items-center justify-center rounded-lg bg-[#14AE5C] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0c793f] disabled:cursor-not-allowed disabled:bg-[#A3D9B1]"
                   >
                     {createSubmitting ? t('buttons.creating') : t('buttons.create')}
@@ -2597,7 +2649,7 @@ export default function ContractManagementPage() {
                             multiple
                             onChange={(event) => handleUploadFilesForDetail(event.target.files)}
                             className="hidden"
-                            accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
+                            accept="image/*"
                           />
                           <button
                             type="button"

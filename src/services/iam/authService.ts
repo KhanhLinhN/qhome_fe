@@ -1,6 +1,5 @@
 /**
  * IAM Service - Authentication & Authorization
- * Tương ứng với iam-service backend (port 8088)
  */
 import axios from "@/src/lib/axios";
 import { th } from "zod/locales";
@@ -61,9 +60,9 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
     }
     else{
       localStorage.setItem('accessToken', response.data.accessToken);
-      return response.data;
     }
   }  
+  return response.data;
 }
 
 /**
@@ -72,7 +71,6 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
 export async function logout(): Promise<void> {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('user');
-  // TODO: Call backend logout API if needed
 }
 
 /**
@@ -123,7 +121,6 @@ export async function verifyOtp(email: string, otp: string): Promise<{ message: 
 /**
  * Confirm Password Reset API
  * POST /api/auth/confirm-reset
- * Reset password với OTP và password mới
  */
 export async function confirmPasswordReset(
   email: string, 

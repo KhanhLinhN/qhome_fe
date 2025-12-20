@@ -1100,6 +1100,10 @@
   "Service": {
     "listTitle": "Danh sách dịch vụ",
     "filterBy": "Lọc theo",
+    "deleteSuccess": "Xóa dịch vụ thành công",
+    "deleteError": "Có lỗi xảy ra khi xóa dịch vụ",
+    "confirmDeleteTitle": "Xác nhận xóa",
+    "confirmDeleteMessage": "Bạn có chắc chắn muốn xóa dịch vụ này không? Hành động này sẽ đặt trạng thái dịch vụ thành không hoạt động.",
     "searchPlaceholder": "Mã/Tên dịch vụ",
     "categoryAll": "Tất cả danh mục",
     "categoryPlaceholder": "Chọn danh mục",
@@ -2146,6 +2150,13 @@
   "Contracts": {
     "title": "Quản lý hợp đồng căn hộ",
     "subtitle": "Tạo mới và theo dõi các hợp đồng thuê/mua của từng căn hộ trong dự án.",
+    "asset":{
+      "airConditioner": "Điều hòa",
+      "kitchen": "Bếp",
+      "waterHeater": "Bình nóng lạnh",
+      "furniture": "Nội thất",
+      "other": "Khác"
+    },
     "buttons": {
       "addContract": "+ Thêm hợp đồng",
       "cancel": "Hủy",
@@ -2290,7 +2301,9 @@
       "purchaseDateAfterStartDate": "Ngày mua phải lớn hơn hoặc bằng ngày bắt đầu.",
       "dateFormat": "Ngày phải theo định dạng dd/mm/yyyy.",
       "filesRequired": "Vui lòng tải lên ít nhất 1 tệp đính kèm.",
-      "metersRequiredForRental": "Hợp đồng cho thuê yêu cầu phải có đồng hồ đo cho: {services}. Vui lòng tạo đồng hồ đo trước khi tạo hợp đồng."
+      "metersRequiredForRental": "Hợp đồng cho thuê yêu cầu phải có đồng hồ đo cho: {services}. Vui lòng tạo đồng hồ đo trước khi tạo hợp đồng.",
+      "assetsRecommendedForRental": "Đề xuất: Hợp đồng cho thuê nên có các thiết bị sau cho căn hộ: {assets}. Vui lòng tạo thiết bị trước khi tạo hợp đồng.",
+      "onlyImagesAllowed": "Chỉ cho phép tải lên các tệp hình ảnh (JPEG, PNG)."
     },
     "errors": {
       "loadBuildings": "Không thể tải danh sách tòa nhà.",
@@ -2440,7 +2453,8 @@
     },
     "errors": {
       "onlyCurrentMonth": "Chỉ có thể đổi trạng thái cycle cùng tháng hiện tại",
-      "alreadyInProgress": "Chu kỳ đọc đã ở trạng thái Đang thực hiện"
+      "alreadyInProgress": "Chu kỳ đọc đã ở trạng thái Đang thực hiện",
+      "cannotChangeFromCompletedOrClosed": "Không thể đổi trạng thái từ Hoàn thành hoặc Đóng"
     },
     "messages": {
       "loadError": "Không thể tải chu kỳ đọc",
