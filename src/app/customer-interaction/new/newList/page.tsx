@@ -264,12 +264,14 @@ export default function NewsList() {
                         <h1 className="text-2xl font-semibold text-[#02542D]">
                             {t('newsList')}
                         </h1>
-                        <button
-                            onClick={handleAdd}
-                            className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md font-semibold"
-                        >
-                            + {t('addNews')}
-                        </button>
+                        {!isTechnician && (
+                            <button
+                                onClick={handleAdd}
+                                className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md font-semibold"
+                            >
+                                + {t('addNews')}
+                            </button>
+                        )}
                     </div>
                     
                     {/* Filter Section */}

@@ -319,10 +319,8 @@ export default function AssetManagementPage() {
           });
         }, 100);
       });
-    } else {
-      setSelectedBuildingId('');
-      setUnits([]);
     }
+    // Don't reset filters if called without parameters - preserve existing filter state
     
     setShowForm(true);
     setFormErrors({});
@@ -345,8 +343,9 @@ export default function AssetManagementPage() {
     setFormErrors({});
     setTouchedFields({});
     
-    // Load units for selected building if available
-    if (asset.buildingId) {
+    // Load units for selected building if available, but don't override existing filter
+    // Only set building if it's different from current filter to preserve user's filter choice
+    if (asset.buildingId && asset.buildingId !== selectedBuildingId) {
       setSelectedBuildingId(asset.buildingId);
       loadUnits(asset.buildingId);
     }
@@ -560,22 +559,41 @@ export default function AssetManagementPage() {
         }
 
         // Check if there's an inactive asset with the same unitId and assetType
-        // If exists, update it instead of creating a new one
+        // If exists, reactivate it instead of creating a new one (keep existing info)
         const existingInactiveAsset = allUnitAssets.find(
           asset => asset.assetType === editingAsset.assetType && !asset.active
         ) || null;
 
         if (existingInactiveAsset) {
-          // Update the existing inactive asset instead of creating new one
+          // Reactivate the existing inactive asset
+          // If user provided new information, update it; otherwise just reactivate
+          const hasNewInfo = editingAsset.assetCode.trim() !== existingInactiveAsset.assetCode ||
+                           (editingAsset.name.trim() && editingAsset.name.trim() !== existingInactiveAsset.name) ||
+                           editingAsset.installedAt !== existingInactiveAsset.installedAt ||
+                           (editingAsset.purchasePrice !== null && editingAsset.purchasePrice !== existingInactiveAsset.purchasePrice);
+          
           const payload: UpdateAssetRequest = {
-            assetCode: editingAsset.assetCode.trim(),
-            name: editingAsset.name.trim() || undefined,
-            active: editingAsset.active,
-            installedAt: editingAsset.installedAt || undefined,
-            purchasePrice: editingAsset.purchasePrice ?? undefined,
+            active: true, // Always reactivate
+            // Update fields only if user provided new information
+            ...(editingAsset.assetCode.trim() && editingAsset.assetCode.trim() !== existingInactiveAsset.assetCode && {
+              assetCode: editingAsset.assetCode.trim()
+            }),
+            ...(editingAsset.name.trim() && editingAsset.name.trim() !== existingInactiveAsset.name && {
+              name: editingAsset.name.trim()
+            }),
+            ...(editingAsset.installedAt && editingAsset.installedAt !== existingInactiveAsset.installedAt && {
+              installedAt: editingAsset.installedAt
+            }),
+            ...(editingAsset.purchasePrice !== null && editingAsset.purchasePrice !== existingInactiveAsset.purchasePrice && {
+              purchasePrice: editingAsset.purchasePrice
+            }),
           };
+          
           await updateAsset(existingInactiveAsset.id, payload);
-          show('Cập nhật thiết bị thành công', 'success');
+          const message = hasNewInfo 
+            ? `Đã kích hoạt lại và cập nhật thông tin thiết bị "${existingInactiveAsset.assetCode}"`
+            : `Đã kích hoạt lại thiết bị "${existingInactiveAsset.name || existingInactiveAsset.assetCode}"`;
+          show(message, 'success');
         } else {
           // No inactive asset found, create new one
           const payload: CreateAssetRequest = {

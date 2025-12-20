@@ -178,6 +178,28 @@ export async function completeInspection(
   return response.data;
 }
 
+export async function recalculateDamageCost(inspectionId: string): Promise<AssetInspection> {
+  console.log('Calling recalculateDamageCost API for inspection:', inspectionId);
+  try {
+    const response = await axios.post<AssetInspection>(
+      `${BASE_URL}/api/asset-inspections/${inspectionId}/recalculate-damage`,
+    );
+    // Map damageCost from backend to repairCost for frontend compatibility
+    if (response.data && response.data.items) {
+      response.data.items = response.data.items.map(item => ({
+        ...item,
+        repairCost: item.damageCost !== undefined ? item.damageCost : item.repairCost
+      }));
+    }
+    console.log('RecalculateDamageCost API response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('RecalculateDamageCost API error:', error);
+    console.error('Error response:', error?.response?.data);
+    throw error;
+  }
+}
+
 export async function generateInvoice(inspectionId: string): Promise<AssetInspection> {
   console.log('Calling generateInvoice API for inspection:', inspectionId);
   try {

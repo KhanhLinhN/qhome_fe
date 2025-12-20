@@ -4802,6 +4802,7 @@
       "status": "Trạng thái",
       "startInspection": "Bắt đầu kiểm tra",
       "startInspectionDesc": "Nhấn nút bên dưới để bắt đầu kiểm tra thiết bị. Sau khi bắt đầu, bạn sẽ có thể nhập tình trạng và ghi chú cho từng thiết bị.",
+      "cannotStartBeforeDate": "Chưa thể thực hiện kiểm tra. Ngày kiểm tra dự kiến: {date}",
       "equipmentList": "Danh sách thiết bị",
       "inspectionResult": "Kết quả kiểm tra",
       "noEquipment": "Chưa có thiết bị nào",
@@ -4900,7 +4901,8 @@
       "metersMissingReading": "Vui lòng nhập chỉ số đồng hồ cho {count} đồng hồ: {meters}!",
       "metersInvalidReading": "Chỉ số đồng hồ phải > 0 cho {count} đồng hồ: {meters}!",
       "meterReadingErrors": "Vui lòng sửa các lỗi trong chỉ số đồng hồ trước khi hoàn thành kiểm tra!",
-      "meterReadingValidationFailed": "Lỗi chỉ số đồng hồ: {errors}"
+      "meterReadingValidationFailed": "Lỗi chỉ số đồng hồ: {errors}",
+      "cannotStartBeforeDate": "Chưa thể thực hiện kiểm tra. Ngày kiểm tra dự kiến: {date}"
     }
   }
 }

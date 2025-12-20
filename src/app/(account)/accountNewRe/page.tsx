@@ -1006,6 +1006,8 @@ export default function AccountNewResidentPage() {
     }
 
     const targetUnitId = selectedUnitId.trim();
+    const hasCustomUsername = manualForm.username.trim().length > 0;
+    
     const payload: PrimaryResidentProvisionRequest = {
       resident: {
         fullName: manualForm.fullName.trim(),
@@ -1015,9 +1017,10 @@ export default function AccountNewResidentPage() {
         dob: manualForm.dob || undefined,
       },
       account: {
-        // Only include username if user provided one and we're not auto-generating
-        // When autoGenerate is true, backend will generate username automatically
-        autoGenerate: true,
+        // If user provided username, use it and disable auto-generate
+        // Otherwise, let backend auto-generate username
+        ...(hasCustomUsername ? { username: manualForm.username.trim() } : {}),
+        autoGenerate: !hasCustomUsername,
       },
       relation: manualForm.relation.trim() || undefined,
     };
@@ -1057,7 +1060,9 @@ export default function AccountNewResidentPage() {
             if (typeof error === 'string') {
               // Nếu là string, check keywords
               const lowerError = error.toLowerCase();
-              if (lowerError.includes('email') || lowerError.includes('e-mail')) {
+              if (lowerError.includes('username')) {
+                fieldErrors.username = error;
+              } else if (lowerError.includes('email') || lowerError.includes('e-mail')) {
                 fieldErrors.email = error;
               } else if (lowerError.includes('phone') || lowerError.includes('số điện thoại')) {
                 fieldErrors.phone = error;
@@ -1067,7 +1072,9 @@ export default function AccountNewResidentPage() {
             } else if (error.field && error.message) {
               // Format: { field: "email", message: "..." }
               const fieldName = error.field.toLowerCase();
-              if (fieldName.includes('email')) {
+              if (fieldName.includes('username')) {
+                fieldErrors.username = error.message;
+              } else if (fieldName.includes('email')) {
                 fieldErrors.email = error.message;
               } else if (fieldName.includes('phone')) {
                 fieldErrors.phone = error.message;
@@ -1086,7 +1093,9 @@ export default function AccountNewResidentPage() {
               ? errorData.errors[key][0] 
               : errorData.errors[key];
             
-            if (lowerKey.includes('email')) {
+            if (lowerKey.includes('username')) {
+              fieldErrors.username = errorValue;
+            } else if (lowerKey.includes('email')) {
               fieldErrors.email = errorValue;
             } else if (lowerKey.includes('phone')) {
               fieldErrors.phone = errorValue;
@@ -1096,21 +1105,31 @@ export default function AccountNewResidentPage() {
           });
         }
         
-        // Format 3: Parse từ message string
+        // Format 3: Parse từ message string - Check username first (higher priority)
         const message = errorData.message || errorData.error || '';
-        if (message && Object.keys(fieldErrors).length === 0) {
+        if (message) {
           const lowerMessage = message.toLowerCase();
-          if (lowerMessage.includes('email') && (lowerMessage.includes('exists') || lowerMessage.includes('tồn tại') || lowerMessage.includes('đã có'))) {
-            fieldErrors.email = message;
-          } else if (lowerMessage.includes('phone') && (lowerMessage.includes('exists') || lowerMessage.includes('tồn tại') || lowerMessage.includes('đã có'))) {
-            fieldErrors.phone = message;
-          } else if ((lowerMessage.includes('national') || lowerMessage.includes('cccd') || lowerMessage.includes('căn cước')) && (lowerMessage.includes('exists') || lowerMessage.includes('tồn tại') || lowerMessage.includes('đã có'))) {
-            fieldErrors.nationalId = message;
-          } else {
+          // Check for username errors first (validation, format, duplicate, required)
+          // This should have higher priority than other field errors
+          if (lowerMessage.includes('username')) {
+            // Always assign to username field if message contains 'username'
+            fieldErrors.username = message;
+          } else if (lowerMessage.includes('email') && (lowerMessage.includes('exists') || lowerMessage.includes('tồn tại') || lowerMessage.includes('đã có') || lowerMessage.includes('already'))) {
+            if (!fieldErrors.email) {
+              fieldErrors.email = message;
+            }
+          } else if (lowerMessage.includes('phone') && (lowerMessage.includes('exists') || lowerMessage.includes('tồn tại') || lowerMessage.includes('đã có') || lowerMessage.includes('already'))) {
+            if (!fieldErrors.phone) {
+              fieldErrors.phone = message;
+            }
+          } else if ((lowerMessage.includes('national') || lowerMessage.includes('cccd') || lowerMessage.includes('căn cước')) && (lowerMessage.includes('exists') || lowerMessage.includes('tồn tại') || lowerMessage.includes('đã có') || lowerMessage.includes('already'))) {
+            if (!fieldErrors.nationalId) {
+              fieldErrors.nationalId = message;
+            }
+          } else if (Object.keys(fieldErrors).length === 0) {
+            // Only set as general message if no field errors found yet
             generalMessage = message;
           }
-        } else if (message) {
-          generalMessage = message;
         }
       } else if (err?.message) {
         generalMessage = err.message;
@@ -1127,14 +1146,6 @@ export default function AccountNewResidentPage() {
       } else {
         setManualError(''); // Clear general error nếu có field errors
       }
-      
-      console.error('Failed to provision primary resident:', {
-        status: err?.response?.status,
-        message: err?.response?.data?.message,
-        errors: err?.response?.data?.errors,
-        fieldErrors,
-        payload
-      });
     } finally {
       setManualSubmitting(false);
     }

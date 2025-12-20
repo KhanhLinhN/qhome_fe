@@ -7,17 +7,20 @@ interface DateBoxProps {
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     placeholderText?: string;
     min?: string;
+    disabled?: boolean;
 };
 
-const DateBox = ({ value, onChange, placeholderText, min } : DateBoxProps) => { 
+const DateBox = ({ value, onChange, placeholderText, min, disabled } : DateBoxProps) => { 
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleIconClick = () => {
-        inputRef.current?.showPicker();
+        if (!disabled) {
+            inputRef.current?.showPicker();
+        }
     };
 
     return (
-        <div className="relative flex items-center border border-[#38A169] rounded-lg h-10 w-full">
+        <div className={`relative flex items-center border border-[#38A169] rounded-lg h-10 w-full ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
             <input
                 ref={inputRef}
                 type="date"
@@ -26,6 +29,7 @@ const DateBox = ({ value, onChange, placeholderText, min } : DateBoxProps) => {
                 onChange={onChange}
                 data-placeholder={placeholderText}
                 min={min}
+                disabled={disabled}
             />
             <Image
                 src={CalendarIcon}
@@ -33,7 +37,7 @@ const DateBox = ({ value, onChange, placeholderText, min } : DateBoxProps) => {
                 width={20}
                 height={20}
                 onClick={handleIconClick}
-                className="text-[#38A169] shrink-0 mr-3 cursor-pointer"
+                className={`text-[#38A169] shrink-0 mr-3 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             />
         </div>
     );

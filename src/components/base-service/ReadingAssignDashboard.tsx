@@ -282,10 +282,13 @@ export default function ReadingAssignDashboard({
     if (activeUnassignedModal.cycle) {
       const cycle = activeUnassignedModal.cycle;
       if (cycle.periodFrom) {
-        setStartDate(cycle.periodFrom.split('T')[0]);
-      }
-      if (cycle.periodTo) {
-        setEndDate(cycle.periodTo.split('T')[0]);
+        const startDateStr = cycle.periodFrom.split('T')[0];
+        setStartDate(startDateStr);
+        
+        // Fix endDate to always be the 15th of the month from cycle.periodFrom
+        const [year, month] = startDateStr.split('-').map(Number);
+        const fixedEndDate = `${year}-${String(month).padStart(2, '0')}-15`;
+        setEndDate(fixedEndDate);
       }
     }
 
@@ -304,6 +307,18 @@ export default function ReadingAssignDashboard({
       setLoadingStaff(false);
     }
   }, [activeUnassignedModal, selectedBuildings, show, t]);
+
+  // Auto-update endDate to the 15th of the month whenever startDate changes
+  useEffect(() => {
+    if (startDate && showStaffSelectionModal) {
+      const [year, month] = startDate.split('-').map(Number);
+      if (year && month) {
+        const fixedEndDate = `${year}-${String(month).padStart(2, '0')}-15`;
+        setEndDate(fixedEndDate);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, showStaffSelectionModal]);
 
   const handleCreateAssignmentsForSelected = useCallback(async () => {
     if (!activeUnassignedModal || selectedBuildings.size === 0 || !selectedStaffId) {
@@ -334,21 +349,20 @@ export default function ReadingAssignDashboard({
         }
       }
 
-      if (endDate) {
-        const endDateValue = parseDateOnly(endDate);
-        if (endDateValue > cycleEndDate) {
-          setEndDateError('Ngày kết thúc không được sau chu kỳ');
-          return;
-        }
-      }
-
-      // Validate endDate >= startDate if both are provided
-      if (startDate && endDate) {
-        const startDateValue = parseDateOnly(startDate);
-        const endDateValue = parseDateOnly(endDate);
-        if (endDateValue < startDateValue) {
-          setEndDateError('Ngày kết thúc phải sau ngày bắt đầu');
-          return;
+      // EndDate is fixed to 15th, so ensure it's always the 15th of the month from startDate
+      if (startDate) {
+        const [year, month] = startDate.split('-').map(Number);
+        if (year && month) {
+          const fixedEndDate = `${year}-${String(month).padStart(2, '0')}-15`;
+          if (endDate !== fixedEndDate) {
+            setEndDate(fixedEndDate);
+          }
+          // Validate that endDate (fixed to 15th) is not after cycle end date
+          const endDateValue = parseDateOnly(fixedEndDate);
+          if (endDateValue > cycleEndDate) {
+            setEndDateError('Ngày kết thúc không được sau chu kỳ');
+            return;
+          }
         }
       }
     }
@@ -1322,17 +1336,26 @@ export default function ReadingAssignDashboard({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Ngày kết thúc <span className="text-gray-500 text-xs">(Tùy chọn)</span>
+                        Ngày kết thúc <span className="text-gray-500 text-xs">(Cố định: ngày 15)</span>
                       </label>
                       <DateBox
                         value={endDate}
                         onChange={(e) => {
-                          setEndDate(e.target.value);
+                          // Prevent manual changes - endDate is fixed to 15th
+                          // Auto-update to 15th if user tries to change it
+                          if (startDate) {
+                            const [year, month] = startDate.split('-').map(Number);
+                            if (year && month) {
+                              const fixedEndDate = `${year}-${String(month).padStart(2, '0')}-15`;
+                              setEndDate(fixedEndDate);
+                            }
+                          }
                           if (endDateError) {
                             setEndDateError('');
                           }
                         }}
                         placeholderText="Chọn ngày kết thúc"
+                        disabled={true}
                       />
                       {endDateError && (
                         <span className="text-red-500 text-xs mt-1 block">{endDateError}</span>
