@@ -100,6 +100,33 @@ const adminSections: NavSection[] = [
   },
 ];
 
+const accounttantSections: NavSection[] = [
+  {
+    titleKey: "overview",
+    items: [
+      {href: "/dashboard", labelKey: "dashboard", icon: "📊"},
+    ],
+  },
+  {
+    titleKey: "waterElectric",
+    items: [
+      {href: "/base/readingCycles", labelKey: "readingCycles", icon: "📈"},
+      // {href: "/base/readingAssign", labelKey: "assignReading", icon: "📝"},
+      {href: "/base/billingCycles", labelKey: "billingCycles", icon: "💡"},
+      {href: "/base/finance/invoices", labelKey: "incomeExpenseManagement", icon: "💰"},
+      {href: "/base/finance/pricing-tiers", labelKey: "pricingTiersManagement", icon: "📊"},
+    ],
+  },
+  // {
+  //   titleKey: "residentInteraction",
+  //   items: [
+  //     {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
+  //     {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
+  //     {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
+  //   ],
+  // },
+];
+
 const supportSections: NavSection[] = [
   {
     titleKey: "overview",
@@ -122,12 +149,6 @@ const technicianSections: NavSection[] = [
     titleKey: "overview",
     items: [
       {href: "/dashboard", labelKey: "dashboard", icon: "📊"},
-    ],
-  },
-  {
-    titleKey: "accounts",
-    items: [
-      {href: "/staffProfile", labelKey: "personalInfo", icon: "👤"},
     ],
   },
   {
@@ -173,6 +194,7 @@ const menuConfig: Record<SidebarVariant, NavSection[]> = {
   admin: adminSections,
   technician: technicianSections,
   support: supportSections,
+  accountant: accounttantSections,
   "tenant-owner": tenantOwnerSections,
 };
 
@@ -193,6 +215,10 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
         ? "admin"
         : normalizedRoles.includes("technician")
           ? "technician"
+          : normalizedRoles.includes("support")
+          ? "support"
+          : normalizedRoles.includes("accountant")
+            ? "accountant"
           : "admin"
       : variant;
 
