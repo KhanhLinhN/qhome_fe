@@ -141,6 +141,9 @@ export default function ServiceDetailPage() {
   const [comboItemsPopupOpen, setComboItemsPopupOpen] = useState<boolean>(false);
   const [selectedComboItems, setSelectedComboItems] = useState<ServiceComboItemDto[]>([]);
   const [selectedComboName, setSelectedComboName] = useState<string>('');
+  const [deleteOptionPopupOpen, setDeleteOptionPopupOpen] = useState<boolean>(false);
+  const [deleteTicketPopupOpen, setDeleteTicketPopupOpen] = useState<boolean>(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const serviceIdValue = Array.isArray(serviceId) ? serviceId[0] : (serviceId as string) ?? '';
 
@@ -356,12 +359,24 @@ export default function ServiceDetailPage() {
     router.push(`/base/serviceType?serviceId=${serviceIdValue}&type=option&editId=${optionId}`);
   };
 
-  const handleDeleteOption = async (optionId?: string) => {
+  const handleOpenDeleteOption = (optionId?: string) => {
     if (!optionId) return;
+    setDeleteTargetId(optionId);
+    setDeleteOptionPopupOpen(true);
+  };
+
+  const handleCloseDeleteOptionPopup = () => {
+    setDeleteOptionPopupOpen(false);
+    setDeleteTargetId(null);
+  };
+
+  const handleConfirmDeleteOption = async () => {
+    if (!deleteTargetId) return;
     try {
-      await deleteServiceOption(optionId);
+      await deleteServiceOption(deleteTargetId);
       show(t('Service.notifications.optionDelete'), 'success');
       await fetchOptions();
+      handleCloseDeleteOptionPopup();
     } catch (err) {
       console.error('Failed to delete option', err);
       show(t('Service.error'), 'error');
@@ -373,14 +388,24 @@ export default function ServiceDetailPage() {
     router.push(`/base/serviceType?serviceId=${serviceIdValue}&type=ticket&editId=${ticketId}`);
   };
 
-  const handleDeleteTicket = async (ticketId?: string) => {
-    if (!ticketId) {
-      return;
-    }
+  const handleOpenDeleteTicket = (ticketId?: string) => {
+    if (!ticketId) return;
+    setDeleteTargetId(ticketId);
+    setDeleteTicketPopupOpen(true);
+  };
+
+  const handleCloseDeleteTicketPopup = () => {
+    setDeleteTicketPopupOpen(false);
+    setDeleteTargetId(null);
+  };
+
+  const handleConfirmDeleteTicket = async () => {
+    if (!deleteTargetId) return;
     try {
-      await deleteServiceTicket(ticketId);
+      await deleteServiceTicket(deleteTargetId);
       show(t('Service.notifications.ticketDelete'), 'success');
       await fetchTickets();
+      handleCloseDeleteTicketPopup();
     } catch (err) {
       console.error('Failed to delete ticket', err);
       show(t('Service.error'), 'error');
@@ -585,8 +610,13 @@ export default function ServiceDetailPage() {
                           <button
                             type="button"
                             onClick={() => handleOpenChangeStatus(option.id!, 'option', option.isActive ?? false)}
-                            className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition"
-                            title={t('Service.changeStatus')}
+                            disabled={option.isRequired === true}
+                            className={`w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 transition ${
+                              option.isRequired === true 
+                                ? 'opacity-50 cursor-not-allowed' 
+                                : 'hover:bg-gray-50 cursor-pointer'
+                            }`}
+                            title={option.isRequired === true ? t('Service.cannotChangeRequiredOptionStatus') || 'Cannot change status of required option' : t('Service.changeStatus')}
                           >
                             <svg 
                               xmlns="http://www.w3.org/2000/svg" 
@@ -594,7 +624,7 @@ export default function ServiceDetailPage() {
                               height="16" 
                               width="16"
                               fill="currentColor"
-                              className="text-gray-700"
+                              className={option.isRequired === true ? "text-gray-400" : "text-gray-700"}
                             >
                               <g fill="none" fillRule="nonzero">
                                 <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" strokeWidth="0.6667"></path>
@@ -611,7 +641,7 @@ export default function ServiceDetailPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeleteOption(option.id)}
+                            onClick={() => handleOpenDeleteOption(option.id)}
                             className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
                           >
                             <Image src={Delete} alt={t('Service.deleteOption')} width={24} height={24} />
@@ -737,7 +767,7 @@ export default function ServiceDetailPage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDeleteTicket(ticket.id)}
+                                onClick={() => handleOpenDeleteTicket(ticket.id)}
                                 className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 transition"
                               >
                                 <Image src={Delete} alt={t('Service.deleteTicket')} width={24} height={24} />
@@ -778,6 +808,26 @@ export default function ServiceDetailPage() {
                 status: statusTargetNew ? t('Service.active') : t('Service.inactive'),
               })
         }
+      />
+
+      {/* Delete Option Popup */}
+      <PopupConfirm
+        isOpen={deleteOptionPopupOpen}
+        onClose={handleCloseDeleteOptionPopup}
+        onConfirm={handleConfirmDeleteOption}
+        popupTitle={t('Service.confirmDeleteOptionTitle')}
+        popupContext={t('Service.confirmDeleteOptionMessage')}
+        isDanger={true}
+      />
+
+      {/* Delete Ticket Popup */}
+      <PopupConfirm
+        isOpen={deleteTicketPopupOpen}
+        onClose={handleCloseDeleteTicketPopup}
+        onConfirm={handleConfirmDeleteTicket}
+        popupTitle={t('Service.confirmDeleteTicketTitle')}
+        popupContext={t('Service.confirmDeleteTicketMessage')}
+        isDanger={true}
       />
 
       {/* Combo Items Popup */}

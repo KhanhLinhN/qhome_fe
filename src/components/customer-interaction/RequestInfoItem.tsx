@@ -6,8 +6,8 @@ interface RequestInfoProps {
 
 const InfoRow = ({ value, title, isHighlighted } : RequestInfoProps) => (
     <div className="flex justify-between py-1">
-        <span className="text-[#024023] font-bold">{title}:</span>
-        <span className={`${isHighlighted ? "text-[#14AE5C]" : "text-[#024023]"} font-semibold`}>{value}</span>
+        <span className="text-[#024023] font-bold mb-1">{title}:</span>
+        <div className={`${isHighlighted ? "text-[#14AE5C]" : "text-[#024023]"} font-semibold whitespace-pre-wrap break-words`}>{value}</div>
     </div>
 );
 
