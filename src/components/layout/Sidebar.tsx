@@ -104,6 +104,13 @@ const accounttantSections: NavSection[] = [
       {href: "/base/finance/pricing-tiers", labelKey: "pricingTiersManagement", icon: "📊"},
     ],
   },
+  {
+    titleKey: "residentInteraction",
+    items: [
+      {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
+      {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
+    ],
+  },
 ];
 
 const supportSections: NavSection[] = [
@@ -144,6 +151,8 @@ const technicianSections: NavSection[] = [
   {
     titleKey: "residentInteraction",
     items: [
+      {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
+      {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
       {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
     ],
   },

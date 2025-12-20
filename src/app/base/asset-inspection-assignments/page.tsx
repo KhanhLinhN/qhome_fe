@@ -15,6 +15,7 @@ import {
   updateInspectionItem,
   completeInspection,
   generateInvoice,
+  recalculateDamageCost,
   type UpdateAssetInspectionItemRequest,
 } from '@/src/services/base/assetInspectionService';
 import { updateInvoiceStatus, getAllInvoicesForAdmin, getInvoiceById, type InvoiceDto } from '@/src/services/finance/invoiceAdminService';
@@ -533,6 +534,23 @@ export default function TechnicianInspectionAssignmentsPage() {
 
   const handleStartInspection = async () => {
     if (!selectedInspection) return;
+    
+    // Validate inspection date - cannot start inspection before inspectionDate
+    if (selectedInspection.inspectionDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const inspectionDate = new Date(selectedInspection.inspectionDate);
+      inspectionDate.setHours(0, 0, 0, 0);
+      
+      if (today < inspectionDate) {
+        show(t('errors.cannotStartBeforeDate', { 
+          date: formatDate(selectedInspection.inspectionDate),
+          defaultValue: `Chưa thể thực hiện kiểm tra. Ngày kiểm tra dự kiến: ${formatDate(selectedInspection.inspectionDate)}`
+        }), 'error');
+        return;
+      }
+    }
+    
     try {
       const updated = await startInspection(selectedInspection.id);
       setSelectedInspection(updated);
@@ -1018,7 +1036,7 @@ export default function TechnicianInspectionAssignmentsPage() {
       
       // Reload again to get updated totalDamageCost after complete
       const reloadedInspection = await getInspectionByContractId(selectedInspection.contractId);
-      const inspectionToUse = reloadedInspection || updated;
+      let inspectionToUse = reloadedInspection || updated;
       
       // IMPORTANT: Generate water/electric invoices FIRST before generating main invoice
       // This ensures water/electric invoices are available when main invoice is created
@@ -1070,7 +1088,49 @@ export default function TechnicianInspectionAssignmentsPage() {
       // Auto-generate invoice if there's damage cost
       // Now water/electric invoices should be available if they were created
       let finalInspection = inspectionToUse;
-      if (inspectionToUse.totalDamageCost && inspectionToUse.totalDamageCost > 0 && !inspectionToUse.invoiceId) {
+      
+      // Check if we should generate invoice:
+      // 1. Check totalDamageCost from backend
+      // 2. Also check items directly in case totalDamageCost wasn't calculated yet
+      const hasDamageCost = inspectionToUse.totalDamageCost && inspectionToUse.totalDamageCost > 0;
+      const hasDamagedItems = inspectionToUse.items?.some(item => {
+        const damageCost = item.damageCost !== undefined && item.damageCost !== null ? item.damageCost : 
+                          (item.repairCost !== undefined && item.repairCost !== null ? item.repairCost : 0);
+        return damageCost > 0;
+      }) || false;
+      
+      // Try to recalculate damage cost if totalDamageCost is missing but we have damaged items
+      if (!hasDamageCost && hasDamagedItems) {
+        try {
+          console.log('Recalculating damage cost for inspection:', inspectionToUse.id);
+          const recalculated = await recalculateDamageCost(inspectionToUse.id);
+          if (recalculated) {
+            inspectionToUse = recalculated;
+            finalInspection = recalculated;
+          }
+        } catch (recalcError: any) {
+          console.error('Failed to recalculate damage cost:', recalcError);
+          // Try to reload inspection one more time as fallback
+          try {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const retryReload = await getInspectionByContractId(selectedInspection.contractId);
+            if (retryReload) {
+              inspectionToUse = retryReload;
+              finalInspection = retryReload;
+            }
+          } catch (e) {
+            // Ignore errors, continue with existing inspectionToUse
+          }
+        }
+      }
+      
+      // Generate invoice if there's damage cost
+      // Backend requires totalDamageCost > 0, so we must check it after recalculation
+      const shouldGenerateInvoice = (
+        inspectionToUse.totalDamageCost && inspectionToUse.totalDamageCost > 0
+      ) && !inspectionToUse.invoiceId;
+      
+      if (shouldGenerateInvoice) {
         try {
           finalInspection = await generateInvoice(inspectionToUse.id);
           
@@ -1097,7 +1157,12 @@ export default function TechnicianInspectionAssignmentsPage() {
           show(t('success.invoiceGenerated', { defaultValue: 'Đã tự động tạo hóa đơn cho thiệt hại thiết bị' }), 'success');
         } catch (invoiceError: any) {
           // Don't fail the whole operation if invoice generation fails
-          show(t('warnings.invoiceGenerationFailed', { defaultValue: 'Đã hoàn thành kiểm tra nhưng không thể tạo hóa đơn tự động' }), 'info');
+          console.error('Failed to generate invoice:', invoiceError);
+          show(
+            invoiceError?.response?.data?.message || 
+            t('warnings.invoiceGenerationFailed', { defaultValue: 'Đã hoàn thành kiểm tra nhưng không thể tạo hóa đơn tự động' }), 
+            'error'
+          );
         }
       }
       
@@ -1459,21 +1524,44 @@ export default function TechnicianInspectionAssignmentsPage() {
                   })()}
                 </div>
 
-                {selectedInspection.status === InspectionStatus.PENDING && (
-                  <div className="border-t border-gray-200 pt-4 mt-4">
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-                      <p className="text-sm text-blue-800 mb-3">
-                        {t('modal.startInspectionDesc', { defaultValue: 'Nhấn nút bên dưới để bắt đầu kiểm tra thiết bị. Sau khi bắt đầu, bạn sẽ có thể nhập tình trạng và ghi chú cho từng thiết bị.' })}
-                      </p>
+                {selectedInspection.status === InspectionStatus.PENDING && (() => {
+                  // Check if inspection date has arrived
+                  const canStartInspection = (() => {
+                    if (!selectedInspection.inspectionDate) return true;
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const inspectionDate = new Date(selectedInspection.inspectionDate);
+                    inspectionDate.setHours(0, 0, 0, 0);
+                    return today >= inspectionDate;
+                  })();
+                  
+                  return (
+                    <div className="border-t border-gray-200 pt-4 mt-4">
+                      <div className={`p-4 border rounded-lg mb-4 ${canStartInspection ? 'bg-blue-50 border-blue-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                        <p className={`text-sm mb-3 ${canStartInspection ? 'text-blue-800' : 'text-yellow-800'}`}>
+                          {canStartInspection 
+                            ? t('modal.startInspectionDesc', { defaultValue: 'Nhấn nút bên dưới để bắt đầu kiểm tra thiết bị. Sau khi bắt đầu, bạn sẽ có thể nhập tình trạng và ghi chú cho từng thiết bị.' })
+                            : t('modal.cannotStartBeforeDate', { 
+                                date: formatDate(selectedInspection.inspectionDate),
+                                defaultValue: `Chưa thể thực hiện kiểm tra. Ngày kiểm tra dự kiến: ${formatDate(selectedInspection.inspectionDate)}`
+                              })
+                          }
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleStartInspection}
+                        disabled={!canStartInspection}
+                        className={`w-full px-6 py-3 font-medium text-lg shadow-md hover:shadow-lg transition-all ${
+                          canStartInspection
+                            ? 'bg-blue-600 text-white rounded-md hover:bg-blue-700'
+                            : 'bg-gray-400 text-gray-200 rounded-md cursor-not-allowed'
+                        }`}
+                      >
+                        ▶️ {t('modal.startInspection', { defaultValue: 'Bắt đầu kiểm tra' })}
+                      </button>
                     </div>
-                    <button
-                      onClick={handleStartInspection}
-                      className="w-full px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium text-lg shadow-md hover:shadow-lg transition-all"
-                    >
-                      ▶️ {t('modal.startInspection', { defaultValue: 'Bắt đầu kiểm tra' })}
-                    </button>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {(selectedInspection.status === InspectionStatus.IN_PROGRESS || selectedInspection.status === InspectionStatus.COMPLETED) && (
                   <>

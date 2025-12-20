@@ -513,7 +513,7 @@ export default function RentalContractReviewPage() {
           inspectorId: selectedTechnician.userId,
           inspectorName: selectedTechnician.username || selectedTechnician.email || 'N/A',
         });
-        show(t('success.reassignInspection', { name: selectedTechnician.username }) || `Đã gán lại kỹ thuật viên ${selectedTechnician.username}`, 'success');
+        show(t('success.reassignInspection', { name: selectedTechnician.username }), 'success');
       } else {
         // Chưa có inspection hoặc inspection không phải PENDING, tạo mới
         const request: CreateAssetInspectionRequest = {

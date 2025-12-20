@@ -276,6 +276,7 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                             {item.categoryName || '-'}
                                         </td>
                                         {/* <td className="px-4 py-3 whitespace-nowrap text-center">
+                                        <td className="px-4 py-3 whitespace-nowrap text-center">
                                             <span
                                                 className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                                                     item.isActive

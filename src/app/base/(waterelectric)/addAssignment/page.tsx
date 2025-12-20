@@ -130,11 +130,28 @@ export default function AddAssignmentPage() {
     if (selectedCycleId) {
       const cycle = cycles.find(c => c.id === selectedCycleId);
       if (cycle) {
-        setStartDate(cycle.periodFrom.split('T')[0]);
-        setEndDate(cycle.periodTo.split('T')[0]);
+        const startDateStr = cycle.periodFrom.split('T')[0];
+        setStartDate(startDateStr);
+        
+        // Fix endDate to always be the 15th of the month from cycle.periodFrom
+        const [year, month] = startDateStr.split('-').map(Number);
+        const fixedEndDate = `${year}-${String(month).padStart(2, '0')}-15`;
+        setEndDate(fixedEndDate);
       }
     }
   }, [selectedCycleId, cycles]);
+
+  // Auto-update endDate to the 15th of the month whenever startDate changes
+  useEffect(() => {
+    if (startDate) {
+      const [year, month] = startDate.split('-').map(Number);
+      if (year && month) {
+        const fixedEndDate = `${year}-${String(month).padStart(2, '0')}-15`;
+        setEndDate(fixedEndDate);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate]);
 
   // Load assigned units for the current cycle/service/building
   useEffect(() => {
@@ -344,11 +361,21 @@ export default function AddAssignmentPage() {
         }
       }
 
-      if (endDate) {
-        const endDateValue = parseDateOnly(endDate);
-        if (endDateValue > cycleEndDate) {
-          setEndDateError(t('errors.endDateAfterCycle'));
-          return;
+      // EndDate is fixed to 15th, so validation is handled automatically
+      // Ensure endDate is always the 15th of the month from startDate
+      if (startDate) {
+        const [year, month] = startDate.split('-').map(Number);
+        if (year && month) {
+          const fixedEndDate = `${year}-${String(month).padStart(2, '0')}-15`;
+          if (endDate !== fixedEndDate) {
+            setEndDate(fixedEndDate);
+          }
+          // Validate that endDate is not after cycle end date
+          const endDateValue = parseDateOnly(fixedEndDate);
+          if (endDateValue > cycleEndDate) {
+            setEndDateError(t('errors.endDateAfterCycle'));
+            return;
+          }
         }
       }
     }
@@ -515,17 +542,26 @@ export default function AddAssignmentPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('fields.endDate')} <span className="text-gray-500 text-xs">({t('fields.endDateOptional')})</span>
+                {t('fields.endDate')} <span className="text-gray-500 text-xs">(Cố định: ngày 15)</span>
               </label>
               <DateBox
                 value={endDate}
                 onChange={(e) => {
-                  setEndDate(e.target.value);
+                  // Prevent manual changes - endDate is fixed to 15th
+                  // Auto-update to 15th if user tries to change it
+                  if (startDate) {
+                    const [year, month] = startDate.split('-').map(Number);
+                    if (year && month) {
+                      const fixedEndDate = `${year}-${String(month).padStart(2, '0')}-15`;
+                      setEndDate(fixedEndDate);
+                    }
+                  }
                   if (endDateError) {
                     setEndDateError('');
                   }
                 }}
                 placeholderText={t('placeholders.selectEndDate')}
+                disabled={true}
               />
               {endDateError && (
                 <span className="text-red-500 text-xs mt-1">{endDateError}</span>

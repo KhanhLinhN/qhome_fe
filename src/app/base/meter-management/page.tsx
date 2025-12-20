@@ -231,14 +231,14 @@ export default function MeterManagementPage() {
           >
             {t('buttons.addMeter')}
           </Link>
-          <button
+          {/* <button
             type="button"
             onClick={handleDownloadTemplate}
             disabled={templateDownloading}
             className="px-4 py-2 bg-[#F1F5F9] text-sm text-[#02542D] rounded-lg border border-[#CAD7D3] hover:bg-[#E2EDF2] transition disabled:opacity-60"
           >
             {templateDownloading ? t('buttons.downloadingTemplate') : t('buttons.downloadTemplate')}
-          </button>
+          </button> */}
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex flex-col text-sm text-gray-600">
