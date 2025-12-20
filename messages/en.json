@@ -4423,7 +4423,6 @@
   },
   "TechnicianInspections": {
     "modal": {
-<<<<<<< Updated upstream
       "title": "Inspection Details",
       "unitCode": "Unit Code",
       "inspectionDate": "Inspection Date",
@@ -4511,10 +4510,8 @@
     },
     "warnings": {
       "itemsNotReady": "Equipment list is being created. Please click \"Refresh\" in a few seconds.",
-      "invoiceGenerationFailed": "Completed inspection but failed to automatically generate invoice"
-=======
+      "invoiceGenerationFailed": "Completed inspection but failed to automatically generate invoice",
       "cannotStartBeforeDate": "Cannot start inspection yet. Scheduled inspection date: {date}"
->>>>>>> Stashed changes
     },
     "errors": {
       "cannotStartBeforeDate": "Cannot start inspection yet. Scheduled inspection date: {date}"

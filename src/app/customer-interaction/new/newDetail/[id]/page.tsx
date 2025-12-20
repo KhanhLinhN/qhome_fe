@@ -22,6 +22,8 @@ export default function NewsDetail() {
     const isSupporter = hasRole('SUPPORTER');
     // Check if user is technician (view only, no edit)
     const isTechnician = hasRole('TECHNICIAN') || hasRole('technician') || hasRole('ROLE_TECHNICIAN') || hasRole('ROLE_technician');
+    // Check if user is accountant (view only, no edit)
+    const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') || hasRole('ROLE_ACCOUNTANT') || hasRole('ROLE_accountant');
 
     const [news, setNews] = useState<News | null>(null);
     const [loading, setLoading] = useState(true);
@@ -308,8 +310,8 @@ export default function NewsDetail() {
                         >
                             {t('back')}
                         </button>
-                        {/* Supporter cannot edit INTERNAL news, Technician cannot edit any news */}
-                        {!(isSupporter && news.scope === 'INTERNAL') && !isTechnician && (
+                        {/* Supporter cannot edit INTERNAL news, Technician and Accountant cannot edit any news */}
+                        {!(isSupporter && news.scope === 'INTERNAL') && !isTechnician && !isAccountant && (
                             <button
                                 type="button"
                                 onClick={() => router.push(`/customer-interaction/new/newEdit/${id}`)}

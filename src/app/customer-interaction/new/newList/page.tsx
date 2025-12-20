@@ -24,6 +24,8 @@ export default function NewsList() {
     const isSupporter = hasRole('SUPPORTER');
     // Check if user is technician (view only, no edit/delete)
     const isTechnician = hasRole('TECHNICIAN') || hasRole('technician') || hasRole('ROLE_TECHNICIAN') || hasRole('ROLE_technician');
+    // Check if user is accountant (view only, no edit/delete)
+    const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') || hasRole('ROLE_ACCOUNTANT') || hasRole('ROLE_accountant');
     
     const [selectedStatus, setSelectedStatus] = useState<NewsStatus | ''>('');
     const [pageNo, setPageNo] = useState<number>(0);
@@ -37,9 +39,14 @@ export default function NewsList() {
 
     // Filter and sort news by createdAt desc (newest first)
     // Supporter can only see EXTERNAL news
-    // Technician can only see PUBLISHED news
+    // Technician and Accountant can only see PUBLISHED news
+    // Technician and Accountant can only see news with matching targetRole (or 'ALL')
     const orderedNews = useMemo(() => {
         if (!newsList || newsList.length === 0) return [];
+        
+        // Get current user roles for filtering
+        const userRoles = user?.roles?.map(r => r.toUpperCase()) || [];
+        const isAdmin = userRoles.includes('ADMIN');
         
         // Filter by scope if supporter
         let filtered = newsList;
@@ -47,17 +54,35 @@ export default function NewsList() {
             filtered = newsList.filter(n => n.scope === 'EXTERNAL');
         }
         
-        // Filter by status if technician (only show PUBLISHED)
-        if (isTechnician) {
+        // Filter by status if technician or accountant (only show PUBLISHED)
+        if (isTechnician || isAccountant) {
             filtered = filtered.filter(n => n.status === 'PUBLISHED');
         }
+        
+        // Filter by targetRole: if news has targetRole, only show if user has that role or is admin
+        // This ensures Technician and Accountant only see news targeted to their role (or 'ALL')
+        filtered = filtered.filter(n => {
+            // If news has no targetRole or targetRole is 'ALL', show to everyone
+            if (!n.targetRole || n.targetRole === 'ALL') {
+                return true;
+            }
+            
+            // Admin can see all news
+            if (isAdmin) {
+                return true;
+            }
+            
+            // Check if user has the target role (applies to Technician, Accountant, and other roles)
+            const targetRoleUpper = n.targetRole.toUpperCase();
+            return userRoles.includes(targetRoleUpper);
+        });
         
         return filtered.slice().sort((a, b) => {
             const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             return tb - ta; // Descending order (newest first)
         });
-    }, [newsList, isSupporter, isTechnician]);
+    }, [newsList, isSupporter, isTechnician, isAccountant, user?.roles]);
 
     // Paginate the sorted news
     const paginatedNews = useMemo(() => {
@@ -277,7 +302,7 @@ export default function NewsList() {
                         <h1 className="text-2xl font-semibold text-[#02542D]">
                             {t('newsList')}
                         </h1>
-                        {!isTechnician && (
+                        {!isTechnician && !isAccountant && (
                             <button
                                 onClick={handleAdd}
                                 className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md font-semibold"
@@ -336,9 +361,9 @@ export default function NewsList() {
                             data={tableData}
                             headers={headers}
                             type="news"
-                            onEdit={isTechnician ? handleView : handleEdit}
-                            onDelete={!isTechnician ? handleDeleteClick : undefined}
-                            onNewsChangeStatusAndTarget={!isTechnician ? handleOpenChangeStatusTarget : undefined}
+                            onEdit={(isTechnician || isAccountant) ? handleView : handleEdit}
+                            onDelete={(!isTechnician && !isAccountant) ? handleDeleteClick : undefined}
+                            onNewsChangeStatusAndTarget={(!isTechnician && !isAccountant) ? handleOpenChangeStatusTarget : undefined}
                         />
                         <Pagination
                             currentPage={pageNo + 1}
