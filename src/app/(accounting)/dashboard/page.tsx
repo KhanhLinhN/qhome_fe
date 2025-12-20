@@ -11,9 +11,12 @@ import { getAllInvoicesForAdmin } from '@/src/services/finance/invoiceAdminServi
 import { fetchCurrentHouseholdByUnit, fetchHouseholdMembersByHousehold } from '@/src/services/base/householdService';
 import { getAllInspections } from '@/src/services/base/assetInspectionService';
 import { getAssignmentsByStaff } from '@/src/services/base/waterService';
+import { RequestService } from '@/src/services/customer-interaction/requestService';
+import { getNewsList } from '@/src/services/customer-interaction/newService';
+import { getNotificationsList } from '@/src/services/customer-interaction/notiService';
 import axios from '@/src/lib/axios';
 
-type DashboardVariant = 'admin' | 'technician' | 'tenant-owner';
+type DashboardVariant = 'admin' | 'technician' | 'tenant-owner' | 'accountant' | 'supporter';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8081';
 
@@ -27,6 +30,11 @@ export default function DashboardPage() {
     residents: 0,
     invoices: 0,
     tasks: 0, // For technician
+    newRequests: 0, // For technician
+    inProgressRequests: 0, // For technician
+    meterReadingTasks: 0, // For technician
+    newsCount: 0, // For supporter
+    notificationsCount: 0, // For supporter
   });
   const [loading, setLoading] = useState(true);
 
@@ -37,14 +45,18 @@ export default function DashboardPage() {
       ? 'admin'
       : normalizedRoles.includes('technician')
         ? 'technician'
-        : normalizedRoles.includes('tenant-owner') || normalizedRoles.includes('unit_owner')
-          ? 'tenant-owner'
-          : 'admin';
+        : normalizedRoles.includes('accountant')
+          ? 'accountant'
+          : normalizedRoles.includes('supporter')
+            ? 'supporter'
+            : normalizedRoles.includes('tenant-owner') || normalizedRoles.includes('unit_owner')
+              ? 'tenant-owner'
+              : 'admin';
 
   useEffect(() => {
     const fetchStats = async () => {
       if (resolvedVariant === 'technician') {
-        // Fetch technician tasks
+        // Fetch technician stats: new requests, in-progress requests, meter reading tasks
         try {
           setLoading(true);
           if (!user?.userId) {
@@ -52,28 +64,140 @@ export default function DashboardPage() {
             return;
           }
 
-          // Fetch both inspection assignments and meter reading assignments
-          const [inspections, assignments] = await Promise.all([
-            getAllInspections(user.userId).catch(() => []),
-            getAssignmentsByStaff(user.userId).catch(() => [])
-          ]);
+          const requestService = new RequestService();
+          
+          // Fetch all requests and filter by status
+          const allRequests = await requestService.getAllRequests().catch(() => []);
+          const newRequests = allRequests.filter(req => req.status === 'New').length;
+          const inProgressRequests = allRequests.filter(req => req.status === 'Processing').length;
 
-          const totalTasks = inspections.length + assignments.length;
-          setStats({
-            buildings: 0,
-            units: 0,
-            residents: 0,
-            invoices: 0,
-            tasks: totalTasks,
-          });
-        } catch (error) {
-          console.error('Failed to fetch technician tasks:', error);
+          // Fetch meter reading assignments
+          const meterReadingAssignments = await getAssignmentsByStaff(user.userId).catch(() => []);
+          const pendingAssignments = meterReadingAssignments.filter(
+            assignment => assignment.status === 'PENDING' || assignment.status === 'IN_PROGRESS'
+          );
+
           setStats({
             buildings: 0,
             units: 0,
             residents: 0,
             invoices: 0,
             tasks: 0,
+            newRequests,
+            inProgressRequests,
+            meterReadingTasks: pendingAssignments.length,
+            newsCount: 0,
+            notificationsCount: 0,
+          });
+        } catch (error) {
+          console.error('Failed to fetch technician stats:', error);
+          setStats({
+            buildings: 0,
+            units: 0,
+            residents: 0,
+            invoices: 0,
+            tasks: 0,
+            newRequests: 0,
+            inProgressRequests: 0,
+            meterReadingTasks: 0,
+            newsCount: 0,
+            notificationsCount: 0,
+          });
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (resolvedVariant === 'accountant') {
+        // Fetch invoice count for accountant
+        try {
+          setLoading(true);
+          let invoiceCount = 0;
+          try {
+            const response = await axios.get(`${BASE_URL}/api/invoices/admin/all`, {
+              withCredentials: true,
+            });
+            if (Array.isArray(response.data)) {
+              invoiceCount = response.data.length;
+            }
+          } catch (error: any) {
+            try {
+              const invoices = await getAllInvoicesForAdmin();
+              invoiceCount = invoices.length;
+            } catch (err: any) {
+              if (err?.response?.status !== 500) {
+                console.warn('Could not fetch invoice count:', err?.message || 'Unknown error');
+              }
+            }
+          }
+
+          setStats({
+            buildings: 0,
+            units: 0,
+            residents: 0,
+            invoices: invoiceCount,
+            tasks: 0,
+            newRequests: 0,
+            inProgressRequests: 0,
+            meterReadingTasks: 0,
+            newsCount: 0,
+            notificationsCount: 0,
+          });
+        } catch (error) {
+          console.error('Failed to fetch accountant stats:', error);
+          setStats({
+            buildings: 0,
+            units: 0,
+            residents: 0,
+            invoices: 0,
+            tasks: 0,
+            newRequests: 0,
+            inProgressRequests: 0,
+            meterReadingTasks: 0,
+            newsCount: 0,
+            notificationsCount: 0,
+          });
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (resolvedVariant === 'supporter') {
+        // Fetch news and notifications count for supporter
+        try {
+          setLoading(true);
+          const [news, notifications] = await Promise.all([
+            getNewsList().catch(() => []),
+            getNotificationsList().catch(() => [])
+          ]);
+
+          setStats({
+            buildings: 0,
+            units: 0,
+            residents: 0,
+            invoices: 0,
+            tasks: 0,
+            newRequests: 0,
+            inProgressRequests: 0,
+            meterReadingTasks: 0,
+            newsCount: news.length,
+            notificationsCount: notifications.length,
+          });
+        } catch (error) {
+          console.error('Failed to fetch supporter stats:', error);
+          setStats({
+            buildings: 0,
+            units: 0,
+            residents: 0,
+            invoices: 0,
+            tasks: 0,
+            newRequests: 0,
+            inProgressRequests: 0,
+            meterReadingTasks: 0,
+            newsCount: 0,
+            notificationsCount: 0,
           });
         } finally {
           setLoading(false);
@@ -150,7 +274,12 @@ export default function DashboardPage() {
           units: unitCount,
           residents: residentCount,
           invoices: invoiceCount,
-          tasks: 0
+          tasks: 0,
+          newRequests: 0,
+          inProgressRequests: 0,
+          meterReadingTasks: 0,
+          newsCount: 0,
+          notificationsCount: 0,
         });
       } catch (error) {
         console.error('Failed to fetch dashboard statistics:', error);
@@ -160,7 +289,7 @@ export default function DashboardPage() {
     };
 
     void fetchStats();
-  }, [resolvedVariant]);
+  }, [resolvedVariant, user?.userId]);
 
   // Admin sections
   const adminSections = (
@@ -467,33 +596,57 @@ export default function DashboardPage() {
   const technicianSections = (
     <>
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Nhiệm vụ</p>
+              <p className="text-sm text-gray-600">Yêu cầu mới</p>
               <p className="text-2xl font-semibold text-gray-900 mt-1">
-                {loading ? '...' : stats.tasks}
+                {loading ? '...' : stats.newRequests}
               </p>
             </div>
-            <div className="text-3xl">📋</div>
+            <div className="text-3xl">🆕</div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Đang xử lý</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? '...' : stats.inProgressRequests}
+              </p>
+            </div>
+            <div className="text-3xl">⚙️</div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Đo điện nước</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? '...' : stats.meterReadingTasks}
+              </p>
+            </div>
+            <div className="text-3xl">💧⚡</div>
           </div>
         </div>
       </div>
 
-      {/* Accounts */}
+      {/* Services */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h3 className="text-lg font-semibold text-slate-800 mb-4">
-          Tài khoản
+          Dịch vụ
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Link 
-            href="/staffProfile"
+            href="/base/asset-inspection-assignments"
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
-            <div className="text-3xl mb-2 group-hover:scale-110 transition">👤</div>
-            <div className="font-medium text-slate-800 text-center">Thông tin cá nhân</div>
-            <div className="text-xs text-slate-500 text-center mt-1">Xem thông tin</div>
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">🔍</div>
+            <div className="font-medium text-slate-800 text-center">Kiểm tra tài sản</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Nhiệm vụ kiểm tra</div>
           </Link>
         </div>
       </div>
@@ -522,12 +675,178 @@ export default function DashboardPage() {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Link 
+            href="/customer-interaction/new/newList"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">📰</div>
+            <div className="font-medium text-slate-800 text-center">Tin tức</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Xem tin tức</div>
+          </Link>
+
+          <Link 
+            href="/customer-interaction/notiList"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">🔔</div>
+            <div className="font-medium text-slate-800 text-center">Thông báo</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Xem thông báo</div>
+          </Link>
+
+          <Link 
             href="/customer-interaction/request"
             className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
           >
             <div className="text-3xl mb-2 group-hover:scale-110 transition">📨</div>
             <div className="font-medium text-slate-800 text-center">Yêu cầu hỗ trợ</div>
             <div className="text-xs text-slate-500 text-center mt-1">Xử lý yêu cầu</div>
+          </Link>
+        </div>
+      </div>
+    </>
+  );
+
+  // Accountant sections
+  const accountantSections = (
+    <>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Hóa đơn</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? '...' : stats.invoices}
+              </p>
+            </div>
+            <div className="text-3xl">🧾</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Water & Electric Management */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">
+          Quản lý điện nước
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link 
+            href="/base/readingCycles"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">📈</div>
+            <div className="font-medium text-slate-800 text-center">Chu kỳ đọc</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Quản lý chu kỳ đọc số</div>
+          </Link>
+
+          <Link 
+            href="/base/billingCycles"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">💡</div>
+            <div className="font-medium text-slate-800 text-center">Chu kỳ thanh toán</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Quản lý chu kỳ</div>
+          </Link>
+
+          <Link 
+            href="/base/finance/invoices"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">💰</div>
+            <div className="font-medium text-slate-800 text-center">Hóa đơn</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Quản lý hóa đơn</div>
+          </Link>
+
+          <Link 
+            href="/base/finance/pricing-tiers"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">📊</div>
+            <div className="font-medium text-slate-800 text-center">Bậc giá</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Quản lý bậc giá</div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Resident Interaction */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">
+          Tương tác với cư dân
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+          <Link 
+            href="/customer-interaction/new/newList"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">📰</div>
+            <div className="font-medium text-slate-800 text-center">Tin tức</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Xem tin tức</div>
+          </Link>
+
+          <Link 
+            href="/customer-interaction/notiList"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">🔔</div>
+            <div className="font-medium text-slate-800 text-center">Thông báo</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Xem thông báo</div>
+          </Link>
+        </div>
+      </div>
+    </>
+  );
+
+  // Supporter sections
+  const supporterSections = (
+    <>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Tin tức</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? '...' : stats.newsCount}
+              </p>
+            </div>
+            <div className="text-3xl">📰</div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Thông báo</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {loading ? '...' : stats.notificationsCount}
+              </p>
+            </div>
+            <div className="text-3xl">🔔</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Resident Interaction */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">
+          Tương tác với cư dân
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+          <Link 
+            href="/customer-interaction/new/newList"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">📰</div>
+            <div className="font-medium text-slate-800 text-center">Tin tức</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Quản lý tin tức</div>
+          </Link>
+
+          <Link 
+            href="/customer-interaction/notiList"
+            className="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-lg hover:border-[#02542D] hover:bg-green-50 transition group"
+          >
+            <div className="text-3xl mb-2 group-hover:scale-110 transition">🔔</div>
+            <div className="font-medium text-slate-800 text-center">Thông báo</div>
+            <div className="text-xs text-slate-500 text-center mt-1">Quản lý thông báo</div>
           </Link>
         </div>
       </div>
@@ -594,6 +913,10 @@ export default function DashboardPage() {
         return adminSections;
       case 'technician':
         return technicianSections;
+      case 'accountant':
+        return accountantSections;
+      case 'supporter':
+        return supporterSections;
       case 'tenant-owner':
         return tenantOwnerSections;
       default:

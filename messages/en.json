@@ -113,6 +113,7 @@
   },
   "Common": { "language": "Language", "support": "Need help?" },
   "Sidebar": {
+    "assetInspectionAssignments": "Asset Inspection Assignments",
     "staffContent": "Staff Content",
     "overview": "Overview",
     "dashboard": "Dashboard",
