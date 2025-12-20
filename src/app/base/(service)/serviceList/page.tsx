@@ -26,7 +26,7 @@ export default function ServiceListPage() {
       t('code'),
       t('name'),
       t('category'),
-      t('pricingType'),
+      // t('pricingType'),
       t('status'),
       t('createdAt'),
       t('action'),
