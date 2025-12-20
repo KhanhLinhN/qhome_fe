@@ -154,9 +154,6 @@
     "taskList": "Task List",
     "management": "Management",
     "assetManagement": "Asset Management",
-    "assetInspectionManagement": "Asset Inspection Management",
-    "assetInspectionAssignments": "Inspection Assignments",
-    "technicianAssignmentManagement": "Technician Assignment Management",
     "meterManagement": "Meter Management",
     "buildings": "Buildings",
     "employees": "Employees",
@@ -168,8 +165,7 @@
     "personalInfo": "Personal Information",
     "cardPricingManagement": "Card Pricing Management",
     "incomeExpenseManagement": "Income & Expense Management",
-    "pricingTiersManagement": "Pricing Tiers Management",
-    "feedback": "Feedback"
+    "pricingTiersManagement": "Pricing Tiers Management"
   },
   "Account": {
     "selectBuilding": "Select building",
@@ -256,17 +252,10 @@
         "noWhitespace": "Email cannot contain whitespace characters.",
         "maxLength": "Email cannot exceed 40 characters.",
         "invalid": "Email is invalid.",
-        "exists": "Email already exists in the system.",
-        "missingAt": "Email must contain the @ symbol.",
-        "multipleAt": "Email must contain exactly 1 @ symbol.",
-        "mustEndWithCom": "Email must end with .com. Example: user@example.com",
-        "invalidLocalPart": "The part before @ can only contain letters (a-z, A-Z), numbers (0-9) and characters: . _ % + -",
-        "invalidDomain": "The domain part can only contain letters (a-z, A-Z), numbers (0-9) and characters: . -",
-        "invalidFormat": "Email format is invalid. Email must end with .com. Example: user@example.com"
+        "exists": "Email already exists in the system."
       },
       "role": {
-        "required": "Please select a role for the staff.",
-        "adminNotAllowed": "Cannot create account with Admin role."
+        "required": "Please select a role for the staff."
       },
       "excelFileRequired": "Please select an Excel file (.xlsx).",
       "excelFileFormat": "File must be in .xlsx format."
@@ -282,7 +271,7 @@
     },
     "import": {
       "title": "Quick import with Excel",
-      "description": "Use Excel file with columns: username, email, role, active. Role must have only 1 value.",
+      "description": "Use Excel file with columns: username, email, role, active. Role can contain multiple values, separated by commas.",
       "fileLabel": "Excel file (.xlsx)",
       "fileSelected": "Selected:",
       "tableHeaders": {
@@ -335,23 +324,18 @@
     },
     "buttons": {
       "addAccount": "+ Add account",
-      "reload": "Reload",
-      "exportExcel": "Export Excel",
-      "exporting": "Exporting..."
+      "reload": "Reload"
     },
     "loading": "Loading data...",
     "errors": {
       "loadFailed": "Unable to load account list."
     },
     "messages": {
-      "createSuccess": "Staff account created successfully.",
       "deleteSuccess": "Account deleted successfully",
       "deleteError": "An error occurred while deleting the account",
       "activateSuccess": "Account activated successfully.",
       "deactivateSuccess": "Account deactivated successfully.",
-      "updateStatusError": "Unable to update account status. Please try again.",
-      "exportSuccess": "Excel exported successfully",
-      "exportError": "An error occurred while exporting Excel"
+      "updateStatusError": "Unable to update account status. Please try again."
     },
     "popups": {
       "statusChange": {
@@ -490,11 +474,7 @@
     "validation": {
       "password": {
         "minLength": "New password must be at least 8 characters.",
-        "mismatch": "Password confirmation does not match.",
-        "missingLetter": "Password must contain at least 1 letter (a-z, A-Z).",
-        "missingDigit": "Password must contain at least 1 digit (0-9).",
-        "missingSpecialChar": "Password must contain at least 1 special character (@ $ ! % * ? &).",
-        "invalidCharacters": "Password can only contain Latin letters without accents (a-z, A-Z), digits (0-9) and special characters (@ $ ! % * ? &)."
+        "mismatch": "Password confirmation does not match."
       },
       "userNotIdentified": "Unable to identify current user."
     },
@@ -935,8 +915,7 @@
       "failedToExportMeterExcel": "Failed to export meter Excel",
       "pleaseSelectUnitAndService": "Please select apartment and service",
       "meterAddedSuccess": "Meter added successfully",
-      "failedToCreateMeter": "Unable to create meter",
-      "pleaseSelectUnitAndService":"Please select apartment and service"
+      "failedToCreateMeter": "Unable to create meter"
     },
     "selectCity": "Select city",
     "selectDistrict": "Select district",
@@ -1132,7 +1111,7 @@
     "optionDescription": "Option description",
     "optionIsRequired": "Required option",
     "optionPrice": "Price",
-    "optionUnit": "Unit",
+    "optionUnit": "Apartment",
     "noOptions": "No additional options",
     "noDescription": "No description",
     "optionGroups": "Option groups",
@@ -2018,9 +1997,6 @@
       "cannotIdentifyAccountForDelete": "Unable to identify account to delete.",
       "deleteNotConfigured": "Delete function is not configured.",
       "cannotDeleteInactiveAccount": "Cannot delete inactive account.",
-      "cannotDeleteActiveAdmin": "Cannot delete admin account that is currently active. Please deactivate it first.",
-      "cannotDeleteActiveResident": "Cannot delete resident account that is currently active. Please deactivate it first.",
-      "cannotChangeAdminStatus": "Cannot change status of admin account.",
       "noPermissionToEditAdmin": "You do not have permission to delete admin account."
     }
   },
@@ -2170,21 +2146,13 @@
     "empty": {
       "noContracts": "This apartment currently has no contracts.",
       "noActiveContracts": "This apartment currently has no active contracts.",
-      "noUnavailableContracts": "This apartment currently has no unavailable contracts (cancelled or expired).",
+      "noExpiredContracts": "This apartment currently has no expired contracts.",
       "selectToView": "Select a building and a apartment to view contracts.",
       "noAttachments": "This contract has no attachments yet. You can upload files here."
     },
     "tabs": {
       "active": "Active Contracts",
-      "unavailable": "Unavailable Contracts"
-    },
-    "status": {
-      "active": "Active",
-      "activeDefault": "Active (default)",
-      "expired": "Expired",
-      "cancelled": "Cancelled",
-      "inactive": "Inactive",
-      "unknown": "Unknown"
+      "expired": "Expired Contracts"
     },
     "labels": {
       "endDatePreview": "End date: {date} (end of month)"
@@ -2236,8 +2204,7 @@
       "purchaseDateInvalid": "Purchase date must follow YYYY-MM-DD format.",
       "purchaseDateAfterStartDate": "Purchase date must be greater than or equal to start date.",
       "dateFormat": "Date must follow dd/mm/yyyy format.",
-      "filesRequired": "Please upload at least one attachment file.",
-      "metersRequiredForRental": "Rental contracts require meters for: {services}. Please create meters before creating the contract."
+      "filesRequired": "Please upload at least one attachment file."
     },
     "errors": {
       "loadBuildings": "Unable to load building list.",
@@ -2290,60 +2257,9 @@
     "rentCalculation": {
       "fullMonth": "First month (day {day} ≤ 15): full month charge",
       "halfMonth": "First month (day {day} > 15): half month charge",
-      "formula": "Formula: Remaining days < 15 = half month, >= 15 = full month",
       "breakdown": "Calculation breakdown:",
       "fullMonths": "{count} full months",
-      "startMonthDays": "Start month: {days} days",
-      "endMonthDays": "End month: {days} days",
-      "fullMonthLabel": "full month",
-      "halfMonthLabel": "half month",
-      "startMonth": "Start month",
-      "endMonth": "End month",
-      "days": "days",
-      "remaining": "remaining"
-    },
-    "paymentTerms": {
-      "auto": "Auto",
-      "autoGenerateTooltip": "Auto-generate payment terms based on rental period",
-      "monthlyPayment": "Monthly payment from {start} to {end} ({months} months)",
-      "oneTimePayment": "One-time payment from {start} to {end}",
-      "placeholderExample": "E.g. Monthly payment from {start} to {end}",
-      "months": "months"
-    },
-    "assetWarning": {
-      "checking": "Checking equipment...",
-      "missingTypes": "This apartment is missing {count} types of equipment",
-      "missingList": "Apartment is missing: {list}",
-      "createMissing": "Create {count} missing equipment",
-      "allComplete": "Apartment has all required equipment",
-      "types": {
-        "AIR_CONDITIONER": "Air conditioner",
-        "KITCHEN": "Kitchen",
-        "WATER_HEATER": "Water heater",
-        "FURNITURE": "Interior furniture",
-        "OTHER": "Other"
-      }
-    },
-    "meterWarning": {
-      "checking": "Checking meters...",
-      "missingTypes": "This apartment is missing {count} meters",
-      "missingList": "Apartment is missing meters: {list}",
-      "createMissing": "Create {count} missing meters",
-      "allComplete": "Apartment has all required meters",
-      "confirmTitle": "Confirm automatic meter creation",
-      "confirmWarning": "⚠️ Warning: You are about to automatically create meters for this apartment",
-      "unit": "Apartment",
-      "count": "Number of meters",
-      "meter": "meter(s)",
-      "willCreate": "Meters to be created",
-      "installDate": "Installation date",
-      "today": "today",
-      "confirmMessage": "The system will automatically create meters with default code and installation date for this apartment.",
-      "cancel": "Cancel",
-      "creating": "Creating...",
-      "confirmCreate": "Confirm create {count} meters",
-      "requiredForRental": "REQUIRED: Missing {count} meters for rental contract",
-      "rentalRequirement": "⚠️ Rental contracts require electricity and water meters. Please create meters before continuing."
+      "formula": "Formula: Remaining days < 15 = half month, ≥ 15 = full month"
     },
     "unitLabel": {
       "floor": "Floor"
@@ -2386,8 +2302,7 @@
       "unknownService": "Unknown service"
     },
     "errors": {
-      "onlyCurrentMonth": "Only current month cycles can have their status changed",
-      "alreadyInProgress": "Cycle is already in progress"
+      "onlyCurrentMonth": "Only current month cycles can have their status changed"
     },
     "messages": {
       "loadError": "Failed to load reading cycles",
@@ -2414,33 +2329,40 @@
     "assignmentManagement": "Assignment Management",
     "filterByStatus": "Filter by status:",
     "all": "All",
-    "selectOtherService": "← Select other service",
+    "selectOtherService": "← Select another service",
     "restrictedCyclesMessage": "Only create assignments in {month}; other cycles are for reference only.",
     "loading": "Loading...",
     "noCyclesFound": "No reading cycles found",
     "service": "Service",
-    "serviceUnknown": "Service unknown",
+    "serviceUnknown": "Unknown service",
     "serviceCode": "Service code:",
-    "cycles": "cycle(s)",
-    "cycleRestrictedMessage": "Cycle {month} can only be assigned in {month}.",
-    "cycleNotInProgress": "Cycle has not been set to IN_PROGRESS status, so assignments cannot be created.",
+    "servicePrefix": "Service:",
+    "codePrefix": "Code:",
+    "cycles": "cycles",
+    "cycleRestrictedMessage": "Cycle {month} can only be assigned during {month}.",
+    "cycleNotInProgress": "Cycle has not moved to IN_PROGRESS status yet, cannot assign.",
     "unassigned": "Unassigned",
-    "unitsUnassigned": "{count} unit(s) not assigned.",
+    "unitsUnassigned": "{count} units not assigned yet.",
     "close": "Close",
-    "noData": "No detailed data available.",
-    "buildingUnknown": "Building unknown",
+    "noData": "No detailed data.",
+    "buildingUnknown": "Unknown building",
     "createAssignmentForBuilding": "Create assignment for this building",
-    "cycleNotOpen": "Cycle not open",
+    "cycleNotOpen": "Cycle not open yet",
     "noBuildingId": "No building ID",
     "floor": "Floor",
     "floorLabel": "Floor {floor}:",
+    "addAssignmentForCycle": "Add assignment for this cycle",
+    "assignmentsCount": "{count} assignment",
+    "assignmentsCountPlural": "{count} assignments",
+    "viewCycle": "View Cycle",
+    "noAssignmentsYet": "No assignments yet for this cycle",
     "confirmDeleteAssignment": "Are you sure you want to delete this assignment? This action cannot be undone.",
     "confirmCompleteAssignment": "Mark this assignment as completed?",
     "confirmCompleteCycle": "Mark this reading cycle as completed?",
     "assignmentDeleted": "Assignment deleted successfully",
     "assignmentCompleted": "Assignment marked as completed.",
     "cycleCompleted": "Reading cycle marked as completed.",
-    "cycleMarkedCompleted": "Cycle marked as completed. Proceeding with invoice export.",
+    "cycleMarkedCompleted": "Cycle marked as completed. Proceeding to export invoices.",
     "allAssignmentsMustComplete": "All assignments in this cycle must be completed before exporting invoices.",
     "exportedInvoices": "Exported {invoicesCreated} invoices from {totalReadings} readings.",
     "failedToLoadCycles": "Failed to load cycles",
@@ -2450,8 +2372,8 @@
     "failedToUpdateStatus": "Failed to update cycle status.",
     "failedToExport": "Failed to export invoices. Please try again.",
     "unableToLocateCycle": "Unable to locate cycle in current view. Please refresh the page.",
-    "onlyCurrentMonthAllowed": "Only assignments for the current month are allowed",
-    "monthUnknown": "month unknown",
+    "onlyCurrentMonthAllowed": "Only cycles in current month can be assigned",
+    "monthUnknown": "unknown month",
     "services": {
       "water": "Water",
       "waterDescription": "Manage water cycle assignments: check readings, assign technicians and export invoices.",
@@ -2708,25 +2630,6 @@
       "unpaid": "Unpaid",
       "paymentPending": "Payment Pending",
       "paid": "Paid"
-    },
-    "statusLabels": {
-      "pending": "Pending",
-      "readyForPayment": "Ready for Payment",
-      "paymentPending": "Payment Pending",
-      "approved": "Approved",
-      "completed": "Completed",
-      "rejected": "Rejected",
-      "cancelled": "Cancelled"
-    },
-    "paymentStatusLabels": {
-      "unpaid": "Unpaid",
-      "paymentPending": "Payment Pending",
-      "paymentApproval": "Awaiting Approval",
-      "paid": "Paid"
-    },
-    "requestTypes": {
-      "newCard": "New Card",
-      "renewal": "Renewal"
     },
     "table": {
       "resident": "Resident",
@@ -3211,23 +3114,18 @@
         "specialChars": "Phone number cannot contain special characters.",
         "mustStartWithZero": "Phone number must start with 0.",
         "mustBe10Digits": "Phone number must be exactly 10 digits.",
-        "invalidPrefix": "Phone number is invalid. Please check the prefix.",
-        "exists": "Phone number already exists in the system.",
-        "checkError": "Unable to check phone number. Please try again."
+        "invalidPrefix": "Phone number is invalid. Please check the prefix."
       },
       "fullName": {
         "required": "Resident full name cannot be empty.",
-        "minLength": "Full name must be at least 2 characters.",
         "maxLength": "Full name cannot exceed 40 characters.",
-        "specialChars": "Full name cannot contain special characters.",
-        "consecutiveSpaces": "Full name cannot have multiple consecutive spaces."
+        "specialChars": "Full name cannot contain special characters."
       },
       "nationalId": {
         "required": "ID card/Citizen ID cannot be empty.",
         "specialChars": "ID card/Citizen ID cannot contain special characters.",
         "mustBe13Digits": "ID card/Citizen ID must be exactly 12 digits.",
-        "exists": "Citizen ID number already exists in the system.",
-        "checkError": "Unable to check citizen ID number. Please try again."
+        "exists": "Citizen ID number already exists in the system."
       },
       "username": {
         "noWhitespace": "Username cannot contain whitespace.",
@@ -3245,13 +3143,7 @@
         "noWhitespace": "Email cannot contain whitespace characters.",
         "maxLength": "Email cannot exceed 40 characters.",
         "invalid": "Email is invalid.",
-        "exists": "Email already exists in the system.",
-        "missingAt": "Email must contain the @ symbol.",
-        "multipleAt": "Email must contain exactly 1 @ symbol.",
-        "mustEndWithCom": "Email must end with .com. Example: user@example.com",
-        "invalidLocalPart": "The part before @ can only contain letters (a-z, A-Z), numbers (0-9) and characters: . _ % + -",
-        "invalidDomain": "The domain part can only contain letters (a-z, A-Z), numbers (0-9) and characters: . -",
-        "invalidFormat": "Email format is invalid. Email must end with .com. Example: user@example.com"
+        "exists": "Email already exists in the system."
       },
       "building": {
         "required": "Please select a building."
@@ -3782,32 +3674,28 @@
     "forgotPassword": {
       "title": "Forgot Password",
       "heading": "Forgot Password",
-      "description": "Enter your email to receive a new OTP code",
+      "description": "Enter your email to receive a new password",
       "emailLabel": "Email",
       "emailPlaceholder": "you@example.com",
       "logoAlt": "Qhome Base Logo",
       "copyright": "© {year} Qhome Base. All rights reserved.",
       "buttons": {
-        "submit": "Send New OTP",
+        "submit": "Send New Password",
         "processing": "Processing..."
       },
-      "submit": "Send OTP Code",
-      "submitting": "Sending...",
       "backToLogin": "Back to login",
       "validation": {
         "emailRequired": "Email cannot be empty",
         "emailInvalid": "Email format is incorrect"
       },
       "messages": {
-        "otpSent": "Password reset email has been sent. Please check your inbox.",
-        "success": "Password reset email has been sent. Please check your inbox.",
-        "checkEmail": "We've sent an OTP code to {email}. Please check your inbox.",
-        "redirecting": "Redirecting..."
+        "otpSent": "If the email exists in the system, an OTP code has been sent to your email. Please check your inbox.",
+        "success": "If the email exists in the system, an OTP code has been sent to your email. Please check your inbox."
       },
       "errors": {
         "general": "An error occurred. Please try again.",
         "emailRequired": "Email cannot be empty",
-        "emailInvalid": "Email must end with @gmail.com. Example: user@gmail.com",
+        "emailInvalid": "Email format is invalid",
         "tooManyRequests": "You have requested too many times. Please wait a moment before trying again.",
         "invalidEmail": "Invalid email.",
         "networkError": "Unable to connect to server. Please check if the backend is running.",
@@ -3822,15 +3710,14 @@
       "newPasswordPlaceholder": "Enter new password",
       "confirmPasswordLabel": "Confirm Password",
       "confirmPasswordPlaceholder": "Re-enter new password",
-      "passwordHint": "Password must be at least 8 characters and contain at least 1 special character (@$!%*?&)",
+      "passwordHint": "Password must be at least 6 characters",
       "submit": "Reset Password",
       "submitting": "Processing...",
       "backToLogin": "Back to login",
       "errors": {
         "invalidInfo": "Invalid information. Please return to the forgot password page.",
         "passwordRequired": "Password cannot be empty",
-        "passwordMinLength": "Password must be at least 8 characters",
-        "passwordSpecialChar": "Password must contain at least 1 special character (@$!%*?&)",
+        "passwordMinLength": "Password must be at least 6 characters",
         "passwordMaxLength": "Password cannot exceed 100 characters",
         "passwordMismatch": "Password confirmation does not match",
         "invalidOtp": "Invalid or expired OTP code. Please try again from the beginning.",
@@ -4218,7 +4105,6 @@
       "editTitle": "Edit tier",
       "tierOrder": "Tier order *",
       "minQuantity": "Min quantity (kWh/m³)",
-      "minQuantityAutoGenerated": "Auto-calculated from last tier",
       "maxQuantity": "Max quantity (kWh/m³)",
       "unitPrice": "Apartment price (VND/kWh or VND/m³) *",
       "effectiveFrom": "Effective from *",
@@ -4230,8 +4116,7 @@
       "effectiveUntilHint": "Leave empty if no expiry",
       "descriptionPlaceholder": "Tier description (optional)",
       "tierOrderAutoGenerated": "Tier order is automatically generated",
-      "tierOrderReadOnly": "Tier order cannot be changed",
-      "unitPriceMinHint": "Minimum price: {minPrice} VNĐ (must be greater than last tier's price: {lastPrice} VNĐ)"
+      "tierOrderReadOnly": "Tier order cannot be changed"
     },
     "table": {
       "tier": "Tier",
@@ -4250,7 +4135,6 @@
       "minQuantityNonNegative": "Min quantity must be >= 0",
       "maxQuantityGreater": "Max quantity must be > min quantity",
       "unitPricePositive": "Apartment price must be > 0",
-      "unitPriceMustBeGreater": "Unit price must be greater than {minPrice} VNĐ (last tier's price)",
       "effectiveFromRequired": "Effective from date is required",
       "effectiveUntilAfterFrom": "Effective until must be >= effective from"
     },
@@ -4261,13 +4145,13 @@
       "missingFinalTierDescription": "The system requires at least one final tier with maxQuantity = null (unlimited) to cover all remaining cases.",
       "missingFinalTierExample": "Example: Final tier could be \"≥ 50 kWh\" or \"≥ 50 m³\" with maxQuantity left empty.",
       "overlappingDescription": "The following tiers have overlapping ranges:",
-      "overlappingRange": "{tier1} and {tier2} overlap from {from} to {to} {unit}",
-      "overlappingRangeFrom": "{tier1} and {tier2} overlap from {from} onwards {unit}",
-      "overlappingRangeAt": "{tier1} and {tier2} overlap at {from} {unit}",
+      "overlappingRange": "{tier1} and {tier2} overlap from {from} to {to} {apartment}",
+      "overlappingRangeFrom": "{tier1} and {tier2} overlap from {from} onwards {apartment}",
+      "overlappingRangeAt": "{tier1} and {tier2} overlap at {from} {apartment}",
       "overlappingAdjust": "Please adjust min/max of tiers to avoid overlap.",
       "gapsDescription": "The following ranges are not covered by any tier:",
-      "gapFromTo": "From {from} to {to} {unit}",
-      "gapFromUp": "From {from} onwards {unit} - Need final tier (maxQuantity = null)",
+      "gapFromTo": "From {from} to {to} {apartment}",
+      "gapFromUp": "From {from} onwards {apartment} - Need final tier (maxQuantity = null)",
       "gapsAdjust": "Please add tiers to cover these ranges or adjust max of previous tier."
     },
     "common": {
@@ -4363,8 +4247,7 @@
       "draft": "Draft",
       "published": "Published",
       "paid": "Paid",
-      "void": "Void",
-      "unpaid": "Unpaid"
+      "void": "Void"
     },
     "loading": "Loading...",
     "errors": {
@@ -4529,189 +4412,16 @@
     }
   },
   "RentalReview": {
-    "title": "Rental Contract Review",
-    "subtitle": "Manage and review all rental contracts in the system",
-    "statistics": {
-      "totalContracts": "Total contracts",
-      "expiringContracts": "Expiring contracts",
-      "expiringDays": "≤ 30 days remaining",
-      "needingInspection": "Need asset inspection",
-      "needingInspectionDesc": "Expired/cancelled contracts not inspected"
-    },
-    "filters": {
-      "building": "Building",
-      "unit": "Apartment",
-      "status": "Status",
-      "search": "Search",
-      "allBuildings": "All buildings",
-      "allUnits": "All apartments",
-      "allStatus": "All",
-      "active": "Active",
-      "expiring": "Expiring (≤30 days)",
-      "expired": "Expired",
-      "cancelled": "Cancelled",
-      "notInspected": "Not inspected",
-      "searchPlaceholder": "Contract number, apartment code..."
-    },
-    "table": {
-      "contractNumber": "Contract number",
-      "building": "Building",
-      "unit": "Apartment",
-      "startDate": "Start date",
-      "endDate": "End date",
-      "monthlyRent": "Monthly rent",
-      "inspectionDate": "Inspection date",
-      "status": "Status",
-      "actions": "Actions",
-      "contractList": "Contract list",
-      "refresh": "🔄 Refresh",
-      "viewDetail": "View details",
-      "inspectAssets": "Inspect assets",
-      "loading": "Loading...",
-      "noContracts": "No rental contracts yet",
-      "noResults": "No contracts found matching the filters"
-    },
-    "status": {
-      "cancelled": "Cancelled",
-      "inactive": "Inactive",
-      "expired": "Expired",
-      "invalid": "Invalid",
-      "active": "Active",
-      "expiring": "Expiring (in {days} days)"
-    },
-    "detailModal": {
-      "title": "Contract details",
-      "close": "Close",
-      "loading": "Loading...",
-      "contractNumber": "Contract number",
-      "contractType": "Contract type",
-      "rental": "Rental",
-      "purchase": "Purchase",
-      "startDate": "Start date",
-      "endDate": "End date",
-      "monthlyRent": "Monthly rent",
-      "paymentMethod": "Payment method",
-      "status": "Status",
-      "paymentTerms": "Payment terms",
-      "notes": "Notes",
-      "attachments": "Attachments",
-      "file": "File",
-      "view": "View",
-      "notFound": "Contract not found. The contract may have been deleted or does not exist.",
-      "goToCreate": "Go to contract creation page"
-    },
-    "inspectionModal": {
-      "title": "Asset inspection when contract expires",
-      "close": "Close",
-      "loading": "Loading...",
-      "expiredContract": "Contract has expired",
-      "assignTechnician": "Need to assign a technician to inspect assets",
-      "selectTechnician": "Please select a technician from the list to assign the asset inspection task for this contract.",
-      "selectTechnicianLabel": "Select technician",
-      "required": "*",
-      "loadingTechnicians": "Loading technician list...",
-      "noTechnicians": "No technicians in the system",
-      "noTechniciansDesc": "Please create a technician account (role: TECHNICIAN) before assigning asset inspection.",
-      "selectPlaceholder": "-- Select technician (required) --",
-      "assigning": "Assigning...",
-      "assign": "Assign asset inspection",
-      "inspectionDate": "Inspection date",
-      "status": "Status",
-      "inspector": "Inspector",
-      "pending": "Pending",
-      "inProgress": "In progress",
-      "completed": "Completed",
-      "cancelled": "Cancelled",
-      "startInspection": "Start inspection",
-      "equipmentList": "Equipment to inspect",
-      "noEquipment": "No equipment in checklist",
-      "inspectionNotes": "Inspection notes",
-      "notesPlaceholder": "Enter notes about equipment condition...",
-      "completeInspection": "Complete inspection",
-      "results": "Inspection results",
-      "meterReadings": "Meter readings (electricity & water)",
-      "loadingMeters": "Loading meters...",
-      "readingDate": "Reading date",
-      "activeCycle": "Reading cycle",
-      "noAssignment": "⚠️ No assignment for this cycle. Meter readings will not be saved to the reading cycle.",
-      "currentIndex": "Current index",
-      "indexPlaceholder": "Enter meter reading",
-      "note": "Note",
-      "notePlaceholder": "Note (optional)",
-      "adminNote": "Note",
-      "adminNoteDesc": "You only need to assign a technician. The technician will perform equipment inspection and meter readings after being assigned.",
-      "lastReading": "Last reading",
-      "noMeters": "This apartment has no electricity/water meters.",
-      "condition": {
-        "good": "Good",
-        "damaged": "Damaged",
-        "missing": "Missing",
-        "repaired": "Repaired",
-        "replaced": "Replaced",
-        "notInspected": "Not inspected"
-      },
-      "item": {
-        "condition": "Condition",
-        "selectCondition": "Select condition",
-        "notes": "Notes",
-        "notesPlaceholder": "Notes about equipment condition...",
-        "save": "Save",
-        "inspected": "Inspected"
-      }
-    },
-    "errors": {
-      "loadData": "Failed to load data",
-      "loadBuildings": "Failed to load building list",
-      "loadUnits": "Failed to load apartment list",
-      "loadContracts": "Failed to load contract list",
-      "loadDetail": "Failed to load contract details",
-      "loadTechnicians": "Failed to load technician list",
-      "createInspection": "Failed to create asset inspection checklist",
-      "startInspection": "Failed to start inspection",
-      "updateItem": "Failed to update",
-      "completeInspection": "Failed to complete inspection",
-      "selectTechnician": "Please select a technician to assign asset inspection",
-      "technicianNotFound": "Selected technician information not found. Please select again.",
-      "notTechnician": "Selected person is not a technician. Please select another technician.",
-      "noTechnicians": "No technicians in the system. Please create a technician account first."
-    },
     "success": {
-      "assignInspection": "Assigned asset inspection to technician {name}",
-      "startInspection": "Started asset inspection",
-      "completeInspection": "Completed asset inspection"
-    },
-    "notification": {
-      "title": "Asset inspection needed",
-      "message": "There are {count} apartments that need asset inspection after contract expiration or cancellation."
+      "assignInspection": "Assigned inspection to technician {name}",
+      "reassignInspection": "Reassigned inspection to technician {name}",
+      "startInspection": "Started inspection",
+      "completeInspection": "Completed inspection",
+      "createInspectionWithReadings": "Created inspection with {readingCount} meter readings",
+      "completeInspectionWithReadings": "Completed inspection with {readingCount} meter readings"
     }
   },
   "TechnicianInspections": {
-    "title": "My Inspection Assignments",
-    "subtitle": "List of equipment inspection tasks assigned to you",
-    "loading": "Loading...",
-    "sections": {
-      "pending": "Pending",
-      "inProgress": "In Progress",
-      "completed": "Completed"
-    },
-    "table": {
-      "unitCode": "Unit Code",
-      "inspectionDate": "Inspection Date",
-      "status": "Status",
-      "completedAt": "Completed At",
-      "actions": "Actions",
-      "view": "View",
-      "continue": "Continue"
-    },
-    "status": {
-      "pending": "Pending",
-      "inProgress": "In Progress",
-      "completed": "Completed",
-      "cancelled": "Cancelled"
-    },
-    "empty": {
-      "noInspections": "You have no inspection assignments."
-    },
     "modal": {
       "title": "Inspection Details",
       "unitCode": "Unit Code",
@@ -4800,19 +4510,11 @@
     },
     "warnings": {
       "itemsNotReady": "Equipment list is being created. Please click \"Refresh\" in a few seconds.",
-      "invoiceGenerationFailed": "Completed inspection but failed to automatically generate invoice"
+      "invoiceGenerationFailed": "Completed inspection but failed to automatically generate invoice",
+      "cannotStartBeforeDate": "Cannot start inspection yet. Scheduled inspection date: {date}"
     },
     "errors": {
-      "loadFailed": "Failed to load assignments",
-      "startFailed": "Failed to start inspection",
-      "updateFailed": "Failed to update",
-      "refreshFailed": "Failed to refresh equipment list",
-      "completeFailed": "Failed to complete inspection",
-      "someReadingsFailed": "Completed inspection but {count} meter readings failed",
-      "itemsMissingStatus": "Please update status for all equipment before completing inspection!",
-      "itemsInvalidCost": "Please enter damage cost > 0 for {count} equipment with non-good status!",
-      "metersMissingReading": "Please enter meter reading for {count} meters: {meters}!",
-      "metersInvalidReading": "Meter reading must be > 0 for {count} meters: {meters}!"
+      "cannotStartBeforeDate": "Cannot start inspection yet. Scheduled inspection date: {date}"
     }
   }
 }

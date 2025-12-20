@@ -21,6 +21,10 @@ export default function NotificationList() {
     
     // Check if user is supporter (only show EXTERNAL items)
     const isSupporter = hasRole('SUPPORTER');
+    // Check if user is technician (view only, no edit/delete)
+    const isTechnician = hasRole('TECHNICIAN') || hasRole('technician') || hasRole('ROLE_TECHNICIAN') || hasRole('ROLE_technician');
+    // Check if user is accountant (view only, no edit/delete)
+    const isAccountant = hasRole('ACCOUNTANT') || hasRole('accountant') || hasRole('ROLE_ACCOUNTANT') || hasRole('ROLE_accountant');
     
     const [selectedType, setSelectedType] = useState<NotificationType | ''>('');
     const [pageNo, setPageNo] = useState<number>(0);
@@ -34,8 +38,13 @@ export default function NotificationList() {
 
     // Filter and sort notifications by createdAt desc (newest first)
     // Supporter can only see EXTERNAL notifications
+    // Technician and Accountant can only see notifications with matching targetRole (or 'ALL')
     const orderedNotifications = useMemo(() => {
         if (!notificationList || notificationList.length === 0) return [];
+        
+        // Get current user roles for filtering
+        const userRoles = user?.roles?.map(r => r.toUpperCase()) || [];
+        const isAdmin = userRoles.includes('ADMIN');
         
         // Filter by scope if supporter
         let filtered = notificationList;
@@ -43,12 +52,30 @@ export default function NotificationList() {
             filtered = notificationList.filter(n => n.scope === 'EXTERNAL');
         }
         
+        // Filter by targetRole: if notification has targetRole, only show if user has that role or is admin
+        // This ensures Technician and Accountant only see notifications targeted to their role (or 'ALL')
+        filtered = filtered.filter(n => {
+            // If notification has no targetRole or targetRole is 'ALL', show to everyone
+            if (!n.targetRole || n.targetRole === 'ALL') {
+                return true;
+            }
+            
+            // Admin can see all notifications
+            if (isAdmin) {
+                return true;
+            }
+            
+            // Check if user has the target role (applies to Technician, Accountant, and other roles)
+            const targetRoleUpper = n.targetRole.toUpperCase();
+            return userRoles.includes(targetRoleUpper);
+        });
+        
         return filtered.slice().sort((a, b) => {
             const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             return tb - ta; // Descending order (newest first)
         });
-    }, [notificationList, isSupporter]);
+    }, [notificationList, isSupporter, isTechnician, isAccountant, user?.roles]);
 
     // Paginate the sorted notifications
     const paginatedNotifications = useMemo(() => {
@@ -75,6 +102,11 @@ export default function NotificationList() {
     };
 
     const handleEdit = (id: string) => {
+        router.push(`/customer-interaction/notiDetail/${id}`);
+    };
+
+    // For technician: view only (same route but detail page should handle read-only)
+    const handleView = (id: string) => {
         router.push(`/customer-interaction/notiDetail/${id}`);
     };
 
@@ -237,12 +269,14 @@ export default function NotificationList() {
                         <h1 className="text-2xl font-semibold text-[#02542D]">
                             {t('listTitle')}
                         </h1>
-                        <button
-                            onClick={handleAdd}
-                            className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md font-semibold"
-                        >
-                            {t('addNotification')}
-                        </button>
+                        {!isTechnician && !isAccountant && (
+                            <button
+                                onClick={handleAdd}
+                                className="px-6 py-2 bg-[#02542D] text-white rounded-lg hover:bg-opacity-80 transition shadow-md font-semibold"
+                            >
+                                {t('addNotification')}
+                            </button>
+                        )}
                     </div>
                     
                     {/* Filter Section */}
@@ -295,9 +329,9 @@ export default function NotificationList() {
                             data={tableData}
                             headers={headers}
                             type="notification"
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            onNotificationChangeScope={handleOpenChangeScope}
+                            onEdit={(isTechnician || isAccountant) ? handleView : handleEdit}
+                            onDelete={(!isTechnician && !isAccountant) ? handleDelete : undefined}
+                            onNotificationChangeScope={(!isTechnician && !isAccountant) ? handleOpenChangeScope : undefined}
                         />
                         <Pagination
                             currentPage={pageNo + 1}
