@@ -71,6 +71,18 @@ export async function updateService(
   return response.data as Service;
 }
 
+export async function updateServiceStatus(
+  id: string,
+  active: boolean,
+): Promise<Service> {
+  const response = await axios.patch(
+    `${BASE_URL}/api/asset-maintenance/services/${id}/status?active=${active}`,
+    null,
+    withCredentials,
+  );
+  return response.data as Service;
+}
+
 export async function getServiceCategories(): Promise<ServiceCategory[]> {
   const response = await axios.get(
     `${BASE_URL}/api/asset-maintenance/service-categories`,

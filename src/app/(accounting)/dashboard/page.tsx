@@ -150,6 +150,7 @@ export default function DashboardPage() {
           units: unitCount,
           residents: residentCount,
           invoices: invoiceCount,
+          tasks: 0
         });
       } catch (error) {
         console.error('Failed to fetch dashboard statistics:', error);

@@ -191,6 +191,11 @@ export default function ReadingCyclesPage() {
       show(t('errors.alreadyInProgress') || 'Already in progress', 'error');
       return;
     }
+
+    if(cycle.status === 'COMPLETED' || cycle.status === 'CLOSED') {
+      show(t('errors.cannotChangeFromCompletedOrClosed') || 'Cannot change status from Completed or Closed', 'error');
+      return;
+    } 
     setCycleForStatusChange(cycle);
     setIsStatusChangeOpen(true);
   };
@@ -347,10 +352,10 @@ export default function ReadingCyclesPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex gap-2 justify-center">
-                        {isCurrentMonth(cycle) && cycle.status !== 'IN_PROGRESS' ? (
+                        {isCurrentMonth(cycle) && cycle.status !== 'IN_PROGRESS' || cycle.status !== 'COMPLETED' || cycle.status !== 'CLOSED' ? (
                           <button
                             onClick={() => handleOpenStatusChange(cycle)}
-                            className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm border border-gray-300"
+                            className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md hover:bg-gray-300 text-sm border border-gray-300"
                             title={t('actions.changeStatus')}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Transfer-3-Fill--Streamline-Mingcute-Fill" height="16" width="16">
@@ -363,7 +368,7 @@ export default function ReadingCyclesPage() {
                         ) : (
                           <button
                             disabled
-                            className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md cursor-not-allowed text-sm border border-gray-200"
+                            className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md cursor-not-allowed text-sm border border-gray-200"
                             title={cycle.status === 'IN_PROGRESS' ? t('errors.alreadyInProgress') || 'Already in progress' : t('errors.onlyCurrentMonth')}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Transfer-3-Fill--Streamline-Mingcute-Fill" height="16" width="16">

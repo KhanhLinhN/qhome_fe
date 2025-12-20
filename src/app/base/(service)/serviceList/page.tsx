@@ -1,12 +1,15 @@
 'use client'
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import FilterForm from '@/src/components/base-service/FilterForm';
 import Table from '@/src/components/base-service/Table';
 import Pagination from '@/src/components/customer-interaction/Pagination';
+import PopupConfirm from '@/src/components/common/PopupComfirm';
 import { useServicePage } from '@/src/hooks/useServicePage';
+import { updateServiceStatus } from '@/src/services/asset-maintenance/serviceService';
+import { useNotifications } from '@/src/hooks/useNotifications';
 
 const formatDate = (value?: string) => {
   if (!value) return '-';
@@ -20,14 +23,18 @@ const formatDate = (value?: string) => {
 export default function ServiceListPage() {
   const t = useTranslations('Service');
   const router = useRouter();
+  const { show } = useNotifications();
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const headers = useMemo(
     () => [
       t('code'),
       t('name'),
       t('category'),
-      t('pricingType'),
-      t('status'),
+      // t('pricingType'),
+      // t('status'),
       t('createdAt'),
       t('action'),
     ],
@@ -45,25 +52,54 @@ export default function ServiceListPage() {
     handleFilterChange,
     handleClear,
     handlePageChange,
+    refetch,
   } = useServicePage();
 
   const tableData = useMemo(
     () =>
-      data.content.map((service) => ({
-        serviceId: service.id,
-        serviceCode: service.code,
-        serviceName: service.name,
-        categoryName: service.category?.name ?? '-',
-        pricingType: t(`pricing.${service.pricingType?.toLowerCase() ?? 'unknown'}`),
-        bookingType: t(`booking.${service.bookingType?.toLowerCase() ?? 'unknown'}`),
-        isActive: service.isActive ?? false,
-        createdAt: formatDate(service.createdAt),
-      })),
+      data.content
+        .filter((service) => service.isActive === true)
+        .map((service) => ({
+          serviceId: service.id,
+          serviceCode: service.code,
+          serviceName: service.name,
+          categoryName: service.category?.name ?? '-',
+          pricingType: t(`pricing.${service.pricingType?.toLowerCase() ?? 'unknown'}`),
+          bookingType: t(`booking.${service.bookingType?.toLowerCase() ?? 'unknown'}`),
+          isActive: service.isActive ?? false,
+          createdAt: formatDate(service.createdAt),
+        })),
     [data, t],
   );
 
   const handleAdd = () => {
     router.push('/base/serviceNew');
+  };
+
+  const handleDelete = (serviceId: string) => {
+    setPendingDeleteId(serviceId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    
+    if (isDeleting === pendingDeleteId) return;
+    
+    setIsDeleting(pendingDeleteId);
+    try {
+      // Gọi API để thay đổi status thành inactive (soft delete)
+      await updateServiceStatus(pendingDeleteId, false);
+      show(t('deleteSuccess') || 'Service đã được vô hiệu hóa thành công', 'success');
+      await refetch();
+    } catch (error) {
+      console.error('Failed to delete service:', error);
+      show(t('deleteError') || 'Có lỗi xảy ra khi vô hiệu hóa service', 'error');
+    } finally {
+      setIsDeleting(null);
+      setShowDeleteConfirm(false);
+      setPendingDeleteId(null);
+    }
   };
 
   if (loading) {
@@ -113,6 +149,7 @@ export default function ServiceListPage() {
             data={tableData}
             headers={headers}
             type="service"
+            onDelete={handleDelete}
           />
           <Pagination
             currentPage={pageNo + 1}
@@ -121,6 +158,17 @@ export default function ServiceListPage() {
           />
         </div>
       </div>
+      <PopupConfirm
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setPendingDeleteId(null);
+        }}
+        onConfirm={confirmDelete}
+        popupTitle={t('confirmDeleteTitle')}
+        popupContext={t('confirmDeleteMessage')}
+        isDanger={true}
+      />
     </div>
   );
 }

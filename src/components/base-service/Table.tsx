@@ -275,10 +275,7 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold">
                                             {item.categoryName || '-'}
                                         </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold">
-                                            {item.pricingType || '-'}
-                                        </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                                        {/* <td className="px-4 py-3 whitespace-nowrap text-center">
                                             <span
                                                 className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                                                     item.isActive
@@ -288,7 +285,7 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                             >
                                                 {item.isActive ? tService('active') : tService('inactive')}
                                             </span>
-                                        </td>
+                                        </td> */}
                                         <td className="px-4 py-3 whitespace-nowrap text-[14px] text-center text-[#024023] font-semibold">
                                             {item.createdAt || '-'}
                                         </td>
