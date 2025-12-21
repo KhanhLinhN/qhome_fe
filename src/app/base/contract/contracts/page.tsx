@@ -127,7 +127,7 @@ export default function ContractManagementPage() {
     return isNaN(num) ? null : num;
   };
 
-  // Calculate rent breakdown (first month days, full months, last month days)
+  // Calculate rent breakdown (simplified: just number of months)
   const calculateRentBreakdown = (startDate: string | null, endDate: string | null) => {
     if (!startDate || !endDate) {
       return null;
@@ -146,68 +146,14 @@ export default function ContractManagementPage() {
 
       const startYear = start.getFullYear();
       const startMonth = start.getMonth();
-      
       const endYear = end.getFullYear();
       const endMonth = end.getMonth();
-
-      // Helper function to get days in a month
-      const getDaysInMonth = (year: number, month: number): number => {
-        return new Date(year, month + 1, 0).getDate();
-      };
-
-      // Helper function to calculate days between two dates (inclusive)
-      const daysBetween = (date1: Date, date2: Date): number => {
-        return Math.floor((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      };
-
-      let firstMonthDays = 0;
-      let firstMonthTotalDays = 0;
-      let fullMonths = 0;
-      let lastMonthDays = 0;
-      let lastMonthTotalDays = 0;
-
-      // Check if start and end are in the same month
-      if (startYear === endYear && startMonth === endMonth) {
-        // Same month: only first month period
-        firstMonthTotalDays = getDaysInMonth(startYear, startMonth);
-        firstMonthDays = daysBetween(start, end);
-      } else {
-        // Different months: calculate first month, middle months, and last month
-        
-        // 1. First month
-        firstMonthTotalDays = getDaysInMonth(startYear, startMonth);
-        const endOfFirstMonth = new Date(startYear, startMonth, firstMonthTotalDays);
-        endOfFirstMonth.setHours(0, 0, 0, 0);
-        firstMonthDays = daysBetween(start, endOfFirstMonth);
-        
-        // 2. Middle months (full months)
-        const firstDayOfSecondMonth = new Date(startYear, startMonth + 1, 1);
-        firstDayOfSecondMonth.setHours(0, 0, 0, 0);
-        const firstDayOfLastMonth = new Date(endYear, endMonth, 1);
-        firstDayOfLastMonth.setHours(0, 0, 0, 0);
-        
-        if (firstDayOfSecondMonth < firstDayOfLastMonth) {
-          let currentMonth = new Date(firstDayOfSecondMonth);
-          
-          while (currentMonth < firstDayOfLastMonth) {
-            fullMonths++;
-            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-          }
-        }
-        
-        // 3. Last month
-        lastMonthTotalDays = getDaysInMonth(endYear, endMonth);
-        const firstDayOfLastMonthActual = new Date(endYear, endMonth, 1);
-        firstDayOfLastMonthActual.setHours(0, 0, 0, 0);
-        lastMonthDays = daysBetween(firstDayOfLastMonthActual, end);
-      }
+      
+      // Calculate number of months (since endDate has same day as startDate, this is straightforward)
+      const months = (endYear - startYear) * 12 + (endMonth - startMonth);
 
       return {
-        firstMonthDays,
-        firstMonthTotalDays,
-        fullMonths,
-        lastMonthDays,
-        lastMonthTotalDays,
+        months,
       };
     } catch (error) {
       return null;
@@ -231,74 +177,20 @@ export default function ContractManagementPage() {
       start.setHours(0, 0, 0, 0);
       end.setHours(0, 0, 0, 0);
 
+      // Since endDate always has the same day as startDate, we can simply calculate months
+      // Calculate the difference in months
       const startYear = start.getFullYear();
       const startMonth = start.getMonth();
-      const startDay = start.getDate();
-      
       const endYear = end.getFullYear();
       const endMonth = end.getMonth();
-      const endDay = end.getDate();
+      
+      // Calculate number of months
+      const months = (endYear - startYear) * 12 + (endMonth - startMonth);
+      
+      // Total rent = number of months * monthly rent
+      const totalRent = months * monthlyRent;
 
-      let totalRent = 0;
-
-      // Helper function to get days in a month
-      const getDaysInMonth = (year: number, month: number): number => {
-        return new Date(year, month + 1, 0).getDate();
-      };
-
-      // Helper function to calculate days between two dates (inclusive)
-      const daysBetween = (date1: Date, date2: Date): number => {
-        return Math.floor((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      };
-
-      // Check if start and end are in the same month
-      if (startYear === endYear && startMonth === endMonth) {
-        // Same month: calculate pro-rated for the period
-        const daysInMonth = getDaysInMonth(startYear, startMonth);
-        const actualDays = daysBetween(start, end);
-        const dailyRate = monthlyRent / daysInMonth;
-        totalRent = dailyRate * actualDays;
-      } else {
-        // Different months: calculate first month, middle months, and last month
-        
-        // 1. Calculate first month (from startDate to end of first month)
-        const daysInFirstMonth = getDaysInMonth(startYear, startMonth);
-        const endOfFirstMonth = new Date(startYear, startMonth, daysInFirstMonth);
-        endOfFirstMonth.setHours(0, 0, 0, 0);
-        const daysInFirstPeriod = daysBetween(start, endOfFirstMonth);
-        const dailyRateFirstMonth = monthlyRent / daysInFirstMonth;
-        const firstMonthRent = dailyRateFirstMonth * daysInFirstPeriod;
-        totalRent += firstMonthRent;
-        
-        // 2. Calculate middle months (full months between first and last month)
-        const firstDayOfSecondMonth = new Date(startYear, startMonth + 1, 1);
-        firstDayOfSecondMonth.setHours(0, 0, 0, 0);
-        const firstDayOfLastMonth = new Date(endYear, endMonth, 1);
-        firstDayOfLastMonth.setHours(0, 0, 0, 0);
-        
-        if (firstDayOfSecondMonth < firstDayOfLastMonth) {
-          let currentMonth = new Date(firstDayOfSecondMonth);
-          let monthCount = 0;
-          
-          while (currentMonth < firstDayOfLastMonth) {
-            monthCount++;
-            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-          }
-          
-          totalRent += monthlyRent * monthCount;
-        }
-        
-        // 3. Calculate last month (from first day of last month to endDate)
-        const daysInLastMonth = getDaysInMonth(endYear, endMonth);
-        const firstDayOfLastMonthActual = new Date(endYear, endMonth, 1);
-        firstDayOfLastMonthActual.setHours(0, 0, 0, 0);
-        const daysInLastPeriod = daysBetween(firstDayOfLastMonthActual, end);
-        const dailyRateLastMonth = monthlyRent / daysInLastMonth;
-        const lastMonthRent = dailyRateLastMonth * daysInLastPeriod;
-        totalRent += lastMonthRent;
-      }
-
-      return Math.round(totalRent);
+      return totalRent;
     } catch (error) {
       return null;
     }
@@ -343,6 +235,23 @@ export default function ContractManagementPage() {
     status: 'ACTIVE',
   });
 
+  // State for end month selection (month-year format: YYYY-MM)
+  const [endMonth, setEndMonth] = useState<string>('');
+  
+  // Calculate min date for month input (format: YYYY-MM)
+  const minMonthValue = useMemo(() => {
+    if (!formState.startDate) return '';
+    try {
+      const start = new Date(formState.startDate);
+      if (isNaN(start.getTime())) return '';
+      const year = start.getFullYear();
+      const month = (start.getMonth() + 1).toString().padStart(2, '0');
+      return `${year}-${month}`;
+    } catch {
+      return '';
+    }
+  }, [formState.startDate]);
+
   const calculatedTotalRent = useMemo(() => {
     if (formState.contractType === 'RENTAL') {
       return calculateTotalRent(formState.startDate || null, formState.endDate || null, formState.monthlyRent ?? null);
@@ -356,6 +265,50 @@ export default function ContractManagementPage() {
     }
     return null;
   }, [formState.contractType, formState.startDate, formState.endDate]);
+
+  // Get start date day (to enforce same day for end date)
+  const startDateDay = useMemo(() => {
+    if (!formState.startDate) return null;
+    try {
+      const start = new Date(formState.startDate);
+      if (isNaN(start.getTime())) return null;
+      return start.getDate(); // Get day of month (1-31)
+    } catch {
+      return null;
+    }
+  }, [formState.startDate]);
+
+  // Auto-update endDate when endMonth or startDateDay changes
+  useEffect(() => {
+    if (endMonth && startDateDay !== null && formState.contractType === 'RENTAL') {
+      // endMonth is in format YYYY-MM
+      const [year, month] = endMonth.split('-');
+      if (!year || !month) return; // Safety check
+      
+      const monthIndex = parseInt(month) - 1; // JavaScript months are 0-indexed
+      
+      // Create date with the same day as startDate
+      // If the day doesn't exist in the target month, use the last day of that month
+      const tempDate = new Date(parseInt(year), monthIndex + 1, 0); // Last day of target month
+      const maxDayInMonth = tempDate.getDate();
+      const targetDay = Math.min(startDateDay, maxDayInMonth);
+      
+      // Format as YYYY-MM-DD
+      const formattedEndDate = `${year}-${month}-${targetDay.toString().padStart(2, '0')}`;
+      
+      // Update endDate (setFormState will prevent unnecessary updates if value is the same)
+      setFormState(prev => {
+        // Only update if different to avoid unnecessary re-renders
+        if (prev.endDate !== formattedEndDate) {
+          return { ...prev, endDate: formattedEndDate };
+        }
+        return prev;
+      });
+    } else if (!endMonth && formState.endDate && formState.contractType === 'RENTAL') {
+      // Clear endDate if endMonth is cleared
+      setFormState(prev => ({ ...prev, endDate: '' }));
+    }
+  }, [endMonth, startDateDay, formState.contractType]); // Don't include formState.endDate to avoid loop
 
   const clearFieldErrors = (...fields: (keyof CreateContractPayload)[]) => {
     setFormErrors((prev) => {
@@ -432,6 +385,11 @@ export default function ContractManagementPage() {
               newErrors.startDate = t('validation.startDateAfterExpired') || `Ngày bắt đầu phải sau ngày kết thúc của hợp đồng cũ (${referenceEndDateStr})`;
             } else {
               delete newErrors.startDate;
+              // Reset endMonth and endDate when startDate changes (will be recalculated)
+              if (state.contractType === 'RENTAL') {
+                setEndMonth('');
+                setFormState(prev => ({ ...prev, endDate: '' }));
+              }
             }
           } else {
             // Check if startDate > today (must be greater than today, not equal)
@@ -441,6 +399,11 @@ export default function ContractManagementPage() {
               newErrors.startDate = t('validation.startDateInFuture');
             } else {
               delete newErrors.startDate;
+              // Reset endMonth and endDate when startDate changes (will be recalculated)
+              if (state.contractType === 'RENTAL') {
+                setEndMonth('');
+                setFormState(prev => ({ ...prev, endDate: '' }));
+              }
             }
           }
         } else {
@@ -459,19 +422,29 @@ export default function ContractManagementPage() {
             const endDate = new Date(value);
             endDate.setHours(0, 0, 0, 0);
             
-            // First check: endDate must be after startDate
-            // if (endDate <= startDate) {
-            //   newErrors.endDate = t('validation.endDateAfterStartDate');
-            // } else {
-            //   // Second check: endDate must be at least 1 month after startDate
-            //   const oneMonthLater = new Date(startDate);
-            //   oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-            //   if (endDate <= oneMonthLater) {
-            //     newErrors.endDate = t('validation.endDateMinDiff');
-            //   } else {
-            //     delete newErrors.endDate;
-            //   }
-            // }
+            // Check: endDate must be after startDate
+            if (endDate <= startDate) {
+              newErrors.endDate = t('validation.endDateAfterStartDate') || 'Ngày kết thúc phải sau ngày bắt đầu';
+            } else {
+              // Check: endDate must have the same day as startDate
+              const startDay = startDate.getDate();
+              const endDay = endDate.getDate();
+              if (startDay !== endDay) {
+                newErrors.endDate = `Ngày kết thúc phải là ngày ${startDay} (cùng ngày với ngày bắt đầu)`;
+              } else {
+                // Check: minimum 3 months requirement
+                const startYear = startDate.getFullYear();
+                const startMonth = startDate.getMonth();
+                const endYear = endDate.getFullYear();
+                const endMonth = endDate.getMonth();
+                const months = (endYear - startYear) * 12 + (endMonth - startMonth);
+                if (months < 3) {
+                  newErrors.endDate = 'Hợp đồng thuê phải tối thiểu 3 tháng';
+                } else {
+                  delete newErrors.endDate;
+                }
+              }
+            }
           } else {
             delete newErrors.endDate;
           }
@@ -964,6 +937,7 @@ export default function ContractManagementPage() {
       notes: '',
       status: 'ACTIVE',
     });
+    setEndMonth('');
     setCreateError(null);
     setCreateFiles(null);
     setFormErrors({});
@@ -1143,11 +1117,21 @@ export default function ContractManagementPage() {
         if (endDate <= startDate) {
           errors.endDate = t('validation.endDateAfterStartDate') || 'Ngày kết thúc phải sau ngày bắt đầu';
         } else {
-          // Second check: endDate must be at least 1 month after startDate
-          const oneMonthLater = new Date(startDate);
-          oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-          if (endDate <= oneMonthLater) {
-            errors.endDate = t('validation.endDateMinDiff');
+          // Check: endDate must have the same day as startDate
+          const startDay = startDate.getDate();
+          const endDay = endDate.getDate();
+          if (startDay !== endDay) {
+            errors.endDate = `Ngày kết thúc phải là ngày ${startDay} (cùng ngày với ngày bắt đầu)`;
+          } else {
+            // Check: minimum 3 months requirement
+            const startYear = startDate.getFullYear();
+            const startMonth = startDate.getMonth();
+            const endYear = endDate.getFullYear();
+            const endMonth = endDate.getMonth();
+            const months = (endYear - startYear) * 12 + (endMonth - startMonth);
+            if (months < 3) {
+              errors.endDate = 'Hợp đồng thuê phải tối thiểu 3 tháng';
+            }
           }
         }
       }
@@ -2103,7 +2087,7 @@ export default function ContractManagementPage() {
                     <label className="text-sm font-medium text-[#02542D]">{t('fields.contractType')}</label>
                     <select
                       value={formState.contractType ?? 'RENTAL'}
-                      onChange={(event) => {
+                        onChange={(event) => {
                         const nextType = event.target.value as CreateContractPayload['contractType'];
                         setFormState((prev) => ({
                           ...prev,
@@ -2116,6 +2100,7 @@ export default function ContractManagementPage() {
                           paymentTerms: nextType === 'PURCHASE' ? '' : prev.paymentTerms,
                         }));
                         if (nextType === 'PURCHASE') {
+                          setEndMonth('');
                           clearFieldErrors('endDate', 'monthlyRent', 'paymentMethod', 'paymentTerms');
                         } else {
                           clearFieldErrors('purchasePrice', 'purchaseDate');
@@ -2153,15 +2138,28 @@ export default function ContractManagementPage() {
                   </div>
                   {formState.contractType !== 'PURCHASE' && (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-[#02542D]">{t('fields.endDate')}</label>
-                      <DateBox
-                        value={formState.endDate ?? ''}
-                        onChange={(event) =>
-                          setFieldValue('endDate', event.target.value ? event.target.value : null)
-                        }
-                        placeholderText={t('placeholders.ddmmyyyy') || 'Chọn ngày kết thúc'}
-                        min={formState.startDate || undefined}
-                      />
+                      <label className="text-sm font-medium text-[#02542D]">
+                        {t('fields.endDate')}
+                        {startDateDay !== null && (
+                          <span className="text-xs text-gray-500 ml-2">
+                            (Ngày {startDateDay} của tháng kết thúc)
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="month"
+                          value={endMonth}
+                          onChange={(event) => {
+                            setEndMonth(event.target.value);
+                          }}
+                          min={minMonthValue}
+                          disabled={!formState.startDate}
+                          required={formState.contractType === 'RENTAL'}
+                          className="w-full rounded-lg border-2 border-gray-200 px-4 py-3 text-base text-[#02542D] shadow-sm focus:border-[#14AE5C] focus:outline-none focus:ring-2 focus:ring-[#C7E8D2] disabled:bg-gray-100 disabled:cursor-not-allowed cursor-pointer hover:border-gray-300 transition-colors"
+                          style={{ minHeight: '44px' }}
+                        />
+                      </div>
                       {formErrors.endDate && (
                         <span className="mt-1 text-xs text-red-500">{formErrors.endDate}</span>
                       )}
@@ -2222,7 +2220,7 @@ export default function ContractManagementPage() {
                           <p className="mb-1">
                             <span className="font-medium text-[#02542D]">{t('detailLabels.totalRent')}</span>{' '}
                             <span className="text-lg font-semibold text-[#14AE5C]">
-                              {calculatedTotalRent.toLocaleString('vi-VN')} đ
+                              {calculatedTotalRent ? Math.round(calculatedTotalRent).toLocaleString('vi-VN') : '0'} đ
                             </span>
                           </p>
                           {formState.startDate && formState.endDate && rentBreakdown && (
@@ -2233,40 +2231,15 @@ export default function ContractManagementPage() {
                                 }) || 'Chi tiết tính toán:'}
                               </p>
                               <ul className="list-disc list-inside space-y-0.5 ml-2">
-                                {rentBreakdown.firstMonthDays > 0 && (
-                                  <li>
-                                    <span className="text-gray-600">
-                                      Tháng đầu: {rentBreakdown.firstMonthDays} ngày trong {rentBreakdown.firstMonthTotalDays} ngày
-                                    </span>
-                                    {' = '}
-                                    <span className="text-blue-600 font-medium">
-                                      {((formState.monthlyRent ?? 0) / rentBreakdown.firstMonthTotalDays * rentBreakdown.firstMonthDays).toLocaleString('vi-VN')} đ
-                                    </span>
-                                  </li>
-                                )}
-                                {rentBreakdown.fullMonths > 0 && (
-                                  <li>
-                                    {t('rentCalculation.fullMonths', { 
-                                      count: rentBreakdown.fullMonths,
-                                      defaultValue: `${rentBreakdown.fullMonths} tháng đầy đủ` 
-                                    }) || `${rentBreakdown.fullMonths} tháng đầy đủ`}
-                                    {' = '}
-                                    <span className="text-green-600 font-medium">
-                                      {((formState.monthlyRent ?? 0) * rentBreakdown.fullMonths).toLocaleString('vi-VN')} đ
-                                    </span>
-                                  </li>
-                                )}
-                                {rentBreakdown.lastMonthDays > 0 && (
-                                  <li>
-                                    <span className="text-gray-600">
-                                      Tháng cuối: {rentBreakdown.lastMonthDays} ngày trong {rentBreakdown.lastMonthTotalDays} ngày
-                                    </span>
-                                    {' = '}
-                                    <span className="text-purple-600 font-medium">
-                                      {((formState.monthlyRent ?? 0) / rentBreakdown.lastMonthTotalDays * rentBreakdown.lastMonthDays).toLocaleString('vi-VN')} đ
-                                    </span>
-                                  </li>
-                                )}
+                                <li>
+                                  <span className="text-gray-600">
+                                    {rentBreakdown.months} {rentBreakdown.months === 1 ? 'tháng' : 'tháng'}
+                                  </span>
+                                  {' = '}
+                                  <span className="text-green-600 font-medium">
+                                    {((formState.monthlyRent ?? 0) * rentBreakdown.months).toLocaleString('vi-VN')} đ
+                                  </span>
+                                </li>
                               </ul>
                             </div>
                           )}

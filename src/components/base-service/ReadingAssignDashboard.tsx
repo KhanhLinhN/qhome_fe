@@ -1024,7 +1024,8 @@ export default function ReadingAssignDashboard({
                     let assignmentBlockedReason: string | undefined;
                     if (!isCycleCurrentMonth(cycle)) {
                       assignmentBlockedReason = t('cycleRestrictedMessage', { month: cycleMonthLabel });
-                    } else if (cycle.status !== 'IN_PROGRESS') {
+                    } else if (cycle.status === 'OPEN') {
+                      // Only show message for OPEN status, not for COMPLETED or CLOSED
                       assignmentBlockedReason = t('cycleNotInProgress');
                     }
                     return (
