@@ -8,6 +8,7 @@ import {
 } from '@/src/components/base-service/ServiceFormControls';
 import { createServiceOption, updateServiceOption, checkOptionCodeExistsGlobally, getService, getServiceOption } from '@/src/services/asset-maintenance/serviceService';
 import { CreateServiceOptionPayload, UpdateServiceOptionPayload } from '@/src/types/service';
+import { formatCurrency, parseCurrency } from '@/src/utils/formatCurrency';
 
 function OptionForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFormProps) {
   const [formData, setFormData] = useState({
@@ -411,11 +412,13 @@ function OptionForm({ serviceId, editId, onSuccess, onCancel, t, show }: BaseFor
         <DetailField
           label={`${t('Service.optionPrice')} *`}
           name="price"
-          value={formData.price}
-          onChange={(event) => handleChange('price', event.target.value)}
+          value={formatCurrency(formData.price)}
+          onChange={(event) => {
+            const parsed = parseCurrency(event.target.value);
+            handleChange('price', parsed);
+          }}
           readonly={false}
           error={errors.price}
-          inputType="number"
         />
         <DetailField
           label={`${t('Service.optionUnit')} *`}

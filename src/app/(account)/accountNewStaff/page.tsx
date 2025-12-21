@@ -114,7 +114,6 @@ export default function AccountNewStaffPage() {
               setUsernameError(t('validation.username.exists'));
             }
           } catch (err: any) {
-            // Nếu có lỗi khi check (network, etc.), không hiển thị lỗi
             console.error('Error checking username:', err);
           }
         }

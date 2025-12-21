@@ -40,7 +40,9 @@
     "validation": {
       "code": "Mã danh mục là bắt buộc",
       "name": "Tên danh mục là bắt buộc",
-      "error": "Vui lòng kiểm tra lại các trường bắt buộc"
+      "error": "Vui lòng kiểm tra lại các trường bắt buộc",
+      "nameNoSpecialChars": "Tên danh mục không được chứa ký tự đặc biệt",
+      "nameMax40": "Tên danh mục không được vượt quá 40 ký tự"
     },
     "errors": {
       "fetchServicesFailed": "Không thể tải danh sách dịch vụ."
@@ -1052,10 +1054,8 @@
   "editBuildingReturn": "Quay lại danh sách tòa nhà",
   "editBuildingDetail": "Quay lại chi tiết tòa nhà",
   "editBuildingDelete": "Xóa tòa nhà",
-  "city": "Thành phố",
-  "district": "Quận/Huyện",
-  "ward": "Phường/Xã",
-  "street": "Đường",
+  "confirmDeleteBuildingTitle": "Xác nhận xóa tòa nhà",
+  "confirmDeleteBuildingMessage": "Bạn có chắc chắn muốn xóa tòa nhà này? Hành động này không thể hoàn tác.",
   "roadOptional": "Đường (tùy chọn)",
   "addressDetail": "Chi tiết địa chỉ",
   "roadHelper": "Vui lòng nhập tên đường nếu có",
@@ -1100,6 +1100,10 @@
   "Service": {
     "listTitle": "Danh sách dịch vụ",
     "filterBy": "Lọc theo",
+    "deleteSuccess": "Xóa dịch vụ thành công",
+    "deleteError": "Có lỗi xảy ra khi xóa dịch vụ",
+    "confirmDeleteTitle": "Xác nhận xóa",
+    "confirmDeleteMessage": "Bạn có chắc chắn muốn xóa dịch vụ này không? Hành động này sẽ đặt trạng thái dịch vụ thành không hoạt động.",
     "searchPlaceholder": "Mã/Tên dịch vụ",
     "categoryAll": "Tất cả danh mục",
     "categoryPlaceholder": "Chọn danh mục",
@@ -1223,6 +1227,11 @@
     "noTickets": "Chưa có vé dịch vụ",
     "invalidType": "Thiếu hoặc sai tham số. Vui lòng quay lại trang chi tiết dịch vụ và thử lại.",
     "ticketTypeLabel": "Loại vé",
+    "editComboTitle": "Chỉnh sửa gói dịch vụ",
+    "editOptionTitle": "Chỉnh sửa tùy chọn",
+    "editOptionGroupTitle": "Chỉnh sửa nhóm tùy chọn",
+    "editTicketTitle": "Chỉnh sửa vé dịch vụ",
+    "cannotChangeRequiredOptionStatus": "Không thể thay đổi trạng thái của tùy chọn bắt buộc",
     "messages": {
       "createSuccess": "Tạo dịch vụ thành công",
       "createError": "Có lỗi xảy ra khi tạo dịch vụ",
@@ -1246,7 +1255,15 @@
       "optionGroupEdit": "Chức năng chỉnh sửa nhóm tùy chọn đang được phát triển.",
       "optionGroupDelete": "Chức năng xóa nhóm tùy chọn đang được phát triển.",
       "ticketEdit": "Chức năng chỉnh sửa vé đang được phát triển.",
-      "ticketDelete": "Chức năng xóa vé đang được phát triển."
+      "ticketDelete": "Chức năng xóa vé đang được phát triển.",
+      "optionStatusUpdated": "Trạng thái tùy chọn đã được cập nhật.",
+      "updateComboSuccess": "Cập nhật gói dịch vụ thành công.",
+      "updateComboError": "Có lỗi xảy ra khi cập nhật gói dịch vụ.",
+      "updateOptionSuccess": "Cập nhật tùy chọn thành công.",
+      "updateOptionError": "Có lỗi xảy ra khi cập nhật tùy chọn.",
+      "ticketStatusUpdated": "Trạng thái vé đã được cập nhật.",
+      "updateTicketSuccess": "Cập nhật vé dịch vụ thành công.",
+      "updateTicketError": "Có lỗi xảy ra khi cập nhật vé dịch vụ."
     },
     "ticketType": {
       "day": "Ban ngày",
@@ -1300,7 +1317,12 @@
       "availabilityStart": "Vui lòng nhập giờ bắt đầu.",
       "availabilityEnd": "Vui lòng nhập giờ kết thúc.",
       "availabilityRange": "Giờ kết thúc phải sau giờ bắt đầu.",
-      "availabilityInvalid": "Vui lòng kiểm tra lại các khung giờ hoạt động."
+      "availabilityInvalid": "Vui lòng kiểm tra lại các khung giờ hoạt động.",
+      "minDurationHours": "Thời lượng tối thiểu phải lớn hơn 0",
+      "maxCapacityPositive": "Sức chứa tối đa phải lớn hơn 0",
+      "ticketMaxPeopleMax": "Số người tối đa phải nhỏ hơn số người tối đa của dịch vụ",
+      "ticketDurationMin": "Thời lượng phải lớn hơn số giờ tối thiểu của dịch vụ",
+      "ticketDurationNotNull": "Thời lượng không được để trống"
     },
     "pricing": {
       "hourly": "Giá theo giờ",
@@ -1327,6 +1349,10 @@
     "confirmTicketStatusChange": "Xác nhận thay đổi trạng thái vé",
     "confirmOptionStatusChange": "Xác nhận thay đổi trạng thái tùy chọn",
     "confirmComboStatusChange": "Xác nhận thay đổi trạng thái gói dịch vụ",
+    "confirmDeleteOptionTitle": "Xác nhận xóa tùy chọn",
+    "confirmDeleteOptionMessage": "Bạn có chắc chắn muốn xóa tùy chọn này? Hành động này không thể hoàn tác.",
+    "confirmDeleteTicketTitle": "Xác nhận xóa vé",
+    "confirmDeleteTicketMessage": "Bạn có chắc chắn muốn xóa vé này? Hành động này không thể hoàn tác.",
     "comboItemName": "Tên mục trong gói",
     "minutes": "phút",
     "editCombo": "Chỉnh sửa gói",
@@ -2146,6 +2172,13 @@
   "Contracts": {
     "title": "Quản lý hợp đồng căn hộ",
     "subtitle": "Tạo mới và theo dõi các hợp đồng thuê/mua của từng căn hộ trong dự án.",
+    "asset":{
+      "airConditioner": "Điều hòa",
+      "kitchen": "Bếp",
+      "waterHeater": "Bình nóng lạnh",
+      "furniture": "Nội thất",
+      "other": "Khác"
+    },
     "buttons": {
       "addContract": "+ Thêm hợp đồng",
       "cancel": "Hủy",
@@ -2290,7 +2323,9 @@
       "purchaseDateAfterStartDate": "Ngày mua phải lớn hơn hoặc bằng ngày bắt đầu.",
       "dateFormat": "Ngày phải theo định dạng dd/mm/yyyy.",
       "filesRequired": "Vui lòng tải lên ít nhất 1 tệp đính kèm.",
-      "metersRequiredForRental": "Hợp đồng cho thuê yêu cầu phải có đồng hồ đo cho: {services}. Vui lòng tạo đồng hồ đo trước khi tạo hợp đồng."
+      "metersRequiredForRental": "Hợp đồng cho thuê yêu cầu phải có đồng hồ đo cho: {services}. Vui lòng tạo đồng hồ đo trước khi tạo hợp đồng.",
+      "assetsRecommendedForRental": "Đề xuất: Hợp đồng cho thuê nên có các thiết bị sau cho căn hộ: {assets}. Vui lòng tạo thiết bị trước khi tạo hợp đồng.",
+      "onlyImagesAllowed": "Chỉ cho phép tải lên các tệp hình ảnh (JPEG, PNG)."
     },
     "errors": {
       "loadBuildings": "Không thể tải danh sách tòa nhà.",
@@ -2440,7 +2475,8 @@
     },
     "errors": {
       "onlyCurrentMonth": "Chỉ có thể đổi trạng thái cycle cùng tháng hiện tại",
-      "alreadyInProgress": "Chu kỳ đọc đã ở trạng thái Đang thực hiện"
+      "alreadyInProgress": "Chu kỳ đọc đã ở trạng thái Đang thực hiện",
+      "cannotChangeFromCompletedOrClosed": "Không thể đổi trạng thái từ Hoàn thành hoặc Đóng"
     },
     "messages": {
       "loadError": "Không thể tải chu kỳ đọc",

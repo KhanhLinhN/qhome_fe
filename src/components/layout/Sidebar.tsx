@@ -7,7 +7,7 @@ import {useAuth} from "@/src/contexts/AuthContext";
 import {useTranslations} from "next-intl";
 import DropdownArrow from "@/src/assets/DropdownArrow.svg";
 
-type SidebarVariant = "admin" | "tenant-owner" | "technician" | "support" | "accountant";
+type SidebarVariant = "admin" | "tenant-owner" | "technician" | "supporter" | "accountant";
 
 type NavItem = {
   href: string;
@@ -28,15 +28,6 @@ const adminSections: NavSection[] = [
       {href: "/dashboard", labelKey: "dashboard", icon: "📊"},
     ],
   },
-  // {
-  //   titleKey: "systemAdmin",
-  //   items: [
-  //     {href: "/roles", labelKey: "permissions", icon: "🛡️"},
-  //     {href: "/tenants", labelKey: "tenant", icon: "🏢"},
-  //     {href: "/tenant-deletions", labelKey: "tenantDeletionRequests", icon: "🗑️"},
-  //     {href: "/users/permissions", labelKey: "userPermissions", icon: "⚙️"},
-  //   ],
-  // },
   {
     titleKey: "accounts",
     items: [
@@ -74,16 +65,13 @@ const adminSections: NavSection[] = [
     items: [
       {href: "/base/serviceCateList", labelKey: "serviceCategories", icon: "🗂️"},
       {href: "/base/serviceList", labelKey: "serviceList", icon: "🧾"},
-      {href: "/base/serviceNew", labelKey: "createService", icon: "➕"},
-      // {href: "/base/serviceType", labelKey: "serviceType", icon: "📂"},
-      // {href: "/base/serviceRequest", labelKey: "serviceRequests", icon: "📬"},
+      {href: "/base/serviceNew", labelKey: "createService", icon: "➕"}
     ],
   },
   {
     titleKey: "waterElectric",
     items: [
       {href: "/base/readingCycles", labelKey: "readingCycles", icon: "📈"},
-      // {href: "/base/readingSessions", labelKey: "readingSessions", icon: "🧮"},
       {href: "/base/readingAssign", labelKey: "assignReading", icon: "📝"},
       {href: "/base/billingCycles", labelKey: "billingCycles", icon: "💡"},
       {href: "/base/finance/invoices", labelKey: "incomeExpenseManagement", icon: "💰"},
@@ -111,7 +99,6 @@ const accounttantSections: NavSection[] = [
     titleKey: "waterElectric",
     items: [
       {href: "/base/readingCycles", labelKey: "readingCycles", icon: "📈"},
-      // {href: "/base/readingAssign", labelKey: "assignReading", icon: "📝"},
       {href: "/base/billingCycles", labelKey: "billingCycles", icon: "💡"},
       {href: "/base/finance/invoices", labelKey: "incomeExpenseManagement", icon: "💰"},
       {href: "/base/finance/pricing-tiers", labelKey: "pricingTiersManagement", icon: "📊"},
@@ -138,7 +125,6 @@ const supportSections: NavSection[] = [
     items: [
       {href: "/customer-interaction/new/newList", labelKey: "news", icon: "📰"},
       {href: "/customer-interaction/notiList", labelKey: "notifications", icon: "🔔"},
-      // {href: "/customer-interaction/request", labelKey: "supportRequests", icon: "📨"},
     ],
   },
 ];
@@ -154,7 +140,6 @@ const technicianSections: NavSection[] = [
     titleKey: "services",
     items: [
       {href: "/base/asset-inspection-assignments", labelKey: "assetInspectionAssignments", icon: "🔍"},
-      // {href: "base/showAssign", labelKey: "taskList", icon: "🧾"},
     ],
   },
   {
@@ -192,7 +177,7 @@ const tenantOwnerSections: NavSection[] = [
 const menuConfig: Record<SidebarVariant, NavSection[]> = {
   admin: adminSections,
   technician: technicianSections,
-  support: supportSections,
+  supporter: supportSections,
   accountant: accounttantSections,
   "tenant-owner": tenantOwnerSections,
 };
@@ -214,8 +199,8 @@ export default function Sidebar({variant = "admin"}: SidebarProps) {
         ? "admin"
         : normalizedRoles.includes("technician")
           ? "technician"
-          : normalizedRoles.includes("support")
-          ? "support"
+          : normalizedRoles.includes("supporter")
+          ? "supporter"
           : normalizedRoles.includes("accountant")
             ? "accountant"
           : "admin"

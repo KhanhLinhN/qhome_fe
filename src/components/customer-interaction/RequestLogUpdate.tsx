@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/src/contexts/AuthContext';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
 import DateTimeBox from './DateTimeBox';
+import { formatCurrency, parseCurrency } from '@/src/utils/formatCurrency';
 
 export interface LogUpdateData {
     requestStatus: string;
@@ -16,6 +17,7 @@ interface RequestStatusAndResponseProps {
     initialStatusValue: string;
     preferredDatetime?: string;
     currentNote?: string;
+    initialFee?: number;
     onSave: (data: LogUpdateData) => void;
     onAcceptDeny?: (action: string, adminResponse: string | null, fee: number | null, note: string, preferredDatetime?: string) => Promise<void>;
     onAddProgressNote?: (note: string, cost?: number) => Promise<void>;
@@ -28,6 +30,7 @@ const RequestLogUpdate = ({
     initialStatusValue, 
     preferredDatetime,
     currentNote,
+    initialFee,
     onSave, 
     onAcceptDeny, 
     onAddProgressNote,
@@ -77,6 +80,16 @@ const RequestLogUpdate = ({
             setSelectedDatetime(`${year}-${month}-${day}T${hours}:${minutes}`);
         }
     }, [isNewStatus, preferredDatetime]);
+
+    // Initialize fee from initialFee if available
+    useEffect(() => {
+        if (isNewStatus && initialFee !== undefined && initialFee !== null) {
+            setAcceptFee(formatCurrency(initialFee));
+        }
+        if (isInProgressStatus && initialFee !== undefined && initialFee !== null) {
+            setRepairCost(formatCurrency(initialFee));
+        }
+    }, [isNewStatus, isInProgressStatus, initialFee]);
 
     // If not technician, don't show the form
     if (!isTechnician) {
@@ -210,14 +223,16 @@ const RequestLogUpdate = ({
                                 {t('fee')}
                             </h3>
                             <input
-                                type="number"
-                                min="0"
-                                step="0.01"
+                                type="text"
                                 value={acceptFee}
                                 onChange={(e) => {
-                                    setAcceptFee(e.target.value);
-                                    if (errors.acceptFee) {
-                                        setErrors(prev => ({ ...prev, acceptFee: undefined }));
+                                    const rawValue = parseCurrency(e.target.value);
+                                    // Only allow digits
+                                    if (rawValue === '' || /^\d+$/.test(rawValue)) {
+                                        setAcceptFee(formatCurrency(rawValue));
+                                        if (errors.acceptFee) {
+                                            setErrors(prev => ({ ...prev, acceptFee: undefined }));
+                                        }
                                     }
                                 }}
                                 className={`w-full p-3 border rounded-md focus:outline-none shadow-inner transition duration-150 ${
@@ -347,7 +362,8 @@ const RequestLogUpdate = ({
                                 if (!acceptFee.trim()) {
                                     newErrors.acceptFee = t('allFieldsRequired');
                                 } else {
-                                    const fee = parseFloat(acceptFee.trim());
+                                    const rawFee = parseCurrency(acceptFee);
+                                    const fee = parseFloat(rawFee);
                                     if (isNaN(fee) || fee < 0) {
                                         newErrors.acceptFee = t('invalidFee');
                                     }
@@ -393,7 +409,8 @@ const RequestLogUpdate = ({
                                 }
                                 
                                 // All validations passed
-                                const fee = parseFloat(acceptFee.trim());
+                                const rawFee = parseCurrency(acceptFee);
+                                const fee = parseFloat(rawFee);
                                 const datetimeForAPI = selectedDatetime ? formatDatetimeForAPI(selectedDatetime) : undefined;
                                 try {
                                     await onAcceptDeny('accept', adminResponse.trim(), fee, note.trim(), datetimeForAPI);
@@ -490,14 +507,16 @@ const RequestLogUpdate = ({
                             {t('cost') || 'Chi phí'}
                         </h3>
                         <input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                            type="text"
                             value={repairCost}
                             onChange={(e) => {
-                                setRepairCost(e.target.value);
-                                if (errors.acceptFee) {
-                                    setErrors(prev => ({ ...prev, acceptFee: undefined }));
+                                const rawValue = parseCurrency(e.target.value);
+                                // Only allow digits
+                                if (rawValue === '' || /^\d+$/.test(rawValue)) {
+                                    setRepairCost(formatCurrency(rawValue));
+                                    if (errors.acceptFee) {
+                                        setErrors(prev => ({ ...prev, acceptFee: undefined }));
+                                    }
                                 }
                             }}
                             className={`w-full p-3 border rounded-md focus:outline-none shadow-inner transition duration-150 ${
@@ -555,16 +574,14 @@ const RequestLogUpdate = ({
                                     return;
                                 }
 
-                                const cost = repairCost.trim() ? parseFloat(repairCost.trim()) : undefined;
+                                const rawCost = repairCost.trim() ? parseCurrency(repairCost) : '';
+                                const cost = rawCost ? parseFloat(rawCost) : undefined;
                                 if (cost !== undefined && (isNaN(cost) || cost < 0)) {
                                     setErrors({ acceptFee: t('invalidFee') || 'Chi phí không hợp lệ' });
                                     return;
                                 }
 
                                 try {
-                                    // Format note with timestamp (backend will append to progressNotes)
-                                    // Frontend only needs to send the new note content
-                                    // Backend will automatically format with timestamp and append to progressNotes
                                     await onAddProgressNote(note.trim(), cost);
                                     setNote('');
                                     setRepairCost('');
