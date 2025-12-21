@@ -1130,9 +1130,17 @@ export default function TechnicianInspectionAssignmentsPage() {
         inspectionToUse.totalDamageCost && inspectionToUse.totalDamageCost > 0
       ) && !inspectionToUse.invoiceId;
       
+      console.log('Checking if should generate invoice:', {
+        totalDamageCost: inspectionToUse.totalDamageCost,
+        invoiceId: inspectionToUse.invoiceId,
+        shouldGenerateInvoice,
+      });
+      
       if (shouldGenerateInvoice) {
         try {
+          console.log('Generating invoice for inspection:', inspectionToUse.id);
           finalInspection = await generateInvoice(inspectionToUse.id);
+          console.log('Invoice generated successfully:', finalInspection.invoiceId);
           
           // Reload one more time to get the invoiceId
           const finalReload = await getInspectionByContractId(selectedInspection.contractId);
@@ -1143,6 +1151,7 @@ export default function TechnicianInspectionAssignmentsPage() {
             try {
               await loadMainInvoice(finalReload.invoiceId);
             } catch (invoiceError: any) {
+              console.warn('Failed to load main invoice details:', invoiceError);
               // Silently fail - invoice was created successfully
             }
             
@@ -1150,20 +1159,37 @@ export default function TechnicianInspectionAssignmentsPage() {
             try {
               await updateInvoiceStatus(finalReload.invoiceId, 'PAID');
             } catch (statusError: any) {
+              console.warn('Failed to update invoice status to PAID:', statusError);
               // Silently fail - invoice was created successfully
             }
+          } else {
+            console.warn('Invoice was generated but invoiceId not found in reloaded inspection');
           }
           
           show(t('success.invoiceGenerated', { defaultValue: 'Đã tự động tạo hóa đơn cho thiệt hại thiết bị' }), 'success');
         } catch (invoiceError: any) {
           // Don't fail the whole operation if invoice generation fails
           console.error('Failed to generate invoice:', invoiceError);
-          show(
-            invoiceError?.response?.data?.message || 
-            t('warnings.invoiceGenerationFailed', { defaultValue: 'Đã hoàn thành kiểm tra nhưng không thể tạo hóa đơn tự động' }), 
-            'error'
-          );
+          console.error('Error details:', {
+            message: invoiceError?.message,
+            response: invoiceError?.response?.data,
+            status: invoiceError?.response?.status,
+          });
+          const errorMessage = invoiceError?.response?.data?.message || 
+            invoiceError?.message || 
+            t('warnings.invoiceGenerationFailed', { defaultValue: 'Đã hoàn thành kiểm tra nhưng không thể tạo hóa đơn tự động' });
+          show(errorMessage, 'error');
         }
+      } else {
+        console.log('Skipping invoice generation:', {
+          reason: !inspectionToUse.totalDamageCost || inspectionToUse.totalDamageCost <= 0 
+            ? 'No damage cost' 
+            : inspectionToUse.invoiceId 
+            ? 'Invoice already exists' 
+            : 'Unknown reason',
+          totalDamageCost: inspectionToUse.totalDamageCost,
+          invoiceId: inspectionToUse.invoiceId,
+        });
       }
       
       // Preserve calculatedPrices before setting selectedInspection to avoid reset

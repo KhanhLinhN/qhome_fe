@@ -541,3 +541,4 @@ function HouseholdDetails({ household, members }: { household: HouseholdDto; mem
     </div>
   );
 }
+

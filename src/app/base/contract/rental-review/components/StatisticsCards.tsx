@@ -90,3 +90,4 @@ export default function StatisticsCards({ contracts, contractsWithInspection }: 
 
 
 
+
