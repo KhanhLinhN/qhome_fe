@@ -372,9 +372,9 @@ export default function AddAssignmentPage() {
           }
           // Validate that endDate is not after cycle end date
           const endDateValue = parseDateOnly(fixedEndDate);
-          if (endDateValue > cycleEndDate) {
-            setEndDateError(t('errors.endDateAfterCycle'));
-            return;
+        if (endDateValue > cycleEndDate) {
+          setEndDateError(t('errors.endDateAfterCycle'));
+          return;
           }
         }
       }

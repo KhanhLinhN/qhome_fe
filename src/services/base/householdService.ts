@@ -72,6 +72,14 @@ export async function fetchHouseholdMembersByHousehold(householdId: string): Pro
   return response.data;
 }
 
+export async function fetchAllHouseholdMembersByHousehold(householdId: string): Promise<HouseholdMemberDto[]> {
+  const response = await axios.get<HouseholdMemberDto[]>(
+    `${BASE_URL}/api/household-members/households/${householdId}/all`,
+    { withCredentials: true },
+  );
+  return response.data;
+}
+
 export async function fetchHouseholdById(householdId: string): Promise<HouseholdDto> {
   const response = await axios.get<HouseholdDto>(
     `${BASE_URL}/api/households/${householdId}`,

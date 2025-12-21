@@ -126,25 +126,39 @@ export default function UnitListPage() {
       scopedUnits = scopedUnits.filter((unit) => unit.buildingId === selectedBuildingId);
     }
 
-    if (!unitQuery) {
-      return scopedUnits;
+    let filtered = scopedUnits;
+    if (unitQuery) {
+      filtered = scopedUnits.filter((unit) => {
+        const combined = [
+          unit.code,
+          unit.name,
+          unit.floor?.toString(),
+          unit.areaM2?.toString(),
+          unit.ownerName,
+          unit.ownerContact,
+          unit.buildingName,
+          unit.buildingCode,
+        ]
+          .map(normalizeText)
+          .join(' ');
+
+        return combined.includes(unitQuery);
+      });
     }
 
-    return scopedUnits.filter((unit) => {
-      const combined = [
-        unit.code,
-        unit.name,
-        unit.floor?.toString(),
-        unit.areaM2?.toString(),
-        unit.ownerName,
-        unit.ownerContact,
-        unit.buildingName,
-        unit.buildingCode,
-      ]
-        .map(normalizeText)
-        .join(' ');
-
-      return combined.includes(unitQuery);
+    // Sort units by building code first, then by unit code
+    return filtered.sort((a, b) => {
+      // First sort by building code
+      const buildingCodeA = normalizeText(a.buildingCode ?? '');
+      const buildingCodeB = normalizeText(b.buildingCode ?? '');
+      if (buildingCodeA !== buildingCodeB) {
+        return buildingCodeA.localeCompare(buildingCodeB, 'vi', { numeric: true, sensitivity: 'base' });
+      }
+      
+      // Then sort by unit code
+      const unitCodeA = normalizeText(a.code ?? '');
+      const unitCodeB = normalizeText(b.code ?? '');
+      return unitCodeA.localeCompare(unitCodeB, 'vi', { numeric: true, sensitivity: 'base' });
     });
   }, [
     selectedBuildingId,
@@ -394,9 +408,6 @@ export default function UnitListPage() {
                     {t('ownerName')}
                   </th> */}
                   <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
-                    Trạng thái kiểm tra thiết bị
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-600">
                     {t('action')}
                   </th>
                 </tr>
@@ -405,7 +416,7 @@ export default function UnitListPage() {
                 {unitsToDisplay.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={7}
                       className="px-4 py-6 text-center text-sm text-slate-500"
                     >
                       {t('noUnit')}
@@ -455,55 +466,6 @@ export default function UnitListPage() {
                             )}
                           </div>
                         </td> */}
-                        <td className="px-4 py-3">
-                          {(() => {
-                            const inspection = unitInspectionMap.get(unit.id);
-                            if (loadingInspections) {
-                              return <span className="text-xs text-slate-400">Đang tải...</span>;
-                            }
-                            if (!inspection) {
-                              return (
-                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
-                                  Chưa kiểm tra
-                                </span>
-                              );
-                            }
-                            const statusLabels: Record<InspectionStatus, { label: string; className: string }> = {
-                              [InspectionStatus.PENDING]: {
-                                label: 'Chờ kiểm tra',
-                                className: 'bg-blue-100 text-blue-800',
-                              },
-                              [InspectionStatus.IN_PROGRESS]: {
-                                label: 'Đang kiểm tra',
-                                className: 'bg-orange-100 text-orange-800',
-                              },
-                              [InspectionStatus.COMPLETED]: {
-                                label: 'Đã hoàn thành',
-                                className: 'bg-green-100 text-green-800',
-                              },
-                              [InspectionStatus.CANCELLED]: {
-                                label: 'Đã hủy',
-                                className: 'bg-red-100 text-red-800',
-                              },
-                            };
-                            const statusInfo = statusLabels[inspection.status] || {
-                              label: inspection.status,
-                              className: 'bg-gray-100 text-gray-800',
-                            };
-                            return (
-                              <div className="flex flex-col gap-1">
-                                <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded ${statusInfo.className}`}>
-                                  {statusInfo.label}
-                                </span>
-                                {inspection.inspectionDate && (
-                                  <span className="text-xs text-slate-500">
-                                    {new Date(inspection.inspectionDate).toLocaleDateString('vi-VN')}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             {unit.status === 'INACTIVE' || unit.status === 'Inactive' ? (

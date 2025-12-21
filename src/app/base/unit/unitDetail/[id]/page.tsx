@@ -130,6 +130,12 @@ export default function UnitDetail () {
 
                     <div className="flex space-x-2">
                         <button 
+                            className={`px-4 py-2 rounded-lg bg-blue-500 hover:bg-opacity-80 transition duration-150 text-white text-sm font-medium`}
+                            onClick={() => router.push(`/base/unit/unitHistory/${unitId}`)}
+                        >
+                            Lịch sử
+                        </button>
+                        <button 
                             className={`p-2 rounded-lg bg-[#739559] hover:bg-opacity-80 transition duration-150`}
                             onClick={() => router.push(`/base/unit/unitEdit/${unitId}`)}
                         >
