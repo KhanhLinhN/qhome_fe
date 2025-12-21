@@ -592,17 +592,42 @@ export default function InvoicesManagementPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {selectedInvoice.lines?.map((line) => (
-                      <tr key={line.id}>
-                        <td className="px-4 py-2 text-sm">
-                          {SERVICE_CODE_LABELS[line.serviceCode] || line.serviceCode}
-                        </td>
-                        <td className="px-4 py-2 text-sm">{line.description || '-'}</td>
-                        <td className="px-4 py-2 text-sm">{line.quantity} {line.unit}</td>
-                        <td className="px-4 py-2 text-sm">{formatCurrency(line.unitPrice || 0)}</td>
-                        <td className="px-4 py-2 text-sm font-medium">{formatCurrency(line.lineTotal || 0)}</td>
-                      </tr>
-                    ))}
+                    {(() => {
+                      // For invoices from asset inspection (has ASSET_DAMAGE service code),
+                      // only show WATER/ELECTRIC lines that have "Đo cùng với kiểm tra thiết bị" in description
+                      // This ensures we only display water/electric costs from the inspection, not from previous cycles
+                      const hasAssetDamage = selectedInvoice.lines?.some(line => line.serviceCode === 'ASSET_DAMAGE') || false;
+                      const inspectionMarker = 'Đo cùng với kiểm tra thiết bị';
+                      
+                      let linesToDisplay = selectedInvoice.lines || [];
+                      
+                      if (hasAssetDamage) {
+                        linesToDisplay = selectedInvoice.lines?.filter(line => {
+                          // Always include ASSET_DAMAGE lines
+                          if (line.serviceCode === 'ASSET_DAMAGE') {
+                            return true;
+                          }
+                          // For WATER/ELECTRIC, only include if description contains inspection marker
+                          if (line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC') {
+                            return line.description && line.description.includes(inspectionMarker);
+                          }
+                          // Include all other service codes
+                          return true;
+                        }) || [];
+                      }
+                      
+                      return linesToDisplay.map((line) => (
+                        <tr key={line.id}>
+                          <td className="px-4 py-2 text-sm">
+                            {SERVICE_CODE_LABELS[line.serviceCode] || line.serviceCode}
+                          </td>
+                          <td className="px-4 py-2 text-sm">{line.description || '-'}</td>
+                          <td className="px-4 py-2 text-sm">{line.quantity} {line.unit}</td>
+                          <td className="px-4 py-2 text-sm">{formatCurrency(line.unitPrice || 0)}</td>
+                          <td className="px-4 py-2 text-sm font-medium">{formatCurrency(line.lineTotal || 0)}</td>
+                        </tr>
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>
@@ -612,7 +637,27 @@ export default function InvoicesManagementPage() {
                   <div className="text-right">
                     <div className="text-sm text-gray-600 mb-1">{t('modal.total')}</div>
                     <div className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(selectedInvoice.totalAmount || 0)}
+                      {(() => {
+                        // For invoices from asset inspection, calculate total from filtered lines only
+                        // For other invoices, use the original totalAmount
+                        const hasAssetDamage = selectedInvoice.lines?.some(line => line.serviceCode === 'ASSET_DAMAGE') || false;
+                        
+                        if (hasAssetDamage) {
+                          const inspectionMarker = 'Đo cùng với kiểm tra thiết bị';
+                          const filteredLines = selectedInvoice.lines?.filter(line => {
+                            if (line.serviceCode === 'ASSET_DAMAGE') return true;
+                            if (line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC') {
+                              return line.description && line.description.includes(inspectionMarker);
+                            }
+                            return true;
+                          }) || [];
+                          
+                          const filteredTotal = filteredLines.reduce((sum, line) => sum + (line.lineTotal || 0), 0);
+                          return formatCurrency(filteredTotal);
+                        }
+                        
+                        return formatCurrency(selectedInvoice.totalAmount || 0);
+                      })()}
                     </div>
                   </div>
                 </div>

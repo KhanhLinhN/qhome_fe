@@ -119,16 +119,14 @@ export default function TechnicianInspectionAssignmentsPage() {
     if (selectedInspection?.unitId && selectedInspection?.status === InspectionStatus.COMPLETED) {
       // Always try to load separate invoices, even if main invoice exists
       // This ensures we have fallback if main invoice doesn't have water/electric lines
-      // For completed inspections, load ALL water/electric invoices for the unit
-      // Don't filter by cycleId - invoices from reading cycle might have different cycleId
-      // than the inspection cycle, but they're still relevant for the total cost
-      loadWaterElectricInvoices(selectedInspection.unitId, undefined); // Don't filter by cycleId
+      // IMPORTANT: Only load invoices from THIS inspection (filtered by "Đo cùng với kiểm tra thiết bị" in description)
+      loadWaterElectricInvoices(selectedInspection.unitId, activeCycle?.id);
     } else if (selectedInspection?.status !== InspectionStatus.COMPLETED) {
       // Only reset if inspection is not completed
       // This prevents resetting invoices when updating items in a completed inspection
       setWaterElectricInvoices([]);
     }
-  }, [selectedInspection?.unitId, selectedInspection?.status]);
+  }, [selectedInspection?.unitId, selectedInspection?.status, activeCycle?.id]);
 
   const loadMyInspections = async () => {
     if (!user?.userId) return;
@@ -446,28 +444,45 @@ export default function TechnicianInspectionAssignmentsPage() {
       // Combine all water/electric invoices
       let allInvoices = [...waterInvoices, ...electricInvoices];
       
-      // If cycleId is provided, try to filter by it, but if no results, fallback to all invoices
-      // This ensures we show water/electric invoices even if cycleId doesn't match
+      // IMPORTANT: Only include invoices from THIS inspection
+      // Filter by description containing "Đo cùng với kiểm tra thiết bị"
+      // This ensures we only show water/electric invoices created during this inspection
+      const inspectionMarker = 'Đo cùng với kiểm tra thiết bị';
+      allInvoices = allInvoices.filter(inv => {
+        if (!inv.lines || inv.lines.length === 0) return false;
+        // Check if any line has the inspection marker in description
+        return inv.lines.some(line => 
+          line.description && line.description.includes(inspectionMarker)
+        );
+      });
+      
+      // If cycleId is provided, also filter by cycleId as additional filter
+      // (But the description filter above should be the primary filter)
       if (cycleId && allInvoices.length > 0) {
         const filteredByCycle = allInvoices.filter(inv => inv.cycleId === cycleId);
         // Only use filtered results if we found invoices matching the cycle
-        // Otherwise, use all invoices (they might be from a different cycle but still relevant)
+        // Otherwise, use invoices filtered by description only
         if (filteredByCycle.length > 0) {
           allInvoices = filteredByCycle;
         }
-        // If filteredByCycle is empty, keep allInvoices (don't filter)
       }
       
       // Also try to load invoices without serviceCode filter to catch any missed ones
+      // But still filter by inspection marker to only get invoices from this inspection
       if (allInvoices.length === 0) {
         try {
           const allUnitInvoices = await getAllInvoicesForAdmin({ unitId });
           const waterElectricOnly = allUnitInvoices.filter(inv => {
             const serviceCodes = inv.lines?.map(line => line.serviceCode) || [];
-            return serviceCodes.includes('WATER') || serviceCodes.includes('ELECTRIC');
+            const hasWaterOrElectric = serviceCodes.includes('WATER') || serviceCodes.includes('ELECTRIC');
+            // Also check if invoice is from this inspection (has "Đo cùng với kiểm tra thiết bị" in description)
+            const isFromInspection = inv.lines?.some(line => 
+              line.description && line.description.includes(inspectionMarker)
+            ) || false;
+            return hasWaterOrElectric && isFromInspection;
           });
           
-          // If cycleId provided and we have invoices, try to filter, but fallback to all if no match
+          // If cycleId provided and we have invoices, try to filter, but fallback to inspection-filtered invoices if no match
           if (cycleId && waterElectricOnly.length > 0) {
             const filteredByCycle = waterElectricOnly.filter(inv => inv.cycleId === cycleId);
             allInvoices = filteredByCycle.length > 0 ? filteredByCycle : waterElectricOnly;
@@ -704,9 +719,8 @@ export default function TechnicianInspectionAssignmentsPage() {
             loadMainInvoice(updated.invoiceId).catch(() => {});
           }
           if (updated.unitId) {
-            // Reload water/electric invoices - load ALL invoices, don't filter by cycleId
-            // Invoices from reading cycle might have different cycleId than inspection cycle
-            loadWaterElectricInvoices(updated.unitId, undefined).catch(() => {});
+          // Reload water/electric invoices - only invoices from this inspection (filtered by description marker)
+          loadWaterElectricInvoices(updated.unitId, activeCycle?.id).catch(() => {});
           }
         }
         
@@ -2190,16 +2204,36 @@ export default function TechnicianInspectionAssignmentsPage() {
                         const damageLines = mainInvoice.lines.filter(line => 
                           line.serviceCode === 'ASSET_DAMAGE'
                         );
+                        // IMPORTANT: Only include water/electric lines from THIS inspection
+                        // Filter by description containing "Đo cùng với kiểm tra thiết bị"
+                        const inspectionMarker = 'Đo cùng với kiểm tra thiết bị';
                         const waterElectricLines = mainInvoice.lines.filter(line => 
-                          line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC'
+                          (line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC') &&
+                          line.description && line.description.includes(inspectionMarker)
                         );
                         
                         displayTotal = damageLines.reduce((sum, line) => sum + (line.lineTotal || 0), 0);
                         const mainInvoiceWaterElectricTotal = waterElectricLines.reduce((sum, line) => sum + (line.lineTotal || 0), 0);
                         
-                        // Priority: 1) Main invoice lines, 2) Separate invoices, 3) Calculated prices
-                        if (mainInvoiceWaterElectricTotal > 0) {
-                          // Use main invoice lines if available
+                        // Debug: Log filtering results
+                        const allWaterElectricLinesInInvoice = mainInvoice.lines.filter(line => 
+                          line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC'
+                        );
+                        if (allWaterElectricLinesInInvoice.length > 0) {
+                          console.log('Main invoice water/electric filtering:', {
+                            totalLines: allWaterElectricLinesInInvoice.length,
+                            filteredLines: waterElectricLines.length,
+                            filteredTotal: mainInvoiceWaterElectricTotal,
+                            allLinesDescriptions: allWaterElectricLinesInInvoice.map(l => l.description),
+                            marker: inspectionMarker
+                          });
+                        }
+                        
+                        // Priority: 1) Main invoice lines (filtered by marker), 2) Separate invoices, 3) Calculated prices
+                        // IMPORTANT: Only use mainInvoiceWaterElectricTotal if we have filtered lines (with marker)
+                        // If no filtered lines, don't use mainInvoice total even if it exists (invoice created before fix)
+                        if (waterElectricLines.length > 0 && mainInvoiceWaterElectricTotal > 0) {
+                          // Use filtered main invoice lines (only from this inspection)
                           waterElectricTotal = mainInvoiceWaterElectricTotal;
                         } else if (waterElectricInvoices.length > 0) {
                           // Use separate water/electric invoices if available
@@ -2277,19 +2311,59 @@ export default function TechnicianInspectionAssignmentsPage() {
                                     </span>
                                   )}
                                 </div>
-                                {/* Show lines from main invoice if available */}
-                                {mainInvoice && mainInvoice.lines && (
-                                  <div className="text-xs text-gray-500 space-y-1">
-                                    {mainInvoice.lines
-                                      .filter(line => line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC')
-                                      .map((line, idx) => (
-                                        <div key={line.id || idx} className="flex justify-between">
-                                          <span>{line.serviceCode === 'WATER' ? 'Nước' : 'Điện'}</span>
-                                          <span>{(line.lineTotal || 0).toLocaleString('vi-VN')} VNĐ</span>
-                                        </div>
-                                      ))}
-                                  </div>
-                                )}
+                                {/* Show lines from main invoice if available - only from THIS inspection */}
+                                {mainInvoice && mainInvoice.lines && (() => {
+                                  const inspectionMarker = 'Đo cùng với kiểm tra thiết bị';
+                                  // Filter water/electric lines - only include those with inspection marker in description
+                                  const allWaterElectricLines = mainInvoice.lines.filter(line => 
+                                    line.serviceCode === 'WATER' || line.serviceCode === 'ELECTRIC'
+                                  );
+                                  const filteredLines = allWaterElectricLines.filter(line => 
+                                    line.description && line.description.includes(inspectionMarker)
+                                  );
+                                  
+                                  // Debug logging
+                                  if (allWaterElectricLines.length > 0) {
+                                    console.log('Water/Electric lines in invoice:', {
+                                      total: allWaterElectricLines.length,
+                                      filtered: filteredLines.length,
+                                      allLines: allWaterElectricLines.map(l => ({
+                                        serviceCode: l.serviceCode,
+                                        description: l.description,
+                                        hasMarker: l.description?.includes(inspectionMarker),
+                                        lineTotal: l.lineTotal
+                                      }))
+                                    });
+                                  }
+                                  
+                                  if (filteredLines.length > 0) {
+                                    // Group lines by service code and sum up totals for each service
+                                    const groupedByService = filteredLines.reduce((acc, line) => {
+                                      const serviceCode = line.serviceCode || 'UNKNOWN';
+                                      if (!acc[serviceCode]) {
+                                        acc[serviceCode] = { total: 0, count: 0 };
+                                      }
+                                      acc[serviceCode].total += (line.lineTotal || 0);
+                                      acc[serviceCode].count += 1;
+                                      return acc;
+                                    }, {} as Record<string, { total: number; count: number }>);
+                                    
+                                    return (
+                                      <div className="text-xs text-gray-500 space-y-1">
+                                        {Object.entries(groupedByService).map(([serviceCode, { total }]) => (
+                                          <div key={serviceCode} className="flex justify-between">
+                                            <span>{serviceCode === 'WATER' ? 'Nước' : serviceCode === 'ELECTRIC' ? 'Điện' : serviceCode}</span>
+                                            <span>{total.toLocaleString('vi-VN')} VNĐ</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  // If no filtered lines but we have water/electric lines, it means invoice was created before fix
+                                  // In this case, don't show breakdown to avoid confusion
+                                  return null;
+                                })()}
                                 {/* Show separate invoices if main invoice doesn't have water/electric lines */}
                                 {mainInvoice && waterElectricTotal > 0 && mainInvoice.lines?.filter(l => l.serviceCode === 'WATER' || l.serviceCode === 'ELECTRIC').length === 0 && waterElectricInvoices.length > 0 && (
                                   <div className="text-xs text-gray-500 space-y-1">
