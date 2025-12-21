@@ -4440,6 +4440,7 @@
       "issuedDate": "Ngày phát hành",
       "payer": "Người thanh toán",
       "service": "Dịch vụ",
+      "invoiceType": "Loại hóa đơn",
       "totalAmount": "Tổng tiền",
       "status": "Trạng thái",
       "actions": "Thao tác",

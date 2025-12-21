@@ -4235,6 +4235,7 @@
       "issuedDate": "Issued Date",
       "payer": "Payer",
       "service": "Service",
+      "invoiceType": "Invoice Type",
       "totalAmount": "Total Amount",
       "status": "Status",
       "actions": "Actions",

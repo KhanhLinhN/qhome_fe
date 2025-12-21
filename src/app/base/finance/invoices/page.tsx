@@ -428,6 +428,9 @@ export default function InvoicesManagementPage() {
                     {t('table.service')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('table.invoiceType')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('table.totalAmount')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -472,6 +475,23 @@ export default function InvoicesManagementPage() {
                             </div>
                           );
                         });
+                      })()}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {(() => {
+                        // Check if invoice has SERVICE_BOOKING externalRefType
+                        const hasServiceBooking = invoice.lines?.some(
+                          line => line.externalRefType === 'SERVICE_BOOKING'
+                        ) || false;
+                        
+                        if (hasServiceBooking) {
+                          return (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Đặt dịch vụ
+                            </span>
+                          );
+                        }
+                        return <span className="text-gray-400">-</span>;
                       })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
