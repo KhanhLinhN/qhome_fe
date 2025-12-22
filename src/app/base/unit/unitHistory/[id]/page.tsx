@@ -440,7 +440,9 @@ function ContractDetails({
                                     Chủ hộ
                                   </span>
                                 ) : (
-                                  <span className="text-gray-400">-</span>
+                                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                    Thành viên
+                                  </span>
                                 )}
                               </td>
                             </tr>
@@ -526,7 +528,9 @@ function HouseholdDetails({ household, members }: { household: HouseholdDto; mem
                           Chủ hộ
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                          Thành viên
+                        </span>
                       )}
                     </td>
                   </tr>
