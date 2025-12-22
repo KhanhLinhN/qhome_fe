@@ -329,7 +329,9 @@
     },
     "buttons": {
       "addAccount": "+ Add account",
-      "reload": "Reload"
+      "reload": "Reload",
+      "exportExcel": "Export to Excel",
+      "exporting": "Exporting..."
     },
     "loading": "Loading data...",
     "errors": {
@@ -2012,7 +2014,10 @@
       "cannotIdentifyAccountForDelete": "Unable to identify account to delete.",
       "deleteNotConfigured": "Delete function is not configured.",
       "cannotDeleteInactiveAccount": "Cannot delete inactive account.",
-      "noPermissionToEditAdmin": "You do not have permission to delete admin account."
+      "noPermissionToEditAdmin": "You do not have permission to delete admin account.",
+      "cannotDeleteActiveAdmin": "Cannot delete active admin account.",
+      "cannotDeleteActiveResident": "Cannot delete active resident account.",
+      "cannotChangeAdminStatus": "Cannot change status of admin account."
     }
   },
   "Noti" : {
