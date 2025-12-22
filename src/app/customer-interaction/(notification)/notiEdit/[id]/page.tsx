@@ -82,7 +82,7 @@ export default function NotificationEdit() {
                 title: notification.title || '',
                 message: notification.message || '',
                 scope: notification.scope || 'EXTERNAL',
-                targetRole: notification.targetRole,
+                targetRole: notification.scope === 'INTERNAL' && !notification.targetRole ? 'ALL' : notification.targetRole,
                 targetBuildingId: notification.targetBuildingId || undefined,
                 referenceId: notification.referenceId || null,
                 referenceType: notification.referenceType || null,
@@ -248,7 +248,7 @@ export default function NotificationEdit() {
         setFormData((prevData) => ({
             ...prevData,
             scope: item.value as NotificationScope,
-            targetRole: undefined,
+            targetRole: item.value === 'INTERNAL' ? 'ALL' : undefined,
             targetBuildingId: undefined,
         }));
     };
@@ -431,8 +431,7 @@ export default function NotificationEdit() {
                                     { name: t('admin'), value: 'ADMIN' },
                                     { name: t('technician'), value: 'TECHNICIAN' },
                                     { name: t('supporter'), value: 'SUPPORTER' },
-                                    { name: t('account'), value: 'ACCOUNT' },
-                                    { name: t('resident'), value: 'RESIDENT' },
+                                    { name: t('account'), value: 'ACCOUNT' }
                                 ]}
                                 value={formData.targetRole}
                                 onSelect={handleTargetRoleChange}

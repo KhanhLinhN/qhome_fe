@@ -573,7 +573,7 @@ export default function NewsAdd() {
         setFormData((prevData) => ({
             ...prevData,
             scope: item.value as NotificationScope,
-            targetRole: undefined,
+            targetRole: item.value === 'INTERNAL' ? 'ALL' : undefined,
             targetBuildingId: undefined,
         }));
     };
@@ -687,7 +687,7 @@ export default function NewsAdd() {
     function handleTargetRoleChange(item: { name: string; value: string; }): void {
         setFormData((prev) => ({
             ...prev,
-            targetRole: item.value,
+            targetRole: item.value === 'ALL' ? 'ALL' : item.value,
         }));
     }
 
@@ -821,10 +821,7 @@ export default function NewsAdd() {
                             options={[
                                 { name: t('draft'), value: 'DRAFT' },
                                 { name: t('scheduled'), value: 'SCHEDULED' },
-                                { name: t('published'), value: 'PUBLISHED' },
-                                { name: t('hidden'), value: 'HIDDEN' },
-                                { name: t('expired'), value: 'EXPIRED' },
-                                { name: t('archived'), value: 'ARCHIVED' },
+                                { name: t('published'), value: 'PUBLISHED' }
                             ]}
                             value={formData.status}
                             onSelect={handleStatusChange}
@@ -894,8 +891,7 @@ export default function NewsAdd() {
                                         { name: t('targetRoleAdmin'), value: 'ADMIN' },
                                         { name: t('targetRoleTechnician'), value: 'TECHNICIAN' },
                                         { name: t('targetRoleSupporter'), value: 'SUPPORTER' },
-                                        { name: t('targetRoleAccount'), value: 'ACCOUNT' },
-                                        { name: t('targetRoleResident'), value: 'RESIDENT' },
+                                        { name: t('targetRoleAccount'), value: 'ACCOUNT' }
                                     ]}
                                     value={formData.targetRole}
                                     onSelect={handleTargetRoleChange}

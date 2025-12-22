@@ -556,7 +556,7 @@
       "technician": "Technician",
       "supporter": "Support Staff",
       "accountant": "Accountant",
-      "admin": "Administrator"
+      "admin": "Admin"
     },
     "dashboard": {
       "totalAssignments": "Total assignments",
@@ -580,7 +580,7 @@
       }
     },
     "accountStatus": {
-      "accountLocked": "⚠️ Your account has been locked. Please contact administrator."
+      "accountLocked": "⚠️ Your account has been locked. Please contact admin."
     },
     "validation": {
       "usernameCannotChange": "Username cannot be changed"
@@ -1642,6 +1642,7 @@
     }
   },
   "News": {
+    "selectTargetRole":"Select role",
     "newsList": "News List",
     "newsDetail": "News Detail",
     "createNews": "Create News",
@@ -2974,7 +2975,7 @@
     "targetRole": "Target Role",
     "selectTargetRole": "Select target role",
     "all": "All",
-    "admin": "Administrator",
+    "admin": "Admin",
     "technician": "Technician",
     "supporter": "Supporter",
     "account": "Accountant",

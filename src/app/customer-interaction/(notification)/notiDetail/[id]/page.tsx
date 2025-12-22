@@ -209,20 +209,6 @@ export default function NotificationDetail() {
                         </div>
                     </div>
 
-                    {/* Icon */}
-                    {notification.iconUrl && (
-                        <div className="mb-6">
-                            <img
-                                src={notification.iconUrl}
-                                alt={t('detail.notificationIcon')}
-                                className="w-16 h-16 rounded-lg border border-gray-300"
-                                onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                            />
-                        </div>
-                    )}
-
                     {/* Message */}
                     <div className="mb-6">
                         <h2 className="text-xl font-semibold text-[#02542D] mb-2">{t('content')}</h2>
