@@ -46,20 +46,30 @@ export default function UnitListPage() {
   const unitsWithContext = useMemo<UnitWithContext[]>(() => {
     const result: UnitWithContext[] = [];
 
-    buildings.forEach((building) => {
-      building.units?.forEach((unit) => {
-        result.push({
-          ...unit,
-          buildingId: building.id,
-          buildingName: building.name,
-          buildingCode: building.code,
-          buildingStatus: building.status,
+    // Only process ACTIVE buildings
+    buildings
+      .filter((building) => building.status?.toUpperCase() === 'ACTIVE')
+      .forEach((building) => {
+        building.units?.forEach((unit) => {
+          result.push({
+            ...unit,
+            buildingId: building.id,
+            buildingName: building.name,
+            buildingCode: building.code,
+            buildingStatus: building.status,
+          });
         });
       });
-    });
 
     return result;
   }, [buildings]);
+
+  // Count only ACTIVE units
+  const activeUnitsCount = useMemo(() => {
+    return unitsWithContext.filter((unit) => 
+      unit.status?.toUpperCase() === 'ACTIVE'
+    ).length;
+  }, [unitsWithContext]);
 
   // Create map of unitId -> latest inspection
   const unitInspectionMap = useMemo(() => {
@@ -97,7 +107,10 @@ export default function UnitListPage() {
       return;
     }
 
-    const buildingExists = buildings.some((building) => building.id === selectedBuildingId);
+    // Only check ACTIVE buildings
+    const buildingExists = buildings.some(
+      (building) => building.id === selectedBuildingId && building.status?.toUpperCase() === 'ACTIVE'
+    );
 
     if (!buildingExists) {
       setSelectedBuildingId('all');
@@ -106,12 +119,17 @@ export default function UnitListPage() {
   }, [buildings, selectedBuildingId]);
 
   const filteredBuildings = useMemo(() => {
+    // First filter only ACTIVE buildings
+    const activeBuildings = buildings.filter(
+      (building) => building.status?.toUpperCase() === 'ACTIVE'
+    );
+
     const query = normalizeText(buildingSearch);
     if (!query) {
-      return buildings;
+      return activeBuildings;
     }
 
-    return buildings.filter((building) => {
+    return activeBuildings.filter((building) => {
       const buildingMatch = normalizeText(`${building.name ?? ''} ${building.code ?? ''}`).includes(query);
       return buildingMatch;
     });
@@ -120,7 +138,10 @@ export default function UnitListPage() {
   const filteredUnits = useMemo(() => {
     const unitQuery = normalizeText(unitSearch);
 
-    let scopedUnits = unitsWithContext;
+    // Filter only ACTIVE units
+    let scopedUnits = unitsWithContext.filter((unit) => 
+      unit.status?.toUpperCase() === 'ACTIVE'
+    );
 
     if (selectedBuildingId !== 'all') {
       scopedUnits = scopedUnits.filter((unit) => unit.buildingId === selectedBuildingId);
@@ -294,7 +315,7 @@ export default function UnitListPage() {
                     }`}
                   >
                     <span>{t('buildingFilter.all')}</span>
-                    <span className="text-xs text-slate-500">{unitsWithContext.length}</span>
+                    <span className="text-xs text-slate-500">{activeUnitsCount}</span>
                   </button>
 
                   <div className="max-h-[420px] space-y-1 overflow-y-auto pr-1">
@@ -305,6 +326,10 @@ export default function UnitListPage() {
                     ) : (
                       filteredBuildings.map((building) => {
                         const isInactive = building.status?.toUpperCase() === 'INACTIVE';
+                        // Count only ACTIVE units for this building
+                        const activeUnitsInBuilding = building.units?.filter(
+                          (unit) => unit.status?.toUpperCase() === 'ACTIVE'
+                        ).length ?? 0;
                         return (
                           <button
                             key={building.id}
@@ -325,7 +350,7 @@ export default function UnitListPage() {
                               <span className="text-xs text-slate-500">{building.code}</span>
                             </div>
                             <span className="text-xs font-medium text-slate-500">
-                              {building.units?.length ?? 0}
+                              {activeUnitsInBuilding}
                             </span>
                           </button>
                         );
@@ -518,7 +543,7 @@ export default function UnitListPage() {
                                 <Image src={EditTable} alt={t('altText.viewDetail')} width={24} height={24} />
                               </Link>
                             )}
-                            {!isBuildingInactive && (
+                            {/* {!isBuildingInactive && (
                               <button
                                 type="button"
                                 onClick={() => onUnitStatusChange(unit.id)}
@@ -538,7 +563,7 @@ export default function UnitListPage() {
                                   </g>
                                 </svg>
                               </button>
-                            )}
+                            )} */}
                           </div>
                         </td>
                       </tr>

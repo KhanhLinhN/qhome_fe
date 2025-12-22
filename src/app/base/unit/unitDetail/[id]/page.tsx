@@ -11,7 +11,7 @@ import { useUnitDetailPage } from '@/src/hooks/useUnitDetailPage';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getBuilding } from '@/src/services/base/buildingService';
 import PopupConfirm from '@/src/components/common/PopupComfirm';
-import { deleteUnit } from '@/src/services/base/unitService';
+import { deleteUnit, updateUnitStatus } from '@/src/services/base/unitService';
 
 export default function UnitDetail () {
 
@@ -63,7 +63,7 @@ export default function UnitDetail () {
         }
 
         try {
-            await deleteUnit(unitId);
+            await updateUnitStatus(unitId, 'INACTIVE');
             setIsPopupOpen(false);
             if (unitData?.buildingId) {
                 router.push(`/base/building/buildingDetail/${unitData.buildingId}`);
