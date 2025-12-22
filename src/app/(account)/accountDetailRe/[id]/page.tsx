@@ -70,14 +70,10 @@ export default function AccountDetailResidentPage() {
         setStatus(statusRes);
 
         // Lấy residentId từ account hoặc fetch từ userId
-        console.log('accountRes:', accountRes);
-        console.log('accountRes.residentId:', accountRes.residentId);
         let finalResidentId = accountRes.residentId;
         if (!finalResidentId && userId) {
           try {
-            console.log('Fetching residentId from userId:', userId);
             const resident = await fetchResidentByUserId(userId);
-            console.log('Fetched resident:', resident);
             finalResidentId = resident.id;
           } catch (err) {
             console.warn('Could not fetch residentId from userId:', err);

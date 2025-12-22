@@ -1728,6 +1728,7 @@
     }
   },
   "News" : {
+    "selectTargetRole":" Chọn vai trò",
     "newsList": "Danh sách tin tức",
     "newsDetail": "Chi tiết tin tức",
     "createNews": "Tạo tin tức",

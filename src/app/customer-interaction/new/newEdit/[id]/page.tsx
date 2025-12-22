@@ -41,7 +41,6 @@ interface NewsFormData {
     status: NewsStatus;
     publishAt: string;
     expireAt: string;
-    displayOrder: number;
     images: NewsImage[];
     scope: NotificationScope;
     targetRole?: string;
@@ -76,7 +75,6 @@ export default function NewsEdit() {
         status: 'DRAFT',
         publishAt: '',
         expireAt: '',
-        displayOrder: 1,
         images: [],
         scope: 'EXTERNAL',
         targetRole: undefined,
@@ -129,7 +127,6 @@ export default function NewsEdit() {
                 status: news.status || 'DRAFT',
                 publishAt: news.publishAt || '',
                 expireAt: news.expireAt || '',
-                displayOrder: news.displayOrder || 1,
                 images: (news.images || []).map(img => ({
                     id: img.id,
                     url: img.url,
@@ -333,7 +330,6 @@ export default function NewsEdit() {
                 bodyHtml: formData.bodyHtml,
                 status: formData.status,
                 scope: formData.scope,
-                displayOrder: formData.displayOrder || 0,
             };
 
             // Add optional fields only if they have values
@@ -471,14 +467,6 @@ export default function NewsEdit() {
         validateField(name, value);
     };
 
-    const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: parseInt(value) || 0,
-        }));
-    };
-
     // Helper function to convert date to ISO 8601 format for backend
     const formatDateToISO = (dateString: string): string => {
         if (!dateString) return '';
@@ -562,7 +550,7 @@ export default function NewsEdit() {
         setFormData((prevData) => ({
             ...prevData,
             scope: item.value as NotificationScope,
-            targetRole: undefined,
+            targetRole: item.value === 'INTERNAL' ? 'ALL' : undefined,
             targetBuildingId: undefined,
         }));
     };
@@ -841,31 +829,13 @@ export default function NewsEdit() {
                             options={[
                                 { name: t('draft'), value: 'DRAFT' },
                                 { name: t('scheduled'), value: 'SCHEDULED' },
-                                { name: t('published'), value: 'PUBLISHED' },
-                                { name: t('hidden'), value: 'HIDDEN' },
-                                { name: t('expired'), value: 'EXPIRED' },
-                                { name: t('archived'), value: 'ARCHIVED' },
+                                { name: t('published'), value: 'PUBLISHED' }
                             ]}
                             value={formData.status}
                             onSelect={handleStatusChange}
                             renderItem={(item) => item.name}
                             getValue={(item) => item.value}
                             placeholder={t('selectStatus')}
-                        />
-                    </div>
-
-                    {/* Display Order */}
-                    <div className={`flex flex-col mb-4 col-span-1`}>
-                        <label className="text-md font-bold text-[#02542D] mb-1">
-                            {t('displayOrder')}
-                        </label>
-                        <input
-                            type="number"
-                            name="displayOrder"
-                            value={formData.displayOrder}
-                            onChange={handleNumberChange}
-                            placeholder="1"
-                            className="p-2 border border-[#739559] rounded-md text-[#34674F] focus:outline-none focus:ring-1 focus:ring-[#739559] shadow-inner transition duration-150"
                         />
                     </div>
 
@@ -928,8 +898,7 @@ export default function NewsEdit() {
                                         { name: t('admin'), value: 'ADMIN' },
                                         { name: t('technician'), value: 'TECHNICIAN' },
                                         { name: t('supporter'), value: 'SUPPORTER' },
-                                        { name: t('account'), value: 'ACCOUNT' },
-                                        { name: t('resident'), value: 'RESIDENT' },
+                                        { name: t('account'), value: 'ACCOUNT' }
                                     ]}
                                     value={formData.targetRole}
                                     onSelect={handleTargetRoleChange}

@@ -248,7 +248,7 @@ export default function NotificationAdd() {
         setFormData((prevData) => ({
             ...prevData,
             scope: item.value as NotificationScope,
-            targetRole: undefined,
+            targetRole: item.value === 'INTERNAL' ? 'ALL' : undefined,
             targetBuildingId: undefined,
         }));
     };
@@ -312,8 +312,7 @@ export default function NotificationAdd() {
                                 { name: t('request'), value: 'REQUEST' },
                                 { name: t('bill'), value: 'BILL' },
                                 { name: t('contract'), value: 'CONTRACT' },
-                                { name: t('meterReading'), value: 'METER_READING' },
-                                { name: t('system'), value: 'SYSTEM' },
+                                { name: t('meterReading'), value: 'METER_READING' }
                             ]}
                             value={formData.type}
                             onSelect={handleTypeChange}
@@ -387,8 +386,7 @@ export default function NotificationAdd() {
                                     { name: t('admin'), value: 'ADMIN' },
                                     { name: t('technician'), value: 'TECHNICIAN' },
                                     { name: t('supporter'), value: 'SUPPORTER' },
-                                    { name: t('account'), value: 'ACCOUNT' },
-                                    { name: t('resident'), value: 'RESIDENT' },
+                                    { name: t('account'), value: 'ACCOUNT' }
                                 ]}
                                 value={formData.targetRole}
                                 onSelect={handleTargetRoleChange}
@@ -425,20 +423,6 @@ export default function NotificationAdd() {
                             )}
                         </div>
                     )}
-
-                    {/* Icon URL */}
-                    {/* <div className="col-span-1">
-                        <DetailField
-                            label="Icon URL"
-                            value={formData.iconUrl || ''}
-                            onChange={handleChange}
-                            name="iconUrl"
-                            placeholder="Nhập Icon URL (tùy chọn)"
-                            readonly={false}
-                        />
-                    </div> */}
-
-                    {/* Action Buttons */}
                     <div className="col-span-full flex justify-center space-x-3 mt-8">
                         <button
                             type="button"

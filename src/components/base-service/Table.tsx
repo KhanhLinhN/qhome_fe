@@ -705,7 +705,7 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                         <td className="px-4 py-3 text-center text-[14px] text-gray-700">{formatDate(item.createdAt || '')}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex space-x-2 justify-center">
-                                                {onNotificationChangeScope && (
+                                                {/* {onNotificationChangeScope && (
                                                     <button
                                                         className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition disabled:opacity-40"
                                                         onClick={(e) => {
@@ -721,7 +721,7 @@ const Table = ({ data, headers, type, onEdit, onDelete, onStatusChange, onBuildi
                                                             </g>
                                                         </svg>
                                                     </button>
-                                                )}
+                                                )} */}
                                                 {onEdit && (
                                                     <button 
                                                         className="w-[47px] h-[34px] flex items-center justify-center rounded-md bg-blue-500 hover:bg-blue-600 transition disabled:opacity-40"

@@ -293,8 +293,7 @@ export default function NotificationList() {
                                         { name: t('request'), value: 'REQUEST' },
                                         { name: t('bill'), value: 'BILL' },
                                         { name: t('contract'), value: 'CONTRACT' },
-                                        { name: t('meterReading'), value: 'METER_READING' },
-                                        { name: t('system'), value: 'SYSTEM' },
+                                        { name: t('meterReading'), value: 'METER_READING' }
                                     ]}
                                     value={selectedType}
                                     onSelect={handleTypeChange}
@@ -382,8 +381,7 @@ export default function NotificationList() {
                                                         { name: t('admin'), value: 'ADMIN' },
                                                         { name: t('technician'), value: 'TECHNICIAN' },
                                                         { name: t('supporter'), value: 'SUPPORTER' },
-                                                        { name: t('account'), value: 'ACCOUNT' },
-                                                        { name: t('resident'), value: 'RESIDENT' },
+                                                        { name: t('account'), value: 'ACCOUNT' }
                                                     ]}
                                                     value={changeTargetRole}
                                                     onSelect={(item) => setChangeTargetRole(item.value)}
