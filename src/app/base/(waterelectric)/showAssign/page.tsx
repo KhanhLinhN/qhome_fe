@@ -109,12 +109,6 @@ export default function ShowAssignPage() {
         })
       );
       setAssignmentProgress(progressMap);
-      
-      // Auto-expand first cycle
-      if (data.length > 0) {
-        const firstCycleId = data[0].cycleId;
-        setExpandedCycles(new Set([firstCycleId]));
-      }
     } catch (error: any) {
       console.error('Failed to load assignments:', error);
       show(error?.response?.data?.message || error?.message || 'Failed to load assignments', 'error');

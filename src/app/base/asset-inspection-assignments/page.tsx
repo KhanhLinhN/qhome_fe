@@ -287,6 +287,7 @@ export default function TechnicianInspectionAssignmentsPage() {
   };
 
   // Calculate price based on usage and pricing tiers
+  // Logic matches backend: PricingTierService.calculateInvoiceLines()
   const calculatePriceFromUsage = (usage: number, serviceCode: string): number => {
     const tiers = pricingTiers[serviceCode] || [];
     if (tiers.length === 0) {
@@ -297,26 +298,32 @@ export default function TechnicianInspectionAssignmentsPage() {
     const sortedTiers = [...tiers].sort((a, b) => a.tierOrder - b.tierOrder);
     
     let totalPrice = 0;
-    let remainingUsage = usage;
+    let previousMax = 0; // Track the upper bound of previous tier
     
     for (const tier of sortedTiers) {
-      if (remainingUsage <= 0) break;
+      if (previousMax >= usage) {
+        break; // All usage has been covered
+      }
       
-      const minQty = tier.minQuantity || 0;
       const maxQty = tier.maxQuantity;
       const unitPrice = tier.unitPrice || 0;
       
-      if (maxQty !== null && maxQty !== undefined) {
-        // Tier has max quantity
-        const tierUsage = Math.min(remainingUsage, maxQty - minQty);
-        if (tierUsage > 0) {
-          totalPrice += tierUsage * unitPrice;
-          remainingUsage -= tierUsage;
-        }
+      // Calculate effective max for this tier
+      let tierEffectiveMax: number;
+      if (maxQty === null || maxQty === undefined) {
+        // Last tier (no max) - use all remaining usage
+        tierEffectiveMax = usage;
       } else {
-        // Last tier (no max)
-        totalPrice += remainingUsage * unitPrice;
-        remainingUsage = 0;
+        // Tier has max quantity - use min of usage and maxQty
+        tierEffectiveMax = Math.min(usage, maxQty);
+      }
+      
+      // Calculate applicable quantity for this tier
+      const applicableQuantity = Math.max(0, tierEffectiveMax - previousMax);
+      
+      if (applicableQuantity > 0) {
+        totalPrice += applicableQuantity * unitPrice;
+        previousMax = tierEffectiveMax; // Update for next tier
       }
     }
     
@@ -951,21 +958,20 @@ export default function TechnicianInspectionAssignmentsPage() {
                 ? meter.lastReading 
                 : 0;
               
-              // Check if meter and assignment are in the same building
-              const meterBuildingId = meter.buildingId;
-              const assignmentBuildingId = activeAssignment.buildingId;
-              
-              // Only include assignmentId if buildings match (or both are null/undefined)
-              const useAssignmentId = (!meterBuildingId && !assignmentBuildingId) || 
-                                     (meterBuildingId && assignmentBuildingId && meterBuildingId === assignmentBuildingId);
+              // IMPORTANT: When creating meter readings from asset inspection, 
+              // DO NOT include assignmentId because:
+              // 1. Inspection may not be related to any assignment
+              // 2. Meter's unit may not be in the assignment's scope
+              // 3. Backend will validate assignment scope and reject if unit doesn't match
+              // Only use cycleId to link readings to the cycle
               
               const readingReq: MeterReadingCreateReq = {
-                ...(useAssignmentId && { assignmentId: activeAssignment.id }), // Only include if buildings match
+                // Do NOT include assignmentId - let backend handle assignment linking if needed
                 meterId: meter.id,
                 readingDate: formattedDate, // YYYY-MM-DD format for LocalDate
-                prevIndex: prevIndex, // Required by backend
+                prevIndex: prevIndex, // Can be omitted - backend will auto-calculate
                 currIndex: indexValue,
-                cycleId: activeCycle?.id, // Add cycleId if available
+                cycleId: activeCycle?.id, // Add cycleId to link to the cycle
                 note: reading.note || `Đo cùng với kiểm tra thiết bị`,
               };
               
@@ -1061,7 +1067,8 @@ export default function TechnicianInspectionAssignmentsPage() {
         
         if (hasReadings) {
           try {
-            const importResponse = await exportReadingsByCycle(activeCycle.id);
+            // IMPORTANT: Only export readings for the inspection's unit, not all units in the cycle
+            const importResponse = await exportReadingsByCycle(activeCycle.id, inspectionToUse.unitId);
             waterElectricInvoicesCreated = importResponse.invoicesCreated || 0;
             
             if (waterElectricInvoicesCreated > 0) {

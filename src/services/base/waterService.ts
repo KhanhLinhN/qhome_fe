@@ -566,22 +566,55 @@ export async function createMeterReading(req: MeterReadingCreateReq): Promise<Me
     throw new Error("readingDate is required");
   }
   
-  if (req.prevIndex === undefined || req.prevIndex === null) {
-    throw new Error("prevIndex is required");
-  }
-  
   if (req.currIndex === undefined || req.currIndex === null) {
     throw new Error("currIndex is required");
+  }
+  
+  // Remove undefined fields to avoid validation issues
+  // Backend allows prevIndex to be null (will auto-calculate from previous reading)
+  const cleanedReq: any = {
+    meterId: req.meterId,
+    readingDate: req.readingDate,
+    currIndex: req.currIndex,
+  };
+  
+  // Only include optional fields if they have values (not undefined)
+  if (req.assignmentId !== undefined && req.assignmentId !== null) {
+    cleanedReq.assignmentId = req.assignmentId;
+  }
+  if (req.cycleId !== undefined && req.cycleId !== null) {
+    cleanedReq.cycleId = req.cycleId;
+  }
+  if (req.prevIndex !== undefined && req.prevIndex !== null) {
+    cleanedReq.prevIndex = req.prevIndex;
+  }
+  // Note: prevIndex can be omitted - backend will auto-calculate from previous reading
+  if (req.photoFileId !== undefined && req.photoFileId !== null) {
+    cleanedReq.photoFileId = req.photoFileId;
+  }
+  if (req.note !== undefined && req.note !== null && req.note.trim() !== '') {
+    cleanedReq.note = req.note;
+  }
+  if (req.readerId !== undefined && req.readerId !== null) {
+    cleanedReq.readerId = req.readerId;
   }
   
   try {
     const response = await axios.post(
       `${BASE_URL}/api/meter-readings`,
-      req,
+      cleanedReq,
       { withCredentials: true }
     );
     return response.data;
   } catch (error: any) {
+    // Log error details for debugging
+    if (error.response) {
+      console.error('❌ [createMeterReading] Failed:', {
+        status: error.response.status,
+        data: error.response.data,
+        request: cleanedReq
+      });
+    }
     throw error;
   }
 }
@@ -864,9 +897,12 @@ export async function getCompletedSessionsByStaff(staffId: string): Promise<Mete
 }
 
 // Meter Reading Export API
-export async function exportReadingsByCycle(cycleId: string): Promise<MeterReadingImportResponse> {
+export async function exportReadingsByCycle(cycleId: string, unitId?: string): Promise<MeterReadingImportResponse> {
+  const url = unitId 
+    ? `${BASE_URL}/api/meter-readings/export/cycle/${cycleId}?unitId=${unitId}`
+    : `${BASE_URL}/api/meter-readings/export/cycle/${cycleId}`;
   const response = await axios.post(
-    `${BASE_URL}/api/meter-readings/export/cycle/${cycleId}`,
+    url,
     null,
     { withCredentials: true }
   );
