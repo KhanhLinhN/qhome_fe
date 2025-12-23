@@ -73,7 +73,7 @@ export default function BuildingDetail () {
                 setLoadingUnits(true);
                 setUnitsError(null);
                 const data = await getUnitsByBuildingId(buildingId);
-                const activeUnits = data.filter(unit => unit.status?.toUpperCase() !== 'INACTIVE');
+                const activeUnits = data.filter(unit => unit.status?.toUpperCase() === 'ACTIVE');
                 setUnits(activeUnits);
                 
                 // Load current household for each unit

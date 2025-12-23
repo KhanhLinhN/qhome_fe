@@ -242,41 +242,39 @@ export default function WaterBillingTab({ formulaVersion }: WaterBillingTabProps
   const calculateAmount = (usage: number): number => {
     if (!applicablePricingTiers.length || usage <= 0) return 0;
 
+    // Logic matches backend: PricingTierService.calculateInvoiceLines()
     let total = 0;
-    let lastCovered = 0;
+    let previousMax = 0; // Track the upper bound of previous tier
 
     for (const tier of applicablePricingTiers) {
+      if (previousMax >= usage) {
+        break; // All usage has been covered
+      }
+
       const unitPrice = Number(tier.unitPrice ?? 0);
       if (Number.isNaN(unitPrice) || unitPrice <= 0) continue;
 
-      const minQtyRaw = tier.minQuantity !== null && tier.minQuantity !== undefined
-        ? Number(tier.minQuantity)
-        : 0;
       const maxQtyRaw = tier.maxQuantity !== null && tier.maxQuantity !== undefined
         ? Number(tier.maxQuantity)
-        : Infinity;
+        : null;
 
-      const upperBound = Math.min(usage, Number.isFinite(maxQtyRaw) ? maxQtyRaw : usage);
-      if (upperBound <= lastCovered) continue;
-
-      let start = minQtyRaw;
-      if (lastCovered > 0) {
-        start = Math.max(minQtyRaw, lastCovered + 1);
-      } else if (minQtyRaw <= 0) {
-        start = 0;
+      // Calculate effective max for this tier
+      let tierEffectiveMax: number;
+      if (maxQtyRaw === null || maxQtyRaw === undefined) {
+        // Last tier (no max) - use all remaining usage
+        tierEffectiveMax = usage;
+      } else {
+        // Tier has max quantity - use min of usage and maxQty
+        tierEffectiveMax = Math.min(usage, maxQtyRaw);
       }
 
-      if (upperBound < start) continue;
+      // Calculate applicable quantity for this tier
+      const applicableQuantity = Math.max(0, tierEffectiveMax - previousMax);
 
-      const inclusiveAdjustment = start === 0 ? 0 : 1;
-      const tierUsage = upperBound - start + inclusiveAdjustment;
-
-      if (tierUsage <= 0) continue;
-
-      total += tierUsage * unitPrice;
-      lastCovered = Math.max(lastCovered, upperBound);
-
-      if (lastCovered >= usage) break;
+      if (applicableQuantity > 0) {
+        total += applicableQuantity * unitPrice;
+        previousMax = tierEffectiveMax; // Update for next tier
+      }
     }
 
     return total;

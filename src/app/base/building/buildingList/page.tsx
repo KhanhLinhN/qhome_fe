@@ -460,7 +460,7 @@ export default function Home() {
         onConfirm={handleConfirmChange}
         popupTitle={t('confirmDeleteBuildingTitle')}
         popupContext={t('confirmDeleteBuildingMessage')}
-        isDanger={false}
+        isDanger={true}
       />
     </div>
   )
