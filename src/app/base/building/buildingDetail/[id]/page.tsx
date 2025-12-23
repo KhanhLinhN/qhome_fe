@@ -709,25 +709,53 @@ export default function BuildingDetail () {
                 )}
                 {importResult && (
                     <div className="mb-4">
-                        <div className="mb-3 p-3 rounded-lg border" style={{
-                            backgroundColor: importResult.errorCount > 0 ? '#fef2f2' : '#f0fdf4',
-                            borderColor: importResult.errorCount > 0 ? '#fecaca' : '#bbf7d0'
-                        }}>
-                            <div className="flex items-center gap-2 mb-1">
-                                {importResult.errorCount > 0 ? (
-                                    <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        {/* Validation Errors */}
+                        {importResult.hasValidationErrors && importResult.validationErrors && importResult.validationErrors.length > 0 && (
+                            <div className="mb-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <div className="flex items-center gap-2 text-red-700 mb-3">
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                                     </svg>
-                                ) : (
-                                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                )}
-                                <span className={`font-semibold ${importResult.errorCount > 0 ? 'text-red-700' : 'text-green-700'}`}>
-                                    {t('totalRows', { totalRows: importResult.totalRows, successCount: importResult.successCount, errorCount: importResult.errorCount })}
-                                </span>
+                                    <span className="font-semibold text-lg">Lỗi template/định dạng file</span>
+                                </div>
+                                <ul className="list-disc list-inside space-y-1">
+                                    {importResult.validationErrors.map((err, idx) => (
+                                        <li key={idx} className="text-red-600 text-sm">{err}</li>
+                                    ))}
+                                </ul>
+                                <div className="mt-3 pt-3 border-t border-red-200">
+                                    <p className="text-red-700 text-sm font-medium">
+                                        💡 Vui lòng tải template mẫu và kiểm tra lại file Excel của bạn.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        )}
+                        
+                        {/* Summary - Only show if no validation errors */}
+                        {!importResult.hasValidationErrors && (
+                            <div className="mb-3 p-3 rounded-lg border" style={{
+                                backgroundColor: importResult.errorCount > 0 ? '#fef2f2' : '#f0fdf4',
+                                borderColor: importResult.errorCount > 0 ? '#fecaca' : '#bbf7d0'
+                            }}>
+                                <div className="flex items-center gap-2 mb-1">
+                                    {importResult.errorCount > 0 ? (
+                                        <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                        </svg>
+                                    )}
+                                    <span className={`font-semibold ${importResult.errorCount > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                                        {t('totalRows', { totalRows: importResult.totalRows, successCount: importResult.successCount, errorCount: importResult.errorCount })}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Results Table - Only show if no validation errors */}
+                        {!importResult.hasValidationErrors && importResult.rows.length > 0 && (
                         <div className="max-h-96 overflow-auto border rounded-lg shadow-sm">
                             <table className="min-w-full">
                                 <thead className="bg-gray-50 sticky top-0">
@@ -773,6 +801,7 @@ export default function BuildingDetail () {
                                 </tbody>
                             </table>
                         </div>
+                        )}
                     </div>
                 )}
 

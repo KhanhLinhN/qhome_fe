@@ -17,6 +17,8 @@ export interface UnitImportResponse {
   successCount: number;
   errorCount: number;
   rows: UnitImportRowResult[];
+  validationErrors?: string[]; // Lỗi validation template/header
+  hasValidationErrors?: boolean; // Có lỗi validation không
 }
 
 export async function downloadUnitImportTemplate(): Promise<Blob> {

@@ -16,6 +16,8 @@ export interface BuildingImportResponse {
   successCount: number;
   errorCount: number;
   rows: BuildingImportRowResult[];
+  validationErrors?: string[]; // Lỗi validation template/header
+  hasValidationErrors?: boolean; // Có lỗi validation không
 }
 
 export async function downloadBuildingImportTemplate(): Promise<Blob> {
