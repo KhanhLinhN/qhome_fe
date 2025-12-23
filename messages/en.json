@@ -329,7 +329,9 @@
     },
     "buttons": {
       "addAccount": "+ Add account",
-      "reload": "Reload"
+      "reload": "Reload",
+      "exportExcel": "Export to Excel",
+      "exporting": "Exporting..."
     },
     "loading": "Loading data...",
     "errors": {
@@ -556,7 +558,7 @@
       "technician": "Technician",
       "supporter": "Support Staff",
       "accountant": "Accountant",
-      "admin": "Administrator"
+      "admin": "Admin"
     },
     "dashboard": {
       "totalAssignments": "Total assignments",
@@ -580,7 +582,7 @@
       }
     },
     "accountStatus": {
-      "accountLocked": "⚠️ Your account has been locked. Please contact administrator."
+      "accountLocked": "⚠️ Your account has been locked. Please contact admin."
     },
     "validation": {
       "usernameCannotChange": "Username cannot be changed"
@@ -1642,6 +1644,7 @@
     }
   },
   "News": {
+    "selectTargetRole":"Select role",
     "newsList": "News List",
     "newsDetail": "News Detail",
     "createNews": "Create News",
@@ -2011,7 +2014,10 @@
       "cannotIdentifyAccountForDelete": "Unable to identify account to delete.",
       "deleteNotConfigured": "Delete function is not configured.",
       "cannotDeleteInactiveAccount": "Cannot delete inactive account.",
-      "noPermissionToEditAdmin": "You do not have permission to delete admin account."
+      "noPermissionToEditAdmin": "You do not have permission to delete admin account.",
+      "cannotDeleteActiveAdmin": "Cannot delete active admin account.",
+      "cannotDeleteActiveResident": "Cannot delete active resident account.",
+      "cannotChangeAdminStatus": "Cannot change status of admin account."
     }
   },
   "Noti" : {
@@ -2974,7 +2980,7 @@
     "targetRole": "Target Role",
     "selectTargetRole": "Select target role",
     "all": "All",
-    "admin": "Administrator",
+    "admin": "Admin",
     "technician": "Technician",
     "supporter": "Supporter",
     "account": "Accountant",

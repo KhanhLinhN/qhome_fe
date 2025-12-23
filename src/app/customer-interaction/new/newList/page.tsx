@@ -324,9 +324,7 @@ export default function NewsList() {
                                         { name: t('allStatus'), value: '' },
                                         { name: t('draft'), value: 'DRAFT' },
                                         { name: t('scheduled'), value: 'SCHEDULED' },
-                                        { name: t('published'), value: 'PUBLISHED' },
-                                        { name: t('hidden'), value: 'HIDDEN' },
-                                        { name: t('expired'), value: 'EXPIRED' },
+                                        { name: t('published'), value: 'PUBLISHED' }
                                     ]}
                                     value={selectedStatus}
                                     onSelect={handleStatusChange}
@@ -411,9 +409,6 @@ export default function NewsList() {
                                                         </option>
                                                     );
                                                 })()}
-                                                <option value="HIDDEN">{t('hidden')}</option>
-                                                <option value="EXPIRED">{t('expired')}</option>
-                                                <option value="ARCHIVED">{t('archived')}</option>
                                             </select>
                                         </div>
                                         <div className="flex flex-col">
@@ -447,8 +442,7 @@ export default function NewsList() {
                                                         { name: t('targetRoleAdmin'), value: 'ADMIN' },
                                                         { name: t('targetRoleTechnician'), value: 'TECHNICIAN' },
                                                         { name: t('targetRoleSupporter'), value: 'SUPPORTER' },
-                                                        { name: t('targetRoleAccount'), value: 'ACCOUNT' },
-                                                        { name: t('targetRoleResident'), value: 'RESIDENT' },
+                                                        { name: t('targetRoleAccount'), value: 'ACCOUNT' }
                                                     ]}
                                                     value={changeTargetRole}
                                                     onSelect={(item) => setChangeTargetRole(item.value)}
